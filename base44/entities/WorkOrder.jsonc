@@ -1,0 +1,82 @@
+{
+  "name": "WorkOrder",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del parte de trabajo"
+    },
+    "client": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "project": {
+      "type": "string",
+      "description": "Nombre de la obra"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n del trabajo realizado"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "en_curso",
+        "completado"
+      ],
+      "default": "pendiente",
+      "description": "Estado del parte"
+    },
+    "workers": {
+      "type": "array",
+      "description": "Operarios asignados",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "hours": {
+            "type": "number"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "materials": {
+      "type": "array",
+      "description": "Materiales utilizados",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "total_hours": {
+      "type": "number",
+      "description": "Total de horas trabajadas"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones adicionales"
+    }
+  },
+  "required": [
+    "date",
+    "client",
+    "project"
+  ]
+}
