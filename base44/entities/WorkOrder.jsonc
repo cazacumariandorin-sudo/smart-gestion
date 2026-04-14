@@ -2,14 +2,22 @@
   "name": "WorkOrder",
   "type": "object",
   "properties": {
+    "order_number": {
+      "type": "string",
+      "description": "N\u00famero de orden de trabajo"
+    },
     "date": {
       "type": "string",
       "format": "date",
       "description": "Fecha del parte de trabajo"
     },
-    "client": {
+    "client_id": {
       "type": "string",
-      "description": "Nombre del cliente"
+      "description": "ID del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (copia)"
     },
     "project": {
       "type": "string",
@@ -76,7 +84,7 @@
   },
   "required": [
     "date",
-    "client",
+    "client_id",
     "project"
   ]
 }

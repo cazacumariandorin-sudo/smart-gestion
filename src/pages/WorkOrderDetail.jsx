@@ -15,15 +15,8 @@ import { es } from 'date-fns/locale';
 import WorkerFields from '@/components/workorders/WorkerFields';
 import MaterialFields from '@/components/workorders/MaterialFields';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
 const statusConfig = {
@@ -33,7 +26,6 @@ const statusConfig = {
 };
 
 export default function WorkOrderDetail() {
-  const urlParams = new URLSearchParams(window.location.search);
   const orderId = window.location.pathname.split('/').pop();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -47,6 +39,11 @@ export default function WorkOrderDetail() {
       return orders[0];
     },
     enabled: !!orderId,
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => base44.entities.Client.list('name', 200),
   });
 
   const updateMutation = useMutation({
@@ -69,7 +66,8 @@ export default function WorkOrderDetail() {
   const startEditing = () => {
     setForm({
       date: order.date || '',
-      client: order.client || '',
+      client_id: order.client_id || '',
+      client_name: order.client_name || '',
       project: order.project || '',
       description: order.description || '',
       status: order.status || 'pendiente',
@@ -85,8 +83,11 @@ export default function WorkOrderDetail() {
     updateMutation.mutate({ ...form, total_hours: totalHours });
   };
 
-  const updateField = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }));
+  const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleClientChange = (clientId) => {
+    const client = clients.find(c => c.id === clientId);
+    setForm(prev => ({ ...prev, client_id: clientId, client_name: client?.name || '' }));
   };
 
   if (isLoading) {
@@ -98,11 +99,7 @@ export default function WorkOrderDetail() {
   }
 
   if (!order) {
-    return (
-      <div className="p-8 text-center">
-        <p className="text-muted-foreground">Parte no encontrado</p>
-      </div>
-    );
+    return <div className="p-8 text-center"><p className="text-muted-foreground">Parte no encontrado</p></div>;
   }
 
   const status = statusConfig[order.status] || statusConfig.pendiente;
@@ -116,7 +113,6 @@ export default function WorkOrderDetail() {
           </Button>
           <h1 className="text-xl font-bold">Editar Parte</h1>
         </div>
-
         <div className="space-y-6">
           <Card className="p-5 space-y-4">
             <h2 className="font-semibold text-sm">Información General</h2>
@@ -138,7 +134,16 @@ export default function WorkOrderDetail() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Cliente</Label>
-                <Input value={form.client} onChange={(e) => updateField('client', e.target.value)} />
+                <Select value={form.client_id} onValueChange={handleClientChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar cliente..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Obra</Label>
@@ -150,20 +155,16 @@ export default function WorkOrderDetail() {
               <Textarea value={form.description} onChange={(e) => updateField('description', e.target.value)} rows={3} />
             </div>
           </Card>
-
           <Card className="p-5">
             <WorkerFields workers={form.workers} onChange={(w) => updateField('workers', w)} />
           </Card>
-
           <Card className="p-5">
             <MaterialFields materials={form.materials} onChange={(m) => updateField('materials', m)} />
           </Card>
-
           <Card className="p-5 space-y-3">
             <Label className="text-sm font-semibold">Observaciones</Label>
             <Textarea value={form.notes} onChange={(e) => updateField('notes', e.target.value)} rows={2} />
           </Card>
-
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setEditing(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2 min-w-32">
@@ -178,7 +179,6 @@ export default function WorkOrderDetail() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate('/work-orders')}>
@@ -186,7 +186,7 @@ export default function WorkOrderDetail() {
           </Button>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{order.project}</h1>
-            <p className="text-sm text-muted-foreground">{order.client}</p>
+            <p className="text-sm text-muted-foreground">{order.client_name || order.client}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -215,7 +215,6 @@ export default function WorkOrderDetail() {
         </div>
       </div>
 
-      {/* Status & Info */}
       <Card className="p-5 mb-4">
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <Badge variant="outline" className={`${status.className} font-medium`}>
@@ -235,7 +234,6 @@ export default function WorkOrderDetail() {
         )}
       </Card>
 
-      {/* Workers */}
       <Card className="p-5 mb-4">
         <h3 className="font-semibold text-sm flex items-center gap-2 mb-3">
           <Users className="w-4 h-4 text-primary" /> Operarios ({order.workers?.length || 0})
@@ -257,7 +255,6 @@ export default function WorkOrderDetail() {
         )}
       </Card>
 
-      {/* Materials */}
       <Card className="p-5 mb-4">
         <h3 className="font-semibold text-sm flex items-center gap-2 mb-3">
           <Package className="w-4 h-4 text-primary" /> Materiales ({order.materials?.length || 0})
@@ -276,7 +273,6 @@ export default function WorkOrderDetail() {
         )}
       </Card>
 
-      {/* Notes */}
       {order.notes && (
         <Card className="p-5">
           <h3 className="font-semibold text-sm mb-2">Observaciones</h3>

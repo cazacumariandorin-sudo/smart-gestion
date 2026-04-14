@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
@@ -11,18 +11,32 @@ import WorkOrderCard from '@/components/workorders/WorkOrderCard';
 export default function WorkOrders() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [clientFilter, setClientFilter] = useState('all');
+
+  // Read client param from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const clientId = params.get('client');
+    if (clientId) setClientFilter(clientId);
+  }, []);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['workorders'],
-    queryFn: () => base44.entities.WorkOrder.list('-date', 100),
+    queryFn: () => base44.entities.WorkOrder.list('-date', 200),
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => base44.entities.Client.list('name', 200),
   });
 
   const filtered = orders.filter(order => {
     const matchesSearch = !search ||
       order.project?.toLowerCase().includes(search.toLowerCase()) ||
-      order.client?.toLowerCase().includes(search.toLowerCase());
+      order.client_name?.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesClient = clientFilter === 'all' || order.client_id === clientFilter;
+    return matchesSearch && matchesStatus && matchesClient;
   });
 
   return (
@@ -40,19 +54,24 @@ export default function WorkOrders() {
         </Link>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por obra o cliente..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+          <Input placeholder="Buscar por obra o cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
+        <Select value={clientFilter} onValueChange={setClientFilter}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Cliente" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los clientes</SelectItem>
+            {clients.map(c => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-44">
+          <SelectTrigger className="w-full sm:w-40">
             <Filter className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
@@ -65,12 +84,9 @@ export default function WorkOrders() {
         </Select>
       </div>
 
-      {/* List */}
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="h-32 rounded-xl bg-muted animate-pulse" />
-          ))}
+          {[1,2,3,4,5,6].map(i => <div key={i} className="h-32 rounded-xl bg-muted animate-pulse" />)}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 border border-dashed rounded-xl">

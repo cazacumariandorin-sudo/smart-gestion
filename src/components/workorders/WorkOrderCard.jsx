@@ -24,7 +24,7 @@ export default function WorkOrderCard({ order }) {
             <h3 className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
               {order.project}
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">{order.client}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{order.client_name || order.client}</p>
           </div>
           <Badge variant="outline" className={`${status.className} text-[10px] font-medium ml-2 shrink-0`}>
             {status.label}

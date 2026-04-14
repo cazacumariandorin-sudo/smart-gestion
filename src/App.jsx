@@ -7,9 +7,11 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AppLayout from './components/layout/AppLayout';
 import Dashboard from './pages/Dashboard';
+import Clients from './pages/Clients';
 import WorkOrders from './pages/WorkOrders';
 import CreateWorkOrder from './pages/CreateWorkOrder';
 import WorkOrderDetail from './pages/WorkOrderDetail';
+import MonthlyReport from './pages/MonthlyReport';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -42,6 +44,8 @@ const AuthenticatedApp = () => {
         <Route path="/work-orders" element={<WorkOrders />} />
         <Route path="/work-orders/new" element={<CreateWorkOrder />} />
         <Route path="/work-orders/:id" element={<WorkOrderDetail />} />
+        <Route path="/clients" element={<Clients />} />
+        <Route path="/reports" element={<MonthlyReport />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

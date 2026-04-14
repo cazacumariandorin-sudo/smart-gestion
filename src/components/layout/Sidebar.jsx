@@ -1,11 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Plus, HardHat } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { label: 'Panel', path: '/', icon: LayoutDashboard },
+  { label: 'Clientes', path: '/clients', icon: Users },
   { label: 'Partes de Trabajo', path: '/work-orders', icon: ClipboardList },
   { label: 'Nuevo Parte', path: '/work-orders/new', icon: Plus },
+  { label: 'Informe Mensual', path: '/reports', icon: BarChart3 },
 ];
 
 export default function Sidebar() {
@@ -26,7 +28,7 @@ export default function Sidebar() {
       </div>
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path || 
+          const isActive = location.pathname === item.path ||
             (item.path !== '/' && location.pathname.startsWith(item.path));
           return (
             <Link

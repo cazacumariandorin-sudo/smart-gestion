@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,9 +16,15 @@ export default function CreateWorkOrder() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => base44.entities.Client.list('name', 200),
+  });
+
   const [form, setForm] = useState({
     date: new Date().toISOString().split('T')[0],
-    client: '',
+    client_id: '',
+    client_name: '',
     project: '',
     description: '',
     status: 'pendiente',
@@ -41,8 +47,11 @@ export default function CreateWorkOrder() {
     mutation.mutate({ ...form, total_hours: totalHours });
   };
 
-  const updateField = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }));
+  const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleClientChange = (clientId) => {
+    const client = clients.find(c => c.id === clientId);
+    setForm(prev => ({ ...prev, client_id: clientId, client_name: client?.name || '' }));
   };
 
   return (
@@ -58,25 +67,17 @@ export default function CreateWorkOrder() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* General Info */}
         <Card className="p-5 space-y-4">
           <h2 className="font-semibold text-sm">Información General</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs">Fecha *</Label>
-              <Input
-                type="date"
-                value={form.date}
-                onChange={(e) => updateField('date', e.target.value)}
-                required
-              />
+              <Input type="date" value={form.date} onChange={(e) => updateField('date', e.target.value)} required />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Estado</Label>
               <Select value={form.status} onValueChange={(v) => updateField('status', v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pendiente">Pendiente</SelectItem>
                   <SelectItem value="en_curso">En curso</SelectItem>
@@ -86,66 +87,45 @@ export default function CreateWorkOrder() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Cliente *</Label>
-              <Input
-                placeholder="Nombre del cliente"
-                value={form.client}
-                onChange={(e) => updateField('client', e.target.value)}
-                required
-              />
+              <Select value={form.client_id} onValueChange={handleClientChange} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar cliente..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Obra *</Label>
-              <Input
-                placeholder="Nombre de la obra"
-                value={form.project}
-                onChange={(e) => updateField('project', e.target.value)}
-                required
-              />
+              <Input placeholder="Nombre de la obra" value={form.project} onChange={(e) => updateField('project', e.target.value)} required />
             </div>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Descripción</Label>
-            <Textarea
-              placeholder="Descripción del trabajo realizado..."
-              value={form.description}
-              onChange={(e) => updateField('description', e.target.value)}
-              rows={3}
-            />
+            <Textarea placeholder="Descripción del trabajo realizado..." value={form.description} onChange={(e) => updateField('description', e.target.value)} rows={3} />
           </div>
         </Card>
 
-        {/* Workers */}
         <Card className="p-5">
           <WorkerFields workers={form.workers} onChange={(w) => updateField('workers', w)} />
         </Card>
 
-        {/* Materials */}
         <Card className="p-5">
           <MaterialFields materials={form.materials} onChange={(m) => updateField('materials', m)} />
         </Card>
 
-        {/* Notes */}
         <Card className="p-5 space-y-3">
           <Label className="text-sm font-semibold">Observaciones</Label>
-          <Textarea
-            placeholder="Notas adicionales..."
-            value={form.notes}
-            onChange={(e) => updateField('notes', e.target.value)}
-            rows={2}
-          />
+          <Textarea placeholder="Notas adicionales..." value={form.notes} onChange={(e) => updateField('notes', e.target.value)} rows={2} />
         </Card>
 
-        {/* Submit */}
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="outline" onClick={() => navigate(-1)}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={mutation.isPending} className="gap-2 min-w-32">
-            {mutation.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
+          <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancelar</Button>
+          <Button type="submit" disabled={mutation.isPending || !form.client_id} className="gap-2 min-w-32">
+            {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Guardar Parte
           </Button>
         </div>

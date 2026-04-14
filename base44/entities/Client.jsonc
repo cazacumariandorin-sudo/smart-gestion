@@ -1,0 +1,38 @@
+{
+  "name": "Client",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "contact_person": {
+      "type": "string",
+      "description": "Persona de contacto"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono"
+    },
+    "email": {
+      "type": "string",
+      "description": "Correo electr\u00f3nico"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Cliente activo"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
