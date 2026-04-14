@@ -1,12 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Plus, Users, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Plus, BarChart3, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { label: 'Panel', path: '/', icon: LayoutDashboard },
-  { label: 'Clientes', path: '/clients', icon: Users },
   { label: 'Partes', path: '/work-orders', icon: ClipboardList },
   { label: 'Nuevo', path: '/work-orders/new', icon: Plus },
+  { label: 'Fotos', path: '/photos', icon: Camera },
   { label: 'Informe', path: '/reports', icon: BarChart3 },
 ];
 

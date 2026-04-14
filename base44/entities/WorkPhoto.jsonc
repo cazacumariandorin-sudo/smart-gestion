@@ -1,0 +1,39 @@
+{
+  "name": "WorkPhoto",
+  "type": "object",
+  "properties": {
+    "work_order_id": {
+      "type": "string",
+      "description": "ID del parte de trabajo"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "project": {
+      "type": "string",
+      "description": "Nombre de la obra"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la foto"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "URL de la foto"
+    },
+    "caption": {
+      "type": "string",
+      "description": "Descripci\u00f3n de la foto"
+    }
+  },
+  "required": [
+    "photo_url",
+    "date"
+  ]
+}

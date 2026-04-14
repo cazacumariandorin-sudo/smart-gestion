@@ -12,6 +12,8 @@ import WorkOrders from './pages/WorkOrders';
 import CreateWorkOrder from './pages/CreateWorkOrder';
 import WorkOrderDetail from './pages/WorkOrderDetail';
 import MonthlyReport from './pages/MonthlyReport';
+import PhotoGallery from './pages/PhotoGallery';
+import Users from './pages/Users';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -46,6 +48,8 @@ const AuthenticatedApp = () => {
         <Route path="/work-orders/:id" element={<WorkOrderDetail />} />
         <Route path="/clients" element={<Clients />} />
         <Route path="/reports" element={<MonthlyReport />} />
+        <Route path="/photos" element={<PhotoGallery />} />
+        <Route path="/users" element={<Users />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

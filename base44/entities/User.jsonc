@@ -1,0 +1,16 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "encargado",
+        "operario"
+      ],
+      "default": "operario",
+      "description": "Rol del usuario en la app"
+    }
+  }
+}

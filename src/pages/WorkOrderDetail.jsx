@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import WorkerFields from '@/components/workorders/WorkerFields';
 import MaterialFields from '@/components/workorders/MaterialFields';
+import PhotoUploader from '@/components/workorders/PhotoUploader';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -274,11 +275,21 @@ export default function WorkOrderDetail() {
       </Card>
 
       {order.notes && (
-        <Card className="p-5">
+        <Card className="p-5 mb-4">
           <h3 className="font-semibold text-sm mb-2">Observaciones</h3>
           <p className="text-sm text-muted-foreground leading-relaxed">{order.notes}</p>
         </Card>
       )}
+
+      <Card className="p-5">
+        <PhotoUploader
+          workOrderId={order.id}
+          clientId={order.client_id}
+          clientName={order.client_name}
+          project={order.project}
+          date={order.date}
+        />
+      </Card>
     </div>
   );
 }

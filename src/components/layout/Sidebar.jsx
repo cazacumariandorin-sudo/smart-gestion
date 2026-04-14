@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -7,7 +7,9 @@ const navItems = [
   { label: 'Clientes', path: '/clients', icon: Users },
   { label: 'Partes de Trabajo', path: '/work-orders', icon: ClipboardList },
   { label: 'Nuevo Parte', path: '/work-orders/new', icon: Plus },
+  { label: 'Galería de Fotos', path: '/photos', icon: Camera },
   { label: 'Informe Mensual', path: '/reports', icon: BarChart3 },
+  { label: 'Usuarios', path: '/users', icon: UserCog },
 ];
 
 export default function Sidebar() {
@@ -26,7 +28,7 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path ||
             (item.path !== '/' && location.pathname.startsWith(item.path));
