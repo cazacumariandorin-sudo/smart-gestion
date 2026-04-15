@@ -4,6 +4,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
+import { I18nProvider } from './lib/i18n';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -17,6 +18,9 @@ import MonthlyReport from './pages/MonthlyReport';
 import PhotoGallery from './pages/PhotoGallery';
 import Users from './pages/Users';
 import Profile from './pages/Profile';
+import MaterialCatalog from './pages/MaterialCatalog';
+import Drawings from './pages/Drawings';
+import Orders from './pages/Orders';
 
 // Apply dark class based on system preference
 function ThemeDetector() {
@@ -54,6 +58,9 @@ function AnimatedRoutes() {
             <Route path="/photos" element={<PhotoGallery />} />
             <Route path="/users" element={<Users />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/materials" element={<MaterialCatalog />} />
+            <Route path="/drawings" element={<Drawings />} />
+            <Route path="/orders" element={<Orders />} />
           </Route>
           <Route path="*" element={<PageNotFound />} />
         </Routes>
@@ -94,13 +101,15 @@ function App() {
 
   return (
     <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <ThemeDetector />
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
+      <I18nProvider>
+        <QueryClientProvider client={queryClientInstance}>
+          <Router>
+            <ThemeDetector />
+            <AuthenticatedApp />
+          </Router>
+          <Toaster />
+        </QueryClientProvider>
+      </I18nProvider>
     </AuthProvider>
   )
 }

@@ -1,0 +1,47 @@
+{
+  "name": "Drawing",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo del plano"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Referencia / n\u00famero"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "project": {
+      "type": "string",
+      "description": "Obra"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del plano"
+    },
+    "version": {
+      "type": "string",
+      "description": "Versi\u00f3n"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL del archivo (PDF/imagen)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "title",
+    "client_id"
+  ]
+}

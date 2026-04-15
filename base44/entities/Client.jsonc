@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Nombre del cliente"
     },
+    "nif": {
+      "type": "string",
+      "description": "NIF / CIF"
+    },
     "contact_person": {
       "type": "string",
       "description": "Persona de contacto"
@@ -34,5 +38,48 @@
   },
   "required": [
     "name"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "encargado"
+          ]
+        }
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "encargado",
+            "operario"
+          ]
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "encargado"
+          ]
+        }
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "encargado"
+          ]
+        }
+      }
+    }
+  }
 }

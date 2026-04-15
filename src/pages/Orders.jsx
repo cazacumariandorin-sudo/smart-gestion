@@ -1,0 +1,344 @@
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { useI18n } from '@/lib/i18n';
+import { Plus, Search, Pencil, Trash2, ShoppingCart, Loader2, Save, Truck, Package, Euro, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+const statusCfg = {
+  pendiente:   { label: 'Pendiente',   className: 'bg-amber-100 text-amber-700 border-amber-200' },
+  confirmado:  { label: 'Confirmado',  className: 'bg-blue-100 text-blue-700 border-blue-200' },
+  en_transito: { label: 'En tránsito', className: 'bg-purple-100 text-purple-700 border-purple-200' },
+  entregado:   { label: 'Entregado',   className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  cancelado:   { label: 'Cancelado',   className: 'bg-red-100 text-red-700 border-red-200' },
+};
+
+const emptyOrder = {
+  order_number: '', client_id: '', client_name: '', project: '',
+  date: new Date().toISOString().split('T')[0], expected_delivery: '',
+  status: 'pendiente', supplier: '', items: [], notes: '', tracking_number: '', total_amount: 0,
+};
+const emptyItem = { material_id: '', material_name: '', quantity: 1, unit: '', unit_price: 0, total_price: 0 };
+
+export default function Orders() {
+  const { t } = useI18n();
+  const qc = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [clientFilter, setClientFilter] = useState('all');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(emptyOrder);
+  const [expandedId, setExpandedId] = useState(null);
+
+  const { data: orders = [], isLoading } = useQuery({ queryKey: ['orders'], queryFn: () => base44.entities.Order.list('-date', 300) });
+  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
+  const { data: materials = [] } = useQuery({ queryKey: ['material_catalog'], queryFn: () => base44.entities.MaterialCatalog.list('name', 500) });
+
+  const createM = useMutation({ mutationFn: d => base44.entities.Order.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['orders'] }); close_(); } });
+  const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Order.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['orders'] }); close_(); } });
+  const deleteM = useMutation({ mutationFn: id => base44.entities.Order.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }) });
+
+  const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setDialogOpen(true); };
+  const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyOrder); };
+  const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const handleClientChange = (id) => {
+    const c = clients.find(c => c.id === id);
+    setForm(p => ({ ...p, client_id: id, client_name: c?.name || '' }));
+  };
+
+  // Items management
+  const addItem = () => setForm(p => ({ ...p, items: [...p.items, { ...emptyItem }] }));
+  const removeItem = (i) => setForm(p => {
+    const items = p.items.filter((_, idx) => idx !== i);
+    return { ...p, items, total_amount: items.reduce((s, it) => s + (it.total_price || 0), 0) };
+  });
+  const updateItem = (i, field, val) => setForm(p => {
+    const items = [...p.items];
+    items[i] = { ...items[i], [field]: val };
+    if (field === 'quantity' || field === 'unit_price') {
+      items[i].total_price = (parseFloat(items[i].quantity) || 0) * (parseFloat(items[i].unit_price) || 0);
+    }
+    const total_amount = items.reduce((s, it) => s + (it.total_price || 0), 0);
+    return { ...p, items, total_amount };
+  });
+  const selectMaterial = (i, matId) => {
+    const mat = materials.find(m => m.id === matId);
+    if (!mat) return;
+    setForm(p => {
+      const items = [...p.items];
+      items[i] = {
+        ...items[i],
+        material_id: mat.id,
+        material_name: mat.name,
+        unit: mat.unit || '',
+        unit_price: mat.unit_price || 0,
+        total_price: (parseFloat(items[i].quantity) || 1) * (mat.unit_price || 0),
+      };
+      return { ...p, items, total_amount: items.reduce((s, it) => s + (it.total_price || 0), 0) };
+    });
+  };
+
+  const handleSave = () => {
+    const data = { ...form, total_amount: form.items.reduce((s, it) => s + (it.total_price || 0), 0) };
+    if (editing) updateM.mutate({ id: editing.id, d: data });
+    else createM.mutate(data);
+  };
+
+  const quickStatus = (order, newStatus) => {
+    updateM.mutate({ id: order.id, d: { ...order, status: newStatus } });
+  };
+
+  const filtered = orders.filter(o => {
+    const q = search.toLowerCase();
+    const matchQ = !search || o.project?.toLowerCase().includes(q) || o.client_name?.toLowerCase().includes(q) || o.order_number?.toLowerCase().includes(q) || o.supplier?.toLowerCase().includes(q);
+    const matchS = statusFilter === 'all' || o.status === statusFilter;
+    const matchC = clientFilter === 'all' || o.client_id === clientFilter;
+    return matchQ && matchS && matchC;
+  });
+
+  const isPending = createM.isPending || updateM.isPending;
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <ShoppingCart className="w-7 h-7 text-primary" /> {t('orders')}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">{filtered.length} pedidos</p>
+        </div>
+        <Button onClick={() => open_()} className="gap-2 shadow-sm">
+          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">{t('new_order')}</span>
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder={t('search') + '...'} value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <Select value={clientFilter} onValueChange={setClientFilter}>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder={t('client')} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('all')}</SelectItem>
+            {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder={t('status')} /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('all')}</SelectItem>
+            {Object.entries(statusCfg).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Summary badges */}
+      <div className="flex gap-2 flex-wrap mb-6">
+        {Object.entries(statusCfg).map(([k, v]) => {
+          const count = orders.filter(o => o.status === k).length;
+          if (!count) return null;
+          return <Badge key={k} variant="outline" className={`${v.className} text-xs`}>{v.label}: {count}</Badge>;
+        })}
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />)}</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 border border-dashed rounded-xl">
+          <ShoppingCart className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground mb-3">No hay pedidos</p>
+          <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2"><Plus className="w-3.5 h-3.5" /> {t('new_order')}</Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(order => {
+            const cfg = statusCfg[order.status] || statusCfg.pendiente;
+            const isExpanded = expandedId === order.id;
+            return (
+              <Card key={order.id} className="overflow-hidden">
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {order.order_number && <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{order.order_number}</span>}
+                        <h3 className="font-semibold text-sm truncate">{order.project}</h3>
+                        <Badge variant="outline" className={`${cfg.className} text-[10px]`}>{cfg.label}</Badge>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                        <span>{order.client_name}</span>
+                        {order.supplier && <span>· {order.supplier}</span>}
+                        {order.date && <span>· {format(parseISO(order.date), 'd MMM yyyy', { locale: es })}</span>}
+                        {order.total_amount > 0 && <span className="font-semibold text-foreground">· {order.total_amount.toFixed(2)} €</span>}
+                      </div>
+                      {order.tracking_number && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                          <Truck className="w-3 h-3" /> {order.tracking_number}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Quick status change */}
+                      <Select value={order.status} onValueChange={v => quickStatus(order, v)}>
+                        <SelectTrigger className="h-7 w-32 text-xs border-0 bg-transparent p-0 shadow-none focus:ring-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(statusCfg).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(order)}><Pencil className="w-3 h-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setExpandedId(isExpanded ? null : order.id)}>
+                        {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button></AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>¿Eliminar pedido?</AlertDialogTitle><AlertDialogDescription>El pedido será eliminado permanentemente.</AlertDialogDescription></AlertDialogHeader>
+                          <AlertDialogFooter><AlertDialogCancel>{t('cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => deleteM.mutate(order.id)} className="bg-destructive text-destructive-foreground">{t('delete')}</AlertDialogAction></AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                </div>
+                {/* Expanded items */}
+                {isExpanded && order.items?.length > 0 && (
+                  <div className="border-t border-border bg-muted/30 px-4 py-3">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">LÍNEAS DEL PEDIDO</p>
+                    <div className="space-y-1.5">
+                      {order.items.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs bg-card rounded-lg px-3 py-2">
+                          <span className="font-medium">{item.material_name}</span>
+                          <div className="flex items-center gap-4 text-muted-foreground">
+                            <span>{item.quantity} {item.unit}</span>
+                            {item.unit_price > 0 && <span>{item.unit_price.toFixed(2)} €/{item.unit}</span>}
+                            {item.total_price > 0 && <span className="font-semibold text-foreground">{item.total_price.toFixed(2)} €</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {order.notes && <p className="text-xs text-muted-foreground mt-2 italic">{order.notes}</p>}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editing ? t('edit') : t('new_order')}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Header info */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t('order_number')}</Label>
+                <Input value={form.order_number} onChange={e => setField('order_number', e.target.value)} placeholder="PED-001" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t('status')}</Label>
+                <Select value={form.status} onValueChange={v => setField('status', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(statusCfg).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t('client')} *</Label>
+                <Select value={form.client_id} onValueChange={handleClientChange}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t('project')} *</Label>
+                <Input value={form.project} onChange={e => setField('project', e.target.value)} placeholder="Obra..." />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t('date')}</Label>
+                <Input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t('expected_delivery')}</Label>
+                <Input type="date" value={form.expected_delivery} onChange={e => setField('expected_delivery', e.target.value)} />
+              </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label className="text-xs">{t('supplier')}</Label>
+                <Input value={form.supplier} onChange={e => setField('supplier', e.target.value)} placeholder="Nombre del proveedor" />
+              </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label className="text-xs">{t('tracking')}</Label>
+                <Input value={form.tracking_number} onChange={e => setField('tracking_number', e.target.value)} placeholder="Número de seguimiento..." />
+              </div>
+            </div>
+
+            {/* Items */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold flex items-center gap-2"><Package className="w-4 h-4 text-primary" /> Líneas del pedido</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addItem} className="h-8 text-xs gap-1"><Plus className="w-3 h-3" /> {t('add')}</Button>
+              </div>
+              {form.items.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded-lg">Sin líneas. Pulsa "Añadir" para agregar materiales.</p>
+              )}
+              {form.items.map((item, i) => (
+                <div key={i} className="bg-muted/40 rounded-lg p-3 space-y-2">
+                  <div className="flex gap-2">
+                    <Select value={item.material_id} onValueChange={v => selectMaterial(i, v)}>
+                      <SelectTrigger className="flex-1 h-8 text-xs"><SelectValue placeholder="Material del catálogo..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_manual">— Introducir manualmente —</SelectItem>
+                        {materials.map(m => <SelectItem key={m.id} value={m.id}>{m.name} {m.unit_price > 0 ? `(${m.unit_price}€/${m.unit})` : ''}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive" onClick={() => removeItem(i)}><X className="w-3.5 h-3.5" /></Button>
+                  </div>
+                  {(item.material_id === '_manual' || !item.material_id) && (
+                    <Input placeholder="Nombre del material" value={item.material_name} onChange={e => updateItem(i, 'material_name', e.target.value)} className="h-8 text-xs" />
+                  )}
+                  <div className="grid grid-cols-4 gap-2">
+                    <Input type="number" placeholder="Cant." value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} className="h-8 text-xs" min="0" step="0.01" />
+                    <Input placeholder="Ud." value={item.unit} onChange={e => updateItem(i, 'unit', e.target.value)} className="h-8 text-xs" />
+                    <Input type="number" placeholder="€/ud" value={item.unit_price} onChange={e => updateItem(i, 'unit_price', e.target.value)} className="h-8 text-xs" min="0" step="0.01" />
+                    <div className="h-8 flex items-center justify-end text-xs font-semibold text-primary">{(item.total_price || 0).toFixed(2)} €</div>
+                  </div>
+                </div>
+              ))}
+              {form.items.length > 0 && (
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <span className="text-sm text-muted-foreground">Total:</span>
+                  <span className="text-lg font-bold text-primary">{form.total_amount?.toFixed(2) || '0.00'} €</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t('notes')}</Label>
+              <Textarea value={form.notes} onChange={e => setField('notes', e.target.value)} rows={2} placeholder="Observaciones..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={close_}>{t('cancel')}</Button>
+            <Button onClick={handleSave} disabled={!form.client_id || !form.project || isPending} className="gap-2 min-w-28">
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {t('save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

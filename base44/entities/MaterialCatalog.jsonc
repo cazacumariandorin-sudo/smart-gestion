@@ -1,0 +1,45 @@
+{
+  "name": "MaterialCatalog",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del material"
+    },
+    "code": {
+      "type": "string",
+      "description": "C\u00f3digo / referencia"
+    },
+    "category": {
+      "type": "string",
+      "description": "Categor\u00eda"
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unidad de medida (m, kg, ud, m\u00b2, ...)"
+    },
+    "unit_price": {
+      "type": "number",
+      "description": "Precio unitario (\u20ac)"
+    },
+    "supplier": {
+      "type": "string",
+      "description": "Proveedor"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n / especificaciones"
+    },
+    "manual_url": {
+      "type": "string",
+      "description": "URL del manual / ficha t\u00e9cnica"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

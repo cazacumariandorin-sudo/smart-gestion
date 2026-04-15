@@ -1,0 +1,92 @@
+{
+  "name": "Order",
+  "type": "object",
+  "properties": {
+    "order_number": {
+      "type": "string",
+      "description": "N\u00famero de pedido"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "project": {
+      "type": "string",
+      "description": "Obra"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del pedido"
+    },
+    "expected_delivery": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de entrega prevista"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "confirmado",
+        "en_transito",
+        "entregado",
+        "cancelado"
+      ],
+      "default": "pendiente",
+      "description": "Estado del pedido"
+    },
+    "supplier": {
+      "type": "string",
+      "description": "Proveedor"
+    },
+    "items": {
+      "type": "array",
+      "description": "L\u00edneas del pedido",
+      "items": {
+        "type": "object",
+        "properties": {
+          "material_id": {
+            "type": "string"
+          },
+          "material_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unit_price": {
+            "type": "number"
+          },
+          "total_price": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Importe total (\u20ac)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "N\u00famero de seguimiento"
+    }
+  },
+  "required": [
+    "client_id",
+    "project",
+    "date"
+  ]
+}

@@ -17,7 +17,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-const emptyClient = { name: '', contact_person: '', phone: '', email: '', address: '', notes: '', active: true };
+const emptyClient = { name: '', nif: '', contact_person: '', phone: '', email: '', address: '', notes: '', active: true };
 
 export default function Clients() {
   const [search, setSearch] = useState('');
@@ -106,6 +106,7 @@ export default function Clients() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-sm truncate">{client.name}</h3>
+                  {client.nif && <p className="text-xs font-mono text-muted-foreground mt-0.5">{client.nif}</p>}
                   {client.contact_person && (
                     <p className="text-xs text-muted-foreground mt-0.5">{client.contact_person}</p>
                   )}
@@ -174,9 +175,15 @@ export default function Clients() {
             <DialogTitle>{editing ? 'Editar Cliente' : 'Nuevo Cliente'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Nombre *</Label>
-              <Input placeholder="Nombre del cliente" value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nombre *</Label>
+                <Input placeholder="Nombre del cliente" value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">NIF / CIF</Label>
+                <Input placeholder="B12345678" value={form.nif || ''} onChange={e => setForm(p => ({...p, nif: e.target.value}))} className="font-mono" />
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Persona de contacto</Label>
