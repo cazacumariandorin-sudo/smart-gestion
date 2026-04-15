@@ -1,7 +1,9 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect } from 'react';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -14,6 +16,51 @@ import WorkOrderDetail from './pages/WorkOrderDetail';
 import MonthlyReport from './pages/MonthlyReport';
 import PhotoGallery from './pages/PhotoGallery';
 import Users from './pages/Users';
+import Profile from './pages/Profile';
+
+// Apply dark class based on system preference
+function ThemeDetector() {
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = (e) => document.documentElement.classList.toggle('dark', e.matches);
+    apply(mq);
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+  return null;
+}
+
+// Animated route wrapper
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.18, ease: 'easeInOut' }}
+        style={{ minHeight: '100%' }}
+      >
+        <Routes location={location}>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/work-orders" element={<WorkOrders />} />
+            <Route path="/work-orders/new" element={<CreateWorkOrder />} />
+            <Route path="/work-orders/:id" element={<WorkOrderDetail />} />
+            <Route path="/clients" element={<Clients />} />
+            <Route path="/reports" element={<MonthlyReport />} />
+            <Route path="/photos" element={<PhotoGallery />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/profile" element={<Profile />} />
+          </Route>
+          <Route path="*" element={<PageNotFound />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -39,21 +86,7 @@ const AuthenticatedApp = () => {
   }
 
   // Render the main app
-  return (
-    <Routes>
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/work-orders" element={<WorkOrders />} />
-        <Route path="/work-orders/new" element={<CreateWorkOrder />} />
-        <Route path="/work-orders/:id" element={<WorkOrderDetail />} />
-        <Route path="/clients" element={<Clients />} />
-        <Route path="/reports" element={<MonthlyReport />} />
-        <Route path="/photos" element={<PhotoGallery />} />
-        <Route path="/users" element={<Users />} />
-      </Route>
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
-  );
+  return <AnimatedRoutes />;
 };
 
 
@@ -63,6 +96,7 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
+          <ThemeDetector />
           <AuthenticatedApp />
         </Router>
         <Toaster />

@@ -1,16 +1,22 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { ClipboardList, Clock, Users, Plus, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import StatCard from '@/components/dashboard/StatCard';
 import WorkOrderCard from '@/components/workorders/WorkOrderCard';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 
 export default function Dashboard() {
+  const queryClient = useQueryClient();
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['workorders'],
     queryFn: () => base44.entities.WorkOrder.list('-created_date', 50),
   });
+
+  const onRefresh = () => queryClient.invalidateQueries({ queryKey: ['workorders'] });
+  const { pulling, pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
   const totalOrders = orders.length;
   const totalHours = orders.reduce((sum, o) => sum + (o.total_hours || 0), 0);
@@ -21,6 +27,7 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>

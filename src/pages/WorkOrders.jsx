@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,9 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import WorkOrderCard from '@/components/workorders/WorkOrderCard';
 
 export default function WorkOrders() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [clientFilter, setClientFilter] = useState('all');
+
+  const onRefresh = () => queryClient.invalidateQueries({ queryKey: ['workorders'] });
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
   // Read client param from URL
   useEffect(() => {
@@ -41,6 +47,7 @@ export default function WorkOrders() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Partes de Trabajo</h1>

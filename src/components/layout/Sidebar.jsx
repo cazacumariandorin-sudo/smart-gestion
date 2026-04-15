@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera, UserCog } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera, UserCog, CircleUser } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -29,6 +29,7 @@ export default function Sidebar() {
         </div>
       </div>
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        {/* Profile link at bottom handled separately */}
         {navItems.map((item) => {
           const isActive = location.pathname === item.path ||
             (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -49,6 +50,20 @@ export default function Sidebar() {
           );
         })}
       </nav>
+      <div className="p-4 border-t border-border">
+        <Link
+          to="/profile"
+          className={cn(
+            'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+            location.pathname === '/profile'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          )}
+        >
+          <CircleUser className="w-4 h-4" />
+          Mi Perfil
+        </Link>
+      </div>
     </aside>
   );
 }
