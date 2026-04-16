@@ -1,0 +1,34 @@
+{
+  "name": "Operario",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre completo"
+    },
+    "dni": {
+      "type": "string",
+      "description": "DNI / NIE"
+    },
+    "email": {
+      "type": "string",
+      "description": "Correo electr\u00f3nico"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono"
+    },
+    "role": {
+      "type": "string",
+      "description": "Puesto / categor\u00eda profesional"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activo"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "name": "GastoOperario",
+  "type": "object",
+  "properties": {
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del gasto"
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "combustible",
+        "material",
+        "varios",
+        "peaje",
+        "parking",
+        "adelanto"
+      ],
+      "description": "Categor\u00eda del gasto"
+    },
+    "importe": {
+      "type": "number",
+      "description": "Importe (\u20ac)"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n / concepto"
+    },
+    "proveedor": {
+      "type": "string",
+      "description": "Proveedor / establecimiento"
+    },
+    "ticket_url": {
+      "type": "string",
+      "description": "URL foto ticket/factura"
+    },
+    "ocr_raw": {
+      "type": "string",
+      "description": "Texto extra\u00eddo por OCR"
+    },
+    "work_order_id": {
+      "type": "string",
+      "description": "Parte de trabajo asociado (opcional)"
+    },
+    "project": {
+      "type": "string",
+      "description": "Obra (opcional)"
+    }
+  },
+  "required": [
+    "operario_id",
+    "date",
+    "categoria",
+    "importe"
+  ]
+}
