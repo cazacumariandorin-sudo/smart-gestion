@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera, UserCog, CircleUser, Package, FileImage, ShoppingCart, Receipt } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera, UserCog, CircleUser, Package, FileImage, ShoppingCart, Receipt, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -20,6 +20,7 @@ export default function Sidebar() {
     { label: t('nav_users'), path: '/users', icon: UserCog },
     { label: 'Operarios', path: '/operarios', icon: Users },
     { label: 'Gastos', path: '/gastos-operarios', icon: Receipt },
+    { label: 'Control Horario', path: '/control-horario', icon: Clock },
   ];
 
   return (

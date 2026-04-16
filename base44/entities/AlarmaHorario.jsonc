@@ -1,0 +1,45 @@
+{
+  "name": "AlarmaHorario",
+  "type": "object",
+  "properties": {
+    "nombre": {
+      "type": "string",
+      "description": "Nombre de la alarma"
+    },
+    "hora": {
+      "type": "string",
+      "description": "Hora de la alarma (HH:MM)"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "entrada",
+        "salida",
+        "pausa_inicio",
+        "pausa_fin"
+      ],
+      "description": "Tipo de alarma"
+    },
+    "dias": {
+      "type": "array",
+      "description": "D\u00edas activos (0=Lun, 1=Mar, 2=Mie, 3=Jue, 4=Vie, 5=Sab, 6=Dom)",
+      "items": {
+        "type": "number"
+      }
+    },
+    "activa": {
+      "type": "boolean",
+      "default": true
+    },
+    "sonido": {
+      "type": "string",
+      "default": "default",
+      "description": "Tipo de sonido"
+    }
+  },
+  "required": [
+    "nombre",
+    "hora",
+    "tipo"
+  ]
+}

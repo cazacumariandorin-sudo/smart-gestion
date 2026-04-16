@@ -1,0 +1,52 @@
+{
+  "name": "Fichaje",
+  "type": "object",
+  "properties": {
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del fichaje"
+    },
+    "hora_entrada": {
+      "type": "string",
+      "description": "Hora de entrada (HH:MM)"
+    },
+    "hora_salida": {
+      "type": "string",
+      "description": "Hora de salida (HH:MM)"
+    },
+    "pausa_inicio": {
+      "type": "string",
+      "description": "Inicio pausa comida (HH:MM)"
+    },
+    "pausa_fin": {
+      "type": "string",
+      "description": "Fin pausa comida (HH:MM)"
+    },
+    "project": {
+      "type": "string",
+      "description": "Obra donde trabaja"
+    },
+    "horas_trabajadas": {
+      "type": "number",
+      "description": "Total horas netas trabajadas"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "operario_id",
+    "date",
+    "hora_entrada"
+  ]
+}
