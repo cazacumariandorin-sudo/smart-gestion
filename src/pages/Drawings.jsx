@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useI18n } from '@/lib/i18n';
-import { Plus, Search, Pencil, Trash2, FileImage, Upload, Loader2, Save, ExternalLink, Filter } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, FileImage, Upload, Loader2, Save, ExternalLink, ChevronRight, ChevronDown, File, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,50 @@ import { es } from 'date-fns/locale';
 
 const empty = { title: '', reference: '', client_id: '', client_name: '', project: '', date: new Date().toISOString().split('T')[0], version: '', file_url: '', notes: '' };
 
+const getFileType = (url) => {
+  if (!url) return null;
+  if (/\.(png|jpg|jpeg|webp|gif|svg)$/i.test(url)) return 'image';
+  if (/\.pdf$/i.test(url)) return 'pdf';
+  if (/\.(xlsx|xls)$/i.test(url)) return 'excel';
+  if (/\.(docx|doc)$/i.test(url)) return 'word';
+  if (/\.(dxf|dwg)$/i.test(url)) return 'cad';
+  return 'file';
+};
+
+const fileTypeLabel = { image: 'Imagen', pdf: 'PDF', excel: 'Excel', word: 'Word', cad: 'CAD/DXF', file: 'Archivo' };
+const fileTypeColor = { image: 'bg-blue-100 text-blue-700', pdf: 'bg-red-100 text-red-700', excel: 'bg-green-100 text-green-700', word: 'bg-blue-100 text-blue-700', cad: 'bg-purple-100 text-purple-700', file: 'bg-gray-100 text-gray-700' };
+
+function FileViewer({ url, title }) {
+  const type = getFileType(url);
+  if (!url) return null;
+
+  if (type === 'image') {
+    return <img src={url} alt={title} className="w-full max-h-[70vh] object-contain rounded" />;
+  }
+  if (type === 'pdf') {
+    return <iframe src={url} title={title} className="w-full h-[70vh] rounded border" />;
+  }
+  if (type === 'excel' || type === 'word') {
+    const viewer = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    return <iframe src={viewer} title={title} className="w-full h-[70vh] rounded border" />;
+  }
+  if (type === 'cad') {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
+        <File className="w-16 h-16 text-purple-400" />
+        <p className="text-sm">Archivo DXF/DWG — no hay visor en línea disponible.</p>
+        <a href={url} download className="text-primary text-sm hover:underline flex items-center gap-1"><ExternalLink className="w-4 h-4" /> Descargar archivo</a>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col items-center justify-center h-40 gap-3">
+      <FileText className="w-12 h-12 text-muted-foreground" />
+      <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary text-sm hover:underline flex items-center gap-1"><ExternalLink className="w-4 h-4" /> Abrir archivo</a>
+    </div>
+  );
+}
+
 export default function Drawings() {
   const { t } = useI18n();
   const qc = useQueryClient();
@@ -26,7 +70,8 @@ export default function Drawings() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(empty);
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState(null);
+  const [viewerDoc, setViewerDoc] = useState(null);
+  const [expandedClients, setExpandedClients] = useState({});
 
   const { data: drawings = [], isLoading } = useQuery({ queryKey: ['drawings'], queryFn: () => base44.entities.Drawing.list('-date', 500) });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
@@ -63,114 +108,173 @@ export default function Drawings() {
     return matchQ && matchC;
   });
 
+  // Group by client → project
+  const grouped = useMemo(() => {
+    const map = {};
+    filtered.forEach(d => {
+      const cKey = d.client_id || '__no_client__';
+      const cName = d.client_name || 'Sin cliente';
+      if (!map[cKey]) map[cKey] = { name: cName, projects: {} };
+      const pKey = d.project || '__no_project__';
+      const pName = d.project || 'Sin obra';
+      if (!map[cKey].projects[pKey]) map[cKey].projects[pKey] = { name: pName, drawings: [] };
+      map[cKey].projects[pKey].drawings.push(d);
+    });
+    return map;
+  }, [filtered]);
+
+  const toggleClient = (k) => setExpandedClients(p => ({ ...p, [k]: !p[k] }));
   const isPending = createM.isPending || updateM.isPending;
-  const isImage = (url) => url && /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(url);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <FileImage className="w-7 h-7 text-primary" /> {t('drawings')}
+            <FileImage className="w-7 h-7 text-primary" /> Planos y Documentos
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">{filtered.length} {t('drawings').toLowerCase()}</p>
+          <p className="text-sm text-muted-foreground mt-1">{filtered.length} documentos</p>
         </div>
         <Button onClick={() => open_()} className="gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">{t('new_drawing')}</span>
+          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nuevo Documento</span>
         </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder={t('search') + '...'} value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Buscar plano, referencia, obra..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder={t('client')} /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Cliente" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t('all')} {t('clients').toLowerCase()}</SelectItem>
+            <SelectItem value="all">Todos los clientes</SelectItem>
             {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[1,2,3,4,5,6].map(i => <div key={i} className="h-48 rounded-xl bg-muted animate-pulse" />)}</div>
+        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 border border-dashed rounded-xl">
           <FileImage className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground mb-3">No hay planos</p>
-          <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2"><Plus className="w-3.5 h-3.5" /> {t('new_drawing')}</Button>
+          <p className="text-sm text-muted-foreground mb-3">No hay documentos</p>
+          <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2"><Plus className="w-3.5 h-3.5" /> Nuevo Documento</Button>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map(d => (
-            <Card key={d.id} className="overflow-hidden hover:shadow-md transition-shadow">
-              {/* Preview */}
-              {d.file_url && isImage(d.file_url) ? (
-                <div className="h-36 bg-muted cursor-pointer" onClick={() => setPreview(d)}>
-                  <img src={d.file_url} alt={d.title} className="w-full h-full object-cover" />
-                </div>
-              ) : d.file_url ? (
-                <div className="h-36 bg-muted/50 flex flex-col items-center justify-center gap-2 cursor-pointer" onClick={() => window.open(d.file_url, '_blank')}>
-                  <FileImage className="w-10 h-10 text-muted-foreground" />
-                  <span className="text-xs text-primary flex items-center gap-1">Ver PDF <ExternalLink className="w-3 h-3" /></span>
-                </div>
-              ) : (
-                <div className="h-36 bg-muted/30 flex items-center justify-center">
-                  <FileImage className="w-10 h-10 text-muted-foreground/40" />
-                </div>
-              )}
-              <div className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm truncate">{d.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">{d.client_name}</p>
+        <div className="space-y-4">
+          {Object.entries(grouped).map(([cKey, cData]) => {
+            const isExpanded = expandedClients[cKey] !== false; // expanded by default
+            return (
+              <Card key={cKey} className="overflow-hidden">
+                <button
+                  className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/40 transition-colors"
+                  onClick={() => toggleClient(cKey)}
+                >
+                  <div className="flex items-center gap-2">
+                    {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                    <span className="font-semibold text-sm">{cData.name}</span>
+                    <Badge variant="outline" className="text-[10px]">{Object.values(cData.projects).reduce((s, p) => s + p.drawings.length, 0)} docs</Badge>
                   </div>
-                  <div className="flex gap-1 ml-2">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(d)}><Pencil className="w-3 h-3" /></Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button></AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>¿Eliminar plano?</AlertDialogTitle><AlertDialogDescription>"{d.title}" será eliminado.</AlertDialogDescription></AlertDialogHeader>
-                        <AlertDialogFooter><AlertDialogCancel>{t('cancel')}</AlertDialogCancel><AlertDialogAction onClick={() => deleteM.mutate(d.id)} className="bg-destructive text-destructive-foreground">{t('delete')}</AlertDialogAction></AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                </button>
+
+                {isExpanded && (
+                  <div className="border-t border-border">
+                    {Object.entries(cData.projects).map(([pKey, pData]) => (
+                      <div key={pKey} className="px-5 py-3 border-b border-border/50 last:border-0">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{pData.name}</p>
+                        <div className="space-y-1.5">
+                          {pData.drawings.map(d => {
+                            const ft = getFileType(d.file_url);
+                            return (
+                              <div key={d.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/40 group">
+                                <div className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${ft ? fileTypeColor[ft] : 'bg-gray-100 text-gray-600'}`}>
+                                  {ft ? fileTypeLabel[ft] : '—'}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{d.title}</p>
+                                  <div className="flex items-center gap-2">
+                                    {d.reference && <span className="text-[10px] font-mono text-muted-foreground">{d.reference}</span>}
+                                    {d.version && <span className="text-[10px] text-muted-foreground">v{d.version}</span>}
+                                    {d.date && <span className="text-[10px] text-muted-foreground">{format(parseISO(d.date), 'd MMM yyyy', { locale: es })}</span>}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {d.file_url && (
+                                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setViewerDoc(d)}>
+                                      <ExternalLink className="w-3 h-3" /> Ver
+                                    </Button>
+                                  )}
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(d)}><Pencil className="w-3 h-3" /></Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader><AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle><AlertDialogDescription>"{d.title}" será eliminado.</AlertDialogDescription></AlertDialogHeader>
+                                      <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteM.mutate(d.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction></AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  {d.reference && <Badge variant="outline" className="text-[10px]">{d.reference}</Badge>}
-                  {d.version && <Badge variant="outline" className="text-[10px]">v{d.version}</Badge>}
-                  {d.project && <span className="text-xs text-muted-foreground truncate">{d.project}</span>}
-                </div>
-                {d.date && <p className="text-xs text-muted-foreground mt-1">{format(parseISO(d.date), "d MMM yyyy", { locale: es })}</p>}
-              </div>
-            </Card>
-          ))}
+                )}
+              </Card>
+            );
+          })}
         </div>
       )}
 
-      {/* Dialog */}
+      {/* Document Viewer Dialog */}
+      {viewerDoc && (
+        <Dialog open={!!viewerDoc} onOpenChange={() => setViewerDoc(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {viewerDoc.title}
+                {viewerDoc.reference && <Badge variant="outline" className="text-[10px]">{viewerDoc.reference}</Badge>}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto">
+              <FileViewer url={viewerDoc.file_url} title={viewerDoc.title} />
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t">
+              <p className="text-xs text-muted-foreground">{viewerDoc.client_name} — {viewerDoc.project}</p>
+              <a href={viewerDoc.file_url} target="_blank" rel="noopener noreferrer" download>
+                <Button variant="outline" size="sm" className="gap-1.5"><ExternalLink className="w-3.5 h-3.5" /> Abrir / Descargar</Button>
+              </a>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing ? t('edit') : t('new_drawing')}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? 'Editar Documento' : 'Nuevo Documento'}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">{t('name')} *</Label>
-              <Input value={form.title} onChange={e => set('title', e.target.value)} placeholder="Planta baja, Fachada norte..." />
+              <Label className="text-xs">Título *</Label>
+              <Input value={form.title} onChange={e => set('title', e.target.value)} placeholder="Planta baja, Fachada norte, Manual..." />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">{t('reference')}</Label>
+                <Label className="text-xs">Referencia</Label>
                 <Input value={form.reference} onChange={e => set('reference', e.target.value)} placeholder="PL-001" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">{t('version')}</Label>
+                <Label className="text-xs">Versión</Label>
                 <Input value={form.version} onChange={e => set('version', e.target.value)} placeholder="1.0" />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">{t('client')} *</Label>
+              <Label className="text-xs">Cliente *</Label>
               <Select value={form.client_id} onValueChange={handleClientChange}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar cliente..." /></SelectTrigger>
                 <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
@@ -178,50 +282,44 @@ export default function Drawings() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">{t('project')}</Label>
+                <Label className="text-xs">Obra</Label>
                 <Input value={form.project} onChange={e => set('project', e.target.value)} placeholder="Obra..." />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">{t('date')}</Label>
+                <Label className="text-xs">Fecha</Label>
                 <Input type="date" value={form.date} onChange={e => set('date', e.target.value)} />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">{t('file')} (PDF / imagen)</Label>
+              <Label className="text-xs">Archivo (PDF, Excel, Word, DXF, imagen)</Label>
               <div className="flex gap-2">
-                <Input value={form.file_url} onChange={e => set('file_url', e.target.value)} placeholder="https://..." className="flex-1" />
+                <Input value={form.file_url} onChange={e => set('file_url', e.target.value)} placeholder="https://... o subir" className="flex-1" />
                 <label className="cursor-pointer">
                   <Button type="button" variant="outline" size="icon" className="shrink-0" disabled={uploading} asChild>
                     <span>{uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}</span>
                   </Button>
-                  <input type="file" accept=".pdf,image/*" className="hidden" onChange={e => e.target.files[0] && handleFileUpload(e.target.files[0])} />
+                  <input type="file" accept=".pdf,.xlsx,.xls,.docx,.doc,.dxf,.dwg,image/*" className="hidden" onChange={e => e.target.files[0] && handleFileUpload(e.target.files[0])} />
                 </label>
               </div>
+              {form.file_url && (
+                <p className="text-[10px] text-muted-foreground">
+                  Tipo detectado: <span className="font-semibold">{fileTypeLabel[getFileType(form.file_url)] || 'Archivo'}</span>
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">{t('notes')}</Label>
+              <Label className="text-xs">Observaciones</Label>
               <Textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={close_}>{t('cancel')}</Button>
+            <Button variant="outline" onClick={close_}>Cancelar</Button>
             <Button onClick={handleSave} disabled={!form.title || !form.client_id || isPending} className="gap-2 min-w-28">
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {t('save')}
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Lightbox */}
-      {preview && (
-        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4" onClick={() => setPreview(null)}>
-          <img src={preview.file_url} alt={preview.title} className="max-w-full max-h-[85vh] object-contain rounded-lg" onClick={e => e.stopPropagation()} />
-          <div className="absolute bottom-6 text-white text-center">
-            <p className="font-semibold">{preview.title}</p>
-            {preview.reference && <p className="text-sm text-white/70">{preview.reference}</p>}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

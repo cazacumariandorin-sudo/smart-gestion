@@ -1,8 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Clock, Users, Plus, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ClipboardList, Clock, Users, ArrowRight } from 'lucide-react';
 import StatCard from '@/components/dashboard/StatCard';
 import WorkOrderCard from '@/components/workorders/WorkOrderCard';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -34,12 +33,7 @@ export default function Dashboard() {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Panel</h1>
           <p className="text-sm text-muted-foreground mt-1">Resumen de partes de trabajo</p>
         </div>
-        <Link to="/work-orders/new">
-          <Button className="gap-2 shadow-sm">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Nuevo Parte</span>
-          </Button>
-        </Link>
+        <div />
       </div>
 
       {/* Stats */}
@@ -67,12 +61,8 @@ export default function Dashboard() {
       ) : recentOrders.length === 0 ? (
         <div className="text-center py-16 border border-dashed rounded-xl">
           <ClipboardList className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground mb-3">No hay partes de trabajo</p>
-          <Link to="/work-orders/new">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Plus className="w-3.5 h-3.5" /> Crear primer parte
-            </Button>
-          </Link>
+          <p className="text-sm text-muted-foreground">No hay partes de trabajo</p>
+          <Link to="/work-orders" className="text-xs text-primary hover:underline mt-2 inline-block">Ir a Partes de Trabajo →</Link>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -37,6 +37,14 @@
       "default": "pendiente",
       "description": "Estado del parte"
     },
+    "hora_inicio": {
+      "type": "string",
+      "description": "Hora de inicio del trabajo (HH:MM)"
+    },
+    "hora_fin": {
+      "type": "string",
+      "description": "Hora de fin del trabajo (HH:MM)"
+    },
     "workers": {
       "type": "array",
       "description": "Operarios asignados",
@@ -76,6 +84,14 @@
     "total_hours": {
       "type": "number",
       "description": "Total de horas trabajadas"
+    },
+    "firma_operario": {
+      "type": "string",
+      "description": "URL imagen firma del operario"
+    },
+    "firma_cliente": {
+      "type": "string",
+      "description": "URL imagen firma del cliente"
     },
     "notes": {
       "type": "string",
