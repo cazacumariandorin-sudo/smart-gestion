@@ -24,6 +24,7 @@ import Orders from './pages/Orders';
 import Operarios from './pages/Operarios';
 import GastosOperarios from './pages/GastosOperarios';
 import ControlHorario from './pages/ControlHorario';
+import Obras from './pages/Obras';
 
 // Apply dark class based on system preference
 function ThemeDetector() {
@@ -67,6 +68,7 @@ function AnimatedRoutes() {
             <Route path="/operarios" element={<Operarios />} />
             <Route path="/gastos-operarios" element={<GastosOperarios />} />
             <Route path="/control-horario" element={<ControlHorario />} />
+            <Route path="/obras" element={<Obras />} />
           </Route>
           <Route path="*" element={<PageNotFound />} />
         </Routes>

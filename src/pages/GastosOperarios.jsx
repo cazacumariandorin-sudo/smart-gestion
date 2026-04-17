@@ -1,9 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { jsPDF } from 'jspdf';
 import {
   Plus, Search, Trash2, Receipt, Upload, Loader2, Save, Camera,
-  X, ChevronDown, ChevronUp, Fuel, ShoppingCart, Layers, Navigation, ParkingCircle, Wallet, ArrowLeft
+  X, ChevronDown, ChevronUp, Fuel, ShoppingCart, Layers, Navigation, ParkingCircle, Wallet, ArrowLeft, Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +57,7 @@ export default function GastosOperarios() {
 
   const { data: gastos = [], isLoading } = useQuery({ queryKey: ['gastos_operarios'], queryFn: () => base44.entities.GastoOperario.list('-date', 500) });
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
+  const { data: obras = [] } = useQuery({ queryKey: ['obras'], queryFn: () => base44.entities.Obra.list('name', 300) });
 
   const createM = useMutation({ mutationFn: d => base44.entities.GastoOperario.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['gastos_operarios'] }); close_(); } });
   const deleteM = useMutation({ mutationFn: id => base44.entities.GastoOperario.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['gastos_operarios'] }) });
@@ -149,6 +151,59 @@ Si no puedes extraer algún campo, ponlo como null.`,
 
   const isPending = createM.isPending;
 
+  // PDF download
+  const downloadPDF = (periodoLabel) => {
+    const doc = new jsPDF();
+    const margin = 14;
+    let y = 20;
+
+    doc.setFontSize(16); doc.setTextColor(40,40,40);
+    doc.text('Resumen de Gastos', margin, y); y += 7;
+    doc.setFontSize(10); doc.setTextColor(100,100,100);
+    doc.text(`Período: ${periodoLabel}`, margin, y); y += 5;
+    doc.text(`Total: ${totalGeneral.toFixed(2)} €`, margin, y); y += 4;
+    doc.setDrawColor(220,220,220); doc.line(margin, y, 196, y); y += 6;
+
+    // By category
+    doc.setFontSize(10); doc.setTextColor(40,40,40);
+    doc.text('Por categoría:', margin, y); y += 5;
+    CATEGORIAS.forEach(cat => {
+      const t = totalesPorCategoria[cat.key] || 0;
+      if (t > 0) {
+        doc.setFontSize(9); doc.setTextColor(80,80,80);
+        doc.text(`  ${cat.label}: ${t.toFixed(2)} €`, margin, y); y += 5;
+      }
+    });
+    y += 3;
+
+    // By operario
+    if (totalesPorOperario.length > 0) {
+      doc.setFontSize(10); doc.setTextColor(40,40,40);
+      doc.text('Por operario:', margin, y); y += 5;
+      totalesPorOperario.forEach(op => {
+        doc.setFontSize(9); doc.setTextColor(80,80,80);
+        doc.text(`  ${op.name}: ${op.total.toFixed(2)} €`, margin, y); y += 5;
+      });
+      y += 3;
+    }
+
+    doc.line(margin, y, 196, y); y += 6;
+
+    // Detail rows
+    doc.setFontSize(10); doc.setTextColor(40,40,40);
+    doc.text('Detalle de gastos:', margin, y); y += 5;
+
+    filtered.forEach(g => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      const cat = catCfg[g.categoria];
+      doc.setFontSize(8); doc.setTextColor(60,60,60);
+      const line = `${g.date || ''}  ${g.operario_name || ''}  [${cat?.label || g.categoria}]  ${g.descripcion || g.proveedor || ''}  ${(g.importe || 0).toFixed(2)} €${g.project ? `  (${g.project})` : ''}`;
+      doc.text(line.slice(0, 120), margin, y); y += 5;
+    });
+
+    doc.save(`gastos-${periodoLabel.replace(/\s/g, '_')}.pdf`);
+  };
+
   // Month navigation
   const prevMonth = () => {
     const [y, m] = monthFilter.split('-').map(Number);
@@ -176,9 +231,25 @@ Si no puedes extraer algún campo, ponlo como null.`,
             <p className="text-sm text-muted-foreground mt-1">{filtered.length} gastos · {totalGeneral.toFixed(2)} €</p>
           </div>
         </div>
-        <Button onClick={open_} className="gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nuevo Gasto</span>
-        </Button>
+        <div className="flex gap-2">
+          <div className="relative">
+            <Button variant="outline" className="gap-2 shadow-sm" onClick={() => {}}>
+              <Download className="w-4 h-4" /> <span className="hidden sm:inline">Descargar</span>
+            </Button>
+            <select
+              className="absolute inset-0 opacity-0 cursor-pointer w-full"
+              onChange={e => { if (e.target.value) { downloadPDF(e.target.value); e.target.value = ''; } }}
+            >
+              <option value="">Descargar PDF...</option>
+              <option value={monthFilter ? format(new Date(monthFilter + '-01'), 'MMMM yyyy', { locale: es }) : 'Todos'}>
+                {monthFilter ? format(new Date(monthFilter + '-01'), 'MMMM yyyy', { locale: es }) : 'Período actual'}
+              </option>
+            </select>
+          </div>
+          <Button onClick={open_} className="gap-2 shadow-sm">
+            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nuevo Gasto</span>
+          </Button>
+        </div>
       </div>
 
       {/* Month nav */}
@@ -384,7 +455,13 @@ Si no puedes extraer algún campo, ponlo como null.`,
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Obra (opcional)</Label>
-                <Input value={form.project} onChange={e => set('project', e.target.value)} placeholder="Nombre de la obra..." />
+                <Select value={form.project} onValueChange={v => set('project', v)}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar obra..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_ninguna">Sin obra</SelectItem>
+                    {obras.map(ob => <SelectItem key={ob.id} value={ob.name}>{ob.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

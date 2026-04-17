@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Plus, BarChart3, Camera, Package, ShoppingCart, FileImage } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Package, Users, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -8,11 +8,11 @@ export default function MobileNav() {
   const { t } = useI18n();
 
   const navItems = [
-    { labelKey: 'nav_dashboard', path: '/', icon: LayoutDashboard },
-    { labelKey: 'nav_workorders', path: '/work-orders', icon: ClipboardList, label: 'Partes' },
-    { labelKey: 'nav_new_order', path: '/work-orders/new', icon: Plus, label: 'Nuevo' },
-    { labelKey: 'nav_orders', path: '/orders', icon: ShoppingCart, label: 'Pedidos' },
-    { labelKey: 'nav_materials', path: '/materials', icon: Package, label: 'Materiales' },
+    { path: '/', icon: LayoutDashboard, label: 'Panel' },
+    { path: '/work-orders', icon: ClipboardList, label: 'Partes' },
+    { path: '/materials', icon: Package, label: 'Materiales' },
+    { path: '/operarios', icon: Users, label: 'Operarios' },
+    { path: '/obras', icon: Building2, label: 'Obras' },
   ];
 
   return (
@@ -21,7 +21,7 @@ export default function MobileNav() {
         {navItems.map((item) => {
           const isActive = location.pathname === item.path ||
             (item.path !== '/' && location.pathname.startsWith(item.path));
-          const label = item.label || t(item.labelKey);
+          const label = item.label;
           return (
             <Link
               key={item.path}

@@ -1,0 +1,62 @@
+{
+  "name": "OperarioDoc",
+  "type": "object",
+  "properties": {
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario"
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (si aplica)"
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "doc_operario",
+        "doc_obra"
+      ],
+      "default": "doc_operario",
+      "description": "Tipo de documento"
+    },
+    "categoria": {
+      "type": "string",
+      "description": "Categor\u00eda del documento (DNI, contrato, certificado, plano, permiso...)"
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo del documento"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del documento"
+    },
+    "expiry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de caducidad"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL del archivo"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "operario_id",
+    "tipo",
+    "title"
+  ]
+}

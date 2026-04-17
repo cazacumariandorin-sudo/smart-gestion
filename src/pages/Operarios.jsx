@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, Receipt } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, Receipt, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,9 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
+import DocsList from '@/components/operarios/DocsList';
 
 const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true };
 
@@ -23,6 +25,11 @@ export default function Operarios() {
   const { data: operarios = [], isLoading } = useQuery({
     queryKey: ['operarios'],
     queryFn: () => base44.entities.Operario.list('name', 200),
+  });
+
+  const { data: obras = [] } = useQuery({
+    queryKey: ['obras'],
+    queryFn: () => base44.entities.Obra.list('name', 300),
   });
 
   const createM = useMutation({ mutationFn: d => base44.entities.Operario.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['operarios'] }); close_(); } });
@@ -62,60 +69,73 @@ export default function Operarios() {
         </div>
       </div>
 
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Buscar operario..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-      </div>
+      <Tabs defaultValue="operarios">
+        <TabsList className="mb-6">
+          <TabsTrigger value="operarios" className="gap-2"><User className="w-4 h-4" /> Operarios</TabsTrigger>
+          <TabsTrigger value="documentacion" className="gap-2"><FileText className="w-4 h-4" /> Documentación</TabsTrigger>
+        </TabsList>
 
-      {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[1,2,3].map(i => <div key={i} className="h-36 rounded-xl bg-muted animate-pulse" />)}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16 border border-dashed rounded-xl">
-          <User className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground mb-3">No hay operarios registrados</p>
-          <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2"><Plus className="w-3.5 h-3.5" /> Añadir operario</Button>
-        </div>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map(op => (
-            <Card key={op.id} className="p-5 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm truncate">{op.name}</h3>
-                  {op.role && <p className="text-xs text-muted-foreground mt-0.5">{op.role}</p>}
-                </div>
-                <div className="flex gap-1 ml-2">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(op)}><Pencil className="w-3 h-3" /></Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader><AlertDialogTitle>¿Eliminar operario?</AlertDialogTitle><AlertDialogDescription>"{op.name}" será eliminado permanentemente.</AlertDialogDescription></AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteM.mutate(op.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                {op.dni && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CreditCard className="w-3 h-3 shrink-0" /> {op.dni}</p>}
-                {op.phone && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Phone className="w-3 h-3 shrink-0" /> {op.phone}</p>}
-                {op.email && <p className="text-xs text-muted-foreground flex items-center gap-1.5 truncate"><Mail className="w-3 h-3 shrink-0" /> {op.email}</p>}
-              </div>
-              <div className="mt-3 pt-3 border-t border-border">
-                <Link to={`/gastos-operarios?operario=${op.id}`} className="text-xs text-primary hover:underline font-medium">
-                  Ver gastos →
-                </Link>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+        <TabsContent value="operarios">
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Buscar operario..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+
+          {isLoading ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[1,2,3].map(i => <div key={i} className="h-36 rounded-xl bg-muted animate-pulse" />)}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16 border border-dashed rounded-xl">
+              <User className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground mb-3">No hay operarios registrados</p>
+              <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2"><Plus className="w-3.5 h-3.5" /> Añadir operario</Button>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map(op => (
+                <Card key={op.id} className="p-5 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm truncate">{op.name}</h3>
+                      {op.role && <p className="text-xs text-muted-foreground mt-0.5">{op.role}</p>}
+                    </div>
+                    <div className="flex gap-1 ml-2">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(op)}><Pencil className="w-3 h-3" /></Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>¿Eliminar operario?</AlertDialogTitle><AlertDialogDescription>"{op.name}" será eliminado permanentemente.</AlertDialogDescription></AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteM.mutate(op.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    {op.dni && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CreditCard className="w-3 h-3 shrink-0" /> {op.dni}</p>}
+                    {op.phone && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Phone className="w-3 h-3 shrink-0" /> {op.phone}</p>}
+                    {op.email && <p className="text-xs text-muted-foreground flex items-center gap-1.5 truncate"><Mail className="w-3 h-3 shrink-0" /> {op.email}</p>}
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <Link to={`/gastos-operarios?operario=${op.id}`} className="text-xs text-primary hover:underline font-medium">
+                      Ver gastos →
+                    </Link>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="documentacion">
+          <DocsList operarios={operarios} obras={obras} />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">

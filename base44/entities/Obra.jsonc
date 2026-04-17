@@ -1,0 +1,70 @@
+{
+  "name": "Obra",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la obra"
+    },
+    "code": {
+      "type": "string",
+      "description": "C\u00f3digo / referencia interna"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n de la obra"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de fin prevista"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "activa",
+        "pausada",
+        "finalizada",
+        "presupuesto"
+      ],
+      "default": "activa",
+      "description": "Estado de la obra"
+    },
+    "budget": {
+      "type": "number",
+      "description": "Presupuesto (\u20ac)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n / alcance"
+    },
+    "contact_person": {
+      "type": "string",
+      "description": "Persona de contacto en obra"
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de contacto"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
