@@ -1,27 +1,99 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera, UserCog, CircleUser, Package, FileImage, ShoppingCart, Receipt, Clock, Building2 } from 'lucide-react';
+import {
+  LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera,
+  UserCog, CircleUser, Package, FileImage, ShoppingCart, Receipt, Clock,
+  Building2, BookOpen, CalendarDays, ChevronDown, ChevronRight
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
+
+function NavItem({ item, isActive }) {
+  return (
+    <Link
+      to={item.path}
+      className={cn(
+        'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+        isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+      )}
+    >
+      <item.icon className="w-4 h-4 shrink-0" />
+      {item.label}
+    </Link>
+  );
+}
+
+function NavGroup({ icon: GroupIcon, label, children, defaultOpen = false, currentPath }) {
+  const Icon = GroupIcon;
+  const isChildActive = children.some(c => currentPath === c.path || (c.path !== '/' && currentPath.startsWith(c.path)));
+  const [open, setOpen] = useState(defaultOpen || isChildActive);
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={cn(
+          'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+          isChildActive ? 'text-primary bg-accent' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+        )}
+      >
+        <Icon className="w-4 h-4 shrink-0" />
+        <span className="flex-1 text-left">{label}</span>
+        {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+      </button>
+      {open && (
+        <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-3">
+          {children.map(item => {
+            const isActive = currentPath === item.path || (item.path !== '/' && currentPath.startsWith(item.path));
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  'flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm font-medium transition-all',
+                  isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                )}
+              >
+                <item.icon className="w-3.5 h-3.5 shrink-0" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Sidebar() {
   const location = useLocation();
   const { t, lang, setLang } = useI18n();
+  const path = location.pathname;
 
-  const navItems = [
+  const topItems = [
     { label: t('nav_dashboard'), path: '/', icon: LayoutDashboard },
-    { label: t('nav_clients'), path: '/clients', icon: Users },
     { label: t('nav_workorders'), path: '/work-orders', icon: ClipboardList },
     { label: t('nav_new_order'), path: '/work-orders/new', icon: Plus },
-    { label: t('nav_materials'), path: '/materials', icon: Package },
-    { label: t('nav_orders'), path: '/orders', icon: ShoppingCart },
-    { label: t('nav_drawings'), path: '/drawings', icon: FileImage },
     { label: t('nav_photos'), path: '/photos', icon: Camera },
     { label: t('nav_reports'), path: '/reports', icon: BarChart3 },
-    { label: t('nav_users'), path: '/users', icon: UserCog },
+    { label: t('nav_clients'), path: '/clients', icon: UserCog },
+    { label: t('nav_users'), path: '/users', icon: Users },
+  ];
+
+  const operariosItems = [
     { label: 'Operarios', path: '/operarios', icon: Users },
+    { label: 'Documentación', path: '/documentacion-operarios', icon: FileImage },
     { label: 'Gastos', path: '/gastos-operarios', icon: Receipt },
+    { label: 'Vacaciones', path: '/calendario-vacaciones', icon: CalendarDays },
     { label: 'Control Horario', path: '/control-horario', icon: Clock },
+  ];
+
+  const pedidosItems = [
     { label: 'Obras', path: '/obras', icon: Building2 },
+    { label: 'Planos', path: '/drawings', icon: FileImage },
+    { label: 'Manuales', path: '/manuales', icon: BookOpen },
+    { label: 'Pedidos', path: '/orders', icon: ShoppingCart },
+    { label: 'Materiales', path: '/materials', icon: Package },
   ];
 
   return (
@@ -39,25 +111,24 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path ||
-            (item.path !== '/' && location.pathname.startsWith(item.path));
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                isActive
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              )}
-            >
-              <item.icon className="w-4 h-4 shrink-0" />
-              {item.label}
-            </Link>
-          );
+        {topItems.map(item => {
+          const isActive = path === item.path || (item.path !== '/' && path.startsWith(item.path));
+          return <NavItem key={item.path} item={item} isActive={isActive} />;
         })}
+
+        <div className="pt-2">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Equipos</p>
+          <NavGroup icon={Users} label="Operarios" currentPath={path} defaultOpen={operariosItems.some(i => path.startsWith(i.path))}>
+            {operariosItems}
+          </NavGroup>
+        </div>
+
+        <div className="pt-2">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Gestión</p>
+          <NavGroup icon={ShoppingCart} label="Pedidos y Obras" currentPath={path} defaultOpen={pedidosItems.some(i => path.startsWith(i.path))}>
+            {pedidosItems}
+          </NavGroup>
+        </div>
       </nav>
 
       {/* Language selector */}
@@ -84,9 +155,7 @@ export default function Sidebar() {
           to="/profile"
           className={cn(
             'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-            location.pathname === '/profile'
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            path === '/profile' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
           )}
         >
           <CircleUser className="w-4 h-4" />

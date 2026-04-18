@@ -25,6 +25,8 @@ import Operarios from './pages/Operarios';
 import GastosOperarios from './pages/GastosOperarios';
 import ControlHorario from './pages/ControlHorario';
 import Obras from './pages/Obras';
+import CalendarioVacaciones from './pages/CalendarioVacaciones';
+import Manuales from './pages/Manuales';
 
 // Apply dark class based on system preference
 function ThemeDetector() {
@@ -66,9 +68,12 @@ function AnimatedRoutes() {
             <Route path="/drawings" element={<Drawings />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/operarios" element={<Operarios />} />
+            <Route path="/documentacion-operarios" element={<Operarios />} />
             <Route path="/gastos-operarios" element={<GastosOperarios />} />
             <Route path="/control-horario" element={<ControlHorario />} />
             <Route path="/obras" element={<Obras />} />
+            <Route path="/calendario-vacaciones" element={<CalendarioVacaciones />} />
+            <Route path="/manuales" element={<Manuales />} />
           </Route>
           <Route path="*" element={<PageNotFound />} />
         </Routes>
@@ -80,7 +85,6 @@ function AnimatedRoutes() {
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
-  // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -89,24 +93,19 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
       navigateToLogin();
       return null;
     }
   }
 
-  // Render the main app
   return <AnimatedRoutes />;
 };
 
-
 function App() {
-
   return (
     <AuthProvider>
       <I18nProvider>

@@ -17,6 +17,7 @@ const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true 
 
 export default function Operarios() {
   const qc = useQueryClient();
+  const defaultTab = window.location.pathname.includes('documentacion') ? 'documentacion' : 'operarios';
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -69,7 +70,7 @@ export default function Operarios() {
         </div>
       </div>
 
-      <Tabs defaultValue="operarios">
+      <Tabs defaultValue={defaultTab}>
         <TabsList className="mb-6">
           <TabsTrigger value="operarios" className="gap-2"><User className="w-4 h-4" /> Operarios</TabsTrigger>
           <TabsTrigger value="documentacion" className="gap-2"><FileText className="w-4 h-4" /> Documentación</TabsTrigger>

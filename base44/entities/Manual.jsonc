@@ -1,0 +1,54 @@
+{
+  "name": "Manual",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo del manual / documento"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra"
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra"
+    },
+    "categoria": {
+      "type": "string",
+      "description": "Categor\u00eda (instalaci\u00f3n, mantenimiento, certificado...)"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL del archivo (PDF, Excel, Word...)"
+    },
+    "file_type": {
+      "type": "string",
+      "description": "Tipo de archivo (pdf, xlsx, docx...)"
+    },
+    "version": {
+      "type": "string",
+      "description": "Versi\u00f3n"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del documento"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

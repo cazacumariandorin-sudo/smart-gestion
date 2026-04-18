@@ -1,0 +1,53 @@
+{
+  "name": "Vacacion",
+  "type": "object",
+  "properties": {
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario"
+    },
+    "fecha_inicio": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha inicio"
+    },
+    "fecha_fin": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha fin"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "vacaciones",
+        "baja_medica",
+        "dia_asunto_personal",
+        "fiesta",
+        "vacaciones_convenio"
+      ],
+      "description": "Tipo de ausencia"
+    },
+    "dias": {
+      "type": "number",
+      "description": "N\u00famero de d\u00edas"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones"
+    },
+    "aprobado": {
+      "type": "boolean",
+      "default": false,
+      "description": "Aprobado por responsable"
+    }
+  },
+  "required": [
+    "operario_id",
+    "fecha_inicio",
+    "tipo"
+  ]
+}
