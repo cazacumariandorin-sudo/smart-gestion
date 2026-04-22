@@ -253,6 +253,5 @@ export default function Profile() {
           </DialogContent>
           </Dialog>
           </div>
-          </div>
           );
           }
