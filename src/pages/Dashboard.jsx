@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Clock, Users, ArrowRight, ShoppingCart, Camera, Building2, Receipt, Sun, FileImage, BookOpen, CalendarDays, BarChart3, UserCog, Package } from 'lucide-react';
+import { ClipboardList, Clock, Users, ArrowRight, ShoppingCart, Camera, Building2, Receipt, FileImage, BookOpen, CalendarDays, UserCog, Package } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import WorkOrderCard from '@/components/workorders/WorkOrderCard';
@@ -16,6 +16,7 @@ const ALL_MODULES = [
   { key: 'operarios',    label: 'Operarios',          path: '/operarios',   icon: Users,         color: 'from-amber-500 to-amber-400',   bg: 'bg-amber-50 dark:bg-amber-950/30',   border: 'border-amber-200 dark:border-amber-800',   emoji: '👷' },
   { key: 'orders',       label: 'Pedidos',             path: '/orders',      icon: ShoppingCart,  color: 'from-blue-500 to-blue-400',     bg: 'bg-blue-50 dark:bg-blue-950/30',     border: 'border-blue-200 dark:border-blue-800',     emoji: '🛒' },
   { key: 'photos',       label: 'Galería de Fotos',    path: '/photos',      icon: Camera,        color: 'from-pink-500 to-pink-400',     bg: 'bg-pink-50 dark:bg-pink-950/30',     border: 'border-pink-200 dark:border-pink-800',     emoji: '📷' },
+  { key: 'users',        label: 'Administración',      path: '/users',       icon: UserCog,       color: 'from-violet-500 to-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/30', border: 'border-violet-200 dark:border-violet-800', emoji: '⚙️' },
 ];
 
 function ModuleCard({ mod, count, subtitle }) {
