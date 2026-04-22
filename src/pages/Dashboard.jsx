@@ -117,27 +117,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Recent Work Orders */}
-      {canAccess('work-orders') && (
-        <>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Partes Recientes</h2>
-            <Link to="/work-orders" className="text-xs text-primary font-medium flex items-center gap-1 hover:underline">
-              Ver todos <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          {recentOrders.length === 0 ? (
-            <div className="text-center py-12 border border-dashed rounded-xl">
-              <ClipboardList className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No hay partes de trabajo</p>
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {recentOrders.map(order => <WorkOrderCard key={order.id} order={order} />)}
-            </div>
-          )}
-        </>
-      )}
+
     </div>
   );
 }
