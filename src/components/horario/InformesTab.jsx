@@ -32,19 +32,21 @@ function drawTable(doc, headers, rows, startY, margin = 14) {
 
   // Data rows
   doc.setFont(undefined, 'normal');
-  doc.setTextColor(40, 40, 40);
+  doc.setTextColor(20, 20, 20);
   rows.forEach((row, ri) => {
     if (y > 275) { doc.addPage(); y = 20; }
-    doc.setFillColor(ri % 2 === 0 ? 255 : 248, ri % 2 === 0 ? 255 : 249, ri % 2 === 0 ? 255 : 250);
+    const bg = ri % 2 === 0 ? [255, 255, 255] : [250, 250, 252];
+    doc.setFillColor(...bg);
     row.forEach((cell, i) => {
       doc.rect(margin + i * colW, y, colW, rowH, 'F');
-      doc.text(String(cell ?? '—').substring(0, 20), margin + i * colW + 2, y + 4.5);
+      doc.setTextColor(20, 20, 20);
+      doc.text(String(cell ?? '—').substring(0, 22), margin + i * colW + 2, y + 4.5);
     });
     y += rowH;
   });
 
   // Border
-  doc.setDrawColor(220, 220, 220);
+  doc.setDrawColor(180, 180, 180);
   doc.rect(margin, startY, colW * headers.length, y - startY, 'S');
 
   return y + 4;
@@ -83,18 +85,21 @@ export default function InformesTab() {
     const title = mode === 'operario' ? 'Informe por Operario' : mode === 'semana' ? 'Informe Semanal' : 'Informe Mensual';
     const subtitle = monthFilter ? format(parseISO(monthFilter + '-01'), 'MMMM yyyy', { locale: es }) : 'Todos los períodos';
 
-    doc.setFontSize(18);
-    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(20, 20, 20);
     doc.text('Control Horario', 14, 18);
     doc.setFontSize(13);
-    doc.setTextColor(100, 100, 100);
-    doc.text(title, 14, 26);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(60, 60, 60);
+    doc.text(title, 14, 27);
     doc.setFontSize(10);
-    doc.text(subtitle.charAt(0).toUpperCase() + subtitle.slice(1), 14, 33);
-    doc.setDrawColor(220, 220, 220);
-    doc.line(14, 37, 196, 37);
+    doc.setTextColor(80, 80, 80);
+    doc.text(subtitle.charAt(0).toUpperCase() + subtitle.slice(1), 14, 34);
+    doc.setDrawColor(180, 180, 180);
+    doc.line(14, 38, 196, 38);
 
-    let y = 44;
+    let y = 46;
 
     if (mode === 'operario') {
       byOperario.forEach(op => {

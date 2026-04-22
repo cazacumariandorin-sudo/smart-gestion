@@ -1,0 +1,57 @@
+{
+  "name": "ApunteHorario",
+  "type": "object",
+  "properties": {
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del apunte"
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (opcional)"
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra"
+    },
+    "concepto": {
+      "type": "string",
+      "description": "Concepto / descripci\u00f3n del trabajo"
+    },
+    "unidad": {
+      "type": "string",
+      "description": "Unidad de medida (m, m\u00b2, m\u00b3, ud, kg...)"
+    },
+    "cantidad": {
+      "type": "number",
+      "description": "Cantidad realizada"
+    },
+    "precio_unitario": {
+      "type": "number",
+      "description": "Precio unitario (\u20ac)"
+    },
+    "total": {
+      "type": "number",
+      "description": "Total (\u20ac)"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "operario_id",
+    "date",
+    "concepto",
+    "cantidad"
+  ]
+}
