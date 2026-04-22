@@ -1,0 +1,64 @@
+{
+  "name": "DatosSensiblesUsuario",
+  "type": "object",
+  "properties": {
+    "usuario_id": {
+      "type": "string",
+      "description": "ID del usuario relacionado"
+    },
+    "usuario_email": {
+      "type": "string",
+      "description": "Email del usuario"
+    },
+    "numero_afiliacion": {
+      "type": "string",
+      "description": "N\u00famero de afiliaci\u00f3n a la seguridad social"
+    },
+    "numero_cuenta_bancaria": {
+      "type": "string",
+      "description": "IBAN o n\u00famero de cuenta (encriptado)"
+    },
+    "contrato_url": {
+      "type": "string",
+      "description": "URL del contrato de trabajo"
+    },
+    "datos_personales": {
+      "type": "string",
+      "description": "Datos personales sensibles (DNI, domicilio, tel\u00e9fono personales)"
+    },
+    "salario_bruto": {
+      "type": "number",
+      "description": "Salario bruto mensual"
+    },
+    "notas_confidenciales": {
+      "type": "string",
+      "description": "Notas internas confidenciales"
+    }
+  },
+  "required": [
+    "usuario_id",
+    "usuario_email"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

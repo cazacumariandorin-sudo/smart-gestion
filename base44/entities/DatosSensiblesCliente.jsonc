@@ -1,0 +1,64 @@
+{
+  "name": "DatosSensiblesCliente",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string",
+      "description": "ID del cliente relacionado"
+    },
+    "cliente_nombre": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "numero_cuenta_bancaria": {
+      "type": "string",
+      "description": "IBAN o n\u00famero de cuenta para transferencias"
+    },
+    "datos_fiscales": {
+      "type": "string",
+      "description": "Informaci\u00f3n fiscal sensible (domicilio fiscal, etc.)"
+    },
+    "contacto_principal_personal": {
+      "type": "string",
+      "description": "Tel\u00e9fono/email personal del contacto principal"
+    },
+    "precio_especial": {
+      "type": "number",
+      "description": "Descuento o precio especial negociado"
+    },
+    "condiciones_pago": {
+      "type": "string",
+      "description": "Condiciones de pago personalizadas"
+    },
+    "notas_confidenciales": {
+      "type": "string",
+      "description": "Notas internas sobre el cliente (situaci\u00f3n financiera, etc.)"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "cliente_nombre"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
