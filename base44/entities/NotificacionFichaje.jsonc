@@ -1,0 +1,46 @@
+{
+  "name": "NotificacionFichaje",
+  "type": "object",
+  "properties": {
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del evento"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "sin_salida",
+        "sin_fichaje"
+      ],
+      "description": "Tipo de alerta: sin_salida = entrada sin salida, sin_fichaje = no fich\u00f3 en d\u00eda laboral"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n de la alerta"
+    },
+    "visto": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si el admin vio la notificaci\u00f3n"
+    },
+    "resuelto": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si se resolvi\u00f3 manualmente (fichaje registrado)"
+    }
+  },
+  "required": [
+    "operario_id",
+    "date",
+    "tipo"
+  ]
+}

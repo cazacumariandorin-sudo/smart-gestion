@@ -8,6 +8,7 @@ import WorkOrderCard from '@/components/workorders/WorkOrderCard';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { useUserRole } from '@/lib/useUserRole';
+import NotificacionesFichaje from '@/components/dashboard/NotificacionesFichaje';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -109,6 +110,9 @@ export default function Dashboard() {
         </div>
         <Badge variant="outline" className={`text-xs font-semibold ${roleCfg.color}`}>{roleCfg.label}</Badge>
       </div>
+
+      {/* Alertas de fichaje */}
+      <NotificacionesFichaje />
 
       {/* Module grid - only accessible modules */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-8">

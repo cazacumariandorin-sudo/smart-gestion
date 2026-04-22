@@ -1,0 +1,34 @@
+{
+  "description": "Agent que detecta fichajes incompletos y genera alertas autom\u00e1ticas para administradores",
+  "instructions": "Analiza los fichajes de cada operario. Detecta: 1) Fichajes sin hora de salida registrada. 2) D\u00edas laborables (lunes a viernes) sin fichaje. Genera notificaciones de alerta para los administradores. Ignora fines de semana y vacaciones registradas.",
+  "tool_configs": [
+    {
+      "entity_name": "Fichaje",
+      "allowed_operations": [
+        "read",
+        "create"
+      ]
+    },
+    {
+      "entity_name": "NotificacionFichaje",
+      "allowed_operations": [
+        "read",
+        "create",
+        "update"
+      ]
+    },
+    {
+      "entity_name": "Operario",
+      "allowed_operations": [
+        "read"
+      ]
+    },
+    {
+      "entity_name": "Vacacion",
+      "allowed_operations": [
+        "read"
+      ]
+    }
+  ],
+  "name": "fichaje_alerts"
+}
