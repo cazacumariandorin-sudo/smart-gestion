@@ -24,7 +24,7 @@ import MaterialCatalog from './pages/MaterialCatalog';
 import Drawings from './pages/Drawings';
 import Orders from './pages/Orders';
 import Operarios from './pages/Operarios';
-import GastosOperarios from './pages/GastosOperarios';
+import GastosOperarios from './pages/GastosOperarios.jsx';
 import ControlHorario from './pages/ControlHorario';
 import Obras from './pages/Obras';
 import CalendarioVacaciones from './pages/CalendarioVacaciones';

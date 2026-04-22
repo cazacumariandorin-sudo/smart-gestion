@@ -1,0 +1,88 @@
+{
+  "name": "NotaGastos",
+  "type": "object",
+  "properties": {
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario"
+    },
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo / referencia de la nota"
+    },
+    "fecha_inicio": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio del per\u00edodo"
+    },
+    "fecha_cierre": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de cierre de la nota"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "abierta",
+        "cerrada"
+      ],
+      "default": "abierta",
+      "description": "Estado de la nota de gastos"
+    },
+    "total": {
+      "type": "number",
+      "description": "Total de la nota (\u20ac)"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "operario_id",
+    "fecha_inicio"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}

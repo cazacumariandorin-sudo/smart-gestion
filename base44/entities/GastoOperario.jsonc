@@ -2,6 +2,10 @@
   "name": "GastoOperario",
   "type": "object",
   "properties": {
+    "nota_id": {
+      "type": "string",
+      "description": "ID de la nota de gastos a la que pertenece"
+    },
     "operario_id": {
       "type": "string",
       "description": "ID del operario"
