@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Receipt, Package, Plus, MoreHorizontal } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Receipt, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -90,33 +90,23 @@ function BottomSheet({ title, items, onClose }) {
   );
 }
 
-function NavItem({ item, isActive, onClick }) {
+function NavItem({ item, isActive, onReset, onNavigate }) {
   const Icon = item.icon;
 
-  if (item.fab) {
-    return (
-      <Link
-        to={item.path}
-        onClick={() => { haptic(12); onClick?.(); }}
-        className="flex flex-col items-center gap-1 px-2 py-1 -mt-3 relative"
-      >
-        <motion.div
-          whileTap={{ scale: 0.88 }}
-          className="w-12 h-12 rounded-full bg-primary shadow-lg shadow-primary/40 flex items-center justify-center"
-        >
-          <Icon className="w-5 h-5 text-primary-foreground stroke-[2.5]" />
-        </motion.div>
-        <span className={cn('text-[9px] font-semibold', isActive ? 'text-primary' : 'text-muted-foreground')}>
-          {item.label}
-        </span>
-      </Link>
-    );
-  }
+  const handleClick = () => {
+    haptic();
+    if (isActive) {
+      // Tab reset: scroll to top + navigate to root of this tab
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      onReset(item.path);
+    } else {
+      onNavigate(item.path);
+    }
+  };
 
   return (
-    <Link
-      to={item.path}
-      onClick={() => { haptic(); onClick?.(); }}
+    <button
+      onClick={handleClick}
       className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all relative min-w-[52px]"
     >
       <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center">
@@ -132,7 +122,7 @@ function NavItem({ item, isActive, onClick }) {
       <span className={cn('text-[9px] font-semibold transition-colors', isActive ? 'text-primary' : 'text-muted-foreground')}>
         {item.label}
       </span>
-    </Link>
+    </button>
   );
 }
 
@@ -161,6 +151,7 @@ function GroupNavItem({ icon: Icon, label, isActive, isOpen, onClick }) {
 
 export default function MobileNav() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [showOperarios, setShowOperarios] = useState(false);
   const [showPedidos, setShowPedidos] = useState(false);
 
@@ -168,6 +159,34 @@ export default function MobileNav() {
   const isPedidosActive = pedidosItems.some(i => location.pathname.startsWith(i.path));
 
   const closeAll = useCallback(() => { setShowOperarios(false); setShowPedidos(false); }, []);
+
+  // Tab reset: navigate to root of tab, scroll to top
+  const handleReset = useCallback((path) => {
+    closeAll();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate(path, { replace: true });
+  }, [navigate, closeAll]);
+
+  const handleNavigate = useCallback((path) => {
+    closeAll();
+    navigate(path);
+  }, [navigate, closeAll]);
+
+  // Group tab reset: if already on a group tab → navigate to first item root and reset
+  const handleGroupReset = useCallback((items, setShow, otherSet) => {
+    haptic();
+    const groupActive = items.some(i => location.pathname.startsWith(i.path));
+    if (groupActive) {
+      // Reset to first item of the group
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigate(items[0].path, { replace: true });
+      setShow(false);
+      otherSet(false);
+    } else {
+      setShow(o => !o);
+      otherSet(false);
+    }
+  }, [location.pathname, navigate]);
 
   return (
     <>
@@ -186,7 +205,15 @@ export default function MobileNav() {
         <div className="flex justify-around items-center h-16 px-1">
           {mainItems.map(item => {
             const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-            return <NavItem key={item.path} item={item} isActive={isActive} onClick={closeAll} />;
+            return (
+              <NavItem
+                key={item.path}
+                item={item}
+                isActive={isActive}
+                onReset={handleReset}
+                onNavigate={handleNavigate}
+              />
+            );
           })}
 
           <GroupNavItem
@@ -194,7 +221,7 @@ export default function MobileNav() {
             label="Equipos"
             isActive={isOperariosActive}
             isOpen={showOperarios}
-            onClick={() => { setShowOperarios(o => !o); setShowPedidos(false); }}
+            onClick={() => handleGroupReset(operariosItems, setShowOperarios, setShowPedidos)}
           />
 
           <GroupNavItem
@@ -202,7 +229,7 @@ export default function MobileNav() {
             label="Pedidos"
             isActive={isPedidosActive}
             isOpen={showPedidos}
-            onClick={() => { setShowPedidos(o => !o); setShowOperarios(false); }}
+            onClick={() => handleGroupReset(pedidosItems, setShowPedidos, setShowOperarios)}
           />
         </div>
       </nav>
