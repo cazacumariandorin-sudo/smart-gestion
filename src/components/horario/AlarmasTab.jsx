@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { DIAS_SEMANA, DIAS_FULL } from '@/lib/horasUtils';
-import { playAlarmSound } from '@/hooks/useAlarmas';
-import { Plus, Trash2, Bell, BellOff, Save, Loader2, Volume2 } from 'lucide-react';
+import { playAlarmSound, requestNotificationPermission, getNotificationPermission } from '@/hooks/useAlarmas';
+import { Plus, Trash2, Bell, BellOff, Save, Loader2, Volume2, SmartphoneNfc, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,7 +30,8 @@ export default function AlarmasTab() {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyAlarm);
-  const [notifGranted, setNotifGranted] = useState(Notification.permission === 'granted');
+  const [notifStatus, setNotifStatus] = useState(() => getNotificationPermission());
+  const [requesting, setRequesting] = useState(false);
 
   const { data: alarmas = [], isLoading } = useQuery({ queryKey: ['alarmas'], queryFn: () => base44.entities.AlarmaHorario.list('hora', 100) });
 
@@ -55,8 +56,10 @@ export default function AlarmasTab() {
   };
 
   const requestNotif = async () => {
-    const perm = await Notification.requestPermission();
-    setNotifGranted(perm === 'granted');
+    setRequesting(true);
+    const perm = await requestNotificationPermission();
+    setNotifStatus(perm);
+    setRequesting(false);
   };
 
   const handleSave = () => {
@@ -72,13 +75,49 @@ export default function AlarmasTab() {
   return (
     <div>
       {/* Notification permission banner */}
-      {!notifGranted && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5 flex items-center justify-between gap-4">
+      {notifStatus === 'unavailable' && (
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-5 flex items-center gap-3">
+          <XCircle className="w-5 h-5 text-slate-400 shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-amber-800">🔔 Activa las notificaciones</p>
-            <p className="text-xs text-amber-700">Para recibir avisos sonoros en el teléfono necesitas dar permiso.</p>
+            <p className="text-sm font-semibold text-slate-700">Notificaciones no disponibles</p>
+            <p className="text-xs text-slate-500">Tu navegador no soporta notificaciones. En iOS, instala la app en la pantalla de inicio (Añadir a pantalla de inicio) para activarlas.</p>
           </div>
-          <Button size="sm" onClick={requestNotif} className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">Activar</Button>
+        </div>
+      )}
+
+      {notifStatus === 'default' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5 flex items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <SmartphoneNfc className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Activa las notificaciones push</p>
+              <p className="text-xs text-amber-700 mt-0.5">Recibirás alertas sonoras y en pantalla cuando llegue la hora de la alarma, incluso si tienes el teléfono bloqueado.</p>
+            </div>
+          </div>
+          <Button size="sm" onClick={requestNotif} disabled={requesting}
+            className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 gap-1.5">
+            {requesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
+            Activar
+          </Button>
+        </div>
+      )}
+
+      {notifStatus === 'denied' && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-5 flex items-center gap-3">
+          <XCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-red-700">Notificaciones bloqueadas</p>
+            <p className="text-xs text-red-600 mt-0.5">
+              Has bloqueado las notificaciones. Para activarlas ve a <strong>Ajustes → Privacidad → Notificaciones</strong> y permite esta app. En iOS reinstala desde Safari usando "Añadir a pantalla de inicio".
+            </p>
+          </div>
+        </div>
+      )}
+
+      {notifStatus === 'granted' && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-5 flex items-center gap-2.5">
+          <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+          <p className="text-xs text-green-700 font-medium">Notificaciones push activadas · Las alarmas se mostrarán en pantalla y reproducirán sonido.</p>
         </div>
       )}
 
