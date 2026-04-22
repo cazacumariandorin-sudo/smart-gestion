@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Shield, UserCheck, Hammer, Clock, Mail, UserPlus, Loader2, Pencil, Save, X, CalendarClock } from 'lucide-react';
+import { Shield, UserCheck, Hammer, Clock, Mail, UserPlus, Loader2, Pencil, Save, X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const roleConfig = {
   admin:           { label: 'Administrador',    icon: Shield,    className: 'bg-red-100 text-red-700 border-red-200',       desc: 'Acceso completo a todos los módulos' },
@@ -39,6 +39,11 @@ export default function Users() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); setEditUser(null); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: id => base44.entities.User.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
   });
 
   const handleInvite = async () => {
@@ -122,6 +127,25 @@ export default function Users() {
                     </div>
                   </div>
 
+                  {!isEditing && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive shrink-0">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+                          <AlertDialogDescription>Se eliminará "{user.full_name || user.email}" permanentemente.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteMutation.mutate(user.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                   {isEditing ? (
                     <div className="flex items-center gap-2 flex-wrap">
                       <Select value={editForm.role || role} onValueChange={v => setEditForm(p => ({ ...p, role: v }))}>
