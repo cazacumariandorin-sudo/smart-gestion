@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera,
   UserCog, CircleUser, Package, FileImage, ShoppingCart, Receipt, Clock,
-  Building2, BookOpen, CalendarDays, ChevronDown, ChevronRight
+  Building2, BookOpen, CalendarDays, ChevronDown, ChevronRight, Sun, Factory, Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -75,9 +75,7 @@ export default function Sidebar() {
     { label: t('nav_workorders'), path: '/work-orders', icon: ClipboardList },
     { label: t('nav_new_order'), path: '/work-orders/new', icon: Plus },
     { label: t('nav_photos'), path: '/photos', icon: Camera },
-    { label: t('nav_reports'), path: '/reports', icon: BarChart3 },
     { label: t('nav_clients'), path: '/clients', icon: UserCog },
-    { label: t('nav_users'), path: '/users', icon: Users },
   ];
 
   const operariosItems = [
@@ -92,8 +90,19 @@ export default function Sidebar() {
     { label: 'Obras', path: '/obras', icon: Building2 },
     { label: 'Planos', path: '/drawings', icon: FileImage },
     { label: 'Manuales', path: '/manuales', icon: BookOpen },
+    { label: 'Fabricantes', path: '/fabricantes', icon: Factory },
     { label: 'Pedidos', path: '/orders', icon: ShoppingCart },
     { label: 'Materiales', path: '/materials', icon: Package },
+  ];
+
+  const solarItems = [
+    { label: 'Pedidos Solar', path: '/solar-pedidos', icon: ShoppingCart },
+    { label: 'Obras Solar', path: '/solar-obras', icon: Building2 },
+  ];
+
+  const adminItems = [
+    { label: 'Usuarios', path: '/users', icon: Users },
+    { label: 'Informe Mensual', path: '/reports', icon: BarChart3 },
   ];
 
   return (
@@ -127,6 +136,18 @@ export default function Sidebar() {
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Gestión</p>
           <NavGroup icon={ShoppingCart} label="Pedidos y Obras" currentPath={path} defaultOpen={pedidosItems.some(i => path.startsWith(i.path))}>
             {pedidosItems}
+          </NavGroup>
+        </div>
+
+        <div className="pt-2">
+          <NavGroup icon={Sun} label="Solar" currentPath={path} defaultOpen={solarItems.some(i => path.startsWith(i.path))}>
+            {solarItems}
+          </NavGroup>
+        </div>
+
+        <div className="pt-2">
+          <NavGroup icon={Settings} label="Administración" currentPath={path} defaultOpen={adminItems.some(i => path.startsWith(i.path))}>
+            {adminItems}
           </NavGroup>
         </div>
       </nav>

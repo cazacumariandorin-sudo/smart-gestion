@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Trash2, BookOpen, Save, Loader2, Upload, ExternalLink, FileText, Table, File } from 'lucide-react';
+import { Plus, Search, Trash2, BookOpen, Save, Loader2, Upload, ExternalLink, FileText, Table, File, Factory, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const empty = { title: '', client_id: '', client_name: '', obra_id: '', obra_name: '', categoria: '', file_url: '', file_type: '', version: '', date: new Date().toISOString().split('T')[0], notes: '' };
+const empty = { title: '', client_id: '', client_name: '', obra_id: '', obra_name: '', fabricante_id: '', fabricante_name: '', categoria: '', file_url: '', file_type: '', version: '', date: new Date().toISOString().split('T')[0], notes: '' };
 
 function fileIcon(fileType) {
   if (!fileType) return <File className="w-5 h-5 text-muted-foreground" />;
@@ -29,13 +29,16 @@ export default function Manuales() {
   const [search, setSearch] = useState('');
   const [clientFilter, setClientFilter] = useState('all');
   const [obraFilter, setObraFilter] = useState('all');
+  const [fabricanteFilter, setFabricanteFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(empty);
   const [uploading, setUploading] = useState(false);
+  const [translating, setTranslating] = useState(null);
 
   const { data: manuales = [], isLoading } = useQuery({ queryKey: ['manuales'], queryFn: () => base44.entities.Manual.list('-date', 300) });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
   const { data: obras = [] } = useQuery({ queryKey: ['obras'], queryFn: () => base44.entities.Obra.list('name', 300) });
+  const { data: fabricantes = [] } = useQuery({ queryKey: ['fabricantes'], queryFn: () => base44.entities.Fabricante.list('name', 300) });
 
   const createM = useMutation({ mutationFn: d => base44.entities.Manual.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['manuales'] }); close_(); } });
   const deleteM = useMutation({ mutationFn: id => base44.entities.Manual.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['manuales'] }) });
@@ -60,13 +63,27 @@ export default function Manuales() {
     setUploading(false);
   };
 
+  const translateDoc = async (manual) => {
+    setTranslating(manual.id);
+    if (!manual.file_url) { setTranslating(null); return; }
+    const result = await base44.integrations.Core.InvokeLLM({
+      prompt: `Traduce el siguiente documento al español. Mantén el formato original lo máximo posible. El archivo está en: ${manual.file_url}. Devuelve el texto traducido completo.`,
+      file_urls: [manual.file_url],
+    });
+    setTranslating(null);
+    const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `${manual.title}_ES.txt`; a.click();
+  };
+
   const filtered = useMemo(() => manuales.filter(m => {
     const q = search.toLowerCase();
     const matchQ = !search || m.title?.toLowerCase().includes(q) || m.client_name?.toLowerCase().includes(q) || m.obra_name?.toLowerCase().includes(q) || m.categoria?.toLowerCase().includes(q);
     const matchC = clientFilter === 'all' || m.client_id === clientFilter;
     const matchO = obraFilter === 'all' || m.obra_id === obraFilter;
-    return matchQ && matchC && matchO;
-  }), [manuales, search, clientFilter, obraFilter]);
+    const matchF = fabricanteFilter === 'all' || m.fabricante_id === fabricanteFilter;
+    return matchQ && matchC && matchO && matchF;
+  }), [manuales, search, clientFilter, obraFilter, fabricanteFilter]);
 
   // Group by client then obra
   const grouped = useMemo(() => {
@@ -116,6 +133,13 @@ export default function Manuales() {
             {obras.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={fabricanteFilter} onValueChange={setFabricanteFilter}>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Fabricante" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los fabricantes</SelectItem>
+            {fabricantes.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
@@ -151,9 +175,14 @@ export default function Manuales() {
                           </div>
                           <div className="flex gap-1 shrink-0">
                             {m.file_url && (
-                              <a href={m.file_url} target="_blank" rel="noopener noreferrer">
-                                <Button variant="ghost" size="icon" className="h-7 w-7"><ExternalLink className="w-3.5 h-3.5" /></Button>
-                              </a>
+                              <>
+                                <a href={m.file_url} target="_blank" rel="noopener noreferrer">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7"><ExternalLink className="w-3.5 h-3.5" /></Button>
+                                </a>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Traducir al español" onClick={() => translateDoc(m)} disabled={translating === m.id}>
+                                  {translating === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Languages className="w-3.5 h-3.5" />}
+                                </Button>
+                              </>
                             )}
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -209,6 +238,15 @@ export default function Manuales() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Categoría</Label>
                 <Input value={form.categoria} onChange={e => set('categoria', e.target.value)} placeholder="Instalación, mantenimiento..." />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Fabricante</Label>
+                <Select value={form.fabricante_id} onValueChange={id => { const f = fabricantes.find(x => x.id === id); set('fabricante_id', id); set('fabricante_name', f?.name || ''); }}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    {fabricantes.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Versión</Label>

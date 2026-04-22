@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useI18n } from '@/lib/i18n';
-import { Plus, Search, Pencil, Trash2, ShoppingCart, Loader2, Save, Truck, Package, Euro, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ShoppingCart, Loader2, Save, Truck, Package, Euro, X, ChevronDown, ChevronUp, Upload, FileText, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -40,6 +41,8 @@ export default function Orders() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyOrder);
   const [expandedId, setExpandedId] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
 
   const { data: orders = [], isLoading } = useQuery({ queryKey: ['orders'], queryFn: () => base44.entities.Order.list('-date', 300) });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
@@ -49,7 +52,7 @@ export default function Orders() {
   const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Order.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['orders'] }); close_(); } });
   const deleteM = useMutation({ mutationFn: id => base44.entities.Order.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }) });
 
-  const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setDialogOpen(true); };
+  const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setUploadedFiles([]); setDialogOpen(true); };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyOrder); };
   const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -90,8 +93,20 @@ export default function Orders() {
     });
   };
 
+  const handleFileUpload = async (file) => {
+    setUploadingFile(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    setUploadedFiles(prev => [...prev, { name: file.name, url: file_url, type: ext }]);
+    setUploadingFile(false);
+  };
+
   const handleSave = () => {
-    const data = { ...form, total_amount: form.items.reduce((s, it) => s + (it.total_price || 0), 0) };
+    const data = {
+      ...form,
+      total_amount: form.items.reduce((s, it) => s + (it.total_price || 0), 0),
+      attached_files: uploadedFiles,
+    };
     if (editing) updateM.mutate({ id: editing.id, d: data });
     else createM.mutate(data);
   };
@@ -243,6 +258,12 @@ export default function Orders() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? t('edit') : t('new_order')}</DialogTitle></DialogHeader>
+          <Tabs defaultValue="datos">
+            <TabsList className="mb-4">
+              <TabsTrigger value="datos">📋 Datos del pedido</TabsTrigger>
+              <TabsTrigger value="archivos">📎 Subir archivos</TabsTrigger>
+            </TabsList>
+          <TabsContent value="datos">
           <div className="space-y-4 py-2">
             {/* Header info */}
             <div className="grid grid-cols-2 gap-3">
@@ -331,6 +352,49 @@ export default function Orders() {
               <Textarea value={form.notes} onChange={e => setField('notes', e.target.value)} rows={2} placeholder="Observaciones..." />
             </div>
           </div>
+          </TabsContent>
+
+          <TabsContent value="archivos">
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">Sube el pedido en formato PDF, Excel o Word.</p>
+              <label className="block border-2 border-dashed rounded-lg h-28 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-muted/30 transition-colors">
+                {uploadingFile ? <Loader2 className="w-7 h-7 animate-spin text-muted-foreground" /> : <Upload className="w-7 h-7 text-muted-foreground" />}
+                <p className="text-xs text-muted-foreground">{uploadingFile ? 'Subiendo...' : 'Subir PDF, Excel (.xlsx), Word (.docx)'}</p>
+                <input type="file" accept=".pdf,.xls,.xlsx,.doc,.docx" className="hidden"
+                  onChange={e => e.target.files[0] && handleFileUpload(e.target.files[0])} />
+              </label>
+              {uploadedFiles.length > 0 && (
+                <div className="space-y-2">
+                  {uploadedFiles.map((f, i) => (
+                    <div key={i} className="flex items-center gap-3 p-2.5 border rounded-lg bg-muted/30">
+                      <FileText className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-xs flex-1 font-medium truncate">{f.name}</span>
+                      <a href={f.url} target="_blank" rel="noopener noreferrer">
+                        <Button variant="ghost" size="icon" className="h-7 w-7"><ExternalLink className="w-3.5 h-3.5" /></Button>
+                      </a>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setUploadedFiles(prev => prev.filter((_, idx) => idx !== i))}>
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Show existing files if editing */}
+              {editing?.attached_files?.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Archivos existentes:</p>
+                  {editing.attached_files.map((f, i) => (
+                    <div key={i} className="flex items-center gap-3 p-2 border rounded-lg bg-muted/20">
+                      <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="text-xs flex-1 truncate">{f.name}</span>
+                      <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="w-3 h-3" />Ver</a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+          </Tabs>
           <DialogFooter>
             <Button variant="outline" onClick={close_}>{t('cancel')}</Button>
             <Button onClick={handleSave} disabled={!form.client_id || !form.project || isPending} className="gap-2 min-w-28">

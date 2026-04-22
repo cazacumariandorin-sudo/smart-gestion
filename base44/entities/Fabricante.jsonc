@@ -1,0 +1,37 @@
+{
+  "name": "Fabricante",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del fabricante"
+    },
+    "pais": {
+      "type": "string",
+      "description": "Pa\u00eds"
+    },
+    "web": {
+      "type": "string",
+      "description": "P\u00e1gina web"
+    },
+    "telefono": {
+      "type": "string",
+      "description": "Tel\u00e9fono"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email"
+    },
+    "categorias": {
+      "type": "string",
+      "description": "Categor\u00edas de productos"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

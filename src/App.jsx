@@ -27,6 +27,8 @@ import ControlHorario from './pages/ControlHorario';
 import Obras from './pages/Obras';
 import CalendarioVacaciones from './pages/CalendarioVacaciones';
 import Manuales from './pages/Manuales';
+import Fabricantes from './pages/Fabricantes';
+import SolarPedidos from './pages/SolarPedidos';
 
 // Apply dark class based on system preference
 function ThemeDetector() {
@@ -74,6 +76,9 @@ function AnimatedRoutes() {
             <Route path="/obras" element={<Obras />} />
             <Route path="/calendario-vacaciones" element={<CalendarioVacaciones />} />
             <Route path="/manuales" element={<Manuales />} />
+            <Route path="/fabricantes" element={<Fabricantes />} />
+            <Route path="/solar-pedidos" element={<SolarPedidos />} />
+            <Route path="/solar-obras" element={<SolarPedidos />} />
           </Route>
           <Route path="*" element={<PageNotFound />} />
         </Routes>

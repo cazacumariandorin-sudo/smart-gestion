@@ -10,18 +10,6 @@
       "type": "string",
       "description": "NIF / CIF"
     },
-    "contact_person": {
-      "type": "string",
-      "description": "Persona de contacto"
-    },
-    "phone": {
-      "type": "string",
-      "description": "Tel\u00e9fono"
-    },
-    "email": {
-      "type": "string",
-      "description": "Correo electr\u00f3nico"
-    },
     "address": {
       "type": "string",
       "description": "Direcci\u00f3n"
@@ -34,6 +22,57 @@
       "type": "boolean",
       "default": true,
       "description": "Cliente activo"
+    },
+    "contacto_admin": {
+      "type": "object",
+      "description": "Contacto Administraci\u00f3n",
+      "properties": {
+        "nombre": {
+          "type": "string"
+        },
+        "telefono": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "contacto_facturacion": {
+      "type": "object",
+      "description": "Contacto Facturaci\u00f3n",
+      "properties": {
+        "nombre": {
+          "type": "string"
+        },
+        "telefono": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "tecnicos": {
+      "type": "array",
+      "description": "T\u00e9cnicos de contacto (hasta 4)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "telefono": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "cargo": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "required": [

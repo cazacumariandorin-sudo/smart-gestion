@@ -6,11 +6,21 @@
       "type": "string",
       "enum": [
         "admin",
-        "encargado",
-        "operario"
+        "jefe_obra",
+        "operario",
+        "control_horario"
       ],
       "default": "operario",
-      "description": "Rol del usuario en la app"
+      "description": "Tipo de usuario"
+    },
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario vinculado (para rol operario)"
+    },
+    "acceso_total_hasta": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha hasta la que tiene acceso completo temporal (admin puede conceder)"
     }
   }
 }
