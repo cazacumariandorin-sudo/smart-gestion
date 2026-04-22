@@ -13,7 +13,10 @@ export default function AppLayout() {
     <div className="flex min-h-screen bg-background">
       <ScrollRestorer />
       <Sidebar />
-      <main className="flex-1 pb-20 lg:pb-0 overflow-x-hidden">
+      <main
+        className="flex-1 overflow-x-hidden pb-20 lg:pb-0"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         <Outlet />
       </main>
       <MobileNav />

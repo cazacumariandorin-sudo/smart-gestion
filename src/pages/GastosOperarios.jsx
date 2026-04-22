@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -423,17 +422,15 @@ Si no puedes extraer algún campo, ponlo como null.`,
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Operario *</Label>
-                <Select value={form.operario_id} onValueChange={handleOperarioChange}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar operario..." /></SelectTrigger>
-                  <SelectContent>{operarios.map(op => <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <MobileSelect value={form.operario_id} onValueChange={handleOperarioChange} placeholder="Seleccionar operario...">
+                  {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Categoría *</Label>
-                <Select value={form.categoria} onValueChange={v => set('categoria', v)}>
-                  <SelectTrigger><SelectValue placeholder="Categoría..." /></SelectTrigger>
-                  <SelectContent>{CATEGORIAS.map(c => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}</SelectContent>
-                </Select>
+                <MobileSelect value={form.categoria} onValueChange={v => set('categoria', v)} placeholder="Categoría...">
+                  {CATEGORIAS.map(c => <MobileSelectItem key={c.key} value={c.key}>{c.label}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Importe (€) *</Label>
@@ -453,13 +450,10 @@ Si no puedes extraer algún campo, ponlo como null.`,
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Obra (opcional)</Label>
-                <Select value={form.project} onValueChange={v => set('project', v)}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar obra..." /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_ninguna">Sin obra</SelectItem>
-                    {obras.map(ob => <SelectItem key={ob.id} value={ob.name}>{ob.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <MobileSelect value={form.project} onValueChange={v => set('project', v)} placeholder="Seleccionar obra...">
+                  <MobileSelectItem value="_ninguna">Sin obra</MobileSelectItem>
+                  {obras.map(ob => <MobileSelectItem key={ob.id} value={ob.name}>{ob.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
             </div>
           </div>
