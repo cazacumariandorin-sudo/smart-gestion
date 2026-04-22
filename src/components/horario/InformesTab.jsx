@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { jsPDF } from 'jspdf';
-import * as XLSX from 'xlsx';
+
 
 // Simple table helper for jsPDF (no plugin needed)
 function drawTable(doc, headers, rows, startY, margin = 14) {
@@ -77,6 +77,52 @@ export default function InformesTab() {
   const byWeek = useMemo(() => groupByWeek(filtered), [filtered]);
   const byMonth = useMemo(() => groupByMonth(filtered), [filtered]);
   const totalHoras = filtered.reduce((s, f) => s + (f.horas_trabajadas || 0), 0);
+
+  const generateExcel = () => {
+    const subtitle = monthFilter ? format(parseISO(monthFilter + '-01'), 'MMMM yyyy', { locale: es }) : 'Todos';
+    const rows = filtered.sort((a, b) => a.date > b.date ? 1 : -1).map(f => [
+      f.date ? format(parseISO(f.date), 'dd/MM/yyyy') : '',
+      f.operario_name || '',
+      f.hora_entrada || '',
+      f.hora_salida || '',
+      f.pausa_inicio && f.pausa_fin ? `${f.pausa_inicio}-${f.pausa_fin}` : '',
+      f.project || '',
+      (f.horas_trabajadas || 0).toFixed(2),
+      f.notas || '',
+    ]);
+
+    // Summary by operario
+    const summaryRows = Object.values(filtered.reduce((map, f) => {
+      if (!map[f.operario_id]) map[f.operario_id] = { name: f.operario_name, dias: 0, total: 0 };
+      map[f.operario_id].dias++;
+      map[f.operario_id].total += f.horas_trabajadas || 0;
+      return map;
+    }, {})).map(op => [op.name, op.dias, op.total.toFixed(2)]);
+
+    const headers = ['Fecha','Operario','Entrada','Salida','Pausa','Obra','Horas','Notas'];
+    const lines = [
+      `Control Horario - ${subtitle}`,
+      '',
+      headers.join(';'),
+      ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')),
+      '',
+      'RESUMEN POR OPERARIO',
+      ['Operario','Días','Total Horas'].join(';'),
+      ...summaryRows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')),
+      '',
+      `Total general:;;;;;;${filtered.reduce((s,f) => s+(f.horas_trabajadas||0),0).toFixed(2)}`,
+    ];
+
+    // UTF-8 BOM so Excel opens it correctly
+    const csv = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `control-horario-${monthFilter || 'todos'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const generatePDF = () => {
     const doc = new jsPDF();
@@ -187,8 +233,11 @@ export default function InformesTab() {
             {operarios.map(op => <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button onClick={generateExcel} variant="outline" className="gap-2 shrink-0">
+          <Download className="w-4 h-4" /> Excel/CSV
+        </Button>
         <Button onClick={generatePDF} className="gap-2 shrink-0">
-          <Download className="w-4 h-4" /> Descargar PDF
+          <Download className="w-4 h-4" /> PDF
         </Button>
       </div>
 
