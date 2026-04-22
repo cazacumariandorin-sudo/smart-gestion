@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { jsPDF } from 'jspdf';
+import * as XLSX from 'xlsx';
 
 // Simple table helper for jsPDF (no plugin needed)
 function drawTable(doc, headers, rows, startY, margin = 14) {

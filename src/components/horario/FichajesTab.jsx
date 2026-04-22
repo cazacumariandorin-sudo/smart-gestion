@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useUserRole } from '@/lib/useUserRole';
 import { calcularHoras } from '@/lib/horasUtils';
 import { Plus, Search, Trash2, Pencil, Save, Loader2, Clock, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,8 @@ const empty = { operario_id: '', operario_name: '', date: new Date().toISOString
 
 export default function FichajesTab() {
   const qc = useQueryClient();
+  const { isAdmin, isJefeObra } = useUserRole();
+  const canEditExitTime = isAdmin || isJefeObra;
   const [search, setSearch] = useState('');
   const [opFilter, setOpFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
@@ -166,7 +169,23 @@ export default function FichajesTab() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Hora salida</Label>
-                <Input type="time" value={form.hora_salida} onChange={e => set('hora_salida', e.target.value)} />
+                <Input
+                  type="time"
+                  value={form.hora_salida}
+                  onChange={e => {
+                    const val = e.target.value;
+                    // Non-admins: cannot set exit time in future
+                    if (!canEditExitTime) {
+                      const now = new Date();
+                      const [h, m] = val.split(':').map(Number);
+                      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                      const selectedMinutes = h * 60 + m;
+                      if (selectedMinutes > nowMinutes) return;
+                    }
+                    set('hora_salida', val);
+                  }}
+                />
+                {!canEditExitTime && <p className="text-[10px] text-muted-foreground">No se puede registrar hora futura</p>}
               </div>
             </div>
             <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 space-y-2">

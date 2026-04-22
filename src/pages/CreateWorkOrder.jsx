@@ -23,6 +23,11 @@ export default function CreateWorkOrder() {
     queryFn: () => base44.entities.Client.list('name', 200),
   });
 
+  const { data: obras = [] } = useQuery({
+    queryKey: ['obras'],
+    queryFn: () => base44.entities.Obra.list('name', 300),
+  });
+
   const [form, setForm] = useState({
     date: new Date().toISOString().split('T')[0],
     client_id: '',
@@ -130,7 +135,16 @@ export default function CreateWorkOrder() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Obra *</Label>
-              <Input placeholder="Nombre de la obra" value={form.project} onChange={(e) => updateField('project', e.target.value)} required />
+              <Select value={form.project} onValueChange={v => updateField('project', v)}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar obra..." /></SelectTrigger>
+                <SelectContent>
+                  {obras.map(o => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}
+                  <SelectItem value="__manual__">— Escribir manualmente —</SelectItem>
+                </SelectContent>
+              </Select>
+              {(form.project === '__manual__' || (!obras.find(o => o.name === form.project) && form.project)) && (
+                <Input placeholder="Nombre de la obra" value={form.project === '__manual__' ? '' : form.project} onChange={e => updateField('project', e.target.value)} className="mt-1" />
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Hora inicio</Label>

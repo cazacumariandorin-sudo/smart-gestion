@@ -12,20 +12,10 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const ALL_MODULES = [
-  { key: 'work-orders',         label: 'Partes de Trabajo',   path: '/work-orders',         icon: ClipboardList, color: 'from-orange-500 to-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/30', border: 'border-orange-200 dark:border-orange-800', emoji: '📋' },
-  { key: 'orders',              label: 'Pedidos',              path: '/orders',               icon: ShoppingCart,  color: 'from-blue-500 to-blue-400',   bg: 'bg-blue-50 dark:bg-blue-950/30',     border: 'border-blue-200 dark:border-blue-800',     emoji: '🛒' },
-  { key: 'control-horario',     label: 'Control Horario',      path: '/control-horario',      icon: Clock,         color: 'from-emerald-500 to-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30', border: 'border-emerald-200 dark:border-emerald-800', emoji: '⏱️' },
-  { key: 'clients',             label: 'Clientes',             path: '/clients',              icon: UserCog,       color: 'from-purple-500 to-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-purple-200 dark:border-purple-800', emoji: '🏢' },
-  { key: 'operarios',           label: 'Operarios',            path: '/operarios',            icon: Users,         color: 'from-amber-500 to-amber-400',  bg: 'bg-amber-50 dark:bg-amber-950/30',   border: 'border-amber-200 dark:border-amber-800',   emoji: '👷' },
-  { key: 'photos',              label: 'Galería de Fotos',     path: '/photos',               icon: Camera,        color: 'from-pink-500 to-pink-400',   bg: 'bg-pink-50 dark:bg-pink-950/30',     border: 'border-pink-200 dark:border-pink-800',     emoji: '📷' },
-  { key: 'obras',               label: 'Obras',                path: '/obras',                icon: Building2,     color: 'from-slate-500 to-slate-400',  bg: 'bg-slate-50 dark:bg-slate-950/30',   border: 'border-slate-200 dark:border-slate-700',   emoji: '🏗️' },
-  { key: 'gastos-operarios',    label: 'Gastos',               path: '/gastos-operarios',     icon: Receipt,       color: 'from-red-500 to-red-400',     bg: 'bg-red-50 dark:bg-red-950/30',       border: 'border-red-200 dark:border-red-800',       emoji: '🧾' },
-  { key: 'drawings',            label: 'Planos',               path: '/drawings',             icon: FileImage,     color: 'from-cyan-500 to-cyan-400',   bg: 'bg-cyan-50 dark:bg-cyan-950/30',     border: 'border-cyan-200 dark:border-cyan-800',     emoji: '📐' },
-  { key: 'manuales',            label: 'Manuales',             path: '/manuales',             icon: BookOpen,      color: 'from-teal-500 to-teal-400',   bg: 'bg-teal-50 dark:bg-teal-950/30',     border: 'border-teal-200 dark:border-teal-800',     emoji: '📚' },
-  { key: 'calendario-vacaciones', label: 'Vacaciones',         path: '/calendario-vacaciones', icon: CalendarDays, color: 'from-indigo-500 to-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/30', border: 'border-indigo-200 dark:border-indigo-800', emoji: '🌴' },
-  { key: 'reports',             label: 'Informes',             path: '/reports',              icon: BarChart3,     color: 'from-violet-500 to-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/30', border: 'border-violet-200 dark:border-violet-800', emoji: '📊' },
-  { key: 'materials',           label: 'Materiales',           path: '/materials',            icon: Package,       color: 'from-yellow-500 to-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-950/30', border: 'border-yellow-200 dark:border-yellow-800', emoji: '📦' },
-  { key: 'solar',               label: 'Solar',                path: '/solar-pedidos',        icon: Sun,           color: 'from-orange-400 to-yellow-400', bg: 'bg-orange-50 dark:bg-orange-950/30', border: 'border-orange-200 dark:border-orange-800', emoji: '☀️' },
+  { key: 'work-orders',  label: 'Partes de Trabajo', path: '/work-orders', icon: ClipboardList, color: 'from-orange-500 to-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/30', border: 'border-orange-200 dark:border-orange-800', emoji: '📋' },
+  { key: 'operarios',    label: 'Operarios',          path: '/operarios',   icon: Users,         color: 'from-amber-500 to-amber-400',   bg: 'bg-amber-50 dark:bg-amber-950/30',   border: 'border-amber-200 dark:border-amber-800',   emoji: '👷' },
+  { key: 'orders',       label: 'Pedidos',             path: '/orders',      icon: ShoppingCart,  color: 'from-blue-500 to-blue-400',     bg: 'bg-blue-50 dark:bg-blue-950/30',     border: 'border-blue-200 dark:border-blue-800',     emoji: '🛒' },
+  { key: 'photos',       label: 'Galería de Fotos',    path: '/photos',      icon: Camera,        color: 'from-pink-500 to-pink-400',     bg: 'bg-pink-50 dark:bg-pink-950/30',     border: 'border-pink-200 dark:border-pink-800',     emoji: '📷' },
 ];
 
 function ModuleCard({ mod, count, subtitle }) {

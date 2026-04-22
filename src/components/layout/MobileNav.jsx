@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 const mainItems = [
   { path: '/', icon: LayoutDashboard, label: 'Panel' },
   { path: '/work-orders', icon: ClipboardList, label: 'Partes' },
-  { path: '/work-orders/new', icon: Plus, label: 'Nuevo', fab: true },
   { path: '/control-horario', icon: Clock, label: 'Horario' },
 ];
 

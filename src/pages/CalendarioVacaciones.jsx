@@ -297,7 +297,13 @@ export default function CalendarioVacaciones() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Fecha fin</Label>
-                <Input type="date" value={form.fecha_fin} onChange={e => set('fecha_fin', e.target.value)} />
+                <Input type="date" value={form.fecha_fin} min={form.fecha_inicio || undefined} onChange={e => {
+                  if (form.fecha_inicio && e.target.value < form.fecha_inicio) return;
+                  set('fecha_fin', e.target.value);
+                }} />
+                {form.fecha_fin && form.fecha_inicio && form.fecha_fin < form.fecha_inicio && (
+                  <p className="text-xs text-destructive">La fecha fin no puede ser anterior a la fecha inicio</p>
+                )}
               </div>
             </div>
             {form.fecha_inicio && (
