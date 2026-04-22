@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format, parseISO } from 'date-fns';
@@ -122,13 +122,10 @@ export default function FichajesTab() {
           <Input placeholder="Buscar operario u obra..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-full sm:w-40" />
-        <Select value={opFilter} onValueChange={setOpFilter}>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Operario" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {operarios.map(op => <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
+          <MobileSelectItem value="all">Todos</MobileSelectItem>
+          {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+        </MobileSelect>
         <Button onClick={() => open_()} className="gap-2 shrink-0">
           <Plus className="w-4 h-4" /> Nuevo Fichaje
         </Button>
@@ -238,10 +235,9 @@ export default function FichajesTab() {
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs">Operario *</Label>
-              <Select value={form.operario_id} onValueChange={handleOpChange}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar operario..." /></SelectTrigger>
-                <SelectContent>{operarios.map(op => <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <MobileSelect value={form.operario_id} onValueChange={handleOpChange} placeholder="Seleccionar operario...">
+                {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+              </MobileSelect>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -318,10 +314,9 @@ export default function FichajesTab() {
                       <Input type="number" step="0.01" value={a.cantidad} onChange={e => setApunteField(i, 'cantidad', e.target.value)} placeholder="Cant." className="h-8 text-xs" />
                     </div>
                     <div className="col-span-2">
-                      <Select value={a.unidad} onValueChange={v => setApunteField(i, 'unidad', v)}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>{UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
-                      </Select>
+                      <MobileSelect value={a.unidad} onValueChange={v => setApunteField(i, 'unidad', v)} placeholder="Ud" triggerClassName="h-8 text-xs">
+                        {UNITS.map(u => <MobileSelectItem key={u} value={u}>{u}</MobileSelectItem>)}
+                      </MobileSelect>
                     </div>
                     <div className="col-span-2">
                       <Input type="number" step="0.01" value={a.precio_unitario} onChange={e => setApunteField(i, 'precio_unitario', e.target.value)} placeholder="€/ud" className="h-8 text-xs" />

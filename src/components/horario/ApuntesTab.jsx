@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -219,24 +219,18 @@ export default function ApuntesTab() {
     <div>
       {/* Filters + Export */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5 flex-wrap">
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {PERIOD_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MobileSelect value={period} onValueChange={setPeriod} placeholder="Período" triggerClassName="w-full sm:w-40">
+          {PERIOD_OPTIONS.map(o => <MobileSelectItem key={o.value} value={o.value}>{o.label}</MobileSelectItem>)}
+        </MobileSelect>
         {period === 'anual' ? (
           <Input type="number" min="2020" max="2099" value={yearFilter} onChange={e => setYearFilter(e.target.value)} className="w-full sm:w-28" placeholder="Año" />
         ) : (
           <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-full sm:w-40" />
         )}
-        <Select value={opFilter} onValueChange={setOpFilter}>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Operario" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los operarios</SelectItem>
-            {operarios.map(op => <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
+          <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
+          {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+        </MobileSelect>
         <Button onClick={() => open_()} className="gap-2 shrink-0">
           <Plus className="w-4 h-4" /> Nuevo Apunte
         </Button>
@@ -335,10 +329,9 @@ export default function ApuntesTab() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Operario *</Label>
-                <Select value={form.operario_id} onValueChange={handleOpChange}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>{operarios.map(op => <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <MobileSelect value={form.operario_id} onValueChange={handleOpChange} placeholder="Seleccionar...">
+                  {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Fecha *</Label>
@@ -358,10 +351,9 @@ export default function ApuntesTab() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Unidad</Label>
-                <Select value={form.unidad} onValueChange={v => set('unidad', v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
-                </Select>
+                <MobileSelect value={form.unidad} onValueChange={v => set('unidad', v)} placeholder="Unidad">
+                  {UNITS.map(u => <MobileSelectItem key={u} value={u}>{u}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Precio unitario (€)</Label>

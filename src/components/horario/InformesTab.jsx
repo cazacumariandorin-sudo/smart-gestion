@@ -5,7 +5,7 @@ import { groupByWeek, groupByMonth } from '@/lib/horasUtils';
 import { Download, BarChart3, User, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
@@ -197,22 +197,16 @@ export default function InformesTab() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <Select value={mode} onValueChange={setMode}>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="mes">Por Mes</SelectItem>
-            <SelectItem value="semana">Por Semana</SelectItem>
-            <SelectItem value="operario">Por Operario</SelectItem>
-          </SelectContent>
-        </Select>
+        <MobileSelect value={mode} onValueChange={setMode} placeholder="Vista" triggerClassName="w-full sm:w-44">
+          <MobileSelectItem value="mes">Por Mes</MobileSelectItem>
+          <MobileSelectItem value="semana">Por Semana</MobileSelectItem>
+          <MobileSelectItem value="operario">Por Operario</MobileSelectItem>
+        </MobileSelect>
         <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-full sm:w-40" />
-        <Select value={opFilter} onValueChange={setOpFilter}>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Operario" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los operarios</SelectItem>
-            {operarios.map(op => <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
+          <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
+          {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+        </MobileSelect>
         <Button onClick={generatePDF} className="gap-2 shrink-0">
           <Download className="w-4 h-4" /> PDF
         </Button>
