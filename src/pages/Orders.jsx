@@ -10,8 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -283,17 +283,15 @@ export default function Orders() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">{t('status')}</Label>
-                <Select value={form.status} onValueChange={v => setField('status', v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(statusCfg).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
-                </Select>
+                <MobileSelect value={form.status} onValueChange={v => setField('status', v)} placeholder="Estado">
+                  {Object.entries(statusCfg).map(([k, v]) => <MobileSelectItem key={k} value={k}>{v.label}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">{t('client')} *</Label>
-                <Select value={form.client_id} onValueChange={handleClientChange}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <MobileSelect value={form.client_id} onValueChange={handleClientChange} placeholder="Seleccionar cliente...">
+                  {clients.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">{t('project')} *</Label>
@@ -329,13 +327,10 @@ export default function Orders() {
               {form.items.map((item, i) => (
                 <div key={i} className="bg-muted/40 rounded-lg p-3 space-y-2">
                   <div className="flex gap-2">
-                    <Select value={item.material_id} onValueChange={v => selectMaterial(i, v)}>
-                      <SelectTrigger className="flex-1 h-8 text-xs"><SelectValue placeholder="Material del catálogo..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="_manual">— Introducir manualmente —</SelectItem>
-                        {materials.map(m => <SelectItem key={m.id} value={m.id}>{m.name} {m.unit_price > 0 ? `(${m.unit_price}€/${m.unit})` : ''}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <MobileSelect value={item.material_id} onValueChange={v => selectMaterial(i, v)} placeholder="Material..." triggerClassName="flex-1 h-8 text-xs">
+                      <MobileSelectItem value="_manual">— Introducir manualmente —</MobileSelectItem>
+                      {materials.map(m => <MobileSelectItem key={m.id} value={m.id}>{m.name} {m.unit_price > 0 ? `(${m.unit_price}€/${m.unit})` : ''}</MobileSelectItem>)}
+                    </MobileSelect>
                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive" onClick={() => removeItem(i)}><X className="w-3.5 h-3.5" /></Button>
                   </div>
                   {(item.material_id === '_manual' || !item.material_id) && (

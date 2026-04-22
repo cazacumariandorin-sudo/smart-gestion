@@ -39,8 +39,9 @@ export default function Profile() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-lg mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6">Mi Perfil</h1>
+    <div className="min-h-screen flex flex-col bg-background" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-lg mx-auto flex-1 w-full">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6">Mi Perfil</h1>
 
       {/* Avatar + info */}
       <Card className="p-6 mb-4 flex items-center gap-4">
@@ -143,10 +144,11 @@ export default function Profile() {
         </div>
       </Card>
 
-      {/* Version info */}
-      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-6">
-        <Info className="w-3.5 h-3.5" />
-        <span>Versión {appVersion}</span>
+        {/* Version info */}
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-6">
+          <Info className="w-3.5 h-3.5" />
+          <span>Versión {appVersion}</span>
+        </div>
       </div>
 
       {/* Legal dialogs */}
@@ -248,8 +250,9 @@ export default function Profile() {
               <p>Se utilizan cookies esenciales para la sesión. Se recopilan análisis de uso anónimos para mejorar el servicio. Puedes revocar estas autorizaciones en cualquier momento.</p>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
+          </DialogContent>
+          </Dialog>
+          </div>
+          </div>
+          );
+          }
