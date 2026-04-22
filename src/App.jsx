@@ -10,6 +10,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AppLayout from './components/layout/AppLayout';
+import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import WorkOrders from './pages/WorkOrders';
@@ -77,27 +78,32 @@ function AnimatedRoutes() {
         <Routes location={location}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/work-orders" element={<WorkOrders />} />
-            <Route path="/work-orders/new" element={<CreateWorkOrder />} />
-            <Route path="/work-orders/:id" element={<WorkOrderDetail />} />
-            <Route path="/clients" element={<Clients />} />
-            <Route path="/reports" element={<MonthlyReport />} />
-            <Route path="/photos" element={<PhotoGallery />} />
-            <Route path="/users" element={<Users />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/materials" element={<MaterialCatalog />} />
-            <Route path="/drawings" element={<Drawings />} />
-            <Route path="/orders" element={<Orders />} />
-            <Route path="/operarios" element={<Operarios />} />
-            <Route path="/documentacion-operarios" element={<Operarios />} />
-            <Route path="/gastos-operarios" element={<GastosOperarios />} />
-            <Route path="/control-horario" element={<ControlHorario />} />
-            <Route path="/obras" element={<Obras />} />
-            <Route path="/calendario-vacaciones" element={<CalendarioVacaciones />} />
-            <Route path="/manuales" element={<Manuales />} />
-            <Route path="/fabricantes" element={<Fabricantes />} />
-            <Route path="/solar-pedidos" element={<SolarPedidos />} />
-            <Route path="/solar-obras" element={<SolarPedidos />} />
+
+            <Route path="/work-orders" element={<ProtectedRoute module="work-orders"><WorkOrders /></ProtectedRoute>} />
+            <Route path="/work-orders/new" element={<ProtectedRoute module="work-orders"><CreateWorkOrder /></ProtectedRoute>} />
+            <Route path="/work-orders/:id" element={<ProtectedRoute module="work-orders"><WorkOrderDetail /></ProtectedRoute>} />
+
+            <Route path="/clients" element={<ProtectedRoute module="clients"><Clients /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute module="reports"><MonthlyReport /></ProtectedRoute>} />
+            <Route path="/photos" element={<ProtectedRoute module="photos"><PhotoGallery /></ProtectedRoute>} />
+            <Route path="/users" element={<ProtectedRoute module="users"><Users /></ProtectedRoute>} />
+
+            <Route path="/materials" element={<ProtectedRoute module="orders"><MaterialCatalog /></ProtectedRoute>} />
+            <Route path="/drawings" element={<ProtectedRoute module="orders"><Drawings /></ProtectedRoute>} />
+            <Route path="/manuales" element={<ProtectedRoute module="orders"><Manuales /></ProtectedRoute>} />
+            <Route path="/orders" element={<ProtectedRoute module="orders"><Orders /></ProtectedRoute>} />
+            <Route path="/obras" element={<ProtectedRoute module="obras"><Obras /></ProtectedRoute>} />
+
+            <Route path="/operarios" element={<ProtectedRoute module="operarios"><Operarios /></ProtectedRoute>} />
+            <Route path="/documentacion-operarios" element={<ProtectedRoute module="operarios"><Operarios /></ProtectedRoute>} />
+            <Route path="/gastos-operarios" element={<ProtectedRoute module="gastos-operarios"><GastosOperarios /></ProtectedRoute>} />
+            <Route path="/control-horario" element={<ProtectedRoute module="control-horario"><ControlHorario /></ProtectedRoute>} />
+            <Route path="/calendario-vacaciones" element={<ProtectedRoute module="calendario-vacaciones"><CalendarioVacaciones /></ProtectedRoute>} />
+
+            <Route path="/fabricantes" element={<ProtectedRoute module="users"><Fabricantes /></ProtectedRoute>} />
+            <Route path="/solar-pedidos" element={<ProtectedRoute module="orders"><SolarPedidos /></ProtectedRoute>} />
+            <Route path="/solar-obras" element={<ProtectedRoute module="obras"><SolarPedidos /></ProtectedRoute>} />
           </Route>
           <Route path="*" element={<PageNotFound />} />
         </Routes>

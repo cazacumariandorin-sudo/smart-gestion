@@ -3,25 +3,26 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Receipt, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useUserRole } from '@/lib/useUserRole';
 
-const mainItems = [
-  { path: '/', icon: LayoutDashboard, label: 'Panel' },
-  { path: '/work-orders', icon: ClipboardList, label: 'Partes' },
-  { path: '/control-horario', icon: Clock, label: 'Horario' },
+const ALL_MAIN_ITEMS = [
+  { path: '/',               icon: LayoutDashboard, label: 'Panel',   module: null },
+  { path: '/work-orders',    icon: ClipboardList,   label: 'Partes',  module: 'work-orders' },
+  { path: '/control-horario',icon: Clock,           label: 'Horario', module: 'control-horario' },
 ];
 
-const operariosItems = [
-  { path: '/operarios', icon: Users, label: 'Operarios' },
-  { path: '/gastos-operarios', icon: Receipt, label: 'Gastos' },
-  { path: '/calendario-vacaciones', icon: CalendarDays, label: 'Vacaciones' },
+const ALL_OPERARIOS_ITEMS = [
+  { path: '/operarios',              icon: Users,       label: 'Operarios',  module: 'operarios' },
+  { path: '/gastos-operarios',       icon: Receipt,     label: 'Gastos',     module: 'gastos-operarios' },
+  { path: '/calendario-vacaciones',  icon: CalendarDays,label: 'Vacaciones', module: 'calendario-vacaciones' },
 ];
 
-const pedidosItems = [
-  { path: '/obras', icon: Building2, label: 'Obras' },
-  { path: '/orders', icon: ShoppingCart, label: 'Pedidos' },
-  { path: '/materials', icon: Package, label: 'Materiales' },
-  { path: '/manuales', icon: BookOpen, label: 'Manuales' },
-  { path: '/drawings', icon: FileImage, label: 'Planos' },
+const ALL_PEDIDOS_ITEMS = [
+  { path: '/obras',     icon: Building2,   label: 'Obras',      module: 'obras' },
+  { path: '/orders',    icon: ShoppingCart,label: 'Pedidos',    module: 'orders' },
+  { path: '/materials', icon: Package,     label: 'Materiales', module: 'orders' },
+  { path: '/manuales',  icon: BookOpen,    label: 'Manuales',   module: 'orders' },
+  { path: '/drawings',  icon: FileImage,   label: 'Planos',     module: 'orders' },
 ];
 
 // Trigger vibration if supported
@@ -152,11 +153,16 @@ function GroupNavItem({ icon: Icon, label, isActive, isOpen, onClick }) {
 export default function MobileNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { canAccess } = useUserRole();
   const [showOperarios, setShowOperarios] = useState(false);
   const [showPedidos, setShowPedidos] = useState(false);
 
+  const mainItems      = ALL_MAIN_ITEMS.filter(i => i.module === null || canAccess(i.module));
+  const operariosItems = ALL_OPERARIOS_ITEMS.filter(i => canAccess(i.module));
+  const pedidosItems   = ALL_PEDIDOS_ITEMS.filter(i => canAccess(i.module));
+
   const isOperariosActive = operariosItems.some(i => location.pathname.startsWith(i.path));
-  const isPedidosActive = pedidosItems.some(i => location.pathname.startsWith(i.path));
+  const isPedidosActive   = pedidosItems.some(i => location.pathname.startsWith(i.path));
 
   const closeAll = useCallback(() => { setShowOperarios(false); setShowPedidos(false); }, []);
 
@@ -216,21 +222,25 @@ export default function MobileNav() {
             );
           })}
 
-          <GroupNavItem
-            icon={Users}
-            label="Equipos"
-            isActive={isOperariosActive}
-            isOpen={showOperarios}
-            onClick={() => handleGroupReset(operariosItems, setShowOperarios, setShowPedidos)}
-          />
+          {operariosItems.length > 0 && (
+            <GroupNavItem
+              icon={Users}
+              label="Equipos"
+              isActive={isOperariosActive}
+              isOpen={showOperarios}
+              onClick={() => handleGroupReset(operariosItems, setShowOperarios, setShowPedidos)}
+            />
+          )}
 
-          <GroupNavItem
-            icon={ShoppingCart}
-            label="Pedidos"
-            isActive={isPedidosActive}
-            isOpen={showPedidos}
-            onClick={() => handleGroupReset(pedidosItems, setShowPedidos, setShowOperarios)}
-          />
+          {pedidosItems.length > 0 && (
+            <GroupNavItem
+              icon={ShoppingCart}
+              label="Pedidos"
+              isActive={isPedidosActive}
+              isOpen={showPedidos}
+              onClick={() => handleGroupReset(pedidosItems, setShowPedidos, setShowOperarios)}
+            />
+          )}
         </div>
       </nav>
     </>

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
+import { useUserRole } from '@/lib/useUserRole';
 
 function NavItem({ item, isActive }) {
   return (
@@ -24,9 +25,10 @@ function NavItem({ item, isActive }) {
 }
 
 function NavGroup({ icon: GroupIcon, label, children, defaultOpen = false, currentPath }) {
-  const Icon = GroupIcon;
   const isChildActive = children.some(c => currentPath === c.path || (c.path !== '/' && currentPath.startsWith(c.path)));
   const [open, setOpen] = useState(defaultOpen || isChildActive);
+
+  if (children.length === 0) return null;
 
   return (
     <div>
@@ -37,7 +39,7 @@ function NavGroup({ icon: GroupIcon, label, children, defaultOpen = false, curre
           isChildActive ? 'text-primary bg-accent' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
         )}
       >
-        <Icon className="w-4 h-4 shrink-0" />
+        <GroupIcon className="w-4 h-4 shrink-0" />
         <span className="flex-1 text-left">{label}</span>
         {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
       </button>
@@ -68,42 +70,46 @@ function NavGroup({ icon: GroupIcon, label, children, defaultOpen = false, curre
 export default function Sidebar() {
   const location = useLocation();
   const { t, lang, setLang } = useI18n();
+  const { canAccess } = useUserRole();
   const path = location.pathname;
 
+  // Top-level items with their required module key
   const topItems = [
-    { label: t('nav_dashboard'), path: '/', icon: LayoutDashboard },
-    { label: t('nav_workorders'), path: '/work-orders', icon: ClipboardList },
-    { label: t('nav_new_order'), path: '/work-orders/new', icon: Plus },
-    { label: t('nav_photos'), path: '/photos', icon: Camera },
-    { label: t('nav_clients'), path: '/clients', icon: UserCog },
-  ];
+    { label: t('nav_dashboard'),   path: '/',               icon: LayoutDashboard, module: null },
+    { label: t('nav_workorders'),  path: '/work-orders',    icon: ClipboardList,   module: 'work-orders' },
+    { label: t('nav_new_order'),   path: '/work-orders/new',icon: Plus,            module: 'work-orders' },
+    { label: t('nav_photos'),      path: '/photos',          icon: Camera,          module: 'photos' },
+    { label: t('nav_clients'),     path: '/clients',         icon: UserCog,         module: 'clients' },
+  ].filter(i => i.module === null || canAccess(i.module));
 
+  // Equipos group — each item has a module guard
   const operariosItems = [
-    { label: 'Operarios', path: '/operarios', icon: Users },
-    { label: 'Documentación', path: '/documentacion-operarios', icon: FileImage },
-    { label: 'Gastos', path: '/gastos-operarios', icon: Receipt },
-    { label: 'Vacaciones', path: '/calendario-vacaciones', icon: CalendarDays },
-    { label: 'Control Horario', path: '/control-horario', icon: Clock },
-  ];
+    { label: 'Operarios',       path: '/operarios',              icon: Users,       module: 'operarios' },
+    { label: 'Documentación',   path: '/documentacion-operarios',icon: FileImage,   module: 'operarios' },
+    { label: 'Gastos',          path: '/gastos-operarios',       icon: Receipt,     module: 'gastos-operarios' },
+    { label: 'Vacaciones',      path: '/calendario-vacaciones',  icon: CalendarDays,module: 'calendario-vacaciones' },
+    { label: 'Control Horario', path: '/control-horario',        icon: Clock,       module: 'control-horario' },
+  ].filter(i => canAccess(i.module));
 
+  // Gestión group
   const pedidosItems = [
-    { label: 'Obras', path: '/obras', icon: Building2 },
-    { label: 'Planos', path: '/drawings', icon: FileImage },
-    { label: 'Manuales', path: '/manuales', icon: BookOpen },
-    { label: 'Fabricantes', path: '/fabricantes', icon: Factory },
-    { label: 'Pedidos', path: '/orders', icon: ShoppingCart },
-    { label: 'Materiales', path: '/materials', icon: Package },
-  ];
+    { label: 'Obras',      path: '/obras',      icon: Building2,  module: 'obras' },
+    { label: 'Planos',     path: '/drawings',   icon: FileImage,  module: 'orders' },
+    { label: 'Manuales',   path: '/manuales',   icon: BookOpen,   module: 'orders' },
+    { label: 'Fabricantes',path: '/fabricantes',icon: Factory,    module: 'users' },
+    { label: 'Pedidos',    path: '/orders',     icon: ShoppingCart,module: 'orders' },
+    { label: 'Materiales', path: '/materials',  icon: Package,    module: 'orders' },
+  ].filter(i => canAccess(i.module));
 
   const solarItems = [
-    { label: 'Pedidos Solar', path: '/solar-pedidos', icon: ShoppingCart },
-    { label: 'Obras Solar', path: '/solar-obras', icon: Building2 },
-  ];
+    { label: 'Pedidos Solar', path: '/solar-pedidos', icon: ShoppingCart, module: 'orders' },
+    { label: 'Obras Solar',   path: '/solar-obras',   icon: Building2,    module: 'obras' },
+  ].filter(i => canAccess(i.module));
 
   const adminItems = [
-    { label: 'Usuarios', path: '/users', icon: Users },
-    { label: 'Informe Mensual', path: '/reports', icon: BarChart3 },
-  ];
+    { label: 'Usuarios',        path: '/users',   icon: Users,   module: 'users' },
+    { label: 'Informe Mensual', path: '/reports', icon: BarChart3,module: 'reports' },
+  ].filter(i => canAccess(i.module));
 
   return (
     <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card h-screen sticky top-0">
@@ -125,31 +131,39 @@ export default function Sidebar() {
           return <NavItem key={item.path} item={item} isActive={isActive} />;
         })}
 
-        <div className="pt-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Equipos</p>
-          <NavGroup icon={Users} label="Operarios" currentPath={path} defaultOpen={operariosItems.some(i => path.startsWith(i.path))}>
-            {operariosItems}
-          </NavGroup>
-        </div>
+        {operariosItems.length > 0 && (
+          <div className="pt-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Equipos</p>
+            <NavGroup icon={Users} label="Operarios" currentPath={path} defaultOpen={operariosItems.some(i => path.startsWith(i.path))}>
+              {operariosItems}
+            </NavGroup>
+          </div>
+        )}
 
-        <div className="pt-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Gestión</p>
-          <NavGroup icon={ShoppingCart} label="Pedidos y Obras" currentPath={path} defaultOpen={pedidosItems.some(i => path.startsWith(i.path))}>
-            {pedidosItems}
-          </NavGroup>
-        </div>
+        {pedidosItems.length > 0 && (
+          <div className="pt-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Gestión</p>
+            <NavGroup icon={ShoppingCart} label="Pedidos y Obras" currentPath={path} defaultOpen={pedidosItems.some(i => path.startsWith(i.path))}>
+              {pedidosItems}
+            </NavGroup>
+          </div>
+        )}
 
-        <div className="pt-2">
-          <NavGroup icon={Sun} label="Solar" currentPath={path} defaultOpen={solarItems.some(i => path.startsWith(i.path))}>
-            {solarItems}
-          </NavGroup>
-        </div>
+        {solarItems.length > 0 && (
+          <div className="pt-2">
+            <NavGroup icon={Sun} label="Solar" currentPath={path} defaultOpen={solarItems.some(i => path.startsWith(i.path))}>
+              {solarItems}
+            </NavGroup>
+          </div>
+        )}
 
-        <div className="pt-2">
-          <NavGroup icon={Settings} label="Administración" currentPath={path} defaultOpen={adminItems.some(i => path.startsWith(i.path))}>
-            {adminItems}
-          </NavGroup>
-        </div>
+        {adminItems.length > 0 && (
+          <div className="pt-2">
+            <NavGroup icon={Settings} label="Administración" currentPath={path} defaultOpen={adminItems.some(i => path.startsWith(i.path))}>
+              {adminItems}
+            </NavGroup>
+          </div>
+        )}
       </nav>
 
       {/* Language selector */}

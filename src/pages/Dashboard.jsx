@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Clock, Users, ArrowRight, ShoppingCart, Camera, Building2, Receipt, FileImage, BookOpen, CalendarDays, UserCog, Package } from 'lucide-react';
+import { ClipboardList, Clock, Users, ArrowRight, ShoppingCart, Camera, Building2, Receipt, BookOpen, CalendarDays, UserCog } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import WorkOrderCard from '@/components/workorders/WorkOrderCard';
@@ -12,11 +12,17 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const ALL_MODULES = [
-  { key: 'work-orders',  label: 'Partes de Trabajo', path: '/work-orders', icon: ClipboardList, color: 'from-orange-500 to-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/30', border: 'border-orange-200 dark:border-orange-800', emoji: '📋' },
-  { key: 'operarios',    label: 'Operarios',          path: '/operarios',   icon: Users,         color: 'from-amber-500 to-amber-400',   bg: 'bg-amber-50 dark:bg-amber-950/30',   border: 'border-amber-200 dark:border-amber-800',   emoji: '👷' },
-  { key: 'orders',       label: 'Pedidos',             path: '/orders',      icon: ShoppingCart,  color: 'from-blue-500 to-blue-400',     bg: 'bg-blue-50 dark:bg-blue-950/30',     border: 'border-blue-200 dark:border-blue-800',     emoji: '🛒' },
-  { key: 'photos',       label: 'Galería de Fotos',    path: '/photos',      icon: Camera,        color: 'from-pink-500 to-pink-400',     bg: 'bg-pink-50 dark:bg-pink-950/30',     border: 'border-pink-200 dark:border-pink-800',     emoji: '📷' },
-  { key: 'users',        label: 'Administración',      path: '/users',       icon: UserCog,       color: 'from-violet-500 to-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/30', border: 'border-violet-200 dark:border-violet-800', emoji: '⚙️' },
+  { key: 'work-orders',         label: 'Partes de Trabajo',  path: '/work-orders',          icon: ClipboardList, bg: 'bg-orange-50 dark:bg-orange-950/30',  border: 'border-orange-200 dark:border-orange-800',  emoji: '📋' },
+  { key: 'control-horario',     label: 'Control Horario',    path: '/control-horario',      icon: Clock,         bg: 'bg-cyan-50 dark:bg-cyan-950/30',      border: 'border-cyan-200 dark:border-cyan-800',      emoji: '🕐' },
+  { key: 'clients',             label: 'Clientes',           path: '/clients',              icon: Users,         bg: 'bg-teal-50 dark:bg-teal-950/30',      border: 'border-teal-200 dark:border-teal-800',      emoji: '🏢' },
+  { key: 'orders',              label: 'Pedidos',            path: '/orders',               icon: ShoppingCart,  bg: 'bg-blue-50 dark:bg-blue-950/30',      border: 'border-blue-200 dark:border-blue-800',      emoji: '🛒' },
+  { key: 'obras',               label: 'Obras',              path: '/obras',                icon: Building2,     bg: 'bg-amber-50 dark:bg-amber-950/30',    border: 'border-amber-200 dark:border-amber-800',    emoji: '🏗️' },
+  { key: 'gastos-operarios',    label: 'Gastos',             path: '/gastos-operarios',     icon: Receipt,       bg: 'bg-rose-50 dark:bg-rose-950/30',      border: 'border-rose-200 dark:border-rose-800',      emoji: '🧾' },
+  { key: 'calendario-vacaciones', label: 'Vacaciones',       path: '/calendario-vacaciones',icon: CalendarDays,  bg: 'bg-indigo-50 dark:bg-indigo-950/30',  border: 'border-indigo-200 dark:border-indigo-800',  emoji: '🏖️' },
+  { key: 'photos',              label: 'Galería de Fotos',   path: '/photos',               icon: Camera,        bg: 'bg-pink-50 dark:bg-pink-950/30',      border: 'border-pink-200 dark:border-pink-800',      emoji: '📷' },
+  { key: 'reports',             label: 'Informes',           path: '/reports',              icon: BookOpen,      bg: 'bg-green-50 dark:bg-green-950/30',    border: 'border-green-200 dark:border-green-800',    emoji: '📊' },
+  { key: 'operarios',           label: 'Operarios',          path: '/operarios',            icon: Users,         bg: 'bg-violet-50 dark:bg-violet-950/30',  border: 'border-violet-200 dark:border-violet-800',  emoji: '👷' },
+  { key: 'users',               label: 'Administración',     path: '/users',                icon: UserCog,       bg: 'bg-slate-50 dark:bg-slate-950/30',    border: 'border-slate-200 dark:border-slate-800',    emoji: '⚙️' },
 ];
 
 function ModuleCard({ mod, count, subtitle }) {
@@ -58,20 +64,25 @@ export default function Dashboard() {
   });
 
   const counts = {
-    'work-orders': orders.length,
-    'orders': pedidos.filter(p => p.status === 'pendiente').length,
-    'control-horario': fichajesHoy.length,
-    'clients': clients.length,
-    'operarios': operarios.length,
-    'photos': photos.length,
+    'work-orders':          orders.length,
+    'orders':               pedidos.filter(p => p.status === 'pendiente').length,
+    'control-horario':      fichajesHoy.length,
+    'clients':              clients.length,
+    'operarios':            operarios.length,
+    'photos':               photos.length,
   };
   const subtitles = {
-    'work-orders': `${orders.filter(o => o.status === 'pendiente' || !o.status).length} pendientes`,
-    'orders': 'pendientes',
-    'control-horario': 'fichajes hoy',
-    'clients': 'activos',
-    'operarios': 'en plantilla',
-    'photos': 'fotos',
+    'work-orders':          `${orders.filter(o => o.status === 'pendiente' || !o.status).length} pendientes`,
+    'orders':               'pendientes',
+    'control-horario':      'fichajes hoy',
+    'clients':              'activos',
+    'operarios':            'en plantilla',
+    'photos':               'fotos',
+    'gastos-operarios':     'gastos',
+    'calendario-vacaciones':'vacaciones',
+    'reports':              'informes',
+    'obras':                'obras',
+    'users':                'administración',
   };
 
   const roleLabels = {

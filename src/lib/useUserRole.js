@@ -23,10 +23,14 @@ export function useUserRole() {
     if (tempFullAccess) return true;
 
     const perms = {
+      // Acceso completo
       admin: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'users', 'materials', 'drawings', 'orders', 'operarios', 'gastos-operarios', 'control-horario', 'obras', 'calendario-vacaciones', 'manuales', 'solar', 'administracion', 'fabricantes'],
-      jefe_obra: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'drawings', 'orders', 'obras', 'manuales', 'materials'],
-      operario: ['dashboard', 'work-orders', 'control-horario', 'gastos-operarios', 'obras', 'orders', 'drawings', 'calendario-vacaciones', 'photos', 'manuales'],
-      control_horario: ['dashboard', 'control-horario', 'work-orders', 'orders', 'obras'],
+      // Partes de trabajo, clientes, pedidos y obras (orders+obras+materials+drawings+manuales), informes, galería de fotos
+      jefe_obra: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'materials', 'drawings', 'manuales'],
+      // Control horario propio, documentación propia, gastos propios, doc obra, pedidos y obras, vacaciones propias, partes de trabajo, galería de fotos
+      operario: ['dashboard', 'work-orders', 'control-horario', 'gastos-operarios', 'orders', 'obras', 'materials', 'drawings', 'manuales', 'calendario-vacaciones', 'photos'],
+      // Solo control horario + pedidos y obras (orders+obras+materials+drawings+manuales) + partes de trabajo
+      control_horario: ['dashboard', 'control-horario', 'work-orders', 'orders', 'obras', 'materials', 'drawings', 'manuales'],
     };
 
     return (perms[role] || []).includes(module);
