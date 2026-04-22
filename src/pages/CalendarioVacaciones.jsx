@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -129,13 +130,10 @@ export default function CalendarioVacaciones() {
 
       {/* Filtro operario */}
       <div className="flex gap-3 mb-5">
-        <Select value={filterOp} onValueChange={setFilterOp}>
-          <SelectTrigger className="w-52"><SelectValue placeholder="Todos los operarios" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los operarios</SelectItem>
-            {operarios.map(op => <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MobileSelect value={filterOp} onValueChange={setFilterOp} placeholder="Todos los operarios" triggerClassName="w-52">
+          <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
+          {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+        </MobileSelect>
       </div>
 
       <Tabs defaultValue="calendario">

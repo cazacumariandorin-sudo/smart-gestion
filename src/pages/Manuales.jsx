@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -119,27 +120,18 @@ export default function Manuales() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar manual..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Cliente" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los clientes</SelectItem>
-            {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={obraFilter} onValueChange={setObraFilter}>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Obra" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las obras</SelectItem>
-            {obras.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={fabricanteFilter} onValueChange={setFabricanteFilter}>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Fabricante" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los fabricantes</SelectItem>
-            {fabricantes.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MobileSelect value={clientFilter} onValueChange={setClientFilter} placeholder="Cliente" triggerClassName="w-full sm:w-44">
+          <MobileSelectItem value="all">Todos los clientes</MobileSelectItem>
+          {clients.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
+        </MobileSelect>
+        <MobileSelect value={obraFilter} onValueChange={setObraFilter} placeholder="Obra" triggerClassName="w-full sm:w-44">
+          <MobileSelectItem value="all">Todas las obras</MobileSelectItem>
+          {obras.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
+        </MobileSelect>
+        <MobileSelect value={fabricanteFilter} onValueChange={setFabricanteFilter} placeholder="Fabricante" triggerClassName="w-full sm:w-44">
+          <MobileSelectItem value="all">Todos los fabricantes</MobileSelectItem>
+          {fabricantes.map(f => <MobileSelectItem key={f.id} value={f.id}>{f.name}</MobileSelectItem>)}
+        </MobileSelect>
       </div>
 
       {isLoading ? (

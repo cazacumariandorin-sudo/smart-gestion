@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -294,13 +295,10 @@ Si no puedes extraer algún campo, ponlo como null.`,
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={operarioFilter} onValueChange={setOperarioFilter}>
-          <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Operario" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los operarios</SelectItem>
-            {operarios.map(op => <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MobileSelect value={operarioFilter} onValueChange={setOperarioFilter} placeholder="Operario" triggerClassName="w-full sm:w-48">
+          <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
+          {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+        </MobileSelect>
       </div>
 
       {/* By operario summary */}
