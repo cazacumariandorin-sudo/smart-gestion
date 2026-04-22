@@ -1,10 +1,10 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, Users, ChevronDown } from 'lucide-react';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
+import { Plus, Trash2, Users } from 'lucide-react';
 
 export default function WorkerFields({ workers, onChange }) {
   const { data: operarios = [] } = useQuery({
@@ -20,6 +20,7 @@ export default function WorkerFields({ workers, onChange }) {
     onChange(updated);
   };
   const selectFromDB = (i, opId) => {
+    if (!opId) return;
     const op = operarios.find(o => o.id === opId);
     if (!op) return;
     const updated = [...workers];
@@ -33,39 +34,69 @@ export default function WorkerFields({ workers, onChange }) {
         <Label className="flex items-center gap-2 text-sm font-semibold">
           <Users className="w-4 h-4 text-primary" /> Operarios
         </Label>
-        <Button type="button" variant="outline" size="sm" onClick={addWorker} className="h-8 text-xs">
-          <Plus className="w-3 h-3 mr-1" /> Añadir
+        <Button type="button" variant="outline" size="sm" onClick={addWorker} className="h-9 px-4 text-sm gap-1">
+          <Plus className="w-4 h-4" /> Añadir
         </Button>
       </div>
 
       {workers.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded-lg">
-          No hay operarios. Haz clic en "Añadir" para agregar uno.
-        </p>
+        <button
+          type="button"
+          onClick={addWorker}
+          className="w-full text-xs text-muted-foreground text-center py-5 border border-dashed rounded-xl hover:bg-muted/40 transition-colors"
+        >
+          Toca para añadir operarios
+        </button>
       )}
 
       <div className="space-y-2">
         {workers.map((worker, i) => (
-          <div key={i} className="bg-muted/50 rounded-lg p-2.5 space-y-2">
+          <div key={i} className="bg-muted/50 rounded-xl p-3 space-y-2.5">
             {/* DB selector */}
-            <div className="relative">
-              <select
-                className="w-full h-8 text-xs rounded-md border border-input bg-transparent px-2 appearance-none pr-7 text-muted-foreground"
+            {operarios.length > 0 && (
+              <MobileSelect
                 value=""
-                onChange={e => selectFromDB(i, e.target.value)}
+                onValueChange={v => selectFromDB(i, v)}
+                placeholder="— Seleccionar de base de datos —"
               >
-                <option value="">— Seleccionar de base de datos —</option>
-                {operarios.map(op => <option key={op.id} value={op.id}>{op.name}{op.role ? ` (${op.role})` : ''}</option>)}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-            </div>
+                {operarios.map(op => (
+                  <MobileSelectItem key={op.id} value={op.id}>
+                    {op.name}{op.role ? ` (${op.role})` : ''}
+                  </MobileSelectItem>
+                ))}
+              </MobileSelect>
+            )}
             {/* Manual fields */}
             <div className="flex items-center gap-2">
-              <Input placeholder="Nombre" value={worker.name} onChange={e => updateWorker(i, 'name', e.target.value)} className="flex-1 h-8 text-sm" />
-              <Input placeholder="Rol" value={worker.role} onChange={e => updateWorker(i, 'role', e.target.value)} className="w-28 h-8 text-sm" />
-              <Input type="number" placeholder="Horas" value={worker.hours || ''} onChange={e => updateWorker(i, 'hours', parseFloat(e.target.value) || 0)} className="w-20 h-8 text-sm" min="0" step="0.5" />
-              <Button type="button" variant="ghost" size="icon" onClick={() => removeWorker(i)} className="h-8 w-8 shrink-0 text-destructive hover:text-destructive">
-                <Trash2 className="w-3.5 h-3.5" />
+              <Input
+                placeholder="Nombre"
+                value={worker.name}
+                onChange={e => updateWorker(i, 'name', e.target.value)}
+                className="flex-1 h-10"
+              />
+              <Input
+                placeholder="Rol"
+                value={worker.role}
+                onChange={e => updateWorker(i, 'role', e.target.value)}
+                className="w-24 h-10"
+              />
+              <Input
+                type="number"
+                placeholder="Horas"
+                value={worker.hours || ''}
+                onChange={e => updateWorker(i, 'hours', parseFloat(e.target.value) || 0)}
+                className="w-20 h-10"
+                min="0"
+                step="0.5"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => removeWorker(i)}
+                className="h-10 w-10 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
+              >
+                <Trash2 className="w-4 h-4" />
               </Button>
             </div>
           </div>

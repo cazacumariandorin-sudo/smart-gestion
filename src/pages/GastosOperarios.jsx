@@ -1,18 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import {
-  Plus, Receipt, ArrowLeft, FileText, Search
-} from 'lucide-react';
+import { Plus, Receipt, FileText, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Link } from 'react-router-dom';
 import { useUserRole } from '@/lib/useUserRole';
 import NotaGastosCard from '@/components/gastos/NotaGastosCard';
+import PageHeader from '@/components/layout/PageHeader';
 
 export default function GastosOperarios() {
   const qc = useQueryClient();
@@ -89,25 +87,18 @@ export default function GastosOperarios() {
   const totalGeneral = filtered.reduce((s, n) => s + (n.total || 0), 0);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Link to="/operarios">
-            <Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Receipt className="w-7 h-7 text-primary" /> Gastos Operarios
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">{filtered.length} notas · {totalGeneral.toFixed(2)} € total</p>
-          </div>
-        </div>
-        <Button onClick={openNewNota} className="gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nueva Nota</span>
-        </Button>
-      </div>
-
+    <div className="max-w-5xl mx-auto">
+      <PageHeader
+        title="Gastos Operarios"
+        subtitle={`${filtered.length} notas · ${totalGeneral.toFixed(2)} € total`}
+        backTo="/operarios"
+        actions={
+          <Button onClick={openNewNota} className="gap-2 h-9">
+            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nueva Nota</span>
+          </Button>
+        }
+      />
+      <div className="p-4 sm:p-6 lg:p-8">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <div className="relative flex-1">
@@ -200,6 +191,7 @@ export default function GastosOperarios() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

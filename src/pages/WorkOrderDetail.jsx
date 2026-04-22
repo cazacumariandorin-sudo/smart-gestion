@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save, Loader2, Trash2, Pencil, Calendar, Clock, Users, Package, Download } from 'lucide-react';
+import { Save, Loader2, Trash2, Pencil, Calendar, Clock, Users, Package, Download } from 'lucide-react';
+import PageHeader from '@/components/layout/PageHeader';
 import SignatureCanvas from '@/components/workorders/SignatureCanvas';
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
@@ -187,14 +188,12 @@ export default function WorkOrderDetail() {
 
   if (editing) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => setEditing(false)}>
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <h1 className="text-xl font-bold">Editar Parte</h1>
-        </div>
-        <div className="space-y-6">
+      <div className="max-w-3xl mx-auto">
+        <PageHeader
+          title="Editar Parte"
+          onBack={() => setEditing(false)}
+        />
+        <div className="space-y-6 p-4 sm:p-6 lg:p-8">
           <Card className="p-5 space-y-4">
             <h2 className="font-semibold text-sm">Información General</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -274,46 +273,43 @@ export default function WorkOrderDetail() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/work-orders')}>
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{order.project}</h1>
-            <p className="text-sm text-muted-foreground">{order.client_name || order.client}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={downloadPDF} className="gap-1.5">
-            <Download className="w-3.5 h-3.5" /> PDF
-          </Button>
-          <Button variant="outline" size="sm" onClick={startEditing} className="gap-1.5">
-            <Pencil className="w-3.5 h-3.5" /> Editar
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="icon" className="text-destructive hover:text-destructive h-8 w-8">
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>¿Eliminar parte?</AlertDialogTitle>
-                <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => deleteMutation.mutate()} className="bg-destructive text-destructive-foreground">
-                  Eliminar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
+    <div className="max-w-3xl mx-auto">
+      <PageHeader
+        title={order.project}
+        subtitle={order.client_name || order.client}
+        backTo="/work-orders"
+        actions={
+          <>
+            <Button variant="ghost" size="icon" onClick={downloadPDF} className="h-10 w-10 rounded-full">
+              <Download className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={startEditing} className="h-10 w-10 rounded-full">
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar parte?</AlertDialogTitle>
+                  <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deleteMutation.mutate()} className="bg-destructive text-destructive-foreground">
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        }
+      />
 
+      <div className="p-4 sm:p-6 lg:p-8">
       <Card className="p-5 mb-4">
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <Badge variant="outline" className={`${status.className} font-medium`}>
@@ -411,6 +407,7 @@ export default function WorkOrderDetail() {
           date={order.date}
         />
       </Card>
+      </div>
     </div>
   );
 }

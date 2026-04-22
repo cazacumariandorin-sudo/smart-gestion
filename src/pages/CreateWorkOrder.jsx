@@ -8,10 +8,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Save, Loader2, Camera, Upload, X, ImageIcon } from 'lucide-react';
+import { Save, Loader2, Camera, Upload, X, ImageIcon } from 'lucide-react';
 import WorkerFields from '@/components/workorders/WorkerFields';
 import MaterialFields from '@/components/workorders/MaterialFields';
 import SignatureCanvas from '@/components/workorders/SignatureCanvas';
+import PageHeader from '@/components/layout/PageHeader';
 
 export default function CreateWorkOrder() {
   const navigate = useNavigate();
@@ -95,18 +96,12 @@ export default function CreateWorkOrder() {
   const removePhoto = (url) => setPhotos(p => p.filter(u => u !== url));
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Nuevo Parte de Trabajo</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Completa los datos del parte</p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="max-w-3xl mx-auto">
+      <PageHeader
+        title="Nuevo Parte de Trabajo"
+        subtitle="Completa los datos del parte"
+      />
+      <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6 lg:p-8">
         {/* Info general */}
         <Card className="p-5 space-y-4">
           <h2 className="font-semibold text-sm">Información General</h2>
