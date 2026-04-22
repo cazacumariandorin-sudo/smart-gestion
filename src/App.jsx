@@ -3,7 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavDirection } from '@/hooks/useNavDirection';
 import { I18nProvider } from './lib/i18n';
 import PageNotFound from './lib/PageNotFound';
@@ -12,27 +12,36 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
-import Clients from './pages/Clients';
-import WorkOrders from './pages/WorkOrders';
-import CreateWorkOrder from './pages/CreateWorkOrder';
-import WorkOrderDetail from './pages/WorkOrderDetail';
-import MonthlyReport from './pages/MonthlyReport';
-import PhotoGallery from './pages/PhotoGallery';
-import Users from './pages/Users';
 import Profile from './pages/Profile';
-import MaterialCatalog from './pages/MaterialCatalog';
-import Drawings from './pages/Drawings';
-import Orders from './pages/Orders';
-import Operarios from './pages/Operarios';
-import GastosOperarios from './pages/GastosOperarios';
-import ControlHorario from './pages/ControlHorario';
-import Obras from './pages/Obras';
-import CalendarioVacaciones from './pages/CalendarioVacaciones';
-import Manuales from './pages/Manuales';
-import Fabricantes from './pages/Fabricantes';
-import SolarPedidos from './pages/SolarPedidos';
-import DatosSensibles from './pages/DatosSensibles';
-import Inventario from './pages/Inventario';
+
+// Lazy load pages for performance
+const Clients = lazy(() => import('./pages/Clients'));
+const WorkOrders = lazy(() => import('./pages/WorkOrders'));
+const CreateWorkOrder = lazy(() => import('./pages/CreateWorkOrder'));
+const WorkOrderDetail = lazy(() => import('./pages/WorkOrderDetail'));
+const MonthlyReport = lazy(() => import('./pages/MonthlyReport'));
+const PhotoGallery = lazy(() => import('./pages/PhotoGallery'));
+const Users = lazy(() => import('./pages/Users'));
+const MaterialCatalog = lazy(() => import('./pages/MaterialCatalog'));
+const Drawings = lazy(() => import('./pages/Drawings'));
+const Orders = lazy(() => import('./pages/Orders'));
+const Operarios = lazy(() => import('./pages/Operarios'));
+const GastosOperarios = lazy(() => import('./pages/GastosOperarios'));
+const ControlHorario = lazy(() => import('./pages/ControlHorario'));
+const Obras = lazy(() => import('./pages/Obras'));
+const CalendarioVacaciones = lazy(() => import('./pages/CalendarioVacaciones'));
+const Manuales = lazy(() => import('./pages/Manuales'));
+const Fabricantes = lazy(() => import('./pages/Fabricantes'));
+const SolarPedidos = lazy(() => import('./pages/SolarPedidos'));
+const DatosSensibles = lazy(() => import('./pages/DatosSensibles'));
+const Inventario = lazy(() => import('./pages/Inventario'));
+
+// Loading fallback
+const PageLoader = () => (
+  <div className="fixed inset-0 flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+  </div>
+);
 
 // Apply dark class based on system preference
 function ThemeDetector() {
@@ -82,32 +91,32 @@ function AnimatedRoutes() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
 
-            <Route path="/work-orders" element={<ProtectedRoute module="work-orders"><WorkOrders /></ProtectedRoute>} />
-            <Route path="/work-orders/new" element={<ProtectedRoute module="work-orders"><CreateWorkOrder /></ProtectedRoute>} />
-            <Route path="/work-orders/:id" element={<ProtectedRoute module="work-orders"><WorkOrderDetail /></ProtectedRoute>} />
+            <Route path="/work-orders" element={<ProtectedRoute module="work-orders"><Suspense fallback={<PageLoader />}><WorkOrders /></Suspense></ProtectedRoute>} />
+            <Route path="/work-orders/new" element={<ProtectedRoute module="work-orders"><Suspense fallback={<PageLoader />}><CreateWorkOrder /></Suspense></ProtectedRoute>} />
+            <Route path="/work-orders/:id" element={<ProtectedRoute module="work-orders"><Suspense fallback={<PageLoader />}><WorkOrderDetail /></Suspense></ProtectedRoute>} />
 
-            <Route path="/clients" element={<ProtectedRoute module="clients"><Clients /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute module="reports"><MonthlyReport /></ProtectedRoute>} />
-            <Route path="/photos" element={<ProtectedRoute module="photos"><PhotoGallery /></ProtectedRoute>} />
-            <Route path="/users" element={<ProtectedRoute module="users"><Users /></ProtectedRoute>} />
+            <Route path="/clients" element={<ProtectedRoute module="clients"><Suspense fallback={<PageLoader />}><Clients /></Suspense></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute module="reports"><Suspense fallback={<PageLoader />}><MonthlyReport /></Suspense></ProtectedRoute>} />
+            <Route path="/photos" element={<ProtectedRoute module="photos"><Suspense fallback={<PageLoader />}><PhotoGallery /></Suspense></ProtectedRoute>} />
+            <Route path="/users" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><Users /></Suspense></ProtectedRoute>} />
 
-            <Route path="/materials" element={<ProtectedRoute module="orders"><MaterialCatalog /></ProtectedRoute>} />
-            <Route path="/drawings" element={<ProtectedRoute module="orders"><Drawings /></ProtectedRoute>} />
-            <Route path="/manuales" element={<ProtectedRoute module="orders"><Manuales /></ProtectedRoute>} />
-            <Route path="/orders" element={<ProtectedRoute module="orders"><Orders /></ProtectedRoute>} />
-            <Route path="/obras" element={<ProtectedRoute module="obras"><Obras /></ProtectedRoute>} />
+            <Route path="/materials" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><MaterialCatalog /></Suspense></ProtectedRoute>} />
+            <Route path="/drawings" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><Drawings /></Suspense></ProtectedRoute>} />
+            <Route path="/manuales" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><Manuales /></Suspense></ProtectedRoute>} />
+            <Route path="/orders" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><Orders /></Suspense></ProtectedRoute>} />
+            <Route path="/obras" element={<ProtectedRoute module="obras"><Suspense fallback={<PageLoader />}><Obras /></Suspense></ProtectedRoute>} />
 
-            <Route path="/operarios" element={<ProtectedRoute module="operarios"><Operarios /></ProtectedRoute>} />
-            <Route path="/documentacion-operarios" element={<ProtectedRoute module="operarios"><Operarios /></ProtectedRoute>} />
-            <Route path="/gastos-operarios" element={<ProtectedRoute module="gastos-operarios"><GastosOperarios /></ProtectedRoute>} />
-            <Route path="/control-horario" element={<ProtectedRoute module="control-horario"><ControlHorario /></ProtectedRoute>} />
-            <Route path="/calendario-vacaciones" element={<ProtectedRoute module="calendario-vacaciones"><CalendarioVacaciones /></ProtectedRoute>} />
+            <Route path="/operarios" element={<ProtectedRoute module="operarios"><Suspense fallback={<PageLoader />}><Operarios /></Suspense></ProtectedRoute>} />
+            <Route path="/documentacion-operarios" element={<ProtectedRoute module="operarios"><Suspense fallback={<PageLoader />}><Operarios /></Suspense></ProtectedRoute>} />
+            <Route path="/gastos-operarios" element={<ProtectedRoute module="gastos-operarios"><Suspense fallback={<PageLoader />}><GastosOperarios /></Suspense></ProtectedRoute>} />
+            <Route path="/control-horario" element={<ProtectedRoute module="control-horario"><Suspense fallback={<PageLoader />}><ControlHorario /></Suspense></ProtectedRoute>} />
+            <Route path="/calendario-vacaciones" element={<ProtectedRoute module="calendario-vacaciones"><Suspense fallback={<PageLoader />}><CalendarioVacaciones /></Suspense></ProtectedRoute>} />
 
-            <Route path="/fabricantes" element={<ProtectedRoute module="users"><Fabricantes /></ProtectedRoute>} />
-            <Route path="/solar-pedidos" element={<ProtectedRoute module="orders"><SolarPedidos /></ProtectedRoute>} />
-            <Route path="/solar-obras" element={<ProtectedRoute module="obras"><SolarPedidos /></ProtectedRoute>} />
-            <Route path="/datos-sensibles" element={<ProtectedRoute module="users"><DatosSensibles /></ProtectedRoute>} />
-            <Route path="/inventario" element={<ProtectedRoute module="users"><Inventario /></ProtectedRoute>} />
+            <Route path="/fabricantes" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><Fabricantes /></Suspense></ProtectedRoute>} />
+            <Route path="/solar-pedidos" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><SolarPedidos /></Suspense></ProtectedRoute>} />
+            <Route path="/solar-obras" element={<ProtectedRoute module="obras"><Suspense fallback={<PageLoader />}><SolarPedidos /></Suspense></ProtectedRoute>} />
+            <Route path="/datos-sensibles" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DatosSensibles /></Suspense></ProtectedRoute>} />
+            <Route path="/inventario" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><Inventario /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="*" element={<PageNotFound />} />
         </Routes>
