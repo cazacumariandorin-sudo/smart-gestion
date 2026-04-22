@@ -30,7 +30,7 @@ export function useUserRole() {
       // Control horario propio, documentación propia, gastos propios, doc obra, pedidos y obras, vacaciones propias, partes de trabajo, galería de fotos
       operario: ['dashboard', 'work-orders', 'control-horario', 'gastos-operarios', 'orders', 'obras', 'materials', 'drawings', 'manuales', 'calendario-vacaciones', 'photos'],
       // Solo control horario + pedidos y obras (orders+obras+materials+drawings+manuales) + partes de trabajo
-      control_horario: ['dashboard', 'control-horario', 'work-orders', 'orders', 'obras', 'materials', 'drawings', 'manuales'],
+      control_horario: ['dashboard', 'control-horario', 'work-orders', 'orders', 'obras', 'materials', 'drawings', 'manuales', 'operarios'],
     };
 
     return (perms[role] || []).includes(module);
