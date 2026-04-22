@@ -4,10 +4,10 @@ import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import WorkOrderCard from '@/components/workorders/WorkOrderCard';
 
 export default function WorkOrders() {
@@ -66,29 +66,18 @@ export default function WorkOrders() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar por obra o cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="Cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los clientes</SelectItem>
-            {clients.map(c => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-40">
-            <Filter className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="pendiente">Pendiente</SelectItem>
-            <SelectItem value="en_curso">En curso</SelectItem>
-            <SelectItem value="completado">Completado</SelectItem>
-          </SelectContent>
-        </Select>
+        <MobileSelect value={clientFilter} onValueChange={setClientFilter} placeholder="Cliente" triggerClassName="w-full sm:w-48">
+          <MobileSelectItem value="all">Todos los clientes</MobileSelectItem>
+          {clients.map(c => (
+            <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>
+          ))}
+        </MobileSelect>
+        <MobileSelect value={statusFilter} onValueChange={setStatusFilter} placeholder="Estado" triggerClassName="w-full sm:w-40">
+          <MobileSelectItem value="all">Todos</MobileSelectItem>
+          <MobileSelectItem value="pendiente">Pendiente</MobileSelectItem>
+          <MobileSelectItem value="en_curso">En curso</MobileSelectItem>
+          <MobileSelectItem value="completado">Completado</MobileSelectItem>
+        </MobileSelect>
       </div>
 
       {isLoading ? (

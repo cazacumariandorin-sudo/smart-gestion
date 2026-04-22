@@ -3,7 +3,8 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useNavDirection } from '@/hooks/useNavDirection';
 import { I18nProvider } from './lib/i18n';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -42,17 +43,35 @@ function ThemeDetector() {
   return null;
 }
 
-// Animated route wrapper
+// Animated route wrapper with directional slide
 function AnimatedRoutes() {
   const location = useLocation();
+  const dirRef = useNavDirection();
+
+  const isMobileDevice = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+
+  const variants = isMobileDevice
+    ? {
+        initial: (dir) => ({ opacity: 0, x: dir === 'back' ? -24 : 24 }),
+        animate: { opacity: 1, x: 0 },
+        exit: (dir) => ({ opacity: 0, x: dir === 'back' ? 24 : -24 }),
+      }
+    : {
+        initial: { opacity: 0, scale: 0.98 },
+        animate: { opacity: 1, scale: 1 },
+        exit: { opacity: 0, scale: 0.98 },
+      };
+
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" custom={dirRef.current}>
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.98 }}
-        transition={{ duration: 0.13, ease: [0.25, 0.1, 0.25, 1] }}
+        custom={dirRef.current}
+        variants={variants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
         style={{ minHeight: '100%' }}
       >
         <Routes location={location}>
