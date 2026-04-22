@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { calcularHoras } from '@/lib/horasUtils';
-import { Plus, Search, Trash2, Pencil, Save, Loader2, Clock, Filter } from 'lucide-react';
+import { Plus, Search, Trash2, Pencil, Save, Loader2, Clock, ChevronDown, ChevronUp, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +16,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+const UNITS = ['m', 'm²', 'm³', 'ud', 'kg', 'l', 'h', 'ml', 'tn'];
+const emptyApunte = { concepto: '', unidad: 'ud', cantidad: '', precio_unitario: '', total: '' };
 const empty = { operario_id: '', operario_name: '', date: new Date().toISOString().split('T')[0], hora_entrada: '', hora_salida: '', pausa_inicio: '', pausa_fin: '', project: '', notas: '' };
 
 export default function FichajesTab() {
@@ -28,16 +30,55 @@ export default function FichajesTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(empty);
+  const [apuntes, setApuntes] = useState([]); // apuntes del fichaje en edición/creación
+  const [expandedId, setExpandedId] = useState(null); // fichaje expandido para ver apuntes
 
   const { data: fichajes = [], isLoading } = useQuery({ queryKey: ['fichajes'], queryFn: () => base44.entities.Fichaje.list('-date', 500) });
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
+  const { data: allApuntes = [] } = useQuery({ queryKey: ['apuntes'], queryFn: () => base44.entities.ApunteHorario.list('-date', 1000) });
 
-  const createM = useMutation({ mutationFn: d => base44.entities.Fichaje.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['fichajes'] }); close_(); } });
+  const createM = useMutation({
+    mutationFn: async (d) => {
+      const fichaje = await base44.entities.Fichaje.create(d);
+      // Create associated apuntes
+      const validApuntes = apuntes.filter(a => a.concepto && a.cantidad);
+      await Promise.all(validApuntes.map(a => base44.entities.ApunteHorario.create({
+        operario_id: d.operario_id, operario_name: d.operario_name,
+        date: d.date, obra_name: d.project || '',
+        concepto: a.concepto, unidad: a.unidad,
+        cantidad: parseFloat(a.cantidad) || 0,
+        precio_unitario: parseFloat(a.precio_unitario) || undefined,
+        total: a.total || undefined,
+      })));
+      return fichaje;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['fichajes'] }); qc.invalidateQueries({ queryKey: ['apuntes'] }); close_(); }
+  });
   const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Fichaje.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['fichajes'] }); close_(); } });
   const deleteM = useMutation({ mutationFn: id => base44.entities.Fichaje.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['fichajes'] }) });
+  const deleteApunteM = useMutation({ mutationFn: id => base44.entities.ApunteHorario.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['apuntes'] }) });
 
-  const open_ = (f = null) => { setEditing(f); setForm(f ? { ...f } : empty); setDialogOpen(true); };
-  const close_ = () => { setDialogOpen(false); setEditing(null); setForm(empty); };
+  const open_ = (f = null) => {
+    setEditing(f);
+    setForm(f ? { ...f } : empty);
+    setApuntes([]); // apuntes nuevos (solo para creación)
+    setDialogOpen(true);
+  };
+  const close_ = () => { setDialogOpen(false); setEditing(null); setForm(empty); setApuntes([]); };
+
+  // Apuntes inline form helpers
+  const addApunte = () => setApuntes(p => [...p, { ...emptyApunte }]);
+  const removeApunte = i => setApuntes(p => p.filter((_, idx) => idx !== i));
+  const setApunteField = (i, k, v) => setApuntes(p => {
+    const next = [...p];
+    next[i] = { ...next[i], [k]: v };
+    if (k === 'cantidad' || k === 'precio_unitario') {
+      const qty = parseFloat(k === 'cantidad' ? v : next[i].cantidad) || 0;
+      const price = parseFloat(k === 'precio_unitario' ? v : next[i].precio_unitario) || 0;
+      next[i].total = qty && price ? +(qty * price).toFixed(2) : '';
+    }
+    return next;
+  });
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const handleOpChange = id => {
@@ -60,6 +101,10 @@ export default function FichajesTab() {
   });
 
   const totalHoras = filtered.reduce((s, f) => s + (f.horas_trabajadas || 0), 0);
+
+  // Get apuntes linked to a fichaje (same operario + date)
+  const getApuntesForFichaje = (f) =>
+    allApuntes.filter(a => a.operario_id === f.operario_id && a.date === f.date);
   const isPending = createM.isPending || updateM.isPending;
 
   const statusBadge = (f) => {
@@ -105,40 +150,84 @@ export default function FichajesTab() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map(f => (
-            <Card key={f.id} className="p-4 flex items-center gap-4">
-              <div className="w-12 text-center shrink-0">
-                <p className="text-xs font-bold text-primary">{f.date ? format(parseISO(f.date), 'dd', { locale: es }) : '--'}</p>
-                <p className="text-[10px] text-muted-foreground capitalize">{f.date ? format(parseISO(f.date), 'EEE', { locale: es }) : '--'}</p>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-sm">{f.operario_name}</span>
-                  {statusBadge(f)}
+          {filtered.map(f => {
+            const fApuntes = getApuntesForFichaje(f);
+            const isExpanded = expandedId === f.id;
+            return (
+              <Card key={f.id} className="overflow-hidden">
+                <div className="p-4 flex items-center gap-4">
+                  <div className="w-12 text-center shrink-0">
+                    <p className="text-xs font-bold text-primary">{f.date ? format(parseISO(f.date), 'dd', { locale: es }) : '--'}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize">{f.date ? format(parseISO(f.date), 'EEE', { locale: es }) : '--'}</p>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-sm">{f.operario_name}</span>
+                      {statusBadge(f)}
+                      {fApuntes.length > 0 && (
+                        <Badge variant="outline" className="text-[10px] bg-violet-50 text-violet-700 border-violet-200 gap-1">
+                          <ClipboardList className="w-2.5 h-2.5" />{fApuntes.length} apunte{fApuntes.length > 1 ? 's' : ''}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {f.hora_entrada || '--'} → {f.hora_salida || '--'}
+                      {f.pausa_inicio && f.pausa_fin && <span className="ml-2 text-amber-600">(pausa {f.pausa_inicio}-{f.pausa_fin})</span>}
+                    </p>
+                    {f.project && <p className="text-xs text-muted-foreground truncate">📍 {f.project}</p>}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {fApuntes.length > 0 && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setExpandedId(isExpanded ? null : f.id)}>
+                        {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => open_(f)}><Pencil className="w-3.5 h-3.5" /></Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>¿Eliminar fichaje?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteM.mutate(f.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {f.hora_entrada || '--'} → {f.hora_salida || '--'}
-                  {f.pausa_inicio && f.pausa_fin && <span className="ml-2 text-amber-600">(pausa {f.pausa_inicio}-{f.pausa_fin})</span>}
-                </p>
-                {f.project && <p className="text-xs text-muted-foreground truncate">📍 {f.project}</p>}
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => open_(f)}><Pencil className="w-3.5 h-3.5" /></Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader><AlertDialogTitle>¿Eliminar fichaje?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription></AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => deleteM.mutate(f.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </Card>
-          ))}
+                {isExpanded && fApuntes.length > 0 && (
+                  <div className="border-t border-border bg-violet-50/40 dark:bg-violet-950/10 px-4 py-3 space-y-1.5">
+                    <p className="text-[10px] font-semibold text-violet-700 uppercase tracking-wide flex items-center gap-1 mb-2">
+                      <ClipboardList className="w-3 h-3" /> Apuntes de cantidades
+                    </p>
+                    {fApuntes.map(a => (
+                      <div key={a.id} className="flex items-center justify-between text-xs gap-2">
+                        <span className="flex-1 truncate text-foreground">{a.concepto}</span>
+                        <span className="font-semibold text-violet-700 shrink-0">{a.cantidad} {a.unidad}</span>
+                        {a.total > 0 && <span className="text-emerald-600 shrink-0">{a.total} €</span>}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive shrink-0">
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader><AlertDialogTitle>¿Eliminar apunte?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteApunteM.mutate(a.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -210,6 +299,44 @@ export default function FichajesTab() {
               <Label className="text-xs">Notas</Label>
               <Textarea value={form.notas} onChange={e => set('notas', e.target.value)} rows={2} placeholder="Observaciones..." />
             </div>
+
+            {/* Apuntes de cantidades */}
+            {!editing && (
+              <div className="rounded-lg border border-dashed border-border p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> Apuntes de cantidades</p>
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={addApunte}>
+                    <Plus className="w-3 h-3" /> Añadir
+                  </Button>
+                </div>
+                {apuntes.map((a, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-1.5 items-end">
+                    <div className="col-span-5">
+                      <Input value={a.concepto} onChange={e => setApunteField(i, 'concepto', e.target.value)} placeholder="Concepto..." className="h-8 text-xs" />
+                    </div>
+                    <div className="col-span-2">
+                      <Input type="number" step="0.01" value={a.cantidad} onChange={e => setApunteField(i, 'cantidad', e.target.value)} placeholder="Cant." className="h-8 text-xs" />
+                    </div>
+                    <div className="col-span-2">
+                      <Select value={a.unidad} onValueChange={v => setApunteField(i, 'unidad', v)}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>{UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2">
+                      <Input type="number" step="0.01" value={a.precio_unitario} onChange={e => setApunteField(i, 'precio_unitario', e.target.value)} placeholder="€/ud" className="h-8 text-xs" />
+                    </div>
+                    <div className="col-span-1 flex justify-end">
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeApunte(i)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                    {a.total > 0 && <div className="col-span-12 text-[10px] text-emerald-600 font-semibold pl-1">= {a.total} €</div>}
+                  </div>
+                ))}
+                {apuntes.length === 0 && <p className="text-[10px] text-muted-foreground">Sin apuntes de cantidades para este fichaje.</p>}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={close_}>Cancelar</Button>
