@@ -16,6 +16,8 @@ export function useUserRole() {
   const isJefeObra = role === 'jefe_obra' || isAdmin;
   const isOperario = role === 'operario' || isAdmin;
   const isControlHorario = role === 'control_horario' || isAdmin;
+  // true only for control_horario role (not admin/jefe_obra) — restricts to own records
+  const isControlHorarioOnly = role === 'control_horario' && !isAdmin;
 
   // Module access by role
   const canAccess = (module) => {
@@ -36,5 +38,5 @@ export function useUserRole() {
     return (perms[role] || []).includes(module);
   };
 
-  return { user, role, isAdmin, isJefeObra, isOperario, isControlHorario, canAccess, isLoading };
+  return { user, role, isAdmin, isJefeObra, isOperario, isControlHorario, isControlHorarioOnly, canAccess, isLoading };
 }

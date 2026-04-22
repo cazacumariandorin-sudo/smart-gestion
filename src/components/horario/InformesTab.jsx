@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useUserRole } from '@/lib/useUserRole';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { groupByWeek, groupByMonth } from '@/lib/horasUtils';
@@ -57,14 +58,22 @@ export default function InformesTab() {
   const [opFilter, setOpFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
 
+  const { isAdmin, isJefeObra, isControlHorarioOnly, user } = useUserRole();
+  const canSeeAll = isAdmin || isJefeObra;
+
   const { data: fichajes = [] } = useQuery({ queryKey: ['fichajes'], queryFn: () => base44.entities.Fichaje.list('-date', 1000) });
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
+  const myOperario = isControlHorarioOnly ? operarios.find(o => o.email === user?.email) : null;
 
   const filtered = useMemo(() => fichajes.filter(f => {
+    // control_horario only sees their own records
+    if (isControlHorarioOnly) {
+      if (!myOperario || f.operario_id !== myOperario.id) return false;
+    }
     const mOp = opFilter === 'all' || f.operario_id === opFilter;
     const mMonth = !monthFilter || f.date?.startsWith(monthFilter);
     return mOp && mMonth;
-  }), [fichajes, opFilter, monthFilter]);
+  }), [fichajes, opFilter, monthFilter, isControlHorarioOnly, myOperario]);
 
   const byOperario = useMemo(() => {
     const map = {};
@@ -203,10 +212,12 @@ export default function InformesTab() {
           <MobileSelectItem value="operario">Por Operario</MobileSelectItem>
         </MobileSelect>
         <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-full sm:w-40" />
-        <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
-          <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
-          {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
-        </MobileSelect>
+        {canSeeAll && (
+          <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
+            <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
+            {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+          </MobileSelect>
+        )}
         <Button onClick={generatePDF} className="gap-2 shrink-0">
           <Download className="w-4 h-4" /> PDF
         </Button>

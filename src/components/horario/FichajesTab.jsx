@@ -22,8 +22,9 @@ const empty = { operario_id: '', operario_name: '', date: new Date().toISOString
 
 export default function FichajesTab() {
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra } = useUserRole();
+  const { isAdmin, isJefeObra, isControlHorarioOnly, user } = useUserRole();
   const canEditExitTime = isAdmin || isJefeObra;
+  const canSeeAll = isAdmin || isJefeObra; // control_horario only sees own records
   const [search, setSearch] = useState('');
   const [opFilter, setOpFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
@@ -60,8 +61,14 @@ export default function FichajesTab() {
 
   const open_ = (f = null) => {
     setEditing(f);
-    setForm(f ? { ...f } : empty);
-    setApuntes([]); // apuntes nuevos (solo para creación)
+    if (f) {
+      setForm({ ...f });
+    } else if (isControlHorarioOnly && myOperario) {
+      setForm({ ...empty, operario_id: myOperario.id, operario_name: myOperario.name });
+    } else {
+      setForm(empty);
+    }
+    setApuntes([]);
     setDialogOpen(true);
   };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(empty); setApuntes([]); };
@@ -92,7 +99,14 @@ export default function FichajesTab() {
     editing ? updateM.mutate({ id: editing.id, d: data }) : createM.mutate(data);
   };
 
+  // For control_horario role, find their own operario record and restrict to it
+  const myOperario = isControlHorarioOnly ? operarios.find(o => o.email === user?.email) : null;
+
   const filtered = fichajes.filter(f => {
+    // control_horario only sees their own fichajes
+    if (isControlHorarioOnly) {
+      if (!myOperario || f.operario_id !== myOperario.id) return false;
+    }
     const q = search.toLowerCase();
     const mQ = !search || f.operario_name?.toLowerCase().includes(q) || f.project?.toLowerCase().includes(q);
     const mOp = opFilter === 'all' || f.operario_id === opFilter;
@@ -122,10 +136,12 @@ export default function FichajesTab() {
           <Input placeholder="Buscar operario u obra..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-full sm:w-40" />
-        <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
-          <MobileSelectItem value="all">Todos</MobileSelectItem>
-          {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
-        </MobileSelect>
+        {canSeeAll && (
+          <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
+            <MobileSelectItem value="all">Todos</MobileSelectItem>
+            {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+          </MobileSelect>
+        )}
         <Button onClick={() => open_()} className="gap-2 shrink-0">
           <Plus className="w-4 h-4" /> Nuevo Fichaje
         </Button>
@@ -235,9 +251,15 @@ export default function FichajesTab() {
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs">Operario *</Label>
-              <MobileSelect value={form.operario_id} onValueChange={handleOpChange} placeholder="Seleccionar operario...">
-                {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
-              </MobileSelect>
+              {canSeeAll ? (
+                <MobileSelect value={form.operario_id} onValueChange={handleOpChange} placeholder="Seleccionar operario...">
+                  {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+                </MobileSelect>
+              ) : (
+                <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                  {myOperario?.name || user?.full_name || 'Mi perfil'}
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
