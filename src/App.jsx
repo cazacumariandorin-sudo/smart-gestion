@@ -32,6 +32,7 @@ import Manuales from './pages/Manuales';
 import Fabricantes from './pages/Fabricantes';
 import SolarPedidos from './pages/SolarPedidos';
 import DatosSensibles from './pages/DatosSensibles';
+import Inventario from './pages/Inventario';
 
 // Apply dark class based on system preference
 function ThemeDetector() {
@@ -106,6 +107,7 @@ function AnimatedRoutes() {
             <Route path="/solar-pedidos" element={<ProtectedRoute module="orders"><SolarPedidos /></ProtectedRoute>} />
             <Route path="/solar-obras" element={<ProtectedRoute module="obras"><SolarPedidos /></ProtectedRoute>} />
             <Route path="/datos-sensibles" element={<ProtectedRoute module="users"><DatosSensibles /></ProtectedRoute>} />
+            <Route path="/inventario" element={<ProtectedRoute module="users"><Inventario /></ProtectedRoute>} />
           </Route>
           <Route path="*" element={<PageNotFound />} />
         </Routes>

@@ -1,0 +1,80 @@
+{
+  "name": "Herramienta",
+  "type": "object",
+  "properties": {
+    "nombre": {
+      "type": "string",
+      "description": "Nombre de la herramienta"
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "escalera",
+        "taladro",
+        "atornillador",
+        "radial",
+        "maquina_tiros",
+        "otros"
+      ],
+      "description": "Categor\u00eda de la herramienta"
+    },
+    "modelo": {
+      "type": "string",
+      "description": "Modelo o referencia"
+    },
+    "numero_serie": {
+      "type": "string",
+      "description": "N\u00famero de serie (\u00fanico)"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "disponible",
+        "en_uso",
+        "mantenimiento",
+        "baja"
+      ],
+      "default": "disponible",
+      "description": "Estado actual"
+    },
+    "valor_compra": {
+      "type": "number",
+      "description": "Valor de compra (\u20ac)"
+    },
+    "fecha_compra": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de compra"
+    },
+    "ubicacion": {
+      "type": "string",
+      "description": "Ubicaci\u00f3n f\u00edsica (almac\u00e9n, obra, etc.)"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "nombre",
+    "categoria"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": true,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

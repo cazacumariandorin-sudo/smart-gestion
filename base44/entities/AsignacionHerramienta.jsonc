@@ -1,0 +1,78 @@
+{
+  "name": "AsignacionHerramienta",
+  "type": "object",
+  "properties": {
+    "herramienta_id": {
+      "type": "string",
+      "description": "ID de la herramienta"
+    },
+    "herramienta_nombre": {
+      "type": "string",
+      "description": "Nombre de la herramienta (copia)"
+    },
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario (copia)"
+    },
+    "fecha_asignacion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de asignaci\u00f3n"
+    },
+    "fecha_devolucion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de devoluci\u00f3n (null si sigue en uso)"
+    },
+    "estado_asignacion": {
+      "type": "string",
+      "enum": [
+        "asignada",
+        "devuelta",
+        "perdida",
+        "da\u00f1ada"
+      ],
+      "default": "asignada",
+      "description": "Estado de la asignaci\u00f3n"
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "Obra donde se usa (opcional)"
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones sobre el uso"
+    }
+  },
+  "required": [
+    "herramienta_id",
+    "operario_id",
+    "fecha_asignacion"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": true,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
