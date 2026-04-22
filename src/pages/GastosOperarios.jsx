@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+import { useUserRole } from '@/lib/useUserRole';
 
 const CATEGORIAS = [
   { key: 'combustible', label: 'Combustible', icon: Fuel, color: 'bg-orange-100 text-orange-700 border-orange-200' },
@@ -37,6 +38,8 @@ const emptyGasto = {
 
 export default function GastosOperarios() {
   const qc = useQueryClient();
+  const { isAdmin, isJefeObra, user } = useUserRole();
+  const canSeeAll = isAdmin || isJefeObra;
   const fileRef = useRef(null);
   const [search, setSearch] = useState('');
   const [operarioFilter, setOperarioFilter] = useState('all');
@@ -59,10 +62,20 @@ export default function GastosOperarios() {
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
   const { data: obras = [] } = useQuery({ queryKey: ['obras'], queryFn: () => base44.entities.Obra.list('name', 300) });
 
+  // For non-admin users, find their own Operario record by email match
+  const myOperario = !canSeeAll && user ? operarios.find(o => o.email === user.email) : null;
+
   const createM = useMutation({ mutationFn: d => base44.entities.GastoOperario.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['gastos_operarios'] }); close_(); } });
   const deleteM = useMutation({ mutationFn: id => base44.entities.GastoOperario.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['gastos_operarios'] }) });
 
-  const open_ = () => { setForm(emptyGasto); setDialogOpen(true); };
+  const open_ = () => {
+    // Pre-fill operario for non-admin users
+    const preFilled = myOperario
+      ? { ...emptyGasto, operario_id: myOperario.id, operario_name: myOperario.name }
+      : emptyGasto;
+    setForm(preFilled);
+    setDialogOpen(true);
+  };
   const close_ = () => { setDialogOpen(false); setForm(emptyGasto); };
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -294,10 +307,12 @@ Si no puedes extraer algún campo, ponlo como null.`,
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <MobileSelect value={operarioFilter} onValueChange={setOperarioFilter} placeholder="Operario" triggerClassName="w-full sm:w-48">
-          <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
-          {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
-        </MobileSelect>
+        {canSeeAll && (
+          <MobileSelect value={operarioFilter} onValueChange={setOperarioFilter} placeholder="Operario" triggerClassName="w-full sm:w-48">
+            <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
+            {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+          </MobileSelect>
+        )}
       </div>
 
       {/* By operario summary */}
@@ -422,9 +437,15 @@ Si no puedes extraer algún campo, ponlo como null.`,
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Operario *</Label>
-                <MobileSelect value={form.operario_id} onValueChange={handleOperarioChange} placeholder="Seleccionar operario...">
-                  {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
-                </MobileSelect>
+                {canSeeAll ? (
+                  <MobileSelect value={form.operario_id} onValueChange={handleOperarioChange} placeholder="Seleccionar operario...">
+                    {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+                  </MobileSelect>
+                ) : (
+                  <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                    {myOperario ? myOperario.name : user?.full_name || 'Usuario actual'}
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Categoría *</Label>
