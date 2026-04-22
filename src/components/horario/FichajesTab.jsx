@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
+import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { calcularHoras } from '@/lib/horasUtils';
 import { Plus, Search, Trash2, Pencil, Save, Loader2, Clock, ChevronDown, ChevronUp, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,10 +39,9 @@ export default function FichajesTab() {
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
   const { data: allApuntes = [] } = useQuery({ queryKey: ['apuntes'], queryFn: () => base44.entities.ApunteHorario.list('-date', 1000) });
 
-  const createM = useMutation({
-    mutationFn: async (d) => {
+  const createM = useOptimisticMutation(
+    async (d) => {
       const fichaje = await base44.entities.Fichaje.create(d);
-      // Create associated apuntes
       const validApuntes = apuntes.filter(a => a.concepto && a.cantidad);
       await Promise.all(validApuntes.map(a => base44.entities.ApunteHorario.create({
         operario_id: d.operario_id, operario_name: d.operario_name,
@@ -53,9 +53,16 @@ export default function FichajesTab() {
       })));
       return fichaje;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['fichajes'] }); qc.invalidateQueries({ queryKey: ['apuntes'] }); close_(); }
-  });
-  const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Fichaje.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['fichajes'] }); close_(); } });
+    'fichajes',
+    (prev, d) => [...prev, { ...d, id: `temp_${Date.now()}`, horas_trabajadas: calcularHoras(d.hora_entrada, d.hora_salida, d.pausa_inicio, d.pausa_fin) }],
+    () => { close_(); qc.invalidateQueries({ queryKey: ['apuntes'] }); }
+  );
+  const updateM = useOptimisticMutation(
+    ({ id, d }) => base44.entities.Fichaje.update(id, d),
+    'fichajes',
+    (prev, { id, d }) => prev.map(f => f.id === id ? { ...f, ...d, horas_trabajadas: calcularHoras(d.hora_entrada, d.hora_salida, d.pausa_inicio, d.pausa_fin) } : f),
+    () => close_()
+  );
   const deleteM = useMutation({ mutationFn: id => base44.entities.Fichaje.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['fichajes'] }) });
   const deleteApunteM = useMutation({ mutationFn: id => base44.entities.ApunteHorario.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['apuntes'] }) });
 

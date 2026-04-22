@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { jsPDF } from 'jspdf';
 import {
   Plus, Trash2, Receipt, Loader2, Save, Camera, X, ChevronDown, ChevronUp,
@@ -46,30 +47,28 @@ export default function NotaGastosCard({ nota, gastos, operarios, canSeeAll, myO
   const isCerrada = nota.estado === 'cerrada';
   const total = gastos.reduce((s, g) => s + (g.importe || 0), 0);
 
-  const createGastoM = useMutation({
-    mutationFn: d => base44.entities.GastoOperario.create(d),
-    onSuccess: async () => {
-      // Update nota total
+  const createGastoM = useOptimisticMutation(
+    async (d) => {
+      const gasto = await base44.entities.GastoOperario.create(d);
       const newTotal = total + (parseFloat(form.importe) || 0);
       await base44.entities.NotaGastos.update(nota.id, { total: newTotal });
-      qc.invalidateQueries({ queryKey: ['gastos_operarios'] });
-      qc.invalidateQueries({ queryKey: ['notas_gastos'] });
-      setAddGastoOpen(false);
-      setForm(emptyGasto);
-    }
-  });
+      return gasto;
+    },
+    'gastos_operarios',
+    (prev) => [...prev, { ...form, id: `temp_${Date.now()}`, nota_id: nota.id, importe: parseFloat(form.importe) || 0 }],
+    () => { setAddGastoOpen(false); setForm(emptyGasto); qc.invalidateQueries({ queryKey: ['notas_gastos'] }); }
+  );
 
-  const deleteGastoM = useMutation({
-    mutationFn: async (g) => {
+  const deleteGastoM = useOptimisticMutation(
+    async (g) => {
       await base44.entities.GastoOperario.delete(g.id);
       const newTotal = Math.max(0, total - (g.importe || 0));
       await base44.entities.NotaGastos.update(nota.id, { total: newTotal });
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['gastos_operarios'] });
-      qc.invalidateQueries({ queryKey: ['notas_gastos'] });
-    }
-  });
+    'gastos_operarios',
+    (prev, g) => prev.filter(x => x.id !== g.id),
+    () => qc.invalidateQueries({ queryKey: ['notas_gastos'] })
+  );
 
   const cerrarNotaM = useMutation({
     mutationFn: () => base44.entities.NotaGastos.update(nota.id, {

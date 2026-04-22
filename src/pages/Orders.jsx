@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useI18n } from '@/lib/i18n';
 import { Plus, Search, Pencil, Trash2, ShoppingCart, Loader2, Save, Truck, Package, Euro, X, ChevronDown, ChevronUp, Upload, FileText, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -49,9 +50,23 @@ export default function Orders() {
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
   const { data: materials = [] } = useQuery({ queryKey: ['material_catalog'], queryFn: () => base44.entities.MaterialCatalog.list('name', 500) });
 
-  const createM = useMutation({ mutationFn: d => base44.entities.Order.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['orders'] }); close_(); } });
-  const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Order.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['orders'] }); close_(); } });
-  const deleteM = useMutation({ mutationFn: id => base44.entities.Order.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }) });
+  const createM = useOptimisticMutation(
+    d => base44.entities.Order.create(d),
+    'orders',
+    (prev, newOrder) => [...prev, { ...newOrder, id: `temp_${Date.now()}` }],
+    () => close_()
+  );
+  const updateM = useOptimisticMutation(
+    ({ id, d }) => base44.entities.Order.update(id, d),
+    'orders',
+    (prev, { id, d }) => prev.map(o => o.id === id ? { ...o, ...d } : o),
+    () => close_()
+  );
+  const deleteM = useOptimisticMutation(
+    id => base44.entities.Order.delete(id),
+    'orders',
+    (prev, id) => prev.filter(o => o.id !== id)
+  );
 
   const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setUploadedFiles([]); setDialogOpen(true); };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyOrder); };
@@ -113,7 +128,7 @@ export default function Orders() {
   };
 
   const quickStatus = (order, newStatus) => {
-    updateM.mutate({ id: order.id, d: { ...order, status: newStatus } });
+    updateM.mutate({ id: order.id, d: { status: newStatus } });
   };
 
   const filtered = orders.filter(o => {

@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FichajesTab from '@/components/horario/FichajesTab';
@@ -8,6 +7,7 @@ import AlarmasTab from '@/components/horario/AlarmasTab';
 import ApuntesTab from '@/components/horario/ApuntesTab';
 import { Clock, BarChart3, Bell, ClipboardList } from 'lucide-react';
 import { useAlarmas } from '@/hooks/useAlarmas';
+import { useTabState } from '@/hooks/useTabState';
 
 export default function ControlHorario() {
   const { data: alarmas = [] } = useQuery({
@@ -18,6 +18,9 @@ export default function ControlHorario() {
   // Activate alarm listener globally
   useAlarmas(alarmas);
 
+  // Persistent tab state
+  const [tab, setTab] = useTabState('control-horario', 'fichajes');
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       <div className="mb-6">
@@ -27,7 +30,7 @@ export default function ControlHorario() {
         <p className="text-sm text-muted-foreground mt-1">Fichajes, informes y alarmas de operarios</p>
       </div>
 
-      <Tabs defaultValue="fichajes">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-6 flex flex-wrap gap-1 h-auto w-full sm:w-auto sm:flex-nowrap">
           <TabsTrigger value="fichajes" className="flex items-center gap-2 flex-1 sm:flex-none">
             <Clock className="w-4 h-4" /> Fichajes

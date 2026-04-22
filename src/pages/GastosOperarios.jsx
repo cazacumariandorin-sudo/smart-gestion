@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
+import { useTabState } from '@/hooks/useTabState';
 import { Plus, Receipt, FileText, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,10 +47,12 @@ export default function GastosOperarios() {
 
   const myOperario = !canSeeAll && user ? operarios.find(o => o.email === user.email) : null;
 
-  const createNotaM = useMutation({
-    mutationFn: d => base44.entities.NotaGastos.create(d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notas_gastos'] }); setNewNotaOpen(false); }
-  });
+  const createNotaM = useOptimisticMutation(
+    d => base44.entities.NotaGastos.create(d),
+    'notas_gastos',
+    (prev, newNota) => [...prev, { ...newNota, id: `temp_${Date.now()}` }],
+    () => setNewNotaOpen(false)
+  );
 
   const openNewNota = () => {
     const preFilled = myOperario
