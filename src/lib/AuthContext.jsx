@@ -14,7 +14,16 @@ export const AuthProvider = ({ children }) => {
   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
   useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoadingPublicSettings || isLoadingAuth) {
+        console.warn('Auth check timeout - forcing completion');
+        setIsLoadingPublicSettings(false);
+        setIsLoadingAuth(false);
+      }
+    }, 5000);
+    
     checkAppState();
+    return () => clearTimeout(timeout);
   }, []);
 
   const checkAppState = async () => {
@@ -22,59 +31,28 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
       
-      // Use base44 to fetch app public settings - simpler approach
-      try {
-        const publicSettings = await base44.integrations.Core.InvokeLLM({
-          prompt: 'Dummy request to test connectivity'
-        }).catch(() => null);
-        
-        // App is accessible, proceed with auth check
-        setAppPublicSettings({ id: appParams.appId });
-        
-        // If we have a token, check user auth
-        if (appParams.token) {
+      // Always allow access - check auth only if token exists
+      setAppPublicSettings({ id: appParams.appId });
+      
+      if (appParams.token) {
+        try {
           await checkUserAuth();
-        } else {
+        } catch (err) {
+          console.error('User auth failed:', err);
           setIsLoadingAuth(false);
-          setIsAuthenticated(false);
+          setAuthError({
+            type: 'auth_required',
+            message: 'Authentication required'
+          });
         }
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
-        
-        // Handle app-level errors
-        if (appError?.status === 403 && appError?.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            setAuthError({
-              type: 'auth_required',
-              message: 'Authentication required'
-            });
-          } else if (reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
-          } else {
-            setAuthError({
-              type: reason,
-              message: appError.message
-            });
-          }
-        } else {
-          // Assume app is public/accessible even if check fails
-          setAppPublicSettings({ id: appParams.appId });
-          if (appParams.token) {
-            await checkUserAuth();
-          } else {
-            setIsLoadingAuth(false);
-          }
-        }
-        setIsLoadingPublicSettings(false);
+      } else {
+        setIsLoadingAuth(false);
+        setIsAuthenticated(false);
       }
+      
+      setIsLoadingPublicSettings(false);
     } catch (error) {
-      console.error('Unexpected error:', error);
-      // Continue anyway - don't block on this
+      console.error('Unexpected error in checkAppState:', error);
       setAppPublicSettings({ id: appParams.appId });
       setIsLoadingPublicSettings(false);
       setIsLoadingAuth(false);
