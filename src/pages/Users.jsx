@@ -85,7 +85,13 @@ export default function Users() {
 
   const openEdit = (user) => {
     setEditUser(user);
-    setEditForm({ role: user.role || 'operario', acceso_total_hasta: user.acceso_total_hasta || '' });
+    const today = new Date().toISOString().split('T')[0];
+    const hasProvisional = user.acceso_total_hasta && user.acceso_total_hasta >= today;
+    setEditForm({
+      role: user.role || 'operario',
+      acceso_total_hasta: user.acceso_total_hasta || '',
+      _tipoAcceso: hasProvisional ? 'provisional' : 'completo',
+    });
   };
 
   const saveEdit = () => {
@@ -237,14 +243,31 @@ export default function Users() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Acceso temporal completo</Label>
-              <MobileSelect value="" onValueChange={grantTempAccess} placeholder="Seleccionar duración...">
-                {ACCESS_RANGES.map(r => <MobileSelectItem key={r} value={r}>{r}</MobileSelectItem>)}
+              <Label className="text-xs">Tipo de acceso</Label>
+              <MobileSelect
+                value={editForm.acceso_total_hasta && editForm.acceso_total_hasta >= new Date().toISOString().split('T')[0] ? 'provisional' : 'completo'}
+                onValueChange={v => {
+                  if (v === 'completo') setEditForm(p => ({ ...p, acceso_total_hasta: '' }));
+                  else setEditForm(p => ({ ...p, _tipoAcceso: 'provisional' }));
+                }}
+                placeholder="Tipo de acceso"
+              >
+                <MobileSelectItem value="completo">Acceso completo</MobileSelectItem>
+                <MobileSelectItem value="provisional">Acceso provisional</MobileSelectItem>
               </MobileSelect>
-              {editForm.acceso_total_hasta && (
-                <p className="text-[10px] text-primary font-medium">Acceso hasta: {editForm.acceso_total_hasta}</p>
-              )}
             </div>
+
+            {(editForm._tipoAcceso === 'provisional' || (editForm.acceso_total_hasta && editForm.acceso_total_hasta >= new Date().toISOString().split('T')[0])) && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Duración del acceso provisional</Label>
+                <MobileSelect value="" onValueChange={grantTempAccess} placeholder="Seleccionar duración...">
+                  {ACCESS_RANGES.map(r => <MobileSelectItem key={r} value={r}>{r}</MobileSelectItem>)}
+                </MobileSelect>
+                {editForm.acceso_total_hasta && (
+                  <p className="text-[10px] text-primary font-medium">Acceso hasta: {editForm.acceso_total_hasta}</p>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setEditUser(null)}>Cancelar</Button>
