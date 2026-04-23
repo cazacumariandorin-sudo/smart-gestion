@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
@@ -228,27 +228,19 @@ export default function Users() {
 
             <div className="space-y-1.5">
               <Label className="text-xs">Rol</Label>
-              <Select value={editForm.role || 'operario'} onValueChange={v => setEditForm(p => ({ ...p, role: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(roleConfig).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>
-                      <span className="flex items-center gap-2"><v.icon className="w-3.5 h-3.5" /> {v.label}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MobileSelect value={editForm.role || 'operario'} onValueChange={v => setEditForm(p => ({ ...p, role: v }))} placeholder="Rol">
+                {Object.entries(roleConfig).map(([k, v]) => (
+                  <MobileSelectItem key={k} value={k}>{v.label}</MobileSelectItem>
+                ))}
+              </MobileSelect>
               {editForm.role && <p className="text-[10px] text-muted-foreground">{roleConfig[editForm.role]?.desc}</p>}
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs">Acceso temporal completo</Label>
-              <Select onValueChange={grantTempAccess}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar duración..." /></SelectTrigger>
-                <SelectContent>
-                  {ACCESS_RANGES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <MobileSelect value="" onValueChange={grantTempAccess} placeholder="Seleccionar duración...">
+                {ACCESS_RANGES.map(r => <MobileSelectItem key={r} value={r}>{r}</MobileSelectItem>)}
+              </MobileSelect>
               {editForm.acceso_total_hasta && (
                 <p className="text-[10px] text-primary font-medium">Acceso hasta: {editForm.acceso_total_hasta}</p>
               )}
@@ -281,12 +273,9 @@ export default function Users() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Tipo de usuario</Label>
-              <Select value={inviteRole} onValueChange={setInviteRole}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(roleConfig).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <MobileSelect value={inviteRole} onValueChange={setInviteRole} placeholder="Tipo de usuario">
+                {Object.entries(roleConfig).map(([k, v]) => <MobileSelectItem key={k} value={k}>{v.label}</MobileSelectItem>)}
+              </MobileSelect>
               {inviteRole && <p className="text-[10px] text-muted-foreground">{roleConfig[inviteRole]?.desc}</p>}
             </div>
             {inviteError && <p className="text-xs text-destructive">{inviteError}</p>}

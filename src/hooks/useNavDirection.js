@@ -22,18 +22,21 @@ export function useNavDirection() {
     const tab = getTabGroup(location.pathname);
     if (!tabStacks[tab]) tabStacks[tab] = [];
     const stack = tabStacks[tab];
-    const key = location.key;
 
-    const existingIdx = stack.indexOf(key);
-    if (existingIdx !== -1) {
-      // Visited before in this tab → going back
+    // Use pathname+search as the stable identity (handles Android back where key may reuse)
+    const entry = `${location.pathname}${location.search}`;
+
+    const existingIdx = stack.lastIndexOf(entry);
+    if (existingIdx !== -1 && existingIdx < stack.length - 1) {
+      // Previously visited and not the top → going back
       direction.current = 'back';
-      stack.splice(existingIdx + 1); // trim forward entries
-    } else {
+      stack.splice(existingIdx + 1);
+    } else if (existingIdx === -1) {
       direction.current = 'forward';
-      stack.push(key);
+      stack.push(entry);
     }
-  }, [location.key, location.pathname]);
+    // existingIdx === stack.length - 1 means same entry re-pushed (e.g. replace) → keep direction
+  }, [location.key, location.pathname, location.search]);
 
   return direction;
 }
