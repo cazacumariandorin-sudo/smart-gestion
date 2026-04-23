@@ -108,9 +108,11 @@ export default function Sidebar() {
   ].filter(i => canAccess(i.module));
 
   const adminItems = [
-    { label: 'Usuarios',        path: '/users',       icon: Users,         module: 'users' },
-    { label: 'Usuarios Demo',   path: '/demo-users',  icon: FlaskConical,  module: 'users' },
-    { label: 'Informe Mensual', path: '/reports',     icon: BarChart3,     module: 'reports' },
+    { label: 'Usuarios',        path: '/users',            icon: Users,         module: 'users' },
+    { label: 'Usuarios Demo',   path: '/demo-users',       icon: FlaskConical,  module: 'users' },
+    { label: 'Datos Sensibles', path: '/datos-sensibles',  icon: Settings,      module: 'users' },
+    { label: 'Inventario',      path: '/inventario',       icon: Package,       module: 'users' },
+    { label: 'Informe Mensual', path: '/reports',          icon: BarChart3,     module: 'reports' },
   ].filter(i => canAccess(i.module));
 
   return (

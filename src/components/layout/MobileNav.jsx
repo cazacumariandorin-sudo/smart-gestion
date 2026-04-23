@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Receipt, Package, BarChart2, UserCircle } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Receipt, Package, BarChart2, UserCircle, Camera, UserCog, Factory, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserRole } from '@/lib/useUserRole';
@@ -16,14 +16,20 @@ const ALL_OPERARIOS_ITEMS = [
   { path: '/operarios',              icon: Users,       label: 'Operarios',  module: 'operarios' },
   { path: '/gastos-operarios',       icon: Receipt,     label: 'Gastos',     module: 'gastos-operarios' },
   { path: '/calendario-vacaciones',  icon: CalendarDays,label: 'Vacaciones', module: 'calendario-vacaciones' },
+  { path: '/users',                  icon: UserCog,     label: 'Usuarios',   module: 'users' },
+  { path: '/inventario',             icon: Package,     label: 'Inventario', module: 'users' },
 ];
 
 const ALL_PEDIDOS_ITEMS = [
-  { path: '/obras',     icon: Building2,   label: 'Obras',      module: 'obras' },
-  { path: '/orders',    icon: ShoppingCart,label: 'Pedidos',    module: 'orders' },
-  { path: '/materials', icon: Package,     label: 'Materiales', module: 'orders' },
-  { path: '/manuales',  icon: BookOpen,    label: 'Manuales',   module: 'orders' },
-  { path: '/drawings',  icon: FileImage,   label: 'Planos',     module: 'orders' },
+  { path: '/obras',         icon: Building2,   label: 'Obras',      module: 'obras' },
+  { path: '/clients',       icon: UserCog,     label: 'Clientes',   module: 'clients' },
+  { path: '/photos',        icon: Camera,      label: 'Fotos',      module: 'photos' },
+  { path: '/orders',        icon: ShoppingCart,label: 'Pedidos',    module: 'orders' },
+  { path: '/materials',     icon: Package,     label: 'Materiales', module: 'orders' },
+  { path: '/manuales',      icon: BookOpen,    label: 'Manuales',   module: 'orders' },
+  { path: '/drawings',      icon: FileImage,   label: 'Planos',     module: 'orders' },
+  { path: '/fabricantes',   icon: Factory,     label: 'Fabricantes',module: 'users' },
+  { path: '/solar-pedidos', icon: Sun,         label: 'Solar',      module: 'orders' },
 ];
 
 // Trigger vibration if supported
