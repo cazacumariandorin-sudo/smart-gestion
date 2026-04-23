@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera,
   UserCog, CircleUser, Package, FileImage, ShoppingCart, Receipt, Clock,
-  Building2, BookOpen, CalendarDays, ChevronDown, ChevronRight, Sun, Factory, Settings
+  Building2, BookOpen, CalendarDays, ChevronDown, ChevronRight, Sun, Factory, Settings, FlaskConical
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -107,8 +107,9 @@ export default function Sidebar() {
   ].filter(i => canAccess(i.module));
 
   const adminItems = [
-    { label: 'Usuarios',        path: '/users',   icon: Users,   module: 'users' },
-    { label: 'Informe Mensual', path: '/reports', icon: BarChart3,module: 'reports' },
+    { label: 'Usuarios',        path: '/users',       icon: Users,         module: 'users' },
+    { label: 'Usuarios Demo',   path: '/demo-users',  icon: FlaskConical,  module: 'users' },
+    { label: 'Informe Mensual', path: '/reports',     icon: BarChart3,     module: 'reports' },
   ].filter(i => canAccess(i.module));
 
   return (
