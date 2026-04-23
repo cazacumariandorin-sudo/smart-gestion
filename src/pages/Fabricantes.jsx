@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { Plus, Search, Pencil, Trash2, Factory, Save, Loader2, Globe, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,10 +21,13 @@ export default function Fabricantes() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(empty);
 
-  const { data: fabricantes = [], isLoading } = useQuery({
+  const { data: fabricantes = [], isLoading, refetch } = useQuery({
     queryKey: ['fabricantes'],
     queryFn: () => base44.entities.Fabricante.list('name', 300),
   });
+
+  const onRefresh = useCallback(async () => { await refetch(); }, [refetch]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
   const createM = useMutation({ mutationFn: d => base44.entities.Fabricante.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['fabricantes'] }); close_(); } });
   const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Fabricante.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['fabricantes'] }); close_(); } });
@@ -38,6 +43,7 @@ export default function Fabricantes() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">

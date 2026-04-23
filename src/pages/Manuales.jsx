@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { Plus, Search, Trash2, BookOpen, Save, Loader2, Upload, ExternalLink, FileText, Table, File, Factory, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -36,7 +37,10 @@ export default function Manuales() {
   const [uploading, setUploading] = useState(false);
   const [translating, setTranslating] = useState(null);
 
-  const { data: manuales = [], isLoading } = useQuery({ queryKey: ['manuales'], queryFn: () => base44.entities.Manual.list('-date', 300) });
+  const { data: manuales = [], isLoading, refetch: refetchManuales } = useQuery({ queryKey: ['manuales'], queryFn: () => base44.entities.Manual.list('-date', 300) });
+
+  const onRefresh = useCallback(async () => { await refetchManuales(); }, [refetchManuales]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
   const { data: obras = [] } = useQuery({ queryKey: ['obras'], queryFn: () => base44.entities.Obra.list('name', 300) });
   const { data: fabricantes = [] } = useQuery({ queryKey: ['fabricantes'], queryFn: () => base44.entities.Fabricante.list('name', 300) });
@@ -103,6 +107,7 @@ export default function Manuales() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
@@ -211,21 +216,15 @@ export default function Manuales() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Cliente</Label>
-                <Select value={form.client_id} onValueChange={handleClientChange}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>
-                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <MobileSelect value={form.client_id} onValueChange={handleClientChange} placeholder="Seleccionar...">
+                  {clients.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Obra</Label>
-                <Select value={form.obra_id} onValueChange={handleObraChange}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>
-                    {obras.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <MobileSelect value={form.obra_id} onValueChange={handleObraChange} placeholder="Seleccionar...">
+                  {obras.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Categoría</Label>
@@ -233,12 +232,9 @@ export default function Manuales() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Fabricante</Label>
-                <Select value={form.fabricante_id} onValueChange={id => { const f = fabricantes.find(x => x.id === id); set('fabricante_id', id); set('fabricante_name', f?.name || ''); }}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                  <SelectContent>
-                    {fabricantes.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <MobileSelect value={form.fabricante_id} onValueChange={id => { const f = fabricantes.find(x => x.id === id); set('fabricante_id', id); set('fabricante_name', f?.name || ''); }} placeholder="Seleccionar...">
+                  {fabricantes.map(f => <MobileSelectItem key={f.id} value={f.id}>{f.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Versión</Label>

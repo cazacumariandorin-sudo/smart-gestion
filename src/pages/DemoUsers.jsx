@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { UserPlus, Loader2, Mail, Clock, Trash2, FlaskConical, CheckCircle2, XCircle, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,10 +57,13 @@ export default function DemoUsers() {
   const [inviting, setInviting] = useState(false);
   const [error, setError] = useState('');
 
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users = [], isLoading, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list('full_name', 100),
   });
+
+  const onRefresh = useCallback(async () => { await refetch(); }, [refetch]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
@@ -106,6 +111,7 @@ export default function DemoUsers() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

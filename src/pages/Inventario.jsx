@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { Plus, Search, Edit, Trash2, Package, Wrench, User, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -42,15 +44,18 @@ export default function Inventario() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyHerramienta);
 
-  const { data: herramientas = [], isLoading: herramientasLoading } = useQuery({
+  const { data: herramientas = [], isLoading: herramientasLoading, refetch: refetchH } = useQuery({
     queryKey: ['herramientas'],
     queryFn: () => base44.entities.Herramienta.list('-created_date', 300)
   });
 
-  const { data: asignaciones = [], isLoading: asignacionesLoading } = useQuery({
+  const { data: asignaciones = [], isLoading: asignacionesLoading, refetch: refetchA } = useQuery({
     queryKey: ['asignaciones_herramientas'],
     queryFn: () => base44.entities.AsignacionHerramienta.list('-fecha_asignacion', 500)
   });
+
+  const onRefresh = useCallback(async () => { await Promise.all([refetchH(), refetchA()]); }, [refetchH, refetchA]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
   const { data: operarios = [] } = useQuery({
     queryKey: ['operarios'],
@@ -119,6 +124,7 @@ export default function Inventario() {
 
   return (
     <div className="max-w-6xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <PageHeader
         title="Inventario"
         subtitle="Gestión de herramientas y maquinaria"
