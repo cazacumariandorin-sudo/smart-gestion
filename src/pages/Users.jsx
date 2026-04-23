@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Shield, UserCheck, Hammer, Clock, Mail, UserPlus, Loader2, Pencil, Save, X, Trash2 } from 'lucide-react';
+import { Shield, UserCheck, Hammer, Clock, Mail, UserPlus, Loader2, Pencil, Save, X, Trash2, Eye } from 'lucide-react';
+import { setSimulatedRole, getSimulatedRole } from '@/lib/roleSimulator';
+import { useNavigate } from 'react-router-dom';
+import { useUserRole } from '@/lib/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,8 +24,53 @@ const roleConfig = {
 
 const ACCESS_RANGES = ['1 semana', '2 semanas', '1 mes', '3 meses'];
 
+const ROLES_TO_SIMULATE = [
+  { value: 'admin', label: 'Administrador' },
+  { value: 'jefe_obra', label: 'Jefe de Obra' },
+  { value: 'operario', label: 'Operario' },
+  { value: 'control_horario', label: 'Control Horario' },
+  { value: 'cliente_obra', label: 'Cliente Obra' },
+];
+
+function RoleSimulator() {
+  const navigate = useNavigate();
+  const [current, setCurrent] = useState(getSimulatedRole());
+
+  const simulate = (role) => {
+    setSimulatedRole(role);
+    setCurrent(role);
+    navigate('/', { replace: true });
+  };
+
+  return (
+    <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Eye className="w-4 h-4 text-amber-600" />
+        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Simulador de rol</p>
+        <span className="text-xs text-amber-600 dark:text-amber-400">— previsualiza la app como cualquier rol sin cambiar datos</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {ROLES_TO_SIMULATE.map(r => (
+          <button
+            key={r.value}
+            onClick={() => simulate(r.value)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+              current === r.value
+                ? 'bg-amber-500 text-white border-amber-500 shadow'
+                : 'bg-white dark:bg-card border-amber-300 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
+            }`}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Users() {
   const queryClient = useQueryClient();
+  const { isAdmin: currentUserIsAdmin } = useUserRole();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editUser, setEditUser] = useState(null);   // user being edited (modal)
   const [editForm, setEditForm] = useState({});
@@ -120,6 +168,9 @@ export default function Users() {
           <UserPlus className="w-4 h-4" /><span className="hidden sm:inline">Invitar usuario</span>
         </Button>
       </div>
+
+      {/* Role simulator — only for real admins */}
+      {currentUserIsAdmin && <RoleSimulator />}
 
       {/* Role summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
