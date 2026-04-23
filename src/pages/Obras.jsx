@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { Plus, Search, Pencil, Trash2, Building2, Save, Loader2, Calendar, Euro } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -35,6 +36,12 @@ export default function Obras() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(empty);
+
+  const onRefresh = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ['obras'] });
+    qc.invalidateQueries({ queryKey: ['clients'] });
+  }, [qc]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
   const { data: obras = [], isLoading } = useQuery({
     queryKey: ['obras'],
@@ -75,6 +82,7 @@ export default function Obras() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
@@ -178,19 +186,15 @@ export default function Obras() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Estado</Label>
-                <Select value={form.status} onValueChange={v => set('status', v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(STATUS_CFG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
-                </Select>
+                <MobileSelect value={form.status} onValueChange={v => set('status', v)} placeholder="Estado">
+                  {Object.entries(STATUS_CFG).map(([k, v]) => <MobileSelectItem key={k} value={k}>{v.label}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Cliente</Label>
-                <Select value={form.client_id} onValueChange={handleClientChange}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar cliente..." /></SelectTrigger>
-                  <SelectContent>
-                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <MobileSelect value={form.client_id} onValueChange={handleClientChange} placeholder="Seleccionar cliente...">
+                  {clients.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Dirección</Label>

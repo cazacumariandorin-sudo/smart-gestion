@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, Receipt, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +24,12 @@ export default function Operarios() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(empty);
+
+  const onRefresh = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ['operarios'] });
+    qc.invalidateQueries({ queryKey: ['obras'] });
+  }, [qc]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
   const { data: operarios = [], isLoading } = useQuery({
     queryKey: ['operarios'],
@@ -50,6 +58,7 @@ export default function Operarios() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">

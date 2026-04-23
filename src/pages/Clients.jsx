@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Phone, Mail, MapPin, Pencil, Trash2, User, Save, Loader2, ChevronDown, ChevronUp, Building, CreditCard, Wrench } from 'lucide-react';
@@ -63,6 +65,12 @@ export default function Clients() {
   const [expandedCard, setExpandedCard] = useState(null);
   const queryClient = useQueryClient();
 
+  const onRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['clients'] });
+    queryClient.invalidateQueries({ queryKey: ['workorders'] });
+  }, [queryClient]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
+
   const { data: clients = [], isLoading } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
   const { data: workOrders = [] } = useQuery({ queryKey: ['workorders'], queryFn: () => base44.entities.WorkOrder.list('-date', 500) });
 
@@ -98,6 +106,7 @@ export default function Clients() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Clientes</h1>
