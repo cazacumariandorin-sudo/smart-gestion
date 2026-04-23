@@ -18,6 +18,7 @@ export function useUserRole() {
   const isControlHorario = role === 'control_horario' || isAdmin;
   // true only for control_horario role (not admin/jefe_obra) — restricts to own records
   const isControlHorarioOnly = role === 'control_horario' && !isAdmin;
+  const isClienteObra = role === 'cliente_obra';
 
   // Module access by role
   const canAccess = (module) => {
@@ -33,10 +34,12 @@ export function useUserRole() {
       operario: ['dashboard', 'work-orders', 'control-horario', 'gastos-operarios', 'orders', 'obras', 'materials', 'drawings', 'manuales', 'calendario-vacaciones', 'photos'],
       // Solo control horario + pedidos y obras (orders+obras+materials+drawings+manuales) + partes de trabajo
       control_horario: ['dashboard', 'control-horario', 'work-orders', 'orders', 'obras', 'materials', 'drawings', 'manuales', 'operarios'],
+      // Solo acceso al informe de operarios en obra
+      cliente_obra: ['dashboard', 'informe-obras'],
     };
 
     return (perms[role] || []).includes(module);
   };
 
-  return { user, role, isAdmin, isJefeObra, isOperario, isControlHorario, isControlHorarioOnly, canAccess, isLoading };
+  return { user, role, isAdmin, isJefeObra, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, canAccess, isLoading };
 }

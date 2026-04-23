@@ -16,6 +16,7 @@ const roleConfig = {
   jefe_obra:       { label: 'Jefe de Obra',    icon: UserCheck, className: 'bg-blue-100 text-blue-700 border-blue-200',         desc: 'Partes, clientes, pedidos, informes, fotos' },
   operario:        { label: 'Operario',        icon: Hammer,    className: 'bg-emerald-100 text-emerald-700 border-emerald-200', desc: 'Control horario, partes, gastos, vacaciones' },
   control_horario: { label: 'Control Horario', icon: Clock,     className: 'bg-amber-100 text-amber-700 border-amber-200',      desc: 'Solo control horario, partes y pedidos' },
+  cliente_obra:    { label: 'Cliente Obra',    icon: Shield,    className: 'bg-violet-100 text-violet-700 border-violet-200',   desc: 'Solo informe de operarios en obra' },
 };
 
 const ACCESS_RANGES = ['1 semana', '2 semanas', '1 mes', '3 meses'];

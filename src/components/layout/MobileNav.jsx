@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Receipt, Package } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Receipt, Package, BarChart2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserRole } from '@/lib/useUserRole';
 
 const ALL_MAIN_ITEMS = [
   { path: '/',               icon: LayoutDashboard, label: 'Panel',   module: null },
+  { path: '/informe-obras',  icon: BarChart2,       label: 'Informe', module: 'informe-obras' },
   { path: '/work-orders',    icon: ClipboardList,   label: 'Partes',  module: 'work-orders' },
   { path: '/control-horario',icon: Clock,           label: 'Horario', module: 'control-horario' },
 ];
