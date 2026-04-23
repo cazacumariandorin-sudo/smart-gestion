@@ -7,11 +7,14 @@ import { useAuth } from '@/lib/AuthContext';
  * doesn't have access to the given module key.
  */
 export default function ProtectedRoute({ module, children }) {
-  const { isLoadingAuth } = useAuth();
-  const { canAccess, isLoading } = useUserRole();
+  const { isLoadingAuth, user, isAuthenticated } = useAuth();
+  const { canAccess } = useUserRole();
 
-  // Wait for both auth context AND the role query to resolve
-  if (isLoadingAuth || isLoading) return null;
+  // Still loading auth — don't decide yet
+  if (isLoadingAuth) return null;
+
+  // Auth loaded but no user — redirect to login handled by AuthenticatedApp
+  if (!isAuthenticated || !user) return null;
 
   if (!canAccess(module)) {
     return <Navigate to="/" replace />;
