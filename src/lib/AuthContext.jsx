@@ -18,48 +18,25 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAppState = async () => {
-    try {
-      setIsLoadingPublicSettings(true);
-      setAuthError(null);
-      setAppPublicSettings({ id: appParams.appId });
-
-      if (appParams.token) {
-        try {
-          await checkUserAuth();
-        } catch (err) {
-          console.error('User auth failed:', err);
-          setIsLoadingAuth(false);
-          setAuthError({ type: 'auth_required', message: 'Authentication required' });
-        }
-      } else {
-        setIsLoadingAuth(false);
-        setIsAuthenticated(false);
-        setAuthError({ type: 'auth_required', message: 'Authentication required' });
-      }
-
-      setIsLoadingPublicSettings(false);
-    } catch (error) {
-      console.error('Unexpected error in checkAppState:', error);
-      setAppPublicSettings({ id: appParams.appId });
-      setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
-    }
-  };
-
-  const checkUserAuth = async () => {
+    setIsLoadingPublicSettings(true);
     setIsLoadingAuth(true);
-    userLoadedRef.current = false;
+    setAuthError(null);
+    setAppPublicSettings({ id: appParams.appId });
 
-    // Timeout safety: if auth.me() hangs for more than 8s, force redirect to login
+    // Safety timeout: if auth.me() hangs, redirect to login rather than
+    // showing a blank screen or incorrectly treating user as unauthenticated.
     const timeoutId = setTimeout(() => {
       if (!userLoadedRef.current) {
         console.warn('Auth check timeout - redirecting to login');
         setIsLoadingAuth(false);
+        setIsLoadingPublicSettings(false);
         setAuthError({ type: 'auth_required', message: 'Authentication required' });
       }
     }, 8000);
 
     try {
+      // Always try auth.me() — the SDK manages session tokens internally.
+      // appParams.token may be null for returning users authenticated via SDK session.
       const currentUser = await base44.auth.me();
       userLoadedRef.current = true;
       clearTimeout(timeoutId);
@@ -69,11 +46,10 @@ export const AuthProvider = ({ children }) => {
       clearTimeout(timeoutId);
       console.error('User auth check failed:', error);
       setIsAuthenticated(false);
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({ type: 'auth_required', message: 'Authentication required' });
-      }
+      setAuthError({ type: 'auth_required', message: 'Authentication required' });
     } finally {
       setIsLoadingAuth(false);
+      setIsLoadingPublicSettings(false);
     }
   };
 
