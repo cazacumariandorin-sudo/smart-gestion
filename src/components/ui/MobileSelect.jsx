@@ -71,7 +71,7 @@ export function MobileSelect({
         disabled={disabled}
         onClick={() => setOpen(true)}
         className={cn(
-          'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm',
+          'flex min-h-[44px] w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2.5 text-base shadow-sm',
           'focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
           !hasValue && 'text-muted-foreground',
           triggerClassName
@@ -123,7 +123,7 @@ export function MobileSelect({
                       type="button"
                       onClick={() => { onValueChange(item.value); setOpen(false); if (navigator?.vibrate) navigator.vibrate(8); }}
                       className={cn(
-                        'w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98] mb-1',
+                        'w-full flex items-center justify-between px-4 py-4 rounded-xl text-base font-medium transition-all active:scale-[0.98] mb-1 min-h-[52px]',
                         isSelected
                           ? 'bg-primary text-primary-foreground'
                           : 'hover:bg-muted text-foreground',

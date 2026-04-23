@@ -91,3 +91,19 @@
     -webkit-user-select: none;
   }
 }
+
+/* ── Mobile UX: prevent iOS auto-zoom on focus (requires ≥16px font) ─────── */
+@media (pointer: coarse) {
+  input, textarea, select, button {
+    font-size: max(16px, 1em);
+  }
+  /* Ensure readable body copy — floor text-xs at 14px on mobile */
+  .text-xs {
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.25rem;
+  }
+  .text-\[10px\], .text-\[9px\] {
+    font-size: 0.75rem; /* 12px floor */
+    line-height: 1rem;
+  }
+}
