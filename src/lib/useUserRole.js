@@ -1,16 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 
 export function useUserRole() {
-  const { data: user, isLoading } = useQuery({
+  const { user: authUser, isLoadingAuth } = useAuth();
+
+  const { data: user, isLoading: queryLoading } = useQuery({
     queryKey: ['current_user'],
     queryFn: () => base44.auth.me(),
     staleTime: 60000,
+    // Skip the query if auth context already has the user
+    enabled: !authUser && !isLoadingAuth,
   });
 
-  const role = user?.role || 'operario';
+  // Prefer the user from AuthContext (already fetched at startup) to avoid double fetch
+  const resolvedUser = authUser || user;
+  const isLoading = isLoadingAuth || (!authUser && queryLoading);
+
+  const role = resolvedUser?.role || 'operario';
   const today = new Date().toISOString().split('T')[0];
-  const tempFullAccess = user?.acceso_total_hasta && user.acceso_total_hasta >= today;
+  const tempFullAccess = resolvedUser?.acceso_total_hasta && resolvedUser.acceso_total_hasta >= today;
 
   const isAdmin = role === 'admin' || tempFullAccess;
   const isJefeObra = role === 'jefe_obra' || isAdmin;
@@ -41,5 +50,5 @@ export function useUserRole() {
     return (perms[role] || []).includes(module);
   };
 
-  return { user, role, isAdmin, isJefeObra, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, canAccess, isLoading };
+  return { user: resolvedUser, role, isAdmin, isJefeObra, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, canAccess, isLoading };
 }
