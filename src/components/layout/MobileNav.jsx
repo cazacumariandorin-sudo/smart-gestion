@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Receipt, Package, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Receipt, Package, BarChart2, UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserRole } from '@/lib/useUserRole';
@@ -242,6 +242,26 @@ export default function MobileNav() {
               onClick={() => handleGroupReset(pedidosItems, setShowPedidos, setShowOperarios)}
             />
           )}
+
+          {/* Profile button */}
+          <button
+            onClick={() => { haptic(); closeAll(); navigate('/profile'); }}
+            className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all relative min-w-[52px]"
+          >
+            <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center">
+              {location.pathname === '/profile' && (
+                <motion.div
+                  layoutId="nav-pill-profile"
+                  className="absolute -inset-1.5 bg-primary/12 rounded-xl"
+                  transition={{ type: 'spring', damping: 26, stiffness: 350 }}
+                />
+              )}
+              <UserCircle className={cn('w-5 h-5 relative z-10 transition-all', location.pathname === '/profile' ? 'text-primary stroke-[2.5]' : 'text-muted-foreground')} />
+            </motion.div>
+            <span className={cn('text-[9px] font-semibold transition-colors', location.pathname === '/profile' ? 'text-primary' : 'text-muted-foreground')}>
+              Perfil
+            </span>
+          </button>
         </div>
       </nav>
     </>
