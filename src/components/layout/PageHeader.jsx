@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export default function PageHeader({ title, subtitle, onBack, backTo, actions, className }) {
+export default function PageHeader({ title, subtitle, onBack, backTo, actions, className, hideBack = false }) {
   const navigate = useNavigate();
 
   const handleBack = () => {
@@ -24,16 +24,18 @@ export default function PageHeader({ title, subtitle, onBack, backTo, actions, c
     style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       <div className="flex items-center gap-1 px-3 h-14 max-w-3xl mx-auto lg:max-w-5xl">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleBack}
-          className="shrink-0 h-10 w-10 rounded-full"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
+        {!hideBack && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBack}
+            className="shrink-0 h-10 w-10 rounded-full"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+        )}
 
-        <div className="flex-1 min-w-0 ml-1">
+        <div className={cn('flex-1 min-w-0', !hideBack && 'ml-1')}>
           <h1 className="text-base font-bold leading-tight truncate">{title}</h1>
           {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
         </div>

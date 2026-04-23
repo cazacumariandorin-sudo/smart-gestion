@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format, parseISO } from 'date-fns';
@@ -72,30 +72,21 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
     <div>
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-4">
-        <Select value={tipoFilter} onValueChange={setTipoFilter}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Tipo" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los tipos</SelectItem>
-            <SelectItem value="doc_operario">Doc. Operario</SelectItem>
-            <SelectItem value="doc_obra">Doc. Obra</SelectItem>
-          </SelectContent>
-        </Select>
+        <MobileSelect value={tipoFilter} onValueChange={setTipoFilter} placeholder="Tipo" triggerClassName="w-44">
+          <MobileSelectItem value="all">Todos los tipos</MobileSelectItem>
+          <MobileSelectItem value="doc_operario">Doc. Operario</MobileSelectItem>
+          <MobileSelectItem value="doc_obra">Doc. Obra</MobileSelectItem>
+        </MobileSelect>
         {!defaultOperarioId && (
-          <Select value={operarioFilter} onValueChange={setOperarioFilter}>
-            <SelectTrigger className="w-48"><SelectValue placeholder="Operario" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los operarios</SelectItem>
-              {operarios.map(op => <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <MobileSelect value={operarioFilter} onValueChange={setOperarioFilter} placeholder="Operario" triggerClassName="w-48">
+            <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
+            {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+          </MobileSelect>
         )}
-        <Select value={obraFilter} onValueChange={setObraFilter}>
-          <SelectTrigger className="w-48"><SelectValue placeholder="Obra" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las obras</SelectItem>
-            {obras.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MobileSelect value={obraFilter} onValueChange={setObraFilter} placeholder="Obra" triggerClassName="w-48">
+          <MobileSelectItem value="all">Todas las obras</MobileSelectItem>
+          {obras.map(ob => <MobileSelectItem key={ob.id} value={ob.id}>{ob.name}</MobileSelectItem>)}
+        </MobileSelect>
         <Button onClick={open_} className="gap-2 ml-auto shadow-sm" size="sm">
           <Plus className="w-3.5 h-3.5" /> Nuevo Documento
         </Button>
@@ -163,38 +154,30 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs">Tipo *</Label>
-              <Select value={form.tipo} onValueChange={v => set('tipo', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="doc_operario">Documentación Operario</SelectItem>
-                  <SelectItem value="doc_obra">Documentación Obra</SelectItem>
-                </SelectContent>
-              </Select>
+              <MobileSelect value={form.tipo} onValueChange={v => set('tipo', v)} placeholder="Tipo">
+                <MobileSelectItem value="doc_operario">Documentación Operario</MobileSelectItem>
+                <MobileSelectItem value="doc_obra">Documentación Obra</MobileSelectItem>
+              </MobileSelect>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Operario *</Label>
-              <Select value={form.operario_id} onValueChange={handleOperarioChange}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar operario..." /></SelectTrigger>
-                <SelectContent>{operarios.map(op => <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <MobileSelect value={form.operario_id} onValueChange={handleOperarioChange} placeholder="Seleccionar operario...">
+                {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+              </MobileSelect>
             </div>
             {form.tipo === 'doc_obra' && (
               <div className="space-y-1.5">
                 <Label className="text-xs">Obra</Label>
-                <Select value={form.obra_id} onValueChange={handleObraChange}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar obra..." /></SelectTrigger>
-                  <SelectContent>{obras.map(ob => <SelectItem key={ob.id} value={ob.id}>{ob.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <MobileSelect value={form.obra_id} onValueChange={handleObraChange} placeholder="Seleccionar obra...">
+                  {obras.map(ob => <MobileSelectItem key={ob.id} value={ob.id}>{ob.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
             )}
             <div className="space-y-1.5">
               <Label className="text-xs">Categoría</Label>
-              <Select value={form.categoria} onValueChange={v => set('categoria', v)}>
-                <SelectTrigger><SelectValue placeholder="Categoría..." /></SelectTrigger>
-                <SelectContent>
-                  {(form.tipo === 'doc_operario' ? DOC_CATS_OPERARIO : DOC_CATS_OBRA).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <MobileSelect value={form.categoria} onValueChange={v => set('categoria', v)} placeholder="Categoría...">
+                {(form.tipo === 'doc_operario' ? DOC_CATS_OPERARIO : DOC_CATS_OBRA).map(c => <MobileSelectItem key={c} value={c}>{c}</MobileSelectItem>)}
+              </MobileSelect>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Título *</Label>
