@@ -5,17 +5,18 @@ import { useAuth } from '@/lib/AuthContext';
 export function useUserRole() {
   const { user: authUser, isLoadingAuth } = useAuth();
 
-  const { data: user, isLoading: queryLoading } = useQuery({
+  // Always call useQuery unconditionally (Rules of Hooks).
+  // If authUser is already loaded, we skip the network call via initialData.
+  const { data: queryUser, isLoading: queryLoading } = useQuery({
     queryKey: ['current_user'],
     queryFn: () => base44.auth.me(),
-    staleTime: 60000,
-    // Skip the query if auth context already has the user
-    enabled: !authUser && !isLoadingAuth,
+    staleTime: Infinity,
+    enabled: false, // Never auto-fetch — AuthContext already handles it
   });
 
-  // Prefer the user from AuthContext (already fetched at startup) to avoid double fetch
-  const resolvedUser = authUser || user;
-  const isLoading = isLoadingAuth || (!authUser && queryLoading);
+  // Prefer the user from AuthContext (already fetched at startup)
+  const resolvedUser = authUser ?? queryUser;
+  const isLoading = isLoadingAuth;
 
   const role = resolvedUser?.role || 'operario';
   const today = new Date().toISOString().split('T')[0];
