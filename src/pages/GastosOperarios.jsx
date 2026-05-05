@@ -12,21 +12,21 @@ import NotaGastosCard from '@/components/gastos/NotaGastosCard';
 import PageHeader from '@/components/layout/PageHeader';
 import { toast } from 'sonner';
 
-const emptyForm = {
-  operario_id: '', operario_name: '', titulo: '',
-  fecha_inicio: new Date().toISOString().split('T')[0], notas: ''
-};
-
 export default function GastosOperarios() {
   const qc = useQueryClient();
   const { isAdmin, isJefeObra, user } = useUserRole();
-  const canSeeAll = isAdmin || isJefeObra;
-
+  
   const [search, setSearch] = useState('');
   const [opFilter, setOpFilter] = useState('all');
   const [estFilter, setEstFilter] = useState('all');
   const [newOpen, setNewOpen] = useState(false);
-  const [newForm, setNewForm] = useState(emptyForm);
+  const [newForm, setNewForm] = useState({
+    operario_id: '',
+    operario_name: '',
+    titulo: '',
+    fecha_inicio: new Date().toISOString().split('T')[0],
+    notas: ''
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -49,10 +49,11 @@ export default function GastosOperarios() {
     queryFn: () => base44.entities.Operario.list('name', 200)
   });
 
-  const myOperario = !canSeeAll && user ? operarios.find(o => o.email === user.email) : null;
+  const canSeeAll = isAdmin || isJefeObra;
+  const myOp = canSeeAll ? null : operarios.find(o => o.email === user?.email);
 
   const createM = useMutation({
-    mutationFn: d => base44.entities.NotaGastos.create(d),
+    mutationFn: (d) => base44.entities.NotaGastos.create(d),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['notas_gastos'] });
       setNewOpen(false);
@@ -62,38 +63,40 @@ export default function GastosOperarios() {
   });
 
   const openNew = () => {
-    const pre = myOperario
-      ? { operario_id: myOperario.id, operario_name: myOperario.name, titulo: '', fecha_inicio: new Date().toISOString().split('T')[0], notas: '' }
-      : { operario_id: '', operario_name: '', titulo: '', fecha_inicio: new Date().toISOString().split('T')[0], notas: '' };
-    setNewForm(pre);
+    const opId = myOp ? myOp.id : '';
+    const opName = myOp ? myOp.name : '';
+    setNewForm({
+      operario_id: opId,
+      operario_name: opName,
+      titulo: '',
+      fecha_inicio: new Date().toISOString().split('T')[0],
+      notas: ''
+    });
     setNewOpen(true);
   };
 
   const handleOpChange = (id) => {
     const op = operarios.find(o => o.id === id);
-    setNewForm(p => ({ ...p, operario_id: id, operario_name: op?.name || '' }));
+    const name = op ? op.name : '';
+    setNewForm(p => ({ ...p, operario_id: id, operario_name: name }));
   };
 
   const handleCreate = () => {
     createM.mutate({ ...newForm, estado: 'abierta', total: 0 });
   };
 
-  const notasWithGastos = useMemo(() => {
-    return notas.map(n => ({
-      ...n,
-      gastos: gastos.filter(g => g.nota_id === n.id),
-    }));
-  }, [notas, gastos]);
+  const notasWithGastos = notas.map(n => ({
+    ...n,
+    gastos: gastos.filter(g => g.nota_id === n.id),
+  }));
 
-  const filtered = useMemo(() => {
-    return notasWithGastos.filter(n => {
-      const q = search.toLowerCase();
-      const matchQ = !search || n.operario_name?.toLowerCase().includes(q) || n.titulo?.toLowerCase().includes(q);
-      const matchOp = opFilter === 'all' || n.operario_id === opFilter;
-      const matchEst = estFilter === 'all' || n.estado === estFilter;
-      return matchQ && matchOp && matchEst;
-    });
-  }, [notasWithGastos, search, opFilter, estFilter]);
+  const filtered = notasWithGastos.filter(n => {
+    const q = search.toLowerCase();
+    const hasSearch = !search || n.operario_name?.toLowerCase().includes(q) || n.titulo?.toLowerCase().includes(q);
+    const hasOp = opFilter === 'all' || n.operario_id === opFilter;
+    const hasEst = estFilter === 'all' || n.estado === estFilter;
+    return hasSearch && hasOp && hasEst;
+  });
 
   const totalGeneral = filtered.reduce((s, n) => s + (n.total || 0), 0);
 
@@ -103,11 +106,7 @@ export default function GastosOperarios() {
         title="Gastos Operarios"
         subtitle={`${filtered.length} notas · ${totalGeneral.toFixed(2)} € total`}
         backTo="/operarios"
-        actions={
-          <Button onClick={openNew} className="gap-2 h-9">
-            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nueva Nota</span>
-          </Button>
-        }
+        actions={<Button onClick={openNew} className="gap-2 h-9"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nueva Nota</span></Button>}
       />
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -128,43 +127,27 @@ export default function GastosOperarios() {
           </MobileSelect>
         </div>
 
-        {notasLoading && (
-          <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />)}</div>
-        )}
+        {notasLoading && <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />)}</div>}
 
         {!notasLoading && filtered.length === 0 && (
           <div className="text-center py-16 border border-dashed rounded-xl">
             <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm text-muted-foreground mb-3">No hay notas de gastos</p>
-            <Button variant="outline" size="sm" onClick={openNew} className="gap-2">
-              <Plus className="w-3.5 h-3.5" /> Crear primera nota
-            </Button>
+            <Button variant="outline" size="sm" onClick={openNew} className="gap-2"><Plus className="w-3.5 h-3.5" /> Crear primera nota</Button>
           </div>
         )}
 
         {!notasLoading && filtered.length > 0 && (
           <div className="space-y-3">
             {filtered.map(nota => (
-              <NotaGastosCard
-                key={nota.id}
-                nota={nota}
-                gastos={nota.gastos}
-                operarios={operarios}
-                canSeeAll={canSeeAll}
-                myOperario={myOperario}
-                user={user}
-              />
+              <NotaGastosCard key={nota.id} nota={nota} gastos={nota.gastos} operarios={operarios} canSeeAll={canSeeAll} myOperario={myOp} user={user} />
             ))}
           </div>
         )}
 
         <Dialog open={newOpen} onOpenChange={setNewOpen}>
           <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="w-4 h-4" /> Nueva Nota de Gastos
-              </DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle className="flex items-center gap-2"><FileText className="w-4 h-4" /> Nueva Nota de Gastos</DialogTitle></DialogHeader>
             <div className="space-y-3 py-2">
               <div className="space-y-1.5">
                 <Label className="text-xs">Operario *</Label>
@@ -173,18 +156,12 @@ export default function GastosOperarios() {
                     {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
                   </MobileSelect>
                 ) : (
-                  <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
-                    {myOperario ? myOperario.name : user?.full_name || 'Usuario actual'}
-                  </div>
+                  <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">{myOp ? myOp.name : user?.full_name || 'Usuario actual'}</div>
                 )}
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Título / Referencia</Label>
-                <Input
-                  value={newForm.titulo}
-                  onChange={e => setNewForm(p => ({ ...p, titulo: e.target.value }))}
-                  placeholder="Ej: Viaje Barcelona, Semana del 15..."
-                />
+                <Input value={newForm.titulo} onChange={e => setNewForm(p => ({ ...p, titulo: e.target.value }))} placeholder="Ej: Viaje Barcelona, Semana del 15..." />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Fecha inicio *</Label>
@@ -197,13 +174,7 @@ export default function GastosOperarios() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setNewOpen(false)}>Cancelar</Button>
-              <Button
-                onClick={handleCreate}
-                disabled={!newForm.operario_id || !newForm.fecha_inicio || createM.isPending}
-                className="gap-2"
-              >
-                <FileText className="w-4 h-4" /> Crear Nota
-              </Button>
+              <Button onClick={handleCreate} disabled={!newForm.operario_id || !newForm.fecha_inicio || createM.isPending} className="gap-2"><FileText className="w-4 h-4" /> Crear Nota</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
