@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Save, Loader2, Camera, Upload, X, ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import WorkerFields from '@/components/workorders/WorkerFields';
 import MaterialFields from '@/components/workorders/MaterialFields';
 import SignatureCanvas from '@/components/workorders/SignatureCanvas';
@@ -67,7 +68,11 @@ export default function CreateWorkOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workorders'] });
+      toast.success('✅ Parte creado correctamente');
       navigate('/work-orders');
+    },
+    onError: (err) => {
+      toast.error('Error al guardar el parte: ' + (err?.message || 'Inténtalo de nuevo'));
     },
   });
 
@@ -217,7 +222,7 @@ export default function CreateWorkOrder() {
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancelar</Button>
-          <Button type="submit" disabled={mutation.isPending || !form.client_id} className="gap-2 min-w-32">
+          <Button type="submit" disabled={mutation.isPending || !form.project} className="gap-2 min-w-32">
             {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Guardar Parte
           </Button>

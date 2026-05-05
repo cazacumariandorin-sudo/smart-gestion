@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Save, Loader2, Trash2, Pencil, Calendar, Clock, Users, Package, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import PageHeader from '@/components/layout/PageHeader';
 import SignatureCanvas from '@/components/workorders/SignatureCanvas';
 import { jsPDF } from 'jspdf';
@@ -56,6 +57,10 @@ export default function WorkOrderDetail() {
       queryClient.invalidateQueries({ queryKey: ['workorder', orderId] });
       queryClient.invalidateQueries({ queryKey: ['workorders'] });
       setEditing(false);
+      toast.success('✅ Parte guardado correctamente');
+    },
+    onError: (err) => {
+      toast.error('Error al guardar: ' + (err?.message || 'Inténtalo de nuevo'));
     },
   });
 
