@@ -1,14 +1,15 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Building2, Users, Clock, ChevronLeft, ChevronRight, Calendar, BarChart2 } from 'lucide-react';
+import { Building2, Users, Clock, ChevronLeft, ChevronRight, Calendar, BarChart2, ClipboardList } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import PrevisionObras from '@/components/informe/PrevisionObras';
 import {
   format, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
   addDays, addWeeks, addMonths, subDays, subWeeks, subMonths,
@@ -46,6 +47,7 @@ function toDateStr(d) { return format(d, 'yyyy-MM-dd'); }
 // ─── component ─────────────────────────────────────────────────────────────
 
 export default function InformeObras() {
+  const [mainTab, setMainTab] = useState('informe');
   const [period, setPeriod] = useState('semana');
   const [anchor, setAnchor] = useState(new Date());
   const [obraFilter, setObraFilter] = useState('all');
@@ -133,12 +135,24 @@ export default function InformeObras() {
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
 
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-5">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
           <BarChart2 className="w-7 h-7 text-primary" /> Informe Operarios en Obra
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Asistencia y horas por obra y período</p>
+        <p className="text-sm text-muted-foreground mt-1">Asistencia, horas y previsión por obra y período</p>
       </div>
+
+      {/* Main tabs */}
+      <Tabs value={mainTab} onValueChange={setMainTab} className="mb-5">
+        <TabsList>
+          <TabsTrigger value="informe" className="gap-1.5"><BarChart2 className="w-3.5 h-3.5" /> Registro</TabsTrigger>
+          <TabsTrigger value="prevision" className="gap-1.5"><ClipboardList className="w-3.5 h-3.5" /> Previsión</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {mainTab === 'prevision' && <PrevisionObras />}
+
+      {mainTab === 'informe' && <>
 
       {/* Controls */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -260,6 +274,7 @@ export default function InformeObras() {
           ))}
         </div>
       )}
+      </>}
     </div>
   );
 }

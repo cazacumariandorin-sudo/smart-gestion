@@ -1,0 +1,76 @@
+{
+  "name": "PrevisionObra",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra"
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "fecha_inicio": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio prevista"
+    },
+    "fecha_fin": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de fin prevista"
+    },
+    "operarios_asignados": {
+      "type": "array",
+      "description": "Operarios asignados a esta previsi\u00f3n",
+      "items": {
+        "type": "object",
+        "properties": {
+          "operario_id": {
+            "type": "string"
+          },
+          "operario_name": {
+            "type": "string"
+          },
+          "rol": {
+            "type": "string"
+          },
+          "horas_previstas": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "horas_totales_previstas": {
+      "type": "number",
+      "description": "Total horas previstas"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planificada",
+        "en_curso",
+        "completada",
+        "cancelada"
+      ],
+      "default": "planificada",
+      "description": "Estado de la previsi\u00f3n"
+    }
+  },
+  "required": [
+    "obra_name",
+    "fecha_inicio"
+  ]
+}
