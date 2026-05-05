@@ -39,9 +39,9 @@ export function useUserRole() {
 
     const perms = {
       // Acceso completo
-      admin: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'users', 'materials', 'drawings', 'orders', 'operarios', 'gastos-operarios', 'control-horario', 'obras', 'calendario-vacaciones', 'manuales', 'solar', 'administracion', 'fabricantes', 'informe-obras', 'inventario', 'datos-sensibles'],
+      admin: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'users', 'materials', 'drawings', 'orders', 'operarios', 'gastos-operarios', 'control-horario', 'obras', 'calendario-vacaciones', 'manuales', 'informe-obras'],
       // Jefe de obra: partes, clientes, pedidos+obras, informes, fotos
-      jefe_obra: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'materials', 'drawings', 'manuales'],
+      jefe_obra: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'materials', 'drawings', 'manuales', 'informe-obras'],
       // Usuario/Operario: horario propio, docs propios, gastos propios, docs obra, pedidos+obras, vacaciones, partes, fotos
       operario: ['dashboard', 'work-orders', 'control-horario', 'gastos-operarios', 'orders', 'obras', 'materials', 'drawings', 'manuales', 'calendario-vacaciones', 'photos'],
       // Control horario: solo control horario, partes y pedidos+obras
