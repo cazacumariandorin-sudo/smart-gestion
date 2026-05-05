@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Shield, UserCheck, Hammer, Clock, Mail, UserPlus, Loader2, Pencil, Save, X, Trash2, Eye } from 'lucide-react';
+import { Shield, UserCheck, Hammer, Clock, Mail, UserPlus, Loader2, Pencil, Save, Trash2, Eye } from 'lucide-react';
 import { setSimulatedRole, getSimulatedRole } from '@/lib/roleSimulator';
 import { useNavigate } from 'react-router-dom';
 import { useUserRole } from '@/lib/useUserRole';
@@ -15,15 +15,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const roleConfig = {
-  admin:           { label: 'Administrador',   icon: Shield,    className: 'bg-red-100 text-red-700 border-red-200',            desc: 'Acceso completo a todos los módulos' },
-  jefe_obra:       { label: 'Jefe de Obra',    icon: UserCheck, className: 'bg-blue-100 text-blue-700 border-blue-200',         desc: 'Partes · Clientes · Pedidos+Obras · Informes · Fotos' },
-  operario:        { label: 'Usuario',         icon: Hammer,    className: 'bg-emerald-100 text-emerald-700 border-emerald-200', desc: 'Horario · Gastos · Docs obra · Pedidos+Obras · Partes · Fotos · Vacaciones' },
-  control_horario: { label: 'Control Horario', icon: Clock,     className: 'bg-amber-100 text-amber-700 border-amber-200',      desc: 'Control horario · Partes de trabajo · Pedidos+Obras' },
-  cliente_obra:    { label: 'Cliente Obra',    icon: Shield,    className: 'bg-violet-100 text-violet-700 border-violet-200',   desc: 'Solo informe de obras' },
+  admin: { label: 'Administrador', icon: Shield, className: 'bg-red-100 text-red-700 border-red-200', desc: 'Acceso completo a todos los módulos' },
+  jefe_obra: { label: 'Jefe de Obra', icon: UserCheck, className: 'bg-blue-100 text-blue-700 border-blue-200', desc: 'Partes · Clientes · Pedidos+Obras · Informes · Fotos' },
+  operario: { label: 'Usuario', icon: Hammer, className: 'bg-emerald-100 text-emerald-700 border-emerald-200', desc: 'Horario · Gastos · Docs obra · Pedidos+Obras · Partes · Fotos · Vacaciones' },
+  control_horario: { label: 'Control Horario', icon: Clock, className: 'bg-amber-100 text-amber-700 border-amber-200', desc: 'Control horario · Partes de trabajo · Pedidos+Obras' },
+  cliente_obra: { label: 'Cliente Obra', icon: Shield, className: 'bg-violet-100 text-violet-700 border-violet-200', desc: 'Solo informe de obras' },
 };
 
 const ACCESS_RANGES = ['1 semana', '2 semanas', '1 mes', '3 meses'];
-
 const ROLES_TO_SIMULATE = [
   { value: 'admin', label: 'Administrador' },
   { value: 'jefe_obra', label: 'Jefe de Obra' },
@@ -130,7 +129,7 @@ export default function Users() {
   const queryClient = useQueryClient();
   const { isAdmin: currentUserIsAdmin } = useUserRole();
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [editUser, setEditUser] = useState(null);   // user being edited (modal)
+  const [editUser, setEditUser] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('operario');
@@ -143,7 +142,6 @@ export default function Users() {
     queryFn: () => base44.entities.User.list('full_name', 100),
   });
 
-  // Optimistic update
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
     onMutate: async ({ id, data }) => {
@@ -159,7 +157,6 @@ export default function Users() {
     onSuccess: () => setEditUser(null),
   });
 
-  // Optimistic delete
   const deleteMutation = useMutation({
     mutationFn: id => base44.entities.User.delete(id),
     onMutate: async id => {
@@ -191,7 +188,8 @@ export default function Users() {
 
   const grantTempAccess = (range) => {
     const days = range === '1 semana' ? 7 : range === '2 semanas' ? 14 : range === '1 mes' ? 30 : 90;
-    const until = new Date(); until.setDate(until.getDate() + days);
+    const until = new Date();
+    until.setDate(until.getDate() + days);
     setEditForm(p => ({ ...p, acceso_total_hasta: until.toISOString().split('T')[0] }));
   };
 
@@ -222,7 +220,6 @@ export default function Users() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Usuarios</h1>
@@ -233,10 +230,8 @@ export default function Users() {
         </Button>
       </div>
 
-      {/* Role simulator — only for real admins */}
       {currentUserIsAdmin && <RoleSimulator />}
 
-      {/* Role summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {Object.entries(roleConfig).map(([key, cfg]) => {
           const Icon = cfg.icon;
@@ -257,18 +252,15 @@ export default function Users() {
         })}
       </div>
 
-      {/* User list */}
       {isLoading ? (
         <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}</div>
       ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-10">No hay usuarios en esta categoría.</p>
       ) : filterRole !== 'all' ? (
-        /* Filtered: flat list */
         <div className="space-y-2">
           {filtered.map(user => <UserRow key={user.id} user={user} today={today} openEdit={openEdit} deleteMutation={deleteMutation} />)}
         </div>
       ) : (
-        /* All: grouped by role */
         <div className="space-y-6">
           {Object.entries(roleConfig).map(([roleKey, cfg]) => {
             const group = byRole[roleKey] || [];
@@ -291,7 +283,6 @@ export default function Users() {
         </div>
       )}
 
-      {/* Edit user modal */}
       <Dialog open={!!editUser} onOpenChange={open => { if (!open) setEditUser(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -355,7 +346,6 @@ export default function Users() {
         </DialogContent>
       </Dialog>
 
-      {/* Invite user modal */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Invitar usuario</DialogTitle></DialogHeader>
