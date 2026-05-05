@@ -14,6 +14,10 @@
       "type": "string",
       "description": "Direcci\u00f3n"
     },
+    "postal_code": {
+      "type": "string",
+      "description": "C\u00f3digo postal"
+    },
     "notes": {
       "type": "string",
       "description": "Observaciones"
@@ -22,6 +26,10 @@
       "type": "boolean",
       "default": true,
       "description": "Cliente activo"
+    },
+    "client_id_code": {
+      "type": "string",
+      "description": "ID \u00fanico generado: Client Id-PPYYXXX (2 primeros d\u00edgitos CP + 2 \u00faltimos a\u00f1o + 3 \u00faltimos d\u00edgitos NIF)"
     },
     "contacto_admin": {
       "type": "object",

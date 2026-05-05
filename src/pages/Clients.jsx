@@ -18,11 +18,24 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 const emptyContacto = { nombre: '', telefono: '', email: '' };
 const emptyTecnico = { nombre: '', telefono: '', email: '', cargo: '' };
 const emptyClient = {
-  name: '', nif: '', address: '', notes: '', active: true,
+  name: '', nif: '', address: '', postal_code: '', notes: '', active: true,
   contacto_admin: { ...emptyContacto },
   contacto_facturacion: { ...emptyContacto },
   tecnicos: [{ ...emptyTecnico }, { ...emptyTecnico }, { ...emptyTecnico }, { ...emptyTecnico }],
 };
+
+/**
+ * Genera Client ID: PP + YY + XXX
+ * PP  = 2 primeros dígitos del código postal
+ * YY  = 2 últimos dígitos del año de registro
+ * XXX = 3 últimos dígitos numéricos del NIF/CIF/DNI/NIE
+ */
+function generateClientId(postalCode, nif, registrationDate) {
+  const pp = (postalCode || '').replace(/\D/g, '').slice(0, 2).padStart(2, '0');
+  const yy = String(new Date(registrationDate || Date.now()).getFullYear()).slice(-2);
+  const xxx = (nif || '').replace(/\D/g, '').slice(-3).padStart(3, '0');
+  return `Client Id-${pp}${yy}${xxx}`;
+}
 
 function ContactRow({ label, data, icon: Icon, color }) {
   if (!data?.nombre && !data?.telefono && !data?.email) return null;
@@ -96,6 +109,10 @@ export default function Clients() {
 
   const handleSave = () => {
     const data = { ...form };
+    // Generate client_id_code only on creation (or if missing)
+    if (!editing && !data.client_id_code) {
+      data.client_id_code = generateClientId(data.postal_code, data.nif, new Date());
+    }
     if (editing) updateMutation.mutate({ id: editing.id, data });
     else createMutation.mutate(data);
   };
@@ -139,6 +156,9 @@ export default function Clients() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm truncate">{client.name}</h3>
                     {client.nif && <p className="text-xs font-mono text-muted-foreground">{client.nif}</p>}
+                    {client.client_id_code && (
+                      <p className="text-[10px] font-mono text-primary/70 font-semibold mt-0.5">{client.client_id_code}</p>
+                    )}
                   </div>
                   <div className="flex gap-1 ml-2">
                     <Badge variant="outline" className="text-[10px]">{getOrderCount(client.id)} partes</Badge>
@@ -212,9 +232,15 @@ export default function Clients() {
                   <Input placeholder="B12345678" value={form.nif || ''} onChange={e => setF('nif', e.target.value)} className="font-mono" />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Dirección</Label>
-                <Input placeholder="Calle, número, ciudad" value={form.address || ''} onChange={e => setF('address', e.target.value)} />
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-1.5">
+                  <Label className="text-xs">Dirección</Label>
+                  <Input placeholder="Calle, número, ciudad" value={form.address || ''} onChange={e => setF('address', e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Código Postal</Label>
+                  <Input placeholder="28001" value={form.postal_code || ''} onChange={e => setF('postal_code', e.target.value)} className="font-mono" maxLength={5} />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Observaciones</Label>
