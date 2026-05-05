@@ -21,7 +21,7 @@ const CreateWorkOrder = lazy(() => import('./pages/CreateWorkOrder'));
 const WorkOrderDetail = lazy(() => import('./pages/WorkOrderDetail'));
 const MonthlyReport = lazy(() => import('./pages/MonthlyReport'));
 const PhotoGallery = lazy(() => import('./pages/PhotoGallery'));
-const Users = lazy(() => import('./pages/Users'));
+const Users = lazy(() => import('./pages/UsersPage'));
 const MaterialCatalog = lazy(() => import('./pages/MaterialCatalog'));
 const Drawings = lazy(() => import('./pages/Drawings'));
 const Orders = lazy(() => import('./pages/Orders'));

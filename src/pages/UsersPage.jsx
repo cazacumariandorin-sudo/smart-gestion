@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
-export default function Users() {
+export default function UsersPage() {
   const queryClient = useQueryClient();
   const { isAdmin } = useUserRole();
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -54,11 +54,13 @@ export default function Users() {
         </Button>
       </div>
 
-      {isLoading && <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}</div>}
-
-      {!isLoading && users.length === 0 && <p className="text-center py-10 text-muted-foreground">No hay usuarios.</p>}
-
-      {!isLoading && users.length > 0 && (
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}
+        </div>
+      ) : users.length === 0 ? (
+        <p className="text-center py-10 text-muted-foreground">No hay usuarios.</p>
+      ) : (
         <div className="space-y-2">
           {users.map(user => (
             <Card key={user.id} className="p-4 flex items-center justify-between">
