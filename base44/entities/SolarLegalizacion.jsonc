@@ -1,0 +1,76 @@
+{
+  "name": "SolarLegalizacion",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra solar"
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra solar"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "tipo_tramite": {
+      "type": "string",
+      "enum": [
+        "proyecto_tecnico",
+        "licencia_obra",
+        "boletin_instalacion",
+        "tramite_red",
+        "certificado_final",
+        "subvencion",
+        "otros"
+      ],
+      "description": "Tipo de tr\u00e1mite"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n del tr\u00e1mite"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "en_tramite",
+        "aprobado",
+        "rechazado"
+      ],
+      "default": "pendiente",
+      "description": "Estado del tr\u00e1mite"
+    },
+    "fecha_solicitud": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de solicitud"
+    },
+    "fecha_resolucion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de resoluci\u00f3n"
+    },
+    "organismo": {
+      "type": "string",
+      "description": "Organismo / entidad gestora"
+    },
+    "referencia": {
+      "type": "string",
+      "description": "Referencia / expediente"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL del documento adjunto"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "obra_id",
+    "tipo_tramite"
+  ]
+}

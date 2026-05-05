@@ -1,0 +1,57 @@
+{
+  "name": "SolarMaterial",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del material / equipo solar"
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "panel",
+        "inversor",
+        "bateria",
+        "estructura",
+        "cableado",
+        "protecciones",
+        "monitor",
+        "otros"
+      ],
+      "description": "Categor\u00eda"
+    },
+    "marca": {
+      "type": "string",
+      "description": "Marca / fabricante"
+    },
+    "modelo": {
+      "type": "string",
+      "description": "Modelo / referencia"
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unidad (ud, m, kg...)",
+      "default": "ud"
+    },
+    "unit_price": {
+      "type": "number",
+      "description": "Precio unitario (\u20ac)"
+    },
+    "stock": {
+      "type": "number",
+      "description": "Stock disponible"
+    },
+    "potencia_w": {
+      "type": "number",
+      "description": "Potencia (W) si aplica"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "name",
+    "categoria"
+  ]
+}

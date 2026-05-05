@@ -1,0 +1,88 @@
+{
+  "name": "SolarObra",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la obra solar"
+    },
+    "code": {
+      "type": "string",
+      "description": "C\u00f3digo / referencia interna"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente solar"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente solar"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n de la instalaci\u00f3n"
+    },
+    "potencia_kw": {
+      "type": "number",
+      "description": "Potencia instalada (kW)"
+    },
+    "num_paneles": {
+      "type": "number",
+      "description": "N\u00famero de paneles"
+    },
+    "tipo_instalacion": {
+      "type": "string",
+      "enum": [
+        "autoconsumo",
+        "vertido_red",
+        "aislada",
+        "hibrida"
+      ],
+      "description": "Tipo de instalaci\u00f3n solar"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de fin prevista"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "presupuesto",
+        "activa",
+        "pausada",
+        "finalizada"
+      ],
+      "default": "presupuesto",
+      "description": "Estado de la obra solar"
+    },
+    "budget": {
+      "type": "number",
+      "description": "Presupuesto (\u20ac)"
+    },
+    "contact_person": {
+      "type": "string",
+      "description": "Persona de contacto"
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de contacto"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n / alcance"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

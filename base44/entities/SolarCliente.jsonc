@@ -1,0 +1,52 @@
+{
+  "name": "SolarCliente",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del cliente solar"
+    },
+    "nif": {
+      "type": "string",
+      "description": "NIF / CIF"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n"
+    },
+    "postal_code": {
+      "type": "string",
+      "description": "C\u00f3digo postal"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "particular",
+        "empresa",
+        "comunidad"
+      ],
+      "default": "particular",
+      "description": "Tipo de cliente"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Cliente activo"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
