@@ -26,7 +26,7 @@ const MaterialCatalog = lazy(() => import('./pages/MaterialCatalog'));
 const Drawings = lazy(() => import('./pages/Drawings'));
 const Orders = lazy(() => import('./pages/Orders'));
 const Operarios = lazy(() => import('./pages/Operarios'));
-const GastosOperarios = lazy(() => import('./pages/GastosOperarios'));
+const GastosOperarios = lazy(() => import('./pages/GastosOperarios.jsx'));
 const ControlHorario = lazy(() => import('./pages/ControlHorario'));
 const Obras = lazy(() => import('./pages/Obras'));
 const CalendarioVacaciones = lazy(() => import('./pages/CalendarioVacaciones'));

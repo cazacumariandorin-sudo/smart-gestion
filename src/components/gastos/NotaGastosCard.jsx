@@ -1,13 +1,12 @@
 import { useState, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
 import {
   Plus, Trash2, Receipt, Loader2, Save, Camera, X, ChevronDown, ChevronUp,
   Lock, Unlock, FileText, Fuel, ShoppingCart, Layers, Navigation, ParkingCircle,
-  Wallet, Download, Sparkles, CheckCircle2, Upload, Utensils, ExternalLink
+  Wallet, Download, Sparkles, CheckCircle2, Utensils, ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,7 +40,6 @@ const emptyGasto = {
 
 export default function NotaGastosCard({ nota, gastos, operarios, canSeeAll, myOperario, user }) {
   const qc = useQueryClient();
-  const fileRef = useRef(null);
   const [expanded, setExpanded] = useState(false);
   const [addGastoOpen, setAddGastoOpen] = useState(false);
   const [addAdelantoOpen, setAddAdelantoOpen] = useState(false);
@@ -61,38 +59,50 @@ export default function NotaGastosCard({ nota, gastos, operarios, canSeeAll, myO
   const total = gastos.reduce((s, g) => s + (g.importe || 0), 0);
   const saldo = totalGastos - totalAdelantos;
 
-  // Agrupar gastos normales por categoría
   const gastosPorCategoria = CATEGORIAS.reduce((acc, cat) => {
     const items = gastosNormales.filter(g => g.categoria === cat.key);
     if (items.length) acc[cat.key] = items;
     return acc;
   }, {});
 
-  const createGastoM = useOptimisticMutation(
-    async (d) => {
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['gastos_operarios'] });
+    qc.invalidateQueries({ queryKey: ['notas_gastos'] });
+  };
+
+  const createGastoM = useMutation({
+    mutationFn: async (d) => {
       const gasto = await base44.entities.GastoOperario.create(d);
       const newTotal = total + (parseFloat(d.importe) || 0);
       await base44.entities.NotaGastos.update(nota.id, { total: newTotal });
       return gasto;
     },
-    'gastos_operarios',
-    (prev, d) => [...prev, { ...d, id: `temp_${Date.now()}`, nota_id: nota.id }],
-    () => { setAddGastoOpen(false); setAddAdelantoOpen(false); setForm(emptyGasto); setAdelantoForm({ importe: '', date: new Date().toISOString().split('T')[0], descripcion: '' }); setOcrDone(false); qc.invalidateQueries({ queryKey: ['notas_gastos'] }); }
-  );
+    onSuccess: () => {
+      invalidate();
+      setAddGastoOpen(false);
+      setAddAdelantoOpen(false);
+      setForm(emptyGasto);
+      setAdelantoForm({ importe: '', date: new Date().toISOString().split('T')[0], descripcion: '' });
+      setOcrDone(false);
+      toast.success('Gasto guardado');
+    },
+    onError: () => toast.error('Error al guardar el gasto'),
+  });
 
-  const deleteGastoM = useOptimisticMutation(
-    async (g) => {
+  const deleteGastoM = useMutation({
+    mutationFn: async (g) => {
       await base44.entities.GastoOperario.delete(g.id);
       const newTotal = Math.max(0, total - (g.importe || 0));
       await base44.entities.NotaGastos.update(nota.id, { total: newTotal });
     },
-    'gastos_operarios',
-    (prev, g) => prev.filter(x => x.id !== g.id),
-    () => qc.invalidateQueries({ queryKey: ['notas_gastos'] })
-  );
+    onSuccess: () => { invalidate(); toast.success('Gasto eliminado'); },
+    onError: () => toast.error('Error al eliminar'),
+  });
 
   const cerrarNotaM = useMutation({
-    mutationFn: () => base44.entities.NotaGastos.update(nota.id, { estado: 'cerrada', fecha_cierre: new Date().toISOString().split('T')[0], total }),
+    mutationFn: () => base44.entities.NotaGastos.update(nota.id, {
+      estado: 'cerrada', fecha_cierre: new Date().toISOString().split('T')[0], total
+    }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['notas_gastos'] }); toast.success('Nota cerrada'); }
   });
 
@@ -106,7 +116,8 @@ export default function NotaGastosCard({ nota, gastos, operarios, canSeeAll, myO
       await Promise.all(gastos.map(g => base44.entities.GastoOperario.delete(g.id)));
       await base44.entities.NotaGastos.delete(nota.id);
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notas_gastos'] }); qc.invalidateQueries({ queryKey: ['gastos_operarios'] }); }
+    onSuccess: () => { invalidate(); toast.success('Nota eliminada'); },
+    onError: () => toast.error('Error al eliminar la nota'),
   });
 
   const openAddGasto = () => {
@@ -120,16 +131,15 @@ export default function NotaGastosCard({ nota, gastos, operarios, canSeeAll, myO
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
-  // OCR: sube archivo y extrae datos
   const handleOcrUpload = async (file) => {
     setUploading(true);
     setOcrLoading(false);
     setOcrDone(false);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    set('ticket_url', file_url);
-    setUploading(false);
-    setOcrLoading(true);
     try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      set('ticket_url', file_url);
+      setUploading(false);
+      setOcrLoading(true);
       const res = await base44.integrations.Core.InvokeLLM({
         prompt: `Analiza este ticket o factura y extrae la información. Devuelve un JSON con:
 - importe: número total (solo número, sin símbolo €)
@@ -164,6 +174,7 @@ Si no puedes extraer un campo ponlo como null.`,
     } catch {
       toast.error('No se pudo extraer datos del ticket');
     }
+    setUploading(false);
     setOcrLoading(false);
   };
 
@@ -194,7 +205,6 @@ Si no puedes extraer un campo ponlo como null.`,
     const margin = 14;
     let y = 18;
 
-    // Header
     doc.setFillColor(249, 115, 22);
     doc.rect(0, 0, 210, 30, 'F');
     doc.setFontSize(16); doc.setTextColor(255, 255, 255); doc.setFont(undefined, 'bold');
@@ -204,7 +214,6 @@ Si no puedes extraer un campo ponlo como null.`,
     doc.text(`Generado: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 140, 21);
     y = 38;
 
-    // Info block
     doc.setTextColor(40, 40, 40); doc.setFontSize(9);
     doc.text(`Operario: ${nota.operario_name}`, margin, y);
     doc.text(`Período: ${nota.fecha_inicio ? format(parseISO(nota.fecha_inicio), 'dd/MM/yyyy') : '—'}${nota.fecha_cierre ? ` → ${format(parseISO(nota.fecha_cierre), 'dd/MM/yyyy')}` : ''}`, margin, y + 5);
@@ -213,9 +222,7 @@ Si no puedes extraer un campo ponlo como null.`,
 
     doc.setDrawColor(220, 220, 220); doc.line(margin, y, 196, y); y += 8;
 
-    // Gastos por categoría
-    const catOrden = CATEGORIAS;
-    catOrden.forEach(cat => {
+    CATEGORIAS.forEach(cat => {
       const items = gastosNormales.filter(g => g.categoria === cat.key);
       if (!items.length) return;
       if (y > 260) { doc.addPage(); y = 20; }
@@ -240,7 +247,6 @@ Si no puedes extraer un campo ponlo como null.`,
       y += 7;
     });
 
-    // Adelantos
     if (adelantos.length) {
       if (y > 250) { doc.addPage(); y = 20; }
       doc.setDrawColor(220, 220, 220); doc.line(margin, y, 196, y); y += 6;
@@ -255,7 +261,6 @@ Si no puedes extraer un campo ponlo como null.`,
       });
     }
 
-    // Resumen final
     y += 4;
     doc.setDrawColor(249, 115, 22); doc.setLineWidth(0.5); doc.line(margin, y, 196, y); y += 7;
     doc.setFontSize(10); doc.setTextColor(40, 40, 40); doc.setFont(undefined, 'normal');
@@ -305,7 +310,6 @@ Si no puedes extraer un campo ponlo como null.`,
           </div>
         </div>
 
-        {/* Expanded */}
         {expanded && (
           <div className="border-t border-border">
             {/* Actions */}
@@ -377,14 +381,12 @@ Si no puedes extraer un campo ponlo como null.`,
               </div>
             )}
 
-            {/* Tabs: Gastos por categoría / Adelantos */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="mx-4 mt-3 mb-0">
                 <TabsTrigger value="gastos" className="text-xs">🧾 Gastos ({gastosNormales.length})</TabsTrigger>
                 <TabsTrigger value="adelantos" className="text-xs">💰 Adelantos ({adelantos.length})</TabsTrigger>
               </TabsList>
 
-              {/* GASTOS agrupados por categoría */}
               <TabsContent value="gastos" className="mt-0">
                 {gastosNormales.length === 0 ? (
                   <div className="text-center py-8 text-sm text-muted-foreground">
@@ -400,7 +402,6 @@ Si no puedes extraer un campo ponlo como null.`,
                       const subtotal = items.reduce((s, g) => s + (g.importe || 0), 0);
                       return (
                         <div key={cat.key}>
-                          {/* Category header */}
                           <div className={`flex items-center justify-between px-4 py-2 ${cat.color} bg-opacity-30`}>
                             <div className="flex items-center gap-2">
                               <Icon className="w-3.5 h-3.5" />
@@ -409,7 +410,6 @@ Si no puedes extraer un campo ponlo como null.`,
                             </div>
                             <span className="text-xs font-semibold">{subtotal.toFixed(2)} €</span>
                           </div>
-                          {/* Items */}
                           {items.map(g => (
                             <div key={g.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20 transition-colors">
                               {g.ticket_url && /\.(jpg|jpeg|png|gif|webp)$/i.test(g.ticket_url) ? (
@@ -459,7 +459,6 @@ Si no puedes extraer un campo ponlo como null.`,
                 )}
               </TabsContent>
 
-              {/* ADELANTOS */}
               <TabsContent value="adelantos" className="mt-0">
                 {adelantos.length === 0 ? (
                   <div className="text-center py-8 text-sm text-muted-foreground">
