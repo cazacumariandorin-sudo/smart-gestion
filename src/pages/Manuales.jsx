@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const empty = { title: '', client_id: '', client_name: '', obra_id: '', obra_name: '', fabricante_id: '', fabricante_name: '', categoria: '', file_url: '', file_type: '', version: '', date: new Date().toISOString().split('T')[0], notes: '' };
+const getEmptyForm = () => ({ title: '', client_id: '', client_name: '', obra_id: '', obra_name: '', fabricante_id: '', fabricante_name: '', categoria: '', file_url: '', file_type: '', version: '', date: new Date().toISOString().split('T')[0], notes: '' });
 
 function fileIcon(fileType) {
   if (!fileType) return <File className="w-5 h-5 text-muted-foreground" />;
@@ -33,7 +33,7 @@ export default function Manuales() {
   const [obraFilter, setObraFilter] = useState('all');
   const [fabricanteFilter, setFabricanteFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState(empty);
+  const [form, setForm] = useState(getEmptyForm());
   const [uploading, setUploading] = useState(false);
   const [translating, setTranslating] = useState(null);
 
@@ -48,7 +48,7 @@ export default function Manuales() {
   const createM = useMutation({ mutationFn: d => base44.entities.Manual.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['manuales'] }); close_(); } });
   const deleteM = useMutation({ mutationFn: id => base44.entities.Manual.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['manuales'] }) });
 
-  const close_ = () => { setDialogOpen(false); setForm(empty); };
+  const close_ = () => { setDialogOpen(false); setForm(getEmptyForm()); };
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const handleClientChange = (id) => {
