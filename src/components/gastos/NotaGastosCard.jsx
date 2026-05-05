@@ -107,6 +107,10 @@ export default function NotaGastosCard({ nota, gastos, operarios, canSeeAll, myO
       toast.error('Rellena categoría, importe y descripción');
       return;
     }
+    if (!nota.operario_id && !myOperario) {
+      toast.error('Esta nota no tiene operario asignado. Edita la nota primero.');
+      return;
+    }
     const pre = myOperario
       ? { operario_id: myOperario.id, operario_name: myOperario.name }
       : { operario_id: nota.operario_id, operario_name: nota.operario_name };
@@ -118,6 +122,10 @@ export default function NotaGastosCard({ nota, gastos, operarios, canSeeAll, myO
   };
 
   const handleSaveAdelanto = (formData) => {
+    if (!nota.operario_id && !myOperario) {
+      toast.error('Esta nota no tiene operario asignado. Edita la nota primero.');
+      return;
+    }
     const pre = myOperario
       ? { operario_id: myOperario.id, operario_name: myOperario.name }
       : { operario_id: nota.operario_id, operario_name: nota.operario_name };

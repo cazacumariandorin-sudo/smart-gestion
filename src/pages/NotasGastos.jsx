@@ -151,12 +151,11 @@ export default function NotasGastos() {
             <div className="space-y-3 py-2">
               <div className="space-y-1.5">
                 <Label className="text-xs">Operario *</Label>
-                {canSeeAll ? (
-                  <MobileSelect value={newForm.operario_id} onValueChange={handleOpChange} placeholder="Seleccionar operario...">
-                    {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
-                  </MobileSelect>
-                ) : (
-                  <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">{myOp ? myOp.name : user?.full_name || 'Usuario actual'}</div>
+                <MobileSelect value={newForm.operario_id} onValueChange={handleOpChange} placeholder="Seleccionar operario...">
+                  {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+                </MobileSelect>
+                {!newForm.operario_id && (
+                  <p className="text-xs text-destructive">Selecciona un operario para continuar</p>
                 )}
               </div>
               <div className="space-y-1.5">
