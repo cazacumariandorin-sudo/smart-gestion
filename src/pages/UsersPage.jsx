@@ -20,11 +20,14 @@ export default function UsersPage() {
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list('full_name', 100),
+    queryFn: async () => {
+      const result = await base44.entities.User.list('full_name', 100);
+      return result || [];
+    },
   });
 
-  const invite = async () => {
-    if (!email) return;
+  const handleInvite = async () => {
+    if (!email || loading) return;
     setLoading(true);
     setError('');
     try {
@@ -32,9 +35,9 @@ export default function UsersPage() {
       setOpen(false);
       setEmail('');
       setRole('operario');
-      qc.invalidateQueries({ queryKey: ['users'] });
-    } catch (e) {
-      setError(e.message || 'Error');
+      await qc.invalidateQueries({ queryKey: ['users'] });
+    } catch (err) {
+      setError(err?.message || 'Error al invitar usuario');
     } finally {
       setLoading(false);
     }
@@ -95,10 +98,10 @@ export default function UsersPage() {
             {error && <p className="text-xs text-destructive">{error}</p>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={invite} disabled={!email || loading} className="gap-2">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Invitar
-            </Button>
+           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+           <Button onClick={handleInvite} disabled={!email || loading} className="gap-2">
+             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Invitar
+           </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
