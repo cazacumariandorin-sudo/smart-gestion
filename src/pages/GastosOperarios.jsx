@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Plus, FileText, Search } from 'lucide-react';
@@ -36,17 +36,26 @@ export default function GastosOperarios() {
 
   const { data: notas = [], isLoading: notasLoading } = useQuery({
     queryKey: ['notas_gastos'],
-    queryFn: () => base44.entities.NotaGastos.list('-created_date', 200)
+    queryFn: async () => {
+      const result = await base44.entities.NotaGastos.list('-created_date', 200);
+      return result || [];
+    }
   });
 
   const { data: gastos = [] } = useQuery({
     queryKey: ['gastos_operarios'],
-    queryFn: () => base44.entities.GastoOperario.list('-date', 500)
+    queryFn: async () => {
+      const result = await base44.entities.GastoOperario.list('-date', 500);
+      return result || [];
+    }
   });
 
   const { data: operarios = [] } = useQuery({
     queryKey: ['operarios'],
-    queryFn: () => base44.entities.Operario.list('name', 200)
+    queryFn: async () => {
+      const result = await base44.entities.Operario.list('name', 200);
+      return result || [];
+    }
   });
 
   const canSeeAll = isAdmin || isJefeObra;
@@ -77,27 +86,30 @@ export default function GastosOperarios() {
 
   const handleOpChange = (id) => {
     const op = operarios.find(o => o.id === id);
-    const name = op ? op.name : '';
-    setNewForm(p => ({ ...p, operario_id: id, operario_name: name }));
+    setNewForm(p => ({ ...p, operario_id: id, operario_name: op?.name || '' }));
   };
 
   const handleCreate = () => {
+    if (!newForm.operario_id || !newForm.fecha_inicio) return;
     createM.mutate({ ...newForm, estado: 'abierta', total: 0 });
   };
 
-  const notasWithGastos = notas.map(n => ({
-    ...n,
-    gastos: gastos.filter(g => g.nota_id === n.id),
-  }));
+  const getFilteredNotas = () => {
+    const notasMap = notas.map(n => ({
+      ...n,
+      gastos: gastos.filter(g => g.nota_id === n.id),
+    }));
 
-  const filtered = notasWithGastos.filter(n => {
-    const q = search.toLowerCase();
-    const hasSearch = !search || n.operario_name?.toLowerCase().includes(q) || n.titulo?.toLowerCase().includes(q);
-    const hasOp = opFilter === 'all' || n.operario_id === opFilter;
-    const hasEst = estFilter === 'all' || n.estado === estFilter;
-    return hasSearch && hasOp && hasEst;
-  });
+    return notasMap.filter(n => {
+      const q = search.toLowerCase();
+      const hasSearch = !search || n.operario_name?.toLowerCase().includes(q) || n.titulo?.toLowerCase().includes(q);
+      const hasOp = opFilter === 'all' || n.operario_id === opFilter;
+      const hasEst = estFilter === 'all' || n.estado === estFilter;
+      return hasSearch && hasOp && hasEst;
+    });
+  };
 
+  const filtered = getFilteredNotas();
   const totalGeneral = filtered.reduce((s, n) => s + (n.total || 0), 0);
 
   return (
