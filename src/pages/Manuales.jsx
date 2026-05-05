@@ -61,24 +61,33 @@ export default function Manuales() {
   };
 
   const handleFileUpload = async (file) => {
-    setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    setForm(p => ({ ...p, file_url, file_type: ext }));
-    setUploading(false);
+    try {
+      setUploading(true);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      setForm(p => ({ ...p, file_url, file_type: ext }));
+    } finally {
+      setUploading(false);
+    }
   };
 
   const translateDoc = async (manual) => {
-    setTranslating(manual.id);
-    if (!manual.file_url) { setTranslating(null); return; }
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `Traduce el siguiente documento al español. Mantén el formato original lo máximo posible. El archivo está en: ${manual.file_url}. Devuelve el texto traducido completo.`,
-      file_urls: [manual.file_url],
-    });
-    setTranslating(null);
-    const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `${manual.title}_ES.txt`; a.click();
+    try {
+      setTranslating(manual.id);
+      if (!manual.file_url) return;
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Traduce el siguiente documento al español. Mantén el formato original lo máximo posible. El archivo está en: ${manual.file_url}. Devuelve el texto traducido completo.`,
+        file_urls: [manual.file_url],
+      });
+      const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${manual.title}_ES.txt`;
+      a.click();
+    } finally {
+      setTranslating(null);
+    }
   };
 
   const filtered = useMemo(() => manuales.filter(m => {
