@@ -47,7 +47,7 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const [legalDialog, setLegalDialog] = useState(null);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ phone: '', position: '', department: '', avatar_initials: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', position: '', department: '', avatar_initials: '' });
   const appVersion = '1.0.0';
 
   const { data: me, isLoading } = useQuery({
@@ -82,6 +82,7 @@ export default function Profile() {
   useEffect(() => {
     if (me) {
       setForm({
+        full_name: me.full_name || '',
         phone: me.phone || '',
         position: me.position || '',
         department: me.department || '',
@@ -173,16 +174,27 @@ export default function Profile() {
           </div>
 
           <div className="p-5 space-y-4">
-            {/* Read-only fields */}
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">Nombre completo</Label>
+            {/* Editable name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="fullname" className="text-xs flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-muted-foreground" /> Nombre completo
+              </Label>
+              {editing ? (
+                <Input
+                  id="fullname"
+                  placeholder="Tu nombre"
+                  value={form.full_name}
+                  onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
+                />
+              ) : (
                 <p className="text-sm font-medium mt-1">{me?.full_name || '—'}</p>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Email</Label>
-                <p className="text-sm font-medium mt-1">{me?.email || '—'}</p>
-              </div>
+              )}
+            </div>
+
+            {/* Read-only email */}
+            <div>
+              <Label className="text-xs text-muted-foreground">Email</Label>
+              <p className="text-sm font-medium mt-1">{me?.email || '—'}</p>
             </div>
 
             <hr className="border-border" />
