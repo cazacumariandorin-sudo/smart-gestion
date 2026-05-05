@@ -2,13 +2,14 @@
  * UserRoleDiagnostic — Debug component to verify user role and access permissions
  * Shows why a user might not be seeing modules on the dashboard
  */
+import { useState } from 'react';
 import { useUserRole } from '@/lib/useUserRole';
-import { AlertCircle, CheckCircle2, XCircle, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Eye, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 export default function UserRoleDiagnostic() {
+  const [closed, setClosed] = useState(false);
   const { user, role, isAdmin, isJefeObra, isOperario, isControlHorario, isClienteObra, canAccess, isLoading, isSimulating, simulatedRole } = useUserRole();
 
   const today = new Date().toISOString().split('T')[0];
@@ -18,8 +19,8 @@ export default function UserRoleDiagnostic() {
 
   const accessibleModules = allModules.filter(m => canAccess(m));
 
-  if (isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">Cargando información del usuario...</div>;
+  if (isLoading || closed) {
+    return null;
   }
 
   const issues = [];
@@ -44,11 +45,10 @@ export default function UserRoleDiagnostic() {
             <Eye className="w-4 h-4 text-blue-600" />
             <h3 className="font-bold text-sm">Debug: Estado del Usuario</h3>
             <button 
-              onClick={() => document.querySelector('[data-diagnostic-close]').style.display = 'none'}
+              onClick={() => setClosed(true)}
               className="ml-auto text-xs text-muted-foreground hover:text-foreground"
-              data-diagnostic-close
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
