@@ -48,7 +48,7 @@ export default function NotasGastos() {
   });
 
   const canSeeAll = isAdmin || isJefeObra;
-  const myOp = canSeeAll ? null : operarios.find(o => o.email === user?.email);
+  const myOp = null; // Los operarios no están vinculados a usuarios Base44
 
   const createM = useMutation({
     mutationFn: d => base44.entities.NotaGastos.create(d),
