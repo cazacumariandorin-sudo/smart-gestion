@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { Plus, Search, Pencil, Trash2, Users, Loader2, Save, X, Mail, Phone, Building2, Database, PenLine } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Users, Loader2, Save, Mail, Phone, Database, PenLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +27,6 @@ export default function SolarClientes() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
-  // 'select' = picker from obras clients | 'manual' = manual form
   const [mode, setMode] = useState('select');
   const [clientSearch, setClientSearch] = useState('');
 
@@ -156,7 +155,6 @@ export default function SolarClientes() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? 'Editar cliente' : 'Nuevo cliente solar'}</DialogTitle></DialogHeader>
 
-          {/* Mode selector — only on new */}
           {!editing && (
             <div className="flex gap-2 -mt-1">
               <button
@@ -176,7 +174,6 @@ export default function SolarClientes() {
             </div>
           )}
 
-          {/* SELECT FROM OBRAS DB */}
           {mode === 'select' && !editing && (
             <div className="space-y-3 py-1">
               <div className="relative">
@@ -224,68 +221,67 @@ export default function SolarClientes() {
             </div>
           )}
 
-          {/* MANUAL FORM */}
           {(mode === 'manual' || editing) && (
-          <div className="space-y-4 py-2">
-            {form.name && !editing && (
-              <div className="flex items-center gap-2 text-xs bg-accent/50 text-accent-foreground rounded-lg px-3 py-2">
-                <Database className="w-3.5 h-3.5 shrink-0 text-primary" />
-                Datos importados de la BD — revisa y guarda
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Nombre *</Label>
-                <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Nombre del cliente" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">NIF / CIF</Label>
-                <Input value={form.nif} onChange={e => set('nif', e.target.value)} placeholder="12345678A" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo</Label>
-                <MobileSelect value={form.tipo} onValueChange={v => set('tipo', v)} placeholder="Tipo">
-                  {Object.entries(tipoCfg).map(([k, v]) => <MobileSelectItem key={k} value={k}>{v.label}</MobileSelectItem>)}
-                </MobileSelect>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Teléfono</Label>
-                <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+34 600..." />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Email</Label>
-                <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="email@..." />
-              </div>
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Dirección</Label>
-                <Input value={form.address} onChange={e => set('address', e.target.value)} placeholder="Calle..." />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Código postal</Label>
-                <Input value={form.postal_code} onChange={e => set('postal_code', e.target.value)} placeholder="28001" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Estado</Label>
-                <MobileSelect value={form.active ? 'activo' : 'inactivo'} onValueChange={v => set('active', v === 'activo')} placeholder="Estado">
-                  <MobileSelectItem value="activo">Activo</MobileSelectItem>
-                  <MobileSelectItem value="inactivo">Inactivo</MobileSelectItem>
-                </MobileSelect>
-              </div>
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Observaciones</Label>
-                <Textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} placeholder="Notas..." />
+            <div className="space-y-4 py-2">
+              {form.name && !editing && (
+                <div className="flex items-center gap-2 text-xs bg-accent/50 text-accent-foreground rounded-lg px-3 py-2">
+                  <Database className="w-3.5 h-3.5 shrink-0 text-primary" />
+                  Datos importados de la BD — revisa y guarda
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5 col-span-2">
+                  <Label className="text-xs">Nombre *</Label>
+                  <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Nombre del cliente" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">NIF / CIF</Label>
+                  <Input value={form.nif} onChange={e => set('nif', e.target.value)} placeholder="12345678A" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Tipo</Label>
+                  <MobileSelect value={form.tipo} onValueChange={v => set('tipo', v)} placeholder="Tipo">
+                    {Object.entries(tipoCfg).map(([k, v]) => <MobileSelectItem key={k} value={k}>{v.label}</MobileSelectItem>)}
+                  </MobileSelect>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Teléfono</Label>
+                  <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+34 600..." />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Email</Label>
+                  <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="email@..." />
+                </div>
+                <div className="space-y-1.5 col-span-2">
+                  <Label className="text-xs">Dirección</Label>
+                  <Input value={form.address} onChange={e => set('address', e.target.value)} placeholder="Calle..." />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Código postal</Label>
+                  <Input value={form.postal_code} onChange={e => set('postal_code', e.target.value)} placeholder="28001" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Estado</Label>
+                  <MobileSelect value={form.active ? 'activo' : 'inactivo'} onValueChange={v => set('active', v === 'activo')} placeholder="Estado">
+                    <MobileSelectItem value="activo">Activo</MobileSelectItem>
+                    <MobileSelectItem value="inactivo">Inactivo</MobileSelectItem>
+                  </MobileSelect>
+                </div>
+                <div className="space-y-1.5 col-span-2">
+                  <Label className="text-xs">Observaciones</Label>
+                  <Textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} placeholder="Notas..." />
+                </div>
               </div>
             </div>
-          </div>
           )}
 
           {(mode === 'manual' || editing) && (
-          <DialogFooter>
-            <Button variant="outline" onClick={close_}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.name || isPending} className="gap-2 min-w-24">
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button variant="outline" onClick={close_}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={!form.name || isPending} className="gap-2 min-w-24">
+                {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar
+              </Button>
+            </DialogFooter>
           )}
         </DialogContent>
       </Dialog>
