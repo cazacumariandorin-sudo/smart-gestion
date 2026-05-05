@@ -174,21 +174,18 @@ export default function Profile() {
           </div>
 
           <div className="p-5 space-y-4">
-            {/* Editable name */}
+            {/* Always editable name */}
             <div className="space-y-1.5">
               <Label htmlFor="fullname" className="text-xs flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-muted-foreground" /> Nombre completo
               </Label>
-              {editing ? (
-                <Input
-                  id="fullname"
-                  placeholder="Tu nombre"
-                  value={form.full_name}
-                  onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
-                />
-              ) : (
-                <p className="text-sm font-medium mt-1">{me?.full_name || '—'}</p>
-              )}
+              <Input
+                id="fullname"
+                placeholder="Tu nombre"
+                value={form.full_name}
+                onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
+                onBlur={() => updateMeMutation.mutate({ full_name: form.full_name })}
+              />
             </div>
 
             {/* Read-only email */}
