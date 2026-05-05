@@ -4,22 +4,18 @@ import { base44 } from '@/api/base44Client';
 import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
 import {
-  Plus, Trash2, Receipt, Loader2, Save, Camera, X, ChevronDown, ChevronUp,
+  Plus, Trash2, Receipt, Loader2, X, ChevronDown, ChevronUp,
   Lock, Unlock, FileText, Fuel, ShoppingCart, Layers, Navigation, ParkingCircle,
-  Wallet, Download, Sparkles, CheckCircle2, Utensils, ExternalLink
+  Wallet, Download, Utensils
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { AddGastoDialog, AddAdelantoDialog } from './GastoDialogs';
 
 const CATEGORIAS = [
   { key: 'combustible', label: 'Combustible', icon: Fuel,           color: 'bg-orange-100 text-orange-700 border-orange-200' },
@@ -31,23 +27,12 @@ const CATEGORIAS = [
 ];
 const ADELANTO_CAT = { key: 'adelanto', label: 'Adelanto', icon: Wallet, color: 'bg-red-100 text-red-700 border-red-200' };
 const ALL_CATS = [...CATEGORIAS, ADELANTO_CAT];
-const catCfg = Object.fromEntries(ALL_CATS.map(c => [c.key, c]));
-
-const emptyGasto = {
-  operario_id: '', operario_name: '', date: new Date().toISOString().split('T')[0],
-  categoria: '', importe: '', descripcion: '', proveedor: '', ticket_url: '', project: '',
-};
 
 export default function NotaGastosCard({ nota, gastos, operarios, canSeeAll, myOperario, user }) {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [addGastoOpen, setAddGastoOpen] = useState(false);
   const [addAdelantoOpen, setAddAdelantoOpen] = useState(false);
-  const [form, setForm] = useState(emptyGasto);
-  const [adelantoForm, setAdelantoForm] = useState({ importe: '', date: new Date().toISOString().split('T')[0], descripcion: '' });
-  const [uploading, setUploading] = useState(false);
-  const [ocrLoading, setOcrLoading] = useState(false);
-  const [ocrDone, setOcrDone] = useState(false);
   const [ticketPreview, setTicketPreview] = useState(null);
   const [activeTab, setActiveTab] = useState('gastos');
 
@@ -81,9 +66,6 @@ export default function NotaGastosCard({ nota, gastos, operarios, canSeeAll, myO
       invalidate();
       setAddGastoOpen(false);
       setAddAdelantoOpen(false);
-      setForm(emptyGasto);
-      setAdelantoForm({ importe: '', date: new Date().toISOString().split('T')[0], descripcion: '' });
-      setOcrDone(false);
       toast.success('Gasto guardado');
     },
     onError: () => toast.error('Error al guardar el gasto'),
@@ -120,83 +102,27 @@ export default function NotaGastosCard({ nota, gastos, operarios, canSeeAll, myO
     onError: () => toast.error('Error al eliminar la nota'),
   });
 
-  const openAddGasto = () => {
-    const pre = myOperario
-      ? { ...emptyGasto, operario_id: myOperario.id, operario_name: myOperario.name }
-      : { ...emptyGasto, operario_id: nota.operario_id, operario_name: nota.operario_name };
-    setForm(pre);
-    setOcrDone(false);
-    setAddGastoOpen(true);
-  };
-
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
-
-  const handleOcrUpload = async (file) => {
-    setUploading(true);
-    setOcrLoading(false);
-    setOcrDone(false);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      set('ticket_url', file_url);
-      setUploading(false);
-      setOcrLoading(true);
-      const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `Analiza este ticket o factura y extrae la información. Devuelve un JSON con:
-- importe: número total (solo número, sin símbolo €)
-- proveedor: nombre del establecimiento o empresa
-- fecha: fecha en formato YYYY-MM-DD (si aparece, si no null)
-- descripcion: descripción breve del concepto
-- categoria: una de: combustible, comida, material, peaje, parking, varios (la más apropiada)
-Si no puedes extraer un campo ponlo como null.`,
-        file_urls: [file_url],
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            importe: { type: 'number' },
-            proveedor: { type: 'string' },
-            fecha: { type: 'string' },
-            descripcion: { type: 'string' },
-            categoria: { type: 'string' },
-          }
-        }
-      });
-      setForm(p => ({
-        ...p,
-        ticket_url: file_url,
-        importe: res.importe != null ? res.importe : p.importe,
-        proveedor: res.proveedor || p.proveedor,
-        date: res.fecha || p.date,
-        descripcion: res.descripcion || p.descripcion,
-        categoria: res.categoria && catCfg[res.categoria] ? res.categoria : p.categoria,
-      }));
-      setOcrDone(true);
-      toast.success('Datos extraídos del ticket');
-    } catch {
-      toast.error('No se pudo extraer datos del ticket');
-    }
-    setUploading(false);
-    setOcrLoading(false);
-  };
-
-  const handleSaveGasto = () => {
-    createGastoM.mutate({
-      ...form,
-      nota_id: nota.id,
-      importe: parseFloat(form.importe) || 0,
-    });
-  };
-
-  const handleSaveAdelanto = () => {
+  const handleSaveGasto = (formData) => {
     const pre = myOperario
       ? { operario_id: myOperario.id, operario_name: myOperario.name }
       : { operario_id: nota.operario_id, operario_name: nota.operario_name };
     createGastoM.mutate({
       ...pre,
+      ...formData,
+      nota_id: nota.id,
+    });
+  };
+
+  const handleSaveAdelanto = (formData) => {
+    const pre = myOperario
+      ? { operario_id: myOperario.id, operario_name: myOperario.name }
+      : { operario_id: nota.operario_id, operario_name: nota.operario_name };
+    createGastoM.mutate({
+      ...pre,
+      ...formData,
       nota_id: nota.id,
       categoria: 'adelanto',
-      importe: parseFloat(adelantoForm.importe) || 0,
-      date: adelantoForm.date,
-      descripcion: adelantoForm.descripcion || 'Adelanto',
+      descripcion: formData.descripcion || 'Adelanto',
     });
   };
 
@@ -303,10 +229,10 @@ Si no puedes extraer un campo ponlo como null.`,
           <div className="border-t border-border">
             <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/20 border-b border-border flex-wrap">
               {!isCerrada && (
-                <>
-                  <Button size="sm" className="gap-1.5 h-8 text-xs" onClick={openAddGasto}>
-                    <Plus className="w-3.5 h-3.5" /> Añadir gasto
-                  </Button>
+               <>
+                 <Button size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setAddGastoOpen(true)}>
+                   <Plus className="w-3.5 h-3.5" /> Añadir gasto
+                 </Button>
                   <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs text-red-700 border-red-300 hover:bg-red-50" onClick={() => setAddAdelantoOpen(true)}>
                     <Wallet className="w-3.5 h-3.5" /> Adelanto
                   </Button>
@@ -511,126 +437,21 @@ Si no puedes extraer un campo ponlo como null.`,
         </div>
       )}
 
-      {/* ADD GASTO DIALOG */}
-      <Dialog open={addGastoOpen} onOpenChange={v => { setAddGastoOpen(v); if (!v) { setOcrDone(false); setForm(emptyGasto); } }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Añadir Gasto
-              <span className="text-sm font-normal text-muted-foreground ml-1">— {nota.titulo || nota.operario_name}</span>
-            </DialogTitle>
-          </DialogHeader>
+      <AddGastoDialog 
+        open={addGastoOpen} 
+        onOpenChange={setAddGastoOpen}
+        onSave={handleSaveGasto}
+        nota={nota}
+        myOperario={myOperario}
+        isPending={createGastoM.isPending}
+      />
 
-          <div className="space-y-4 py-1">
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-primary" /> Foto / ticket (OCR automático)
-              </Label>
-              {form.ticket_url ? (
-                <div className="relative">
-                  {/\.(jpg|jpeg|png|gif|webp)$/i.test(form.ticket_url) ? (
-                    <img src={form.ticket_url} alt="ticket" className="w-full h-40 object-cover rounded-lg" />
-                  ) : (
-                    <div className="w-full h-24 rounded-lg bg-muted flex flex-col items-center justify-center gap-1 border border-border">
-                      <FileText className="w-8 h-8 text-primary" />
-                      <p className="text-xs text-muted-foreground">Archivo subido</p>
-                      <a href={form.ticket_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline"><ExternalLink className="w-3 h-3" /> Ver archivo</a>
-                    </div>
-                  )}
-                  <button onClick={() => { set('ticket_url', ''); setOcrDone(false); }} className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"><X className="w-3 h-3" /></button>
-                  {ocrLoading && (
-                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center rounded-lg gap-2">
-                      <Loader2 className="w-6 h-6 text-white animate-spin" />
-                      <p className="text-white text-xs font-medium">Analizando con IA...</p>
-                    </div>
-                  )}
-                  {ocrDone && !ocrLoading && (
-                    <div className="absolute bottom-2 left-2 right-2 bg-emerald-600/90 text-white rounded-lg px-3 py-1.5 flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      <span className="text-xs font-medium">Datos extraídos automáticamente</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <label className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg h-28 cursor-pointer transition-colors ${uploading || ocrLoading ? 'opacity-60 pointer-events-none' : 'hover:bg-muted/30'} border-primary/30`}>
-                  {uploading ? <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /> : <Camera className="w-7 h-7 text-muted-foreground" />}
-                  <p className="text-xs text-muted-foreground text-center">{uploading ? 'Subiendo...' : 'Foto de ticket / factura / PDF\n(la IA extraerá los datos)'}</p>
-                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={e => e.target.files[0] && handleOcrUpload(e.target.files[0])} />
-                </label>
-              )}
-            </div>
-
-            {ocrLoading && (
-              <div className="flex items-center gap-2 text-xs text-primary bg-accent/50 rounded-lg px-3 py-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Extrayendo datos del ticket con IA...
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Categoría *</Label>
-                <MobileSelect value={form.categoria} onValueChange={v => set('categoria', v)} placeholder="Categoría...">
-                  {CATEGORIAS.map(c => <MobileSelectItem key={c.key} value={c.key}>{c.label}</MobileSelectItem>)}
-                </MobileSelect>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Importe (€) *</Label>
-                <Input type="number" min="0" step="0.01" value={form.importe} onChange={e => set('importe', e.target.value)} placeholder="0.00" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Fecha</Label>
-                <Input type="date" value={form.date} onChange={e => set('date', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Proveedor</Label>
-                <Input value={form.proveedor} onChange={e => set('proveedor', e.target.value)} placeholder="Nombre establecimiento" />
-              </div>
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Descripción / Concepto</Label>
-                <Textarea value={form.descripcion} onChange={e => set('descripcion', e.target.value)} rows={2} placeholder="Detalle del gasto..." />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddGastoOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveGasto} disabled={!form.categoria || !form.importe || createGastoM.isPending} className="gap-2 min-w-28">
-              {createGastoM.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ADELANTO DIALOG */}
-      <Dialog open={addAdelantoOpen} onOpenChange={setAddAdelantoOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-red-600" /> Registrar Adelanto
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Importe (€) *</Label>
-              <Input type="number" min="0" step="0.01" value={adelantoForm.importe} onChange={e => setAdelantoForm(p => ({ ...p, importe: e.target.value }))} placeholder="0.00" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Fecha</Label>
-              <Input type="date" value={adelantoForm.date} onChange={e => setAdelantoForm(p => ({ ...p, date: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Descripción</Label>
-              <Input value={adelantoForm.descripcion} onChange={e => setAdelantoForm(p => ({ ...p, descripcion: e.target.value }))} placeholder="Adelanto en efectivo..." />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddAdelantoOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveAdelanto} disabled={!adelantoForm.importe || createGastoM.isPending} className="gap-2 bg-red-600 hover:bg-red-700 text-white">
-              {createGastoM.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wallet className="w-4 h-4" />} Registrar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddAdelantoDialog 
+        open={addAdelantoOpen} 
+        onOpenChange={setAddAdelantoOpen}
+        onSave={handleSaveAdelanto}
+        isPending={createGastoM.isPending}
+      />
     </>
   );
 }
