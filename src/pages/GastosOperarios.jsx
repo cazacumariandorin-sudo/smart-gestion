@@ -15,102 +15,84 @@ import { toast } from 'sonner';
 export default function GastosOperarios() {
   const qc = useQueryClient();
   const { isAdmin, isJefeObra, user } = useUserRole();
-  
   const [search, setSearch] = useState('');
   const [opFilter, setOpFilter] = useState('all');
   const [estFilter, setEstFilter] = useState('all');
   const [newOpen, setNewOpen] = useState(false);
-  const [newForm, setNewForm] = useState({
-    operario_id: '',
-    operario_name: '',
-    titulo: '',
-    fecha_inicio: new Date().toISOString().split('T')[0],
-    notas: ''
-  });
+
+  const today = new Date().toISOString().split('T')[0];
+  const [newForm, setNewForm] = useState({ operario_id: '', operario_name: '', titulo: '', fecha_inicio: today, notas: '' });
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const opId = params.get('operario');
-    if (opId) setOpFilter(opId);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const opId = params.get('operario');
+      if (opId) setOpFilter(opId);
+    }
   }, []);
 
   const { data: notas = [], isLoading: notasLoading } = useQuery({
     queryKey: ['notas_gastos'],
-    queryFn: async () => {
-      const result = await base44.entities.NotaGastos.list('-created_date', 200);
-      return result || [];
-    }
+    queryFn: () => base44.entities.NotaGastos.list('-created_date', 200).then(r => r || [])
   });
 
   const { data: gastos = [] } = useQuery({
     queryKey: ['gastos_operarios'],
-    queryFn: async () => {
-      const result = await base44.entities.GastoOperario.list('-date', 500);
-      return result || [];
-    }
+    queryFn: () => base44.entities.GastoOperario.list('-date', 500).then(r => r || [])
   });
 
   const { data: operarios = [] } = useQuery({
     queryKey: ['operarios'],
-    queryFn: async () => {
-      const result = await base44.entities.Operario.list('name', 200);
-      return result || [];
-    }
+    queryFn: () => base44.entities.Operario.list('name', 200).then(r => r || [])
   });
 
   const canSeeAll = isAdmin || isJefeObra;
   const myOp = canSeeAll ? null : operarios.find(o => o.email === user?.email);
 
   const createM = useMutation({
-    mutationFn: (d) => base44.entities.NotaGastos.create(d),
+    mutationFn: d => base44.entities.NotaGastos.create(d),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['notas_gastos'] });
       setNewOpen(false);
+      setNewForm({ operario_id: '', operario_name: '', titulo: '', fecha_inicio: today, notas: '' });
       toast.success('Nota de gastos creada');
     },
     onError: () => toast.error('Error al crear la nota'),
   });
 
-  const openNew = () => {
-    const opId = myOp ? myOp.id : '';
-    const opName = myOp ? myOp.name : '';
+  const notasWithGastos = notas.map(n => ({ ...n, gastos: gastos.filter(g => g.nota_id === n.id) }));
+
+  const filtered = notasWithGastos.filter(n => {
+    const q = search.toLowerCase();
+    const matchSearch = !search || n.operario_name?.toLowerCase().includes(q) || n.titulo?.toLowerCase().includes(q);
+    const matchOp = opFilter === 'all' || n.operario_id === opFilter;
+    const matchEst = estFilter === 'all' || n.estado === estFilter;
+    return matchSearch && matchOp && matchEst;
+  });
+
+  const totalGeneral = filtered.reduce((s, n) => s + (n.total || 0), 0);
+
+  const handleOpenNew = () => {
     setNewForm({
-      operario_id: opId,
-      operario_name: opName,
+      operario_id: myOp?.id || '',
+      operario_name: myOp?.name || '',
       titulo: '',
-      fecha_inicio: new Date().toISOString().split('T')[0],
+      fecha_inicio: today,
       notas: ''
     });
     setNewOpen(true);
   };
 
-  const handleOpChange = (id) => {
+  const handleOpChange = id => {
     const op = operarios.find(o => o.id === id);
     setNewForm(p => ({ ...p, operario_id: id, operario_name: op?.name || '' }));
   };
 
   const handleCreate = () => {
-    if (!newForm.operario_id || !newForm.fecha_inicio) return;
-    createM.mutate({ ...newForm, estado: 'abierta', total: 0 });
+    if (newForm.operario_id && newForm.fecha_inicio) {
+      createM.mutate({ ...newForm, estado: 'abierta', total: 0 });
+    }
   };
-
-  const getFilteredNotas = () => {
-    const notasMap = notas.map(n => ({
-      ...n,
-      gastos: gastos.filter(g => g.nota_id === n.id),
-    }));
-
-    return notasMap.filter(n => {
-      const q = search.toLowerCase();
-      const hasSearch = !search || n.operario_name?.toLowerCase().includes(q) || n.titulo?.toLowerCase().includes(q);
-      const hasOp = opFilter === 'all' || n.operario_id === opFilter;
-      const hasEst = estFilter === 'all' || n.estado === estFilter;
-      return hasSearch && hasOp && hasEst;
-    });
-  };
-
-  const filtered = getFilteredNotas();
-  const totalGeneral = filtered.reduce((s, n) => s + (n.total || 0), 0);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -118,7 +100,7 @@ export default function GastosOperarios() {
         title="Gastos Operarios"
         subtitle={`${filtered.length} notas · ${totalGeneral.toFixed(2)} € total`}
         backTo="/operarios"
-        actions={<Button onClick={openNew} className="gap-2 h-9"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nueva Nota</span></Button>}
+        actions={<Button onClick={handleOpenNew} className="gap-2 h-9"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nueva Nota</span></Button>}
       />
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -145,7 +127,7 @@ export default function GastosOperarios() {
           <div className="text-center py-16 border border-dashed rounded-xl">
             <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm text-muted-foreground mb-3">No hay notas de gastos</p>
-            <Button variant="outline" size="sm" onClick={openNew} className="gap-2"><Plus className="w-3.5 h-3.5" /> Crear primera nota</Button>
+            <Button variant="outline" size="sm" onClick={handleOpenNew} className="gap-2"><Plus className="w-3.5 h-3.5" /> Crear primera nota</Button>
           </div>
         )}
 
