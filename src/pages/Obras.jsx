@@ -3,18 +3,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Pencil, Trash2, Building2, Save, Loader2, Calendar, Euro } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Building2, Save, Loader2, Calendar, Euro, Package, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import ObraMaterialesPanel from '@/components/obras/ObraMaterialesPanel';
 
 const STATUS_CFG = {
   activa: { label: 'Activa', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -36,6 +38,7 @@ export default function Obras() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(empty);
+  const [detailObra, setDetailObra] = useState(null); // obra selected for detail panel
 
   const onRefresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['obras'] });
@@ -121,7 +124,7 @@ export default function Obras() {
           {filtered.map(o => {
             const sc = STATUS_CFG[o.status] || STATUS_CFG.activa;
             return (
-              <Card key={o.id} className="p-5 hover:shadow-md transition-shadow flex flex-col gap-3">
+              <Card key={o.id} className="p-5 hover:shadow-md transition-shadow flex flex-col gap-3 cursor-pointer" onClick={() => setDetailObra(o)}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -130,7 +133,7 @@ export default function Obras() {
                     </div>
                     <Badge variant="outline" className={`text-[10px] ${sc.className}`}>{sc.label}</Badge>
                   </div>
-                  <div className="flex gap-1 ml-2">
+                  <div className="flex gap-1 ml-2" onClick={e => e.stopPropagation()}>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(o)}><Pencil className="w-3 h-3" /></Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -170,6 +173,49 @@ export default function Obras() {
           })}
         </div>
       )}
+
+      {/* Obra Detail Panel */}
+      <Dialog open={!!detailObra} onOpenChange={v => { if (!v) setDetailObra(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-6">
+              <div>
+                <DialogTitle className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-primary" /> {detailObra?.name}
+                </DialogTitle>
+                {detailObra?.client_name && <p className="text-xs text-muted-foreground mt-0.5">{detailObra.client_name}</p>}
+              </div>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => { setDetailObra(null); open_(detailObra); }}>
+                  <Pencil className="w-3 h-3" /> Editar
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+          {detailObra && (
+            <Tabs defaultValue="materiales">
+              <TabsList className="mb-4">
+                <TabsTrigger value="info" className="gap-1.5 text-xs"><Building2 className="w-3.5 h-3.5" /> Info</TabsTrigger>
+                <TabsTrigger value="materiales" className="gap-1.5 text-xs"><Package className="w-3.5 h-3.5" /> Materiales</TabsTrigger>
+              </TabsList>
+              <TabsContent value="info">
+                <div className="space-y-2 text-sm">
+                  {detailObra.address && <p><span className="text-muted-foreground">Dirección:</span> {detailObra.address}</p>}
+                  {detailObra.start_date && <p><span className="text-muted-foreground">Inicio:</span> {format(parseISO(detailObra.start_date), 'd MMM yyyy', { locale: es })}</p>}
+                  {detailObra.end_date && <p><span className="text-muted-foreground">Fin previsto:</span> {format(parseISO(detailObra.end_date), 'd MMM yyyy', { locale: es })}</p>}
+                  {detailObra.budget > 0 && <p><span className="text-muted-foreground">Presupuesto:</span> <strong className="text-primary">{detailObra.budget.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</strong></p>}
+                  {detailObra.contact_person && <p><span className="text-muted-foreground">Contacto:</span> {detailObra.contact_person} {detailObra.contact_phone && `· ${detailObra.contact_phone}`}</p>}
+                  {detailObra.description && <p className="text-muted-foreground italic">{detailObra.description}</p>}
+                  {detailObra.notes && <p className="text-muted-foreground">{detailObra.notes}</p>}
+                </div>
+              </TabsContent>
+              <TabsContent value="materiales">
+                <ObraMaterialesPanel obra={detailObra} />
+              </TabsContent>
+            </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
