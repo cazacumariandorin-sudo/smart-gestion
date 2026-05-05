@@ -49,5 +49,46 @@
     "operario_id",
     "fecha_inicio",
     "tipo"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "data.operario_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.operario_id": "{{user.id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.operario_id": "{{user.id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.operario_id": "{{user.id}}"
+        }
+      ]
+    }
+  }
 }
