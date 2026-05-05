@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { UserPlus, Loader2 } from 'lucide-react';
-import { useUserRole } from '@/lib/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,9 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
-export default function UsersPage() {
-  const queryClient = useQueryClient();
-  const { isAdmin } = useUserRole();
+function UsersPage() {
+  const qc = useQueryClient();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('operario');
@@ -34,7 +32,7 @@ export default function UsersPage() {
       setInviteOpen(false);
       setInviteEmail('');
       setInviteRole('operario');
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      qc.invalidateQueries({ queryKey: ['users'] });
     } catch (e) {
       setInviteError(e.response?.data?.error || e.message || 'Error');
     } finally {
@@ -43,7 +41,6 @@ export default function UsersPage() {
   };
 
   return (
-    <>
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -55,13 +52,17 @@ export default function UsersPage() {
         </Button>
       </div>
 
-      {isLoading ? (
+      {isLoading && (
         <div className="space-y-2">
           {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}
         </div>
-      ) : users.length === 0 ? (
+      )}
+
+      {!isLoading && users.length === 0 && (
         <p className="text-center py-10 text-muted-foreground">No hay usuarios.</p>
-      ) : (
+      )}
+
+      {!isLoading && users.length > 0 && (
         <div className="space-y-2">
           {users.map(user => (
             <Card key={user.id} className="p-4 flex items-center justify-between">
@@ -111,6 +112,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
     </div>
-    </>
   );
 }
+
+export default UsersPage;
