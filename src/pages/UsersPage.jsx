@@ -24,22 +24,19 @@ export default function UsersPage() {
   const [error, setError] = useState('');
   const [editingUser, setEditingUser] = useState(null);
 
-  // Verificar que el usuario sea admin
+  const { data: me, isLoading: meLoading } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => base44.auth.me(),
+    staleTime: Infinity,
+  });
+
   useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        const me = await base44.auth.me();
-        if (me?.role !== 'admin') {
-          navigate('/');
-          return;
-        }
-        setIsAdmin(true);
-      } catch {
-        navigate('/');
-      }
-    };
-    checkAdmin();
-  }, [navigate]);
+    if (me && me.role !== 'admin') {
+      navigate('/');
+    } else if (me?.role === 'admin') {
+      setIsAdmin(true);
+    }
+  }, [me, navigate]);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
@@ -112,10 +109,10 @@ export default function UsersPage() {
     }
   };
 
-  if (!isAdmin) {
+  if (meLoading || !isAdmin) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto text-center py-10">
-        <p className="text-muted-foreground">Solo administradores pueden acceder aquí.</p>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto flex items-center justify-center py-10">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
       </div>
     );
   }
