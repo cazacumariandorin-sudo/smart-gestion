@@ -2,87 +2,90 @@
   "name": "NotaGastos",
   "type": "object",
   "properties": {
-    "operario_id": {
-      "type": "string",
-      "description": "ID del operario"
-    },
-    "operario_name": {
-      "type": "string",
-      "description": "Nombre del operario"
-    },
     "titulo": {
       "type": "string",
-      "description": "T\u00edtulo / referencia de la nota"
+      "description": "T\u00edtulo de la nota de gastos"
     },
-    "fecha_inicio": {
+    "fecha": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de inicio del per\u00edodo"
+      "description": "Fecha del gasto"
     },
-    "fecha_cierre": {
+    "concepto": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha de cierre de la nota"
+      "enum": [
+        "gasolina",
+        "parking",
+        "material",
+        "peaje",
+        "otro"
+      ],
+      "description": "Categor\u00eda del gasto"
+    },
+    "importe": {
+      "type": "number",
+      "description": "Importe en \u20ac"
+    },
+    "cif": {
+      "type": "string",
+      "description": "CIF/NIF del proveedor"
+    },
+    "proveedor": {
+      "type": "string",
+      "description": "Nombre del proveedor"
+    },
+    "direccion": {
+      "type": "string",
+      "description": "Direcci\u00f3n del proveedor"
+    },
+    "codigo_postal": {
+      "type": "string",
+      "description": "C\u00f3digo postal"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n detallada del gasto"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Notas adicionales"
+    },
+    "archivos": {
+      "type": "array",
+      "description": "Archivos adjuntos (tickets, facturas, fotos)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "fecha_subida": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
     },
     "estado": {
       "type": "string",
       "enum": [
-        "abierta",
-        "cerrada"
+        "pendiente",
+        "aprobado",
+        "rechazado"
       ],
-      "default": "abierta",
-      "description": "Estado de la nota de gastos"
-    },
-    "total": {
-      "type": "number",
-      "description": "Total de la nota (\u20ac)"
-    },
-    "notas": {
-      "type": "string",
-      "description": "Observaciones"
+      "default": "pendiente",
+      "description": "Estado de la nota"
     }
   },
   "required": [
-    "operario_id",
-    "fecha_inicio"
-  ],
-  "rls": {
-    "create": true,
-    "read": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "created_by": "{{user.email}}"
-        }
-      ]
-    },
-    "update": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "created_by": "{{user.email}}"
-        }
-      ]
-    },
-    "delete": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "created_by": "{{user.email}}"
-        }
-      ]
-    }
-  }
+    "titulo",
+    "concepto",
+    "importe"
+  ]
 }
