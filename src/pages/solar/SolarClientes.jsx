@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { Plus, Search, Pencil, Trash2, Users, Loader2, Save, X, Mail, Phone, Building2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Users, Loader2, Save, X, Mail, Phone, Building2, Database, PenLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,10 +27,18 @@ export default function SolarClientes() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  // 'select' = picker from obras clients | 'manual' = manual form
+  const [mode, setMode] = useState('select');
+  const [clientSearch, setClientSearch] = useState('');
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ['solar_clientes'],
     queryFn: () => base44.entities.SolarCliente.list('name', 300),
+  });
+
+  const { data: obrasClientes = [] } = useQuery({
+    queryKey: ['clients_obras'],
+    queryFn: () => base44.entities.Client.list('name', 300),
   });
 
   const createM = useMutation({
@@ -48,8 +56,29 @@ export default function SolarClientes() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['solar_clientes'] }); toast.success('Cliente eliminado'); },
   });
 
-  const open_ = (c = null) => { setEditing(c); setForm(c ? { ...c } : emptyForm); setDialogOpen(true); };
-  const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyForm); };
+  const open_ = (c = null) => {
+    setEditing(c);
+    setForm(c ? { ...c } : emptyForm);
+    setMode(c ? 'manual' : 'select');
+    setClientSearch('');
+    setDialogOpen(true);
+  };
+  const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyForm); setClientSearch(''); };
+
+  const importFromObrasClient = (oc) => {
+    setForm({
+      name: oc.name || '',
+      nif: oc.nif || '',
+      address: oc.address || '',
+      postal_code: oc.postal_code || '',
+      phone: oc.contacto_admin?.telefono || (oc.tecnicos?.[0]?.telefono) || '',
+      email: oc.contacto_admin?.email || (oc.tecnicos?.[0]?.email) || '',
+      tipo: 'empresa',
+      active: true,
+      notes: '',
+    });
+    setMode('manual');
+  };
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const handleSave = () => {
@@ -126,7 +155,84 @@ export default function SolarClientes() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? 'Editar cliente' : 'Nuevo cliente solar'}</DialogTitle></DialogHeader>
+
+          {/* Mode selector — only on new */}
+          {!editing && (
+            <div className="flex gap-2 -mt-1">
+              <button
+                type="button"
+                onClick={() => setMode('select')}
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-colors ${mode === 'select' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-muted-foreground border-border hover:bg-muted/80'}`}
+              >
+                <Database className="w-4 h-4" /> Desde base de datos
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('manual')}
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-muted-foreground border-border hover:bg-muted/80'}`}
+              >
+                <PenLine className="w-4 h-4" /> Añadir manualmente
+              </button>
+            </div>
+          )}
+
+          {/* SELECT FROM OBRAS DB */}
+          {mode === 'select' && !editing && (
+            <div className="space-y-3 py-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar en clientes de obras..."
+                  value={clientSearch}
+                  onChange={e => setClientSearch(e.target.value)}
+                  className="pl-9"
+                  autoFocus
+                />
+              </div>
+              <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
+                {obrasClientes
+                  .filter(oc => {
+                    if (!clientSearch) return true;
+                    const q = clientSearch.toLowerCase();
+                    return oc.name?.toLowerCase().includes(q) || oc.nif?.toLowerCase().includes(q);
+                  })
+                  .map(oc => (
+                    <button
+                      key={oc.id}
+                      type="button"
+                      onClick={() => importFromObrasClient(oc)}
+                      className="w-full text-left rounded-xl border border-border hover:border-primary hover:bg-accent/40 transition-colors px-4 py-3 group"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-sm group-hover:text-primary">{oc.name}</p>
+                          <p className="text-xs text-muted-foreground">{oc.nif || ''}{oc.nif && oc.address ? ' · ' : ''}{oc.address || ''}</p>
+                        </div>
+                        <Plus className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0" />
+                      </div>
+                    </button>
+                  ))}
+                {obrasClientes.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-6">No hay clientes en la base de datos de obras</p>
+                )}
+              </div>
+              <div className="pt-1 border-t border-border">
+                <button type="button" onClick={() => setMode('manual')} className="text-xs text-primary hover:underline flex items-center gap-1">
+                  <PenLine className="w-3 h-3" /> ¿No está en la lista? Añadir manualmente
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* MANUAL FORM */}
+          {(mode === 'manual' || editing) && (
           <div className="space-y-4 py-2">
+            {form.name && !editing && (
+              <div className="flex items-center gap-2 text-xs bg-accent/50 text-accent-foreground rounded-lg px-3 py-2">
+                <Database className="w-3.5 h-3.5 shrink-0 text-primary" />
+                Datos importados de la BD — revisa y guarda
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Nombre *</Label>
@@ -171,12 +277,16 @@ export default function SolarClientes() {
               </div>
             </div>
           </div>
+          )}
+
+          {(mode === 'manual' || editing) && (
           <DialogFooter>
             <Button variant="outline" onClick={close_}>Cancelar</Button>
             <Button onClick={handleSave} disabled={!form.name || isPending} className="gap-2 min-w-24">
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar
             </Button>
           </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </div>
