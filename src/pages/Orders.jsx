@@ -55,6 +55,7 @@ export default function Orders() {
   const { data: orders = [], isLoading } = useQuery({ queryKey: ['orders'], queryFn: () => base44.entities.Order.list('-date', 300) });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
   const { data: materials = [] } = useQuery({ queryKey: ['material_catalog'], queryFn: () => base44.entities.MaterialCatalog.list('name', 500) });
+  const { data: obras = [] } = useQuery({ queryKey: ['obras'], queryFn: () => base44.entities.Obra.list('name', 300) });
 
   const createM = useOptimisticMutation(
     d => base44.entities.Order.create(d),
@@ -147,7 +148,7 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
     setOcrDone(true);
   };
 
-  const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setUploadedFiles([]); setOcrFile(null); setOcrDone(false); setDialogOpen(true); };
+  const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setUploadedFiles(o?.attached_files || []); setOcrFile(null); setOcrDone(false); setDialogOpen(true); };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyOrder); };
   const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -319,22 +320,43 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
                   </div>
                 </div>
                 {/* Expanded items */}
-                {isExpanded && order.items?.length > 0 && (
-                  <div className="border-t border-border bg-muted/30 px-4 py-3">
-                    <p className="text-xs font-semibold text-muted-foreground mb-2">LÍNEAS DEL PEDIDO</p>
-                    <div className="space-y-1.5">
-                      {order.items.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between text-xs bg-card rounded-lg px-3 py-2">
-                           <span className="font-medium">{item.material_name}</span>
-                           <div className="flex items-center gap-4 text-muted-foreground">
-                             <span>{item.quantity} {item.unit}</span>
-                             {showPrices && item.unit_price > 0 && <span>{item.unit_price.toFixed(2)} €/{item.unit}</span>}
-                             {showPrices && item.total_price > 0 && <span className="font-semibold text-foreground">{item.total_price.toFixed(2)} €</span>}
-                           </div>
-                         </div>
-                      ))}
-                    </div>
-                    {order.notes && <p className="text-xs text-muted-foreground mt-2 italic">{order.notes}</p>}
+                {isExpanded && (
+                  <div className="border-t border-border bg-muted/30 px-4 py-3 space-y-3">
+                    {order.items?.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">LÍNEAS DEL PEDIDO</p>
+                        <div className="space-y-1.5">
+                          {order.items.map((item, i) => (
+                            <div key={i} className="flex items-center justify-between text-xs bg-card rounded-lg px-3 py-2">
+                              <span className="font-medium">{item.material_name}</span>
+                              <div className="flex items-center gap-4 text-muted-foreground">
+                                <span>{item.quantity} {item.unit}</span>
+                                {showPrices && item.unit_price > 0 && <span>{item.unit_price.toFixed(2)} €/{item.unit}</span>}
+                                {showPrices && item.total_price > 0 && <span className="font-semibold text-foreground">{item.total_price.toFixed(2)} €</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {order.notes && <p className="text-xs text-muted-foreground italic">{order.notes}</p>}
+                    {order.attached_files?.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">ARCHIVOS ADJUNTOS</p>
+                        <div className="space-y-1.5">
+                          {order.attached_files.map((f, i) => (
+                            <div key={i} className="flex items-center gap-2 text-xs bg-card rounded-lg px-3 py-2">
+                              <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span className="flex-1 truncate font-medium">{f.name}</span>
+                              <a href={f.url} target="_blank" rel="noopener noreferrer" download={f.name}
+                                className="flex items-center gap-1 text-primary hover:underline shrink-0">
+                                <ExternalLink className="w-3 h-3" /> Ver / Descargar
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </Card>
@@ -375,7 +397,16 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">{t('project')} *</Label>
-                <Input value={form.project} onChange={e => setField('project', e.target.value)} placeholder="Obra..." />
+                <MobileSelect value={form.project} onValueChange={v => setField('project', v)} placeholder="Seleccionar obra...">
+                  {obras.map(o => <MobileSelectItem key={o.id} value={o.name}>{o.name}{o.code ? ` (${o.code})` : ''}</MobileSelectItem>)}
+                  <MobileSelectItem value="__manual">— Escribir manualmente —</MobileSelectItem>
+                </MobileSelect>
+                {form.project === '__manual' && (
+                  <Input value="" onChange={e => setField('project', e.target.value)} placeholder="Nombre de la obra..." className="mt-1" />
+                )}
+                {form.project && form.project !== '__manual' && !obras.find(o => o.name === form.project) && (
+                  <Input value={form.project} onChange={e => setField('project', e.target.value)} placeholder="Nombre de la obra..." className="mt-1" />
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">{t('date')}</Label>
@@ -515,19 +546,7 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
                   ))}
                 </div>
               )}
-              {/* Show existing files if editing */}
-              {editing?.attached_files?.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground">Archivos existentes:</p>
-                  {editing.attached_files.map((f, i) => (
-                    <div key={i} className="flex items-center gap-3 p-2 border rounded-lg bg-muted/20">
-                      <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <span className="text-xs flex-1 truncate">{f.name}</span>
-                      <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="w-3 h-3" />Ver</a>
-                    </div>
-                  ))}
-                </div>
-              )}
+
             </div>
           </TabsContent>
           </Tabs>
