@@ -50,9 +50,7 @@
     "hora_entrada"
   ],
   "rls": {
-    "create": {
-      "data.operario_id": "{{user.id}}"
-    },
+    "create": true,
     "read": {
       "$or": [
         {
@@ -61,7 +59,17 @@
           }
         },
         {
-          "data.operario_id": "{{user.id}}"
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "control_horario"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
         }
       ]
     },
@@ -73,7 +81,17 @@
           }
         },
         {
-          "data.operario_id": "{{user.id}}"
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "control_horario"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
         }
       ]
     },
@@ -85,7 +103,12 @@
           }
         },
         {
-          "data.operario_id": "{{user.id}}"
+          "user_condition": {
+            "role": "control_horario"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
         }
       ]
     }

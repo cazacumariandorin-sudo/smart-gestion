@@ -55,9 +55,7 @@
     "cantidad"
   ],
   "rls": {
-    "create": {
-      "data.operario_id": "{{user.id}}"
-    },
+    "create": true,
     "read": {
       "$or": [
         {
@@ -66,7 +64,12 @@
           }
         },
         {
-          "data.operario_id": "{{user.id}}"
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
         }
       ]
     },
@@ -78,7 +81,12 @@
           }
         },
         {
-          "data.operario_id": "{{user.id}}"
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
         }
       ]
     },
@@ -90,7 +98,12 @@
           }
         },
         {
-          "data.operario_id": "{{user.id}}"
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
         }
       ]
     }

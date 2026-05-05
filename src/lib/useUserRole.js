@@ -39,7 +39,7 @@ export function useUserRole() {
 
     const perms = {
       // Acceso completo
-      admin: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'users', 'materials', 'drawings', 'orders', 'operarios', 'gastos-operarios', 'control-horario', 'obras', 'calendario-vacaciones', 'manuales', 'informe-obras'],
+      admin: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'users', 'materials', 'drawings', 'orders', 'operarios', 'gastos-operarios', 'control-horario', 'obras', 'calendario-vacaciones', 'manuales', 'informe-obras', 'fabricantes', 'admin-backup', 'datos-sensibles', 'demo-users'],
       // Jefe de obra: partes, clientes, pedidos+obras, informes, fotos
       jefe_obra: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'materials', 'drawings', 'manuales', 'informe-obras'],
       // Usuario/Operario: horario propio, docs propios, gastos propios, docs obra, pedidos+obras, vacaciones, partes, fotos

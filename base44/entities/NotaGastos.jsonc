@@ -6,6 +6,14 @@
       "type": "string",
       "description": "T\u00edtulo de la nota de gastos"
     },
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario propietario"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario"
+    },
     "fecha": {
       "type": "string",
       "format": "date",
@@ -81,11 +89,73 @@
       ],
       "default": "pendiente",
       "description": "Estado de la nota"
+    },
+    "total": {
+      "type": "number",
+      "description": "Total de la nota"
+    },
+    "fecha_inicio": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio del per\u00edodo"
+    },
+    "fecha_cierre": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de cierre de la nota"
     }
   },
   "required": [
     "titulo",
-    "concepto",
     "importe"
-  ]
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  }
 }
