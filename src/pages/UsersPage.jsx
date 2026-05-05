@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useNavigate } from 'react-router-dom';
 import { UserPlus, Loader2, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 
 export default function UsersPage() {
+  const navigate = useNavigate();
   const qc = useQueryClient();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [openInvite, setOpenInvite] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [email, setEmail] = useState('');
@@ -21,12 +24,30 @@ export default function UsersPage() {
   const [error, setError] = useState('');
   const [editingUser, setEditingUser] = useState(null);
 
+  // Verificar que el usuario sea admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const me = await base44.auth.me();
+        if (me?.role !== 'admin') {
+          navigate('/');
+          return;
+        }
+        setIsAdmin(true);
+      } catch {
+        navigate('/');
+      }
+    };
+    checkAdmin();
+  }, [navigate]);
+
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       const result = await base44.entities.User.list('full_name', 100);
       return result || [];
     },
+    enabled: isAdmin,
   });
 
   const inviteMutation = useMutation({
@@ -91,10 +112,18 @@ export default function UsersPage() {
     }
   };
 
+  if (!isAdmin) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto text-center py-10">
+        <p className="text-muted-foreground">Solo administradores pueden acceder aquí.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">Usuarios ({users.length})</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Gestión de Usuarios ({users.length})</h1>
         <Button onClick={() => setOpenInvite(true)} className="gap-2">
           <UserPlus className="w-4 h-4" /> Invitar
         </Button>
