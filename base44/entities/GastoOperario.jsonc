@@ -23,6 +23,7 @@
       "type": "string",
       "enum": [
         "combustible",
+        "comida",
         "material",
         "varios",
         "peaje",
