@@ -22,14 +22,15 @@
       "type": "string",
       "enum": [
         "doc_operario",
-        "doc_obra"
+        "doc_obra",
+        "doc_empresa"
       ],
       "default": "doc_operario",
-      "description": "Tipo de documento"
+      "description": "Tipo: doc_operario=propio operario, doc_obra=documentaci\u00f3n de obra, doc_empresa=documento empresa para firmar"
     },
     "categoria": {
       "type": "string",
-      "description": "Categor\u00eda del documento (DNI, contrato, certificado, plano, permiso...)"
+      "description": "Categor\u00eda del documento"
     },
     "title": {
       "type": "string",
@@ -48,6 +49,20 @@
     "file_url": {
       "type": "string",
       "description": "URL del archivo"
+    },
+    "firma_url": {
+      "type": "string",
+      "description": "URL imagen firma del operario"
+    },
+    "fecha_firma": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en que fue firmado"
+    },
+    "firmado": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si el operario ha firmado el documento"
     },
     "notes": {
       "type": "string",
