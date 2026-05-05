@@ -31,7 +31,7 @@ const ROLES_TO_SIMULATE = [
   { value: 'cliente_obra', label: 'Cliente Obra' },
 ];
 
-export default function Users() {
+function Users() {
   const queryClient = useQueryClient();
   const { isAdmin: currentUserIsAdmin } = useUserRole();
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -376,3 +376,5 @@ function UserRow({ user, today, openEdit, deleteMutation }) {
     </Card>
   );
 }
+
+export default Users;
