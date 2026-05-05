@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useI18n } from '@/lib/i18n';
-import { Plus, Search, Pencil, Trash2, ShoppingCart, Loader2, Save, Truck, Package, Euro, X, ChevronDown, ChevronUp, Upload, FileText, ExternalLink } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ShoppingCart, Loader2, Save, Truck, Package, Euro, X, ChevronDown, ChevronUp, Upload, FileText, ExternalLink, Sparkles, CheckCircle2 } from 'lucide-react';
+import { useUserRole } from '@/lib/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +37,8 @@ const emptyItem = { material_id: '', material_name: '', quantity: 1, unit: '', u
 export default function Orders() {
   const { t } = useI18n();
   const qc = useQueryClient();
+  const { role } = useUserRole();
+  const showPrices = role === 'admin';
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [clientFilter, setClientFilter] = useState('all');
@@ -45,6 +48,9 @@ export default function Orders() {
   const [expandedId, setExpandedId] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [ocrFile, setOcrFile] = useState(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrDone, setOcrDone] = useState(false);
 
   const { data: orders = [], isLoading } = useQuery({ queryKey: ['orders'], queryFn: () => base44.entities.Order.list('-date', 300) });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
@@ -68,7 +74,80 @@ export default function Orders() {
     (prev, id) => prev.filter(o => o.id !== id)
   );
 
-  const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setUploadedFiles([]); setDialogOpen(true); };
+  const handleOcrImport = async (file) => {
+    if (!file) return;
+    setOcrFile(file);
+    setOcrLoading(true);
+    setOcrDone(false);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const result = await base44.integrations.Core.InvokeLLM({
+      prompt: `Extrae todos los datos del siguiente documento de pedido/albarán/factura de compra.
+Devuelve un JSON con exactamente esta estructura:
+{
+  "order_number": "número de pedido o albarán si existe, si no cadena vacía",
+  "supplier": "nombre del proveedor/vendedor",
+  "date": "fecha en formato YYYY-MM-DD, si no hay usa la fecha de hoy",
+  "notes": "observaciones o comentarios relevantes",
+  "items": [
+    {
+      "material_name": "descripción del artículo",
+      "quantity": número,
+      "unit": "unidad (ud, m, kg, etc)",
+      "unit_price": número con decimales,
+      "total_price": número con decimales
+    }
+  ]
+}
+Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de artículos que aparezcan.`,
+      file_urls: [file_url],
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          order_number: { type: 'string' },
+          supplier: { type: 'string' },
+          date: { type: 'string' },
+          notes: { type: 'string' },
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                material_name: { type: 'string' },
+                quantity: { type: 'number' },
+                unit: { type: 'string' },
+                unit_price: { type: 'number' },
+                total_price: { type: 'number' },
+              }
+            }
+          }
+        }
+      }
+    });
+    const data = result;
+    const items = (data.items || []).map(it => ({
+      material_id: '',
+      material_name: it.material_name || '',
+      quantity: it.quantity || 1,
+      unit: it.unit || '',
+      unit_price: it.unit_price || 0,
+      total_price: it.total_price || (it.quantity * it.unit_price) || 0,
+    }));
+    const total_amount = items.reduce((s, it) => s + (it.total_price || 0), 0);
+    setForm(p => ({
+      ...p,
+      order_number: data.order_number || p.order_number,
+      supplier: data.supplier || p.supplier,
+      date: data.date || p.date,
+      notes: data.notes || p.notes,
+      items,
+      total_amount,
+    }));
+    setUploadedFiles(prev => [...prev, { name: file.name, url: file_url, type: file.name.split('.').pop()?.toLowerCase() }]);
+    setOcrLoading(false);
+    setOcrDone(true);
+  };
+
+  const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setUploadedFiles([]); setOcrFile(null); setOcrDone(false); setDialogOpen(true); };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyOrder); };
   const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -207,7 +286,7 @@ export default function Orders() {
                         <span>{order.client_name}</span>
                         {order.supplier && <span>· {order.supplier}</span>}
                         {order.date && <span>· {format(parseISO(order.date), 'd MMM yyyy', { locale: es })}</span>}
-                        {order.total_amount > 0 && <span className="font-semibold text-foreground">· {order.total_amount.toFixed(2)} €</span>}
+                        {showPrices && order.total_amount > 0 && <span className="font-semibold text-foreground">· {order.total_amount.toFixed(2)} €</span>}
                       </div>
                       {order.tracking_number && (
                         <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
@@ -246,13 +325,13 @@ export default function Orders() {
                     <div className="space-y-1.5">
                       {order.items.map((item, i) => (
                         <div key={i} className="flex items-center justify-between text-xs bg-card rounded-lg px-3 py-2">
-                          <span className="font-medium">{item.material_name}</span>
-                          <div className="flex items-center gap-4 text-muted-foreground">
-                            <span>{item.quantity} {item.unit}</span>
-                            {item.unit_price > 0 && <span>{item.unit_price.toFixed(2)} €/{item.unit}</span>}
-                            {item.total_price > 0 && <span className="font-semibold text-foreground">{item.total_price.toFixed(2)} €</span>}
-                          </div>
-                        </div>
+                           <span className="font-medium">{item.material_name}</span>
+                           <div className="flex items-center gap-4 text-muted-foreground">
+                             <span>{item.quantity} {item.unit}</span>
+                             {showPrices && item.unit_price > 0 && <span>{item.unit_price.toFixed(2)} €/{item.unit}</span>}
+                             {showPrices && item.total_price > 0 && <span className="font-semibold text-foreground">{item.total_price.toFixed(2)} €</span>}
+                           </div>
+                         </div>
                       ))}
                     </div>
                     {order.notes && <p className="text-xs text-muted-foreground mt-2 italic">{order.notes}</p>}
@@ -271,7 +350,8 @@ export default function Orders() {
           <Tabs defaultValue="datos">
             <TabsList className="mb-4">
               <TabsTrigger value="datos">📋 Datos del pedido</TabsTrigger>
-              <TabsTrigger value="archivos">📎 Subir archivos</TabsTrigger>
+              <TabsTrigger value="importar">✨ Importar OCR</TabsTrigger>
+              <TabsTrigger value="archivos">📎 Archivos</TabsTrigger>
             </TabsList>
           <TabsContent value="datos">
           <div className="space-y-4 py-2">
@@ -336,15 +416,15 @@ export default function Orders() {
                   {(item.material_id === '_manual' || !item.material_id) && (
                     <Input placeholder="Nombre del material" value={item.material_name} onChange={e => updateItem(i, 'material_name', e.target.value)} className="h-8 text-xs" />
                   )}
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className={`grid gap-2 ${showPrices ? 'grid-cols-4' : 'grid-cols-2'}`}>
                     <Input type="number" placeholder="Cant." value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} className="h-8 text-xs" min="0" step="0.01" />
                     <Input placeholder="Ud." value={item.unit} onChange={e => updateItem(i, 'unit', e.target.value)} className="h-8 text-xs" />
-                    <Input type="number" placeholder="€/ud" value={item.unit_price} onChange={e => updateItem(i, 'unit_price', e.target.value)} className="h-8 text-xs" min="0" step="0.01" />
-                    <div className="h-8 flex items-center justify-end text-xs font-semibold text-primary">{(item.total_price || 0).toFixed(2)} €</div>
+                    {showPrices && <Input type="number" placeholder="€/ud" value={item.unit_price} onChange={e => updateItem(i, 'unit_price', e.target.value)} className="h-8 text-xs" min="0" step="0.01" />}
+                    {showPrices && <div className="h-8 flex items-center justify-end text-xs font-semibold text-primary">{(item.total_price || 0).toFixed(2)} €</div>}
                   </div>
                 </div>
               ))}
-              {form.items.length > 0 && (
+              {showPrices && form.items.length > 0 && (
                 <div className="flex items-center justify-end gap-2 pt-1">
                   <span className="text-sm text-muted-foreground">Total:</span>
                   <span className="text-lg font-bold text-primary">{form.total_amount?.toFixed(2) || '0.00'} €</span>
@@ -357,6 +437,57 @@ export default function Orders() {
               <Textarea value={form.notes} onChange={e => setField('notes', e.target.value)} rows={2} placeholder="Observaciones..." />
             </div>
           </div>
+          </TabsContent>
+
+          <TabsContent value="importar">
+            <div className="space-y-4 py-2">
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-start gap-3">
+                  <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold">Importar pedido con OCR + IA</p>
+                    <p className="text-xs text-muted-foreground mt-1">Sube una foto, PDF o imagen del pedido/albarán. La IA extraerá automáticamente los datos del pedido y todas las líneas de artículos.</p>
+                  </div>
+                </div>
+              </div>
+              <label className={`block border-2 border-dashed rounded-lg h-32 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${ocrLoading ? 'opacity-60 pointer-events-none' : 'hover:bg-muted/30'} ${ocrDone ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' : 'border-primary/30'}`}>
+                {ocrLoading ? (
+                  <>
+                    <Loader2 className="w-7 h-7 animate-spin text-primary" />
+                    <p className="text-xs text-primary font-medium">Analizando documento con IA...</p>
+                    <p className="text-[10px] text-muted-foreground">Esto puede tardar unos segundos</p>
+                  </>
+                ) : ocrDone ? (
+                  <>
+                    <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+                    <p className="text-xs text-emerald-700 font-semibold">¡Datos importados correctamente!</p>
+                    <p className="text-[10px] text-muted-foreground">Revisa la pestaña "Datos del pedido"</p>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-7 h-7 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground font-medium">Subir foto o PDF del pedido</p>
+                    <p className="text-[10px] text-muted-foreground">PDF, imagen (JPG, PNG), Excel</p>
+                  </>
+                )}
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx" className="hidden"
+                  onChange={e => e.target.files[0] && handleOcrImport(e.target.files[0])} />
+              </label>
+              {ocrFile && !ocrLoading && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" /> {ocrFile.name}
+                </p>
+              )}
+              {ocrDone && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 p-3">
+                  <p className="text-xs font-semibold text-emerald-700 mb-1">Resumen extraído:</p>
+                  <p className="text-xs text-emerald-600">· {form.items.length} línea(s) de artículos</p>
+                  {form.supplier && <p className="text-xs text-emerald-600">· Proveedor: {form.supplier}</p>}
+                  {form.order_number && <p className="text-xs text-emerald-600">· Nº pedido: {form.order_number}</p>}
+                  <p className="text-xs text-muted-foreground mt-1">Puedes editar los datos en la pestaña "Datos del pedido".</p>
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="archivos">
