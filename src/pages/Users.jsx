@@ -15,11 +15,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const roleConfig = {
-  admin: { label: 'Administrador', icon: Shield, className: 'bg-red-100 text-red-700 border-red-200', desc: 'Acceso completo a todos los módulos' },
-  jefe_obra: { label: 'Jefe de Obra', icon: UserCheck, className: 'bg-blue-100 text-blue-700 border-blue-200', desc: 'Partes · Clientes · Pedidos+Obras · Informes · Fotos' },
-  operario: { label: 'Usuario', icon: Hammer, className: 'bg-emerald-100 text-emerald-700 border-emerald-200', desc: 'Horario · Gastos · Docs obra · Pedidos+Obras · Partes · Fotos · Vacaciones' },
-  control_horario: { label: 'Control Horario', icon: Clock, className: 'bg-amber-100 text-amber-700 border-amber-200', desc: 'Control horario · Partes de trabajo · Pedidos+Obras' },
-  cliente_obra: { label: 'Cliente Obra', icon: Shield, className: 'bg-violet-100 text-violet-700 border-violet-200', desc: 'Solo informe de obras' },
+  admin: { label: 'Administrador', icon: Shield, className: 'bg-red-100 text-red-700 border-red-200', desc: 'Acceso completo' },
+  jefe_obra: { label: 'Jefe de Obra', icon: UserCheck, className: 'bg-blue-100 text-blue-700 border-blue-200', desc: 'Gestión de obras' },
+  operario: { label: 'Usuario', icon: Hammer, className: 'bg-emerald-100 text-emerald-700 border-emerald-200', desc: 'Operario' },
+  control_horario: { label: 'Control Horario', icon: Clock, className: 'bg-amber-100 text-amber-700 border-amber-200', desc: 'Control de horas' },
+  cliente_obra: { label: 'Cliente Obra', icon: Shield, className: 'bg-violet-100 text-violet-700 border-violet-200', desc: 'Cliente' },
 };
 
 const ACCESS_RANGES = ['1 semana', '2 semanas', '1 mes', '3 meses'];
@@ -46,7 +46,7 @@ function RoleSimulator() {
       <div className="flex items-center gap-2 mb-3">
         <Eye className="w-4 h-4 text-amber-600" />
         <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Simulador de rol</p>
-        <span className="text-xs text-amber-600 dark:text-amber-400">— previsualiza la app como cualquier rol sin cambiar datos</span>
+        <span className="text-xs text-amber-600 dark:text-amber-400">— previsualiza sin cambiar datos</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {ROLES_TO_SIMULATE.map(r => (
@@ -87,7 +87,7 @@ function UserRow({ user, today, openEdit, deleteMutation }) {
               <Mail className="w-3 h-3 shrink-0" /> {user.email}
             </p>
             {hasTempAccess && (
-              <p className="text-[10px] text-primary font-medium">Acceso completo hasta {user.acceso_total_hasta}</p>
+              <p className="text-[10px] text-primary font-medium">Acceso hasta {user.acceso_total_hasta}</p>
             )}
           </div>
         </div>
@@ -108,12 +108,12 @@ function UserRow({ user, today, openEdit, deleteMutation }) {
               <AlertDialogHeader>
                 <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Se eliminará permanentemente a <strong>{user.full_name || user.email}</strong>. Esta acción no se puede deshacer.
+                  Se eliminará a <strong>{user.full_name || user.email}</strong>.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => deleteMutation.mutate(user.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                <AlertDialogAction onClick={() => deleteMutation.mutate(user.id)} className="bg-destructive text-destructive-foreground">
                   Eliminar
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -210,12 +210,10 @@ export default function Users() {
   };
 
   const filtered = users.filter(u => filterRole === 'all' || (u.role || 'operario') === filterRole);
-
   const byRole = Object.keys(roleConfig).reduce((acc, r) => {
     acc[r] = users.filter(u => (u.role || 'operario') === r);
     return acc;
   }, {});
-
   const today = new Date().toISOString().split('T')[0];
 
   return (
@@ -255,7 +253,7 @@ export default function Users() {
       {isLoading ? (
         <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}</div>
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-10">No hay usuarios en esta categoría.</p>
+        <p className="text-sm text-muted-foreground text-center py-10">No hay usuarios.</p>
       ) : filterRole !== 'all' ? (
         <div className="space-y-2">
           {filtered.map(user => <UserRow key={user.id} user={user} today={today} openEdit={openEdit} deleteMutation={deleteMutation} />)}
@@ -326,12 +324,12 @@ export default function Users() {
 
             {(editForm._tipoAcceso === 'provisional' || (editForm.acceso_total_hasta && editForm.acceso_total_hasta >= new Date().toISOString().split('T')[0])) && (
               <div className="space-y-1.5">
-                <Label className="text-xs">Duración del acceso provisional</Label>
-                <MobileSelect value="" onValueChange={grantTempAccess} placeholder="Seleccionar duración...">
+                <Label className="text-xs">Duración acceso provisional</Label>
+                <MobileSelect value="" onValueChange={grantTempAccess} placeholder="Seleccionar...">
                   {ACCESS_RANGES.map(r => <MobileSelectItem key={r} value={r}>{r}</MobileSelectItem>)}
                 </MobileSelect>
                 {editForm.acceso_total_hasta && (
-                  <p className="text-[10px] text-primary font-medium">Acceso hasta: {editForm.acceso_total_hasta}</p>
+                  <p className="text-[10px] text-primary font-medium">Hasta: {editForm.acceso_total_hasta}</p>
                 )}
               </div>
             )}
