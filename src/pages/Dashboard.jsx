@@ -8,6 +8,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { useUserRole } from '@/lib/useUserRole';
 import NotificacionesFichaje from '@/components/dashboard/NotificacionesFichaje';
+import UserRoleDiagnostic from '@/components/debug/UserRoleDiagnostic';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -232,6 +233,7 @@ export default function Dashboard() {
 
   const visibleModules = ALL_MODULES.filter(m => canAccess(m.key));
   const recentOrders = orders.slice(0, 6);
+  const showDiagnostic = visibleModules.length === 0;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
@@ -257,7 +259,8 @@ export default function Dashboard() {
         ))}
       </div>
 
-
+      {/* Debug diagnostic when no modules are visible */}
+      {showDiagnostic && <UserRoleDiagnostic />}
     </div>
   );
 }
