@@ -103,6 +103,10 @@ export default function NotaGastosCard({ nota, gastos, operarios, canSeeAll, myO
   });
 
   const handleSaveGasto = (formData) => {
+    if (!formData.descripcion || !formData.categoria || !formData.importe) {
+      toast.error('Rellena categoría, importe y descripción');
+      return;
+    }
     const pre = myOperario
       ? { operario_id: myOperario.id, operario_name: myOperario.name }
       : { operario_id: nota.operario_id, operario_name: nota.operario_name };

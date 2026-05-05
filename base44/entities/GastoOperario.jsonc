@@ -103,6 +103,7 @@
     }
   },
   "required": [
+    "nota_id",
     "operario_id",
     "operario_name",
     "date",

@@ -89,6 +89,10 @@ Si no puedes extraer un campo ponlo como null.`,
   };
 
   const handleSave = () => {
+    if (!form.categoria || !form.importe || !form.descripcion) {
+      toast.error('Rellena categoría, importe y descripción');
+      return;
+    }
     onSave({ ...form, importe: parseFloat(form.importe) || 0 });
   };
 
@@ -174,7 +178,7 @@ Si no puedes extraer un campo ponlo como null.`,
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleClose(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={!form.categoria || !form.importe || isPending} className="gap-2 min-w-28">
+          <Button onClick={handleSave} disabled={!form.categoria || !form.importe || !form.descripcion || isPending} className="gap-2 min-w-28">
             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar
           </Button>
         </DialogFooter>
