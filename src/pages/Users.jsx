@@ -174,13 +174,19 @@ export default function Users() {
 
   const handleInvite = async () => {
     if (!inviteEmail) return;
-    setInviting(true); setInviteError('');
+    setInviting(true);
+    setInviteError('');
     try {
       await base44.users.inviteUser(inviteEmail, inviteRole === 'admin' ? 'admin' : 'user');
-      setInviteOpen(false); setInviteEmail(''); setInviteRole('operario');
+      setInviteOpen(false);
+      setInviteEmail('');
+      setInviteRole('operario');
       queryClient.invalidateQueries({ queryKey: ['users'] });
-    } catch (e) { setInviteError(e.message || 'Error al invitar'); }
-    setInviting(false);
+    } catch (e) {
+      setInviteError(e.message || 'Error al invitar');
+    } finally {
+      setInviting(false);
+    }
   };
 
   const grantTempAccess = (range) => {
