@@ -61,15 +61,14 @@ Si no puedes extraer un campo ponlo como null.`,
           }
         }
       });
-      const data = res.data || res;
       setForm(p => ({
         ...p,
         ticket_url: file_url,
-        importe: data.importe != null ? data.importe : p.importe,
-        proveedor: data.proveedor || p.proveedor,
-        date: data.fecha || p.date,
-        descripcion: data.descripcion || p.descripcion,
-        categoria: data.categoria && catCfg[data.categoria] ? data.categoria : p.categoria,
+        importe: res.importe != null ? res.importe : p.importe,
+        proveedor: res.proveedor || p.proveedor,
+        date: res.fecha || p.date,
+        descripcion: res.descripcion || p.descripcion,
+        categoria: res.categoria && catCfg[res.categoria] ? res.categoria : p.categoria,
       }));
       setOcrDone(true);
       toast.success('Datos extraídos del ticket');
