@@ -16,10 +16,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 const roleConfig = {
   admin:           { label: 'Administrador',   icon: Shield,    className: 'bg-red-100 text-red-700 border-red-200',            desc: 'Acceso completo a todos los módulos' },
-  jefe_obra:       { label: 'Jefe de Obra',    icon: UserCheck, className: 'bg-blue-100 text-blue-700 border-blue-200',         desc: 'Partes, clientes, pedidos, informes, fotos' },
-  operario:        { label: 'Operario',        icon: Hammer,    className: 'bg-emerald-100 text-emerald-700 border-emerald-200', desc: 'Control horario, partes, gastos, vacaciones' },
-  control_horario: { label: 'Control Horario', icon: Clock,     className: 'bg-amber-100 text-amber-700 border-amber-200',      desc: 'Solo control horario, partes y pedidos' },
-  cliente_obra:    { label: 'Cliente Obra',    icon: Shield,    className: 'bg-violet-100 text-violet-700 border-violet-200',   desc: 'Solo informe de operarios en obra' },
+  jefe_obra:       { label: 'Jefe de Obra',    icon: UserCheck, className: 'bg-blue-100 text-blue-700 border-blue-200',         desc: 'Partes · Clientes · Pedidos+Obras · Informes · Fotos' },
+  operario:        { label: 'Usuario',         icon: Hammer,    className: 'bg-emerald-100 text-emerald-700 border-emerald-200', desc: 'Horario · Gastos · Docs obra · Pedidos+Obras · Partes · Fotos · Vacaciones' },
+  control_horario: { label: 'Control Horario', icon: Clock,     className: 'bg-amber-100 text-amber-700 border-amber-200',      desc: 'Control horario · Partes de trabajo · Pedidos+Obras' },
+  cliente_obra:    { label: 'Cliente Obra',    icon: Shield,    className: 'bg-violet-100 text-violet-700 border-violet-200',   desc: 'Solo informe de obras' },
 };
 
 const ACCESS_RANGES = ['1 semana', '2 semanas', '1 mes', '3 meses'];
@@ -65,6 +65,64 @@ function RoleSimulator() {
         ))}
       </div>
     </div>
+  );
+}
+
+function UserRow({ user, today, openEdit, deleteMutation }) {
+  const role = user.role || 'operario';
+  const cfg = roleConfig[role] || roleConfig.operario;
+  const Icon = cfg.icon;
+  const hasTempAccess = user.acceso_total_hasta && user.acceso_total_hasta >= today;
+  const isDeleting = deleteMutation.isPending && deleteMutation.variables === user.id;
+
+  return (
+    <Card className={`p-4 transition-opacity ${isDeleting ? 'opacity-40 pointer-events-none' : ''}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${cfg.className}`}>
+            {(user.full_name || user.email || '?')[0].toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{user.full_name || '—'}</p>
+            <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+              <Mail className="w-3 h-3 shrink-0" /> {user.email}
+            </p>
+            {hasTempAccess && (
+              <p className="text-[10px] text-primary font-medium">Acceso completo hasta {user.acceso_total_hasta}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Badge variant="outline" className={`${cfg.className} text-xs items-center gap-1 hidden sm:flex`}>
+            <Icon className="w-3 h-3" /> {cfg.label}
+          </Badge>
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(user)}>
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive">
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Se eliminará permanentemente a <strong>{user.full_name || user.email}</strong>. Esta acción no se puede deshacer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteMutation.mutate(user.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Eliminar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -198,69 +256,30 @@ export default function Users() {
         <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}</div>
       ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-10">No hay usuarios en esta categoría.</p>
-      ) : (
+      ) : filterRole !== 'all' ? (
+        /* Filtered: flat list */
         <div className="space-y-2">
-          {filtered.map(user => {
-            const role = user.role || 'operario';
-            const cfg = roleConfig[role] || roleConfig.operario;
+          {filtered.map(user => <UserRow key={user.id} user={user} today={today} openEdit={openEdit} deleteMutation={deleteMutation} />)}
+        </div>
+      ) : (
+        /* All: grouped by role */
+        <div className="space-y-6">
+          {Object.entries(roleConfig).map(([roleKey, cfg]) => {
+            const group = byRole[roleKey] || [];
+            if (!group.length) return null;
             const Icon = cfg.icon;
-            const hasTempAccess = user.acceso_total_hasta && user.acceso_total_hasta >= today;
-            const isDeleting = deleteMutation.isPending && deleteMutation.variables === user.id;
-
             return (
-              <Card key={user.id} className={`p-4 transition-opacity ${isDeleting ? 'opacity-40 pointer-events-none' : ''}`}>
-                <div className="flex items-center justify-between gap-3">
-                  {/* Left: avatar + info */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${cfg.className}`}>
-                      {(user.full_name || user.email || '?')[0].toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold truncate">{user.full_name || '—'}</p>
-                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                        <Mail className="w-3 h-3 shrink-0" /> {user.email}
-                      </p>
-                      {hasTempAccess && (
-                        <p className="text-[10px] text-primary font-medium">Acceso completo hasta {user.acceso_total_hasta}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right: badge + actions */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Badge variant="outline" className={`${cfg.className} text-xs items-center gap-1 hidden sm:flex`}>
-                      <Icon className="w-3 h-3" /> {cfg.label}
-                    </Badge>
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(user)}>
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Se eliminará permanentemente a <strong>{user.full_name || user.email}</strong>. Esta acción no se puede deshacer.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteMutation.mutate(user.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Eliminar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+              <div key={roleKey}>
+                <div className={`flex items-center gap-2 mb-2 px-3 py-1.5 rounded-lg border ${cfg.className}`}>
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="text-xs font-bold">{cfg.label}</span>
+                  <span className="text-xs opacity-70">({group.length})</span>
+                  <span className="text-[10px] ml-auto hidden sm:block opacity-70">{cfg.desc}</span>
                 </div>
-              </Card>
+                <div className="space-y-2">
+                  {group.map(user => <UserRow key={user.id} user={user} today={today} openEdit={openEdit} deleteMutation={deleteMutation} />)}
+                </div>
+              </div>
             );
           })}
         </div>
