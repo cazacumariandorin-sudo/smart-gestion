@@ -73,9 +73,10 @@ export default function GastosOperarios() {
   const totalGeneral = filtered.reduce((s, n) => s + (n.total || 0), 0);
 
   const handleOpenNew = () => {
+    const opId = canSeeAll ? '' : (myOp?.id || '');
     setNewForm({
-      operario_id: myOp?.id || '',
-      operario_name: myOp?.name || '',
+      operario_id: opId,
+      operario_name: canSeeAll ? '' : (myOp?.name || ''),
       titulo: '',
       fecha_inicio: today,
       fecha_cierre: '',
@@ -91,9 +92,11 @@ export default function GastosOperarios() {
   };
 
   const handleCreate = () => {
-    if (newForm.operario_id && newForm.fecha_inicio) {
-      createM.mutate({ ...newForm, total: 0 });
+    if (!newForm.operario_id || !newForm.fecha_inicio) {
+      toast.error('Debe seleccionar operario y fecha inicio');
+      return;
     }
+    createM.mutate({ ...newForm, total: 0 });
   };
 
   return (
