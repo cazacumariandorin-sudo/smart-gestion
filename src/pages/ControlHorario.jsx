@@ -8,11 +8,15 @@ import ApuntesTab from '@/components/horario/ApuntesTab';
 import { Clock, BarChart3, Bell, ClipboardList } from 'lucide-react';
 import { useAlarmas } from '@/hooks/useAlarmas';
 import { useTabState } from '@/hooks/useTabState';
+import { useUserRole } from '@/lib/useUserRole';
 
 export default function ControlHorario() {
+  const { isAdmin } = useUserRole();
+  
   const { data: alarmas = [] } = useQuery({
     queryKey: ['alarmas'],
     queryFn: () => base44.entities.AlarmaHorario.list('hora', 100),
+    enabled: isAdmin, // Only admins can see alarms
   });
 
   // Activate alarm listener globally

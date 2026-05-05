@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useUserRole } from '@/lib/useUserRole';
 import { Building2, Users, Clock, ChevronLeft, ChevronRight, Calendar, BarChart2, ClipboardList } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +48,7 @@ function toDateStr(d) { return format(d, 'yyyy-MM-dd'); }
 // ─── component ─────────────────────────────────────────────────────────────
 
 export default function InformeObras() {
+  const { isAdmin, isJefeObra, isClienteObra, isControlHorario, user } = useUserRole();
   const [mainTab, setMainTab] = useState('informe');
   const [period, setPeriod] = useState('semana');
   const [anchor, setAnchor] = useState(new Date());
@@ -62,6 +64,16 @@ export default function InformeObras() {
     queryFn: () => base44.entities.Obra.list('name', 300),
   });
 
+  // Filter fichajes by role: cliente_obra can't see any, control_horario sees only their own
+  const roleFilteredFichajes = useMemo(() => {
+    if (isClienteObra) return []; // cliente_obra can't see fichajes
+    if (isControlHorario && !isAdmin && !isJefeObra) {
+      // control_horario sees only records where they are the operario
+      return fichajes.filter(f => f.operario_id === user?.id || f.operario_name === user?.full_name);
+    }
+    return fichajes; // admin/jefe_obra see all
+  }, [fichajes, isAdmin, isJefeObra, isClienteObra, isControlHorario, user]);
+
   const onRefresh = useCallback(async () => { await refetch(); }, [refetch]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
@@ -69,18 +81,18 @@ export default function InformeObras() {
 
   // Fichajes within range
   const filtered = useMemo(() => {
-    return fichajes.filter(f => {
+    return roleFilteredFichajes.filter(f => {
       if (!f.date) return false;
       const d = parseISO(f.date);
       const inRange = isWithinInterval(d, { start, end });
       const inObra = obraFilter === 'all' || f.project === obraFilter;
       return inRange && inObra;
     });
-  }, [fichajes, start, end, obraFilter]);
+  }, [roleFilteredFichajes, start, end, obraFilter]);
 
   // Build unique list of obras present in current range (for filter options)
   const obrasEnRango = useMemo(() => {
-    const names = [...new Set(fichajes
+    const names = [...new Set(roleFilteredFichajes
       .filter(f => {
         if (!f.date) return false;
         return isWithinInterval(parseISO(f.date), { start, end });
@@ -89,7 +101,7 @@ export default function InformeObras() {
       .filter(Boolean)
     )];
     return names.sort();
-  }, [fichajes, start, end]);
+  }, [roleFilteredFichajes, start, end]);
 
   // Group by obra → operario
   const grouped = useMemo(() => {
