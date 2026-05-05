@@ -10,57 +10,48 @@ import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
-function UsersPage() {
+export default function UsersPage() {
   const qc = useQueryClient();
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('operario');
-  const [inviting, setInviting] = useState(false);
-  const [inviteError, setInviteError] = useState('');
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('operario');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list('full_name', 100),
   });
 
-  const handleInvite = async () => {
-    if (!inviteEmail) return;
-    setInviting(true);
-    setInviteError('');
+  const invite = async () => {
+    if (!email) return;
+    setLoading(true);
+    setError('');
     try {
-      await base44.functions.invoke('inviteUserFunction', { email: inviteEmail, role: inviteRole });
-      setInviteOpen(false);
-      setInviteEmail('');
-      setInviteRole('operario');
+      await base44.functions.invoke('inviteUserFunction', { email, role });
+      setOpen(false);
+      setEmail('');
+      setRole('operario');
       qc.invalidateQueries({ queryKey: ['users'] });
     } catch (e) {
-      setInviteError(e.response?.data?.error || e.message || 'Error');
+      setError(e.message || 'Error');
     } finally {
-      setInviting(false);
+      setLoading(false);
     }
   };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Usuarios</h1>
-          <p className="text-sm text-muted-foreground mt-1">{users.length} usuarios</p>
-        </div>
-        <Button onClick={() => setInviteOpen(true)} className="gap-2">
+        <h1 className="text-2xl sm:text-3xl font-bold">Usuarios ({users.length})</h1>
+        <Button onClick={() => setOpen(true)} className="gap-2">
           <UserPlus className="w-4 h-4" /> Invitar
         </Button>
       </div>
 
-      {isLoading && (
-        <div className="space-y-2">
-          {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}
-        </div>
-      )}
+      {isLoading && <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}</div>}
 
-      {!isLoading && users.length === 0 && (
-        <p className="text-center py-10 text-muted-foreground">No hay usuarios.</p>
-      )}
+      {!isLoading && users.length === 0 && <p className="text-center py-10 text-muted-foreground">No hay usuarios.</p>}
 
       {!isLoading && users.length > 0 && (
         <div className="space-y-2">
@@ -81,7 +72,7 @@ function UsersPage() {
         </div>
       )}
 
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Invitar usuario</DialogTitle>
@@ -89,11 +80,11 @@ function UsersPage() {
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs">Email</Label>
-              <Input type="email" placeholder="email@ejemplo.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
+              <Input type="email" placeholder="email@ejemplo.com" value={email} onChange={e => setEmail(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Rol</Label>
-              <MobileSelect value={inviteRole} onValueChange={setInviteRole} placeholder="Rol">
+              <MobileSelect value={role} onValueChange={setRole} placeholder="Rol">
                 <MobileSelectItem value="admin">Administrador</MobileSelectItem>
                 <MobileSelectItem value="jefe_obra">Jefe de Obra</MobileSelectItem>
                 <MobileSelectItem value="operario">Usuario</MobileSelectItem>
@@ -101,12 +92,12 @@ function UsersPage() {
                 <MobileSelectItem value="cliente_obra">Cliente Obra</MobileSelectItem>
               </MobileSelect>
             </div>
-            {inviteError && <p className="text-xs text-destructive">{inviteError}</p>}
+            {error && <p className="text-xs text-destructive">{error}</p>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
-            <Button onClick={handleInvite} disabled={!inviteEmail || inviting} className="gap-2">
-              {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Invitar
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={invite} disabled={!email || loading} className="gap-2">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Invitar
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -114,5 +105,3 @@ function UsersPage() {
     </div>
   );
 }
-
-export default UsersPage;
