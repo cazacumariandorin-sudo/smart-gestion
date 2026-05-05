@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import {
   Plus, Trash2, Upload, Loader2, Save, ExternalLink, FileText,
-  File, PenLine, CheckCircle2, Building2, User, Briefcase, X
+  File, PenLine, CheckCircle2, Building2, User, Briefcase
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import DocSignaturePad from './DocSignaturePad';
+import DocSignaturePad from '@/components/operarios/DocSignaturePad.jsx';
 
 const DOC_CATS_OPERARIO = ['DNI/NIE', 'Contrato', 'Certificado PRL', 'Carnet conducir', 'Aptitud médica', 'Formación', 'Otro'];
 const DOC_CATS_OBRA     = ['Plano', 'Permiso obra', 'Proyecto', 'Acta', 'Medición', 'Otro'];

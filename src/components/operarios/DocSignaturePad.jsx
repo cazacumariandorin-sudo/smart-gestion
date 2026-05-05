@@ -2,14 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RotateCcw, Check } from 'lucide-react';
 
-/**
- * Pad de firma para documentos de operario.
- * Props:
- *   onSave(dataUrl) — called with base64 PNG when user confirms
- *   onCancel()
- *   existingSignature — URL to show if already signed
- */
-export default function DocSignaturePad({ onSave, onCancel, existingSignature }) {
+export default function DocSignaturePad({ onSave, onCancel }) {
   const canvasRef = useRef(null);
   const [drawing, setDrawing] = useState(false);
   const [hasDraw, setHasDraw] = useState(false);

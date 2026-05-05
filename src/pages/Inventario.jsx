@@ -191,7 +191,7 @@ export default function Inventario() {
                             <p className="font-semibold text-sm">{h.nombre}</p>
                             <Badge className={estCfg.color} variant="outline">{estCfg.label}</Badge>
                             {asignada && (
-                              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200" variant="outline" className="text-[10px]">
+                              <Badge variant="outline" className="bg-indigo-100 text-indigo-700 border-indigo-200 text-[10px]">
                                 📦 {asignada.operario_name}
                               </Badge>
                             )}
