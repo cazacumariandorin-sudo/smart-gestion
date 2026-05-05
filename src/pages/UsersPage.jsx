@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { UserPlus, Loader2 } from 'lucide-react';
+import { UserPlus, Loader2, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,14 +9,17 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 export default function UsersPage() {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openInvite, setOpenInvite] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('operario');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [editingUser, setEditingUser] = useState(null);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
@@ -26,20 +29,65 @@ export default function UsersPage() {
     },
   });
 
-  const handleInvite = async () => {
-    if (!email || loading) return;
-    setLoading(true);
-    setError('');
-    try {
+  const inviteMutation = useMutation({
+    mutationFn: async () => {
       await base44.functions.invoke('inviteUserFunction', { email, role });
-      setOpen(false);
+    },
+    onSuccess: () => {
+      setOpenInvite(false);
       setEmail('');
       setRole('operario');
-      await qc.invalidateQueries({ queryKey: ['users'] });
-    } catch (err) {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success('Usuario invitado');
+    },
+    onError: (err) => {
       setError(err?.message || 'Error al invitar usuario');
-    } finally {
-      setLoading(false);
+      toast.error('Error al invitar usuario');
+    },
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: async (newRole) => {
+      await base44.auth.updateMe({ role: newRole });
+    },
+    onSuccess: () => {
+      setOpenEdit(false);
+      setEditingUser(null);
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success('Rol actualizado');
+    },
+    onError: () => {
+      toast.error('Error al actualizar rol');
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId) => {
+      await base44.entities.User.delete(userId);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success('Usuario eliminado');
+    },
+    onError: () => {
+      toast.error('Error al eliminar usuario');
+    },
+  });
+
+  const handleInvite = async () => {
+    if (!email) return;
+    inviteMutation.mutate();
+  };
+
+  const handleEditRole = (user) => {
+    setEditingUser(user);
+    setRole(user.role || 'operario');
+    setOpenEdit(true);
+  };
+
+  const handleSaveRole = () => {
+    if (editingUser && role !== editingUser.role) {
+      updateRoleMutation.mutate(role);
     }
   };
 
@@ -47,7 +95,7 @@ export default function UsersPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold">Usuarios ({users.length})</h1>
-        <Button onClick={() => setOpen(true)} className="gap-2">
+        <Button onClick={() => setOpenInvite(true)} className="gap-2">
           <UserPlus className="w-4 h-4" /> Invitar
         </Button>
       </div>
@@ -69,13 +117,52 @@ export default function UsersPage() {
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </div>
-              <Badge variant="outline">{user.role || 'operario'}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{user.role || 'operario'}</Badge>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={() => handleEditRole(user)}
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Se eliminará {user.full_name || user.email}. Esta acción no se puede deshacer.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => deleteUserMutation.mutate(user.id)}
+                        className="bg-destructive text-destructive-foreground"
+                      >
+                        Eliminar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </Card>
           ))}
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      {/* Dialog Invitar */}
+      <Dialog open={openInvite} onOpenChange={setOpenInvite}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Invitar usuario</DialogTitle>
@@ -98,9 +185,36 @@ export default function UsersPage() {
             {error && <p className="text-xs text-destructive">{error}</p>}
           </div>
           <DialogFooter>
-           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-           <Button onClick={handleInvite} disabled={!email || loading} className="gap-2">
-             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Invitar
+           <Button variant="outline" onClick={() => setOpenInvite(false)}>Cancelar</Button>
+           <Button onClick={handleInvite} disabled={!email || inviteMutation.isPending} className="gap-2">
+             {inviteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Invitar
+           </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Editar Rol */}
+      <Dialog open={openEdit} onOpenChange={setOpenEdit}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar rol: {editingUser?.full_name || editingUser?.email}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Rol</Label>
+              <MobileSelect value={role} onValueChange={setRole} placeholder="Rol">
+                <MobileSelectItem value="admin">Administrador</MobileSelectItem>
+                <MobileSelectItem value="jefe_obra">Jefe de Obra</MobileSelectItem>
+                <MobileSelectItem value="operario">Usuario</MobileSelectItem>
+                <MobileSelectItem value="control_horario">Control Horario</MobileSelectItem>
+                <MobileSelectItem value="cliente_obra">Cliente Obra</MobileSelectItem>
+              </MobileSelect>
+            </div>
+          </div>
+          <DialogFooter>
+           <Button variant="outline" onClick={() => setOpenEdit(false)}>Cancelar</Button>
+           <Button onClick={handleSaveRole} disabled={role === editingUser?.role || updateRoleMutation.isPending} className="gap-2">
+             {updateRoleMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit2 className="w-4 h-4" />} Guardar
            </Button>
           </DialogFooter>
         </DialogContent>
