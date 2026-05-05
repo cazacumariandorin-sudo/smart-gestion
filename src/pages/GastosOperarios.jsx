@@ -12,34 +12,38 @@ import NotaGastosCard from '@/components/gastos/NotaGastosCard';
 import PageHeader from '@/components/layout/PageHeader';
 import { toast } from 'sonner';
 
+const emptyForm = {
+  operario_id: '', operario_name: '', titulo: '',
+  fecha_inicio: new Date().toISOString().split('T')[0], notas: ''
+};
+
 export default function GastosOperarios() {
   const qc = useQueryClient();
   const { isAdmin, isJefeObra, user } = useUserRole();
   const canSeeAll = isAdmin || isJefeObra;
 
   const [search, setSearch] = useState('');
-  const [operarioFilter, setOperarioFilter] = useState('all');
-  const [estadoFilter, setEstadoFilter] = useState('all');
-  const [newNotaOpen, setNewNotaOpen] = useState(false);
-  const [newNotaForm, setNewNotaForm] = useState({
-    operario_id: '', operario_name: '', titulo: '',
-    fecha_inicio: new Date().toISOString().split('T')[0], notas: ''
-  });
+  const [opFilter, setOpFilter] = useState('all');
+  const [estFilter, setEstFilter] = useState('all');
+  const [newOpen, setNewOpen] = useState(false);
+  const [newForm, setNewForm] = useState(emptyForm);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const opId = params.get('operario');
-    if (opId) setOperarioFilter(opId);
+    if (opId) setOpFilter(opId);
   }, []);
 
   const { data: notas = [], isLoading: notasLoading } = useQuery({
     queryKey: ['notas_gastos'],
     queryFn: () => base44.entities.NotaGastos.list('-created_date', 200)
   });
+
   const { data: gastos = [] } = useQuery({
     queryKey: ['gastos_operarios'],
     queryFn: () => base44.entities.GastoOperario.list('-date', 500)
   });
+
   const { data: operarios = [] } = useQuery({
     queryKey: ['operarios'],
     queryFn: () => base44.entities.Operario.list('name', 200)
@@ -47,31 +51,31 @@ export default function GastosOperarios() {
 
   const myOperario = !canSeeAll && user ? operarios.find(o => o.email === user.email) : null;
 
-  const createNotaM = useMutation({
+  const createM = useMutation({
     mutationFn: d => base44.entities.NotaGastos.create(d),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['notas_gastos'] });
-      setNewNotaOpen(false);
+      setNewOpen(false);
       toast.success('Nota de gastos creada');
     },
     onError: () => toast.error('Error al crear la nota'),
   });
 
-  const openNewNota = () => {
-    const preFilled = myOperario
+  const openNew = () => {
+    const pre = myOperario
       ? { operario_id: myOperario.id, operario_name: myOperario.name, titulo: '', fecha_inicio: new Date().toISOString().split('T')[0], notas: '' }
       : { operario_id: '', operario_name: '', titulo: '', fecha_inicio: new Date().toISOString().split('T')[0], notas: '' };
-    setNewNotaForm(preFilled);
-    setNewNotaOpen(true);
+    setNewForm(pre);
+    setNewOpen(true);
   };
 
   const handleOpChange = (id) => {
     const op = operarios.find(o => o.id === id);
-    setNewNotaForm(p => ({ ...p, operario_id: id, operario_name: op?.name || '' }));
+    setNewForm(p => ({ ...p, operario_id: id, operario_name: op?.name || '' }));
   };
 
-  const handleCreateNota = () => {
-    createNotaM.mutate({ ...newNotaForm, estado: 'abierta', total: 0 });
+  const handleCreate = () => {
+    createM.mutate({ ...newForm, estado: 'abierta', total: 0 });
   };
 
   const notasWithGastos = useMemo(() => {
@@ -81,13 +85,15 @@ export default function GastosOperarios() {
     }));
   }, [notas, gastos]);
 
-  const filtered = useMemo(() => notasWithGastos.filter(n => {
-    const q = search.toLowerCase();
-    const matchQ = !search || n.operario_name?.toLowerCase().includes(q) || n.titulo?.toLowerCase().includes(q);
-    const matchOp = operarioFilter === 'all' || n.operario_id === operarioFilter;
-    const matchEstado = estadoFilter === 'all' || n.estado === estadoFilter;
-    return matchQ && matchOp && matchEstado;
-  }), [notasWithGastos, search, operarioFilter, estadoFilter]);
+  const filtered = useMemo(() => {
+    return notasWithGastos.filter(n => {
+      const q = search.toLowerCase();
+      const matchQ = !search || n.operario_name?.toLowerCase().includes(q) || n.titulo?.toLowerCase().includes(q);
+      const matchOp = opFilter === 'all' || n.operario_id === opFilter;
+      const matchEst = estFilter === 'all' || n.estado === estFilter;
+      return matchQ && matchOp && matchEst;
+    });
+  }, [notasWithGastos, search, opFilter, estFilter]);
 
   const totalGeneral = filtered.reduce((s, n) => s + (n.total || 0), 0);
 
@@ -98,7 +104,7 @@ export default function GastosOperarios() {
         subtitle={`${filtered.length} notas · ${totalGeneral.toFixed(2)} € total`}
         backTo="/operarios"
         actions={
-          <Button onClick={openNewNota} className="gap-2 h-9">
+          <Button onClick={openNew} className="gap-2 h-9">
             <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nueva Nota</span>
           </Button>
         }
@@ -110,29 +116,33 @@ export default function GastosOperarios() {
             <Input placeholder="Buscar nota u operario..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
           {canSeeAll && (
-            <MobileSelect value={operarioFilter} onValueChange={setOperarioFilter} placeholder="Operario" triggerClassName="w-full sm:w-48">
+            <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-48">
               <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
               {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
             </MobileSelect>
           )}
-          <MobileSelect value={estadoFilter} onValueChange={setEstadoFilter} placeholder="Estado" triggerClassName="w-full sm:w-36">
+          <MobileSelect value={estFilter} onValueChange={setEstFilter} placeholder="Estado" triggerClassName="w-full sm:w-36">
             <MobileSelectItem value="all">Todas</MobileSelectItem>
             <MobileSelectItem value="abierta">Abiertas</MobileSelectItem>
             <MobileSelectItem value="cerrada">Cerradas</MobileSelectItem>
           </MobileSelect>
         </div>
 
-        {notasLoading ? (
+        {notasLoading && (
           <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />)}</div>
-        ) : filtered.length === 0 ? (
+        )}
+
+        {!notasLoading && filtered.length === 0 && (
           <div className="text-center py-16 border border-dashed rounded-xl">
             <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm text-muted-foreground mb-3">No hay notas de gastos</p>
-            <Button variant="outline" size="sm" onClick={openNewNota} className="gap-2">
+            <Button variant="outline" size="sm" onClick={openNew} className="gap-2">
               <Plus className="w-3.5 h-3.5" /> Crear primera nota
             </Button>
           </div>
-        ) : (
+        )}
+
+        {!notasLoading && filtered.length > 0 && (
           <div className="space-y-3">
             {filtered.map(nota => (
               <NotaGastosCard
@@ -148,7 +158,7 @@ export default function GastosOperarios() {
           </div>
         )}
 
-        <Dialog open={newNotaOpen} onOpenChange={setNewNotaOpen}>
+        <Dialog open={newOpen} onOpenChange={setNewOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -159,7 +169,7 @@ export default function GastosOperarios() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Operario *</Label>
                 {canSeeAll ? (
-                  <MobileSelect value={newNotaForm.operario_id} onValueChange={handleOpChange} placeholder="Seleccionar operario...">
+                  <MobileSelect value={newForm.operario_id} onValueChange={handleOpChange} placeholder="Seleccionar operario...">
                     {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
                   </MobileSelect>
                 ) : (
@@ -171,25 +181,25 @@ export default function GastosOperarios() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Título / Referencia</Label>
                 <Input
-                  value={newNotaForm.titulo}
-                  onChange={e => setNewNotaForm(p => ({ ...p, titulo: e.target.value }))}
+                  value={newForm.titulo}
+                  onChange={e => setNewForm(p => ({ ...p, titulo: e.target.value }))}
                   placeholder="Ej: Viaje Barcelona, Semana del 15..."
                 />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Fecha inicio *</Label>
-                <Input type="date" value={newNotaForm.fecha_inicio} onChange={e => setNewNotaForm(p => ({ ...p, fecha_inicio: e.target.value }))} />
+                <Input type="date" value={newForm.fecha_inicio} onChange={e => setNewForm(p => ({ ...p, fecha_inicio: e.target.value }))} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Observaciones</Label>
-                <Input value={newNotaForm.notas} onChange={e => setNewNotaForm(p => ({ ...p, notas: e.target.value }))} placeholder="Opcional..." />
+                <Input value={newForm.notas} onChange={e => setNewForm(p => ({ ...p, notas: e.target.value }))} placeholder="Opcional..." />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setNewNotaOpen(false)}>Cancelar</Button>
+              <Button variant="outline" onClick={() => setNewOpen(false)}>Cancelar</Button>
               <Button
-                onClick={handleCreateNota}
-                disabled={!newNotaForm.operario_id || !newNotaForm.fecha_inicio || createNotaM.isPending}
+                onClick={handleCreate}
+                disabled={!newForm.operario_id || !newForm.fecha_inicio || createM.isPending}
                 className="gap-2"
               >
                 <FileText className="w-4 h-4" /> Crear Nota
