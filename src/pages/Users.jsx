@@ -31,100 +31,6 @@ const ROLES_TO_SIMULATE = [
   { value: 'cliente_obra', label: 'Cliente Obra' },
 ];
 
-function RoleSimulator() {
-  const navigate = useNavigate();
-  const [current, setCurrent] = useState(getSimulatedRole());
-
-  const simulate = (role) => {
-    setSimulatedRole(role);
-    setCurrent(role);
-    navigate('/', { replace: true });
-  };
-
-  return (
-    <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Eye className="w-4 h-4 text-amber-600" />
-        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Simulador de rol</p>
-        <span className="text-xs text-amber-600 dark:text-amber-400">— previsualiza sin cambiar datos</span>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {ROLES_TO_SIMULATE.map(r => (
-          <button
-            key={r.value}
-            onClick={() => simulate(r.value)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-              current === r.value
-                ? 'bg-amber-500 text-white border-amber-500 shadow'
-                : 'bg-white dark:bg-card border-amber-300 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
-            }`}
-          >
-            {r.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function UserRow({ user, today, openEdit, deleteMutation }) {
-  const role = user.role || 'operario';
-  const cfg = roleConfig[role] || roleConfig.operario;
-  const Icon = cfg.icon;
-  const hasTempAccess = user.acceso_total_hasta && user.acceso_total_hasta >= today;
-  const isDeleting = deleteMutation.isPending && deleteMutation.variables === user.id;
-
-  return (
-    <Card className={`p-4 transition-opacity ${isDeleting ? 'opacity-40 pointer-events-none' : ''}`}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${cfg.className}`}>
-            {(user.full_name || user.email || '?')[0].toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold truncate">{user.full_name || '—'}</p>
-            <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-              <Mail className="w-3 h-3 shrink-0" /> {user.email}
-            </p>
-            {hasTempAccess && (
-              <p className="text-[10px] text-primary font-medium">Acceso hasta {user.acceso_total_hasta}</p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Badge variant="outline" className={`${cfg.className} text-xs items-center gap-1 hidden sm:flex`}>
-            <Icon className="w-3 h-3" /> {cfg.label}
-          </Badge>
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(user)}>
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive">
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Se eliminará a <strong>{user.full_name || user.email}</strong>.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => deleteMutation.mutate(user.id)} className="bg-destructive text-destructive-foreground">
-                  Eliminar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
 export default function Users() {
   const queryClient = useQueryClient();
   const { isAdmin: currentUserIsAdmin } = useUserRole();
@@ -376,5 +282,99 @@ export default function Users() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function RoleSimulator() {
+  const navigate = useNavigate();
+  const [current, setCurrent] = useState(getSimulatedRole());
+
+  const simulate = (role) => {
+    setSimulatedRole(role);
+    setCurrent(role);
+    navigate('/', { replace: true });
+  };
+
+  return (
+    <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Eye className="w-4 h-4 text-amber-600" />
+        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Simulador de rol</p>
+        <span className="text-xs text-amber-600 dark:text-amber-400">— previsualiza sin cambiar datos</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {ROLES_TO_SIMULATE.map(r => (
+          <button
+            key={r.value}
+            onClick={() => simulate(r.value)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+              current === r.value
+                ? 'bg-amber-500 text-white border-amber-500 shadow'
+                : 'bg-white dark:bg-card border-amber-300 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
+            }`}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function UserRow({ user, today, openEdit, deleteMutation }) {
+  const role = user.role || 'operario';
+  const cfg = roleConfig[role] || roleConfig.operario;
+  const Icon = cfg.icon;
+  const hasTempAccess = user.acceso_total_hasta && user.acceso_total_hasta >= today;
+  const isDeleting = deleteMutation.isPending && deleteMutation.variables === user.id;
+
+  return (
+    <Card className={`p-4 transition-opacity ${isDeleting ? 'opacity-40 pointer-events-none' : ''}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${cfg.className}`}>
+            {(user.full_name || user.email || '?')[0].toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{user.full_name || '—'}</p>
+            <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+              <Mail className="w-3 h-3 shrink-0" /> {user.email}
+            </p>
+            {hasTempAccess && (
+              <p className="text-[10px] text-primary font-medium">Acceso hasta {user.acceso_total_hasta}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Badge variant="outline" className={`${cfg.className} text-xs items-center gap-1 hidden sm:flex`}>
+            <Icon className="w-3 h-3" /> {cfg.label}
+          </Badge>
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(user)}>
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive">
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Se eliminará a <strong>{user.full_name || user.email}</strong>.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteMutation.mutate(user.id)} className="bg-destructive text-destructive-foreground">
+                  Eliminar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+    </Card>
   );
 }
