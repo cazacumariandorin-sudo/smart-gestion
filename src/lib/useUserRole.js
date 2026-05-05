@@ -22,12 +22,10 @@ export function useUserRole() {
   // Only allow simulation for real admins
   const isRealAdmin = realRole === 'admin';
   const role = (isRealAdmin && simulatedRole) ? simulatedRole : realRole;
-  const today = new Date().toISOString().split('T')[0];
-  const tempFullAccess = user?.acceso_total_hasta && user.acceso_total_hasta >= today;
 
   // When simulating, treat the simulated role as-is (no admin override)
   const isSimulating = isRealAdmin && !!simulatedRole;
-  const isAdmin = isSimulating ? false : (role === 'admin' || tempFullAccess);
+  const isAdmin = isSimulating ? false : (role === 'admin');
   const isJefeObra = role === 'jefe_obra' || isAdmin;
   const isOperario = role === 'operario' || isAdmin;
   const isControlHorario = role === 'control_horario' || isAdmin;
