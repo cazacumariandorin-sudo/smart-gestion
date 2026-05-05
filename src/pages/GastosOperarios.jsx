@@ -21,7 +21,7 @@ export default function GastosOperarios() {
   const [newOpen, setNewOpen] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
-  const [newForm, setNewForm] = useState({ operario_id: '', operario_name: '', titulo: '', fecha_inicio: today, notas: '' });
+  const [newForm, setNewForm] = useState({ operario_id: '', operario_name: '', titulo: '', fecha_inicio: today, fecha_cierre: '', notas: '', estado: 'abierta' });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -78,7 +78,9 @@ export default function GastosOperarios() {
       operario_name: myOp?.name || '',
       titulo: '',
       fecha_inicio: today,
-      notas: ''
+      fecha_cierre: '',
+      notas: '',
+      estado: 'abierta'
     });
     setNewOpen(true);
   };
@@ -90,7 +92,7 @@ export default function GastosOperarios() {
 
   const handleCreate = () => {
     if (newForm.operario_id && newForm.fecha_inicio) {
-      createM.mutate({ ...newForm, estado: 'abierta', total: 0 });
+      createM.mutate({ ...newForm, total: 0 });
     }
   };
 
@@ -160,6 +162,10 @@ export default function GastosOperarios() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Fecha inicio *</Label>
                 <Input type="date" value={newForm.fecha_inicio} onChange={e => setNewForm(p => ({ ...p, fecha_inicio: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Fecha cierre (opcional)</Label>
+                <Input type="date" value={newForm.fecha_cierre} onChange={e => setNewForm(p => ({ ...p, fecha_cierre: e.target.value }))} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Observaciones</Label>
