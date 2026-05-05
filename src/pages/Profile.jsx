@@ -1,10 +1,15 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Shield, LogOut, Trash2, ChevronRight, HelpCircle, FileText, Scale, Info } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  User, Mail, Shield, LogOut, Trash2, ChevronRight, HelpCircle,
+  FileText, Scale, Info, Phone, Briefcase, Pencil, Save, X, Hash, ShieldCheck,
+} from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -13,138 +18,334 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 
 const roleLabels = {
   admin: { label: 'Administrador', className: 'bg-red-100 text-red-700 border-red-200' },
-  encargado: { label: 'Encargado', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+  jefe_obra: { label: 'Jefe de Obra', className: 'bg-blue-100 text-blue-700 border-blue-200' },
   operario: { label: 'Operario', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  control_horario: { label: 'Control Horario', className: 'bg-purple-100 text-purple-700 border-purple-200' },
+  cliente_obra: { label: 'Cliente Obra', className: 'bg-orange-100 text-orange-700 border-orange-200' },
 };
 
+/** Genera iniciales desde el nombre completo (2 letras) */
+function buildInitials(fullName, email) {
+  if (fullName && fullName.trim()) {
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return (email || '?').slice(0, 2).toUpperCase();
+}
+
+/** Genera User ID con formato MMYY## */
+function generateUserId(createdDate, counter = 1) {
+  const d = new Date(createdDate || Date.now());
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+  const nn = String(counter).padStart(2, '0');
+  return `User-${mm}${yy}${nn}`;
+}
+
 export default function Profile() {
-  const [deleteStep, setDeleteStep] = useState(false);
-  const [legalDialog, setLegalDialog] = useState(null); // 'legal', 'gdpr', 'help'
+  const queryClient = useQueryClient();
+  const [legalDialog, setLegalDialog] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ phone: '', position: '', department: '', avatar_initials: '' });
   const appVersion = '1.0.0';
 
-  const { data: me } = useQuery({
+  const { data: me, isLoading } = useQuery({
     queryKey: ['me'],
     queryFn: () => base44.auth.me(),
   });
 
+  // Count existing users to assign a sequential number for new User IDs
+  const { data: allUsers } = useQuery({
+    queryKey: ['users-count'],
+    queryFn: () => base44.entities.User.list(),
+    enabled: !!me && !me?.user_id_code,
+  });
+
+  // Auto-generate user_id_code if missing
+  const updateMeMutation = useMutation({
+    mutationFn: (data) => base44.auth.updateMe(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      setEditing(false);
+    },
+  });
+
+  useEffect(() => {
+    if (me && !me.user_id_code && allUsers) {
+      const counter = (allUsers.length || 0) + 1;
+      const code = generateUserId(me.created_date, counter);
+      updateMeMutation.mutate({ user_id_code: code });
+    }
+  }, [me, allUsers]);
+
+  useEffect(() => {
+    if (me) {
+      setForm({
+        phone: me.phone || '',
+        position: me.position || '',
+        department: me.department || '',
+        avatar_initials: me.avatar_initials || '',
+      });
+    }
+  }, [me]);
+
   const role = me?.role || 'operario';
   const roleCfg = roleLabels[role] || roleLabels.operario;
-  const initials = (me?.full_name || me?.email || '?').slice(0, 2).toUpperCase();
 
-  const handleLogout = () => base44.auth.logout();
+  const displayInitials = me?.avatar_initials
+    ? me.avatar_initials.toUpperCase()
+    : buildInitials(me?.full_name, me?.email);
 
-  const handleDeleteAccount = async () => {
-    // Logs out — account deletion requires admin action server-side
-    await base44.auth.logout();
+  const handleSave = () => {
+    const updates = { ...form };
+    // Auto-set initials from name if user left it blank
+    if (!updates.avatar_initials.trim()) {
+      updates.avatar_initials = buildInitials(me?.full_name, me?.email);
+    }
+    updateMeMutation.mutate(updates);
   };
 
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
+
   return (
-    <div className="min-h-screen flex flex-col bg-background" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
+    <div
+      className="min-h-screen flex flex-col bg-background"
+      style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <div className="p-4 sm:p-6 lg:p-8 max-w-lg mx-auto flex-1 w-full">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-6">Mi Perfil</h1>
 
-      {/* Avatar + info */}
-      <Card className="p-6 mb-4 flex items-center gap-4">
-        <div className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${roleCfg.className}`}>
-          {initials}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-base truncate">{me?.full_name || '—'}</p>
-          <p className="text-sm text-muted-foreground flex items-center gap-1.5 truncate mt-0.5">
-            <Mail className="w-3.5 h-3.5 shrink-0" /> {me?.email}
-          </p>
-          <Badge variant="outline" className={`${roleCfg.className} text-xs mt-2`}>
-            <Shield className="w-3 h-3 mr-1" /> {roleCfg.label}
-          </Badge>
-        </div>
-      </Card>
+        {/* Avatar + identity */}
+        <Card className="p-6 mb-4 flex items-center gap-4">
+          <div
+            className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold shrink-0 border-2 ${roleCfg.className}`}
+          >
+            {displayInitials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-base truncate">{me?.full_name || '—'}</p>
+            <p className="text-sm text-muted-foreground flex items-center gap-1.5 truncate mt-0.5">
+              <Mail className="w-3.5 h-3.5 shrink-0" /> {me?.email}
+            </p>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <Badge variant="outline" className={`${roleCfg.className} text-xs`}>
+                <Shield className="w-3 h-3 mr-1" /> {roleCfg.label}
+              </Badge>
+              {me?.user_id_code && (
+                <Badge variant="outline" className="text-xs bg-slate-100 text-slate-600 border-slate-200 font-mono">
+                  <Hash className="w-3 h-3 mr-1" /> {me.user_id_code}
+                </Badge>
+              )}
+            </div>
+          </div>
+        </Card>
 
-      {/* Actions */}
-      <Card className="divide-y divide-border overflow-hidden mb-4">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors text-left"
-        >
-          <div className="flex items-center gap-3">
-            <LogOut className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Cerrar sesión</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </button>
-      </Card>
-
-      {/* Help & Legal */}
-      <Card className="divide-y divide-border overflow-hidden mb-4">
-        <button
-          onClick={() => setLegalDialog('help')}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors text-left"
-        >
-          <div className="flex items-center gap-3">
-            <HelpCircle className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Centro de Ayudas</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </button>
-        <button
-          onClick={() => setLegalDialog('legal')}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors text-left"
-        >
-          <div className="flex items-center gap-3">
-            <FileText className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Aviso Legal</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </button>
-        <button
-          onClick={() => setLegalDialog('gdpr')}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors text-left"
-        >
-          <div className="flex items-center gap-3">
-            <Scale className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Política GDPR</span>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </button>
-      </Card>
-
-      {/* Danger zone */}
-      <Card className="border-destructive/30 overflow-hidden">
-        <div className="px-5 py-3 bg-destructive/5 border-b border-destructive/20">
-          <p className="text-xs font-semibold text-destructive uppercase tracking-wider">Zona de peligro</p>
-        </div>
-        <div className="px-5 py-4 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium">Eliminar cuenta</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Esta acción es permanente e irreversible</p>
-          </div>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5 shrink-0">
-                <Trash2 className="w-3.5 h-3.5" /> Eliminar
+        {/* Editable personal data */}
+        <Card className="mb-4 overflow-hidden">
+          <div className="px-5 py-3 flex items-center justify-between border-b border-border bg-muted/30">
+            <p className="text-sm font-semibold flex items-center gap-2">
+              <User className="w-4 h-4 text-primary" /> Mis datos
+            </p>
+            {!editing ? (
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => setEditing(true)}>
+                <Pencil className="w-3.5 h-3.5" /> Editar
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>¿Eliminar tu cuenta?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta acción es permanente. Todos tus datos serán eliminados y no podrás recuperar el acceso. ¿Estás seguro?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteAccount}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Sí, eliminar mi cuenta
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </Card>
+            ) : (
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground" onClick={() => setEditing(false)}>
+                  <X className="w-3.5 h-3.5" /> Cancelar
+                </Button>
+                <Button size="sm" className="gap-1.5 text-xs" onClick={handleSave} disabled={updateMeMutation.isPending}>
+                  {updateMeMutation.isPending ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Save className="w-3.5 h-3.5" />
+                  )}
+                  Guardar
+                </Button>
+              </div>
+            )}
+          </div>
 
-        {/* Version info */}
+          <div className="p-5 space-y-4">
+            {/* Read-only fields */}
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Nombre completo</Label>
+                <p className="text-sm font-medium mt-1">{me?.full_name || '—'}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Email</Label>
+                <p className="text-sm font-medium mt-1">{me?.email || '—'}</p>
+              </div>
+            </div>
+
+            <hr className="border-border" />
+
+            {/* Editable fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="phone" className="text-xs flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-muted-foreground" /> Teléfono
+                </Label>
+                {editing ? (
+                  <Input
+                    id="phone"
+                    placeholder="+34 600 000 000"
+                    value={form.phone}
+                    onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                  />
+                ) : (
+                  <p className="text-sm min-h-[2rem] flex items-center">{form.phone || <span className="text-muted-foreground italic">Sin rellenar</span>}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="position" className="text-xs flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-muted-foreground" /> Cargo
+                </Label>
+                {editing ? (
+                  <Input
+                    id="position"
+                    placeholder="p.ej. Instalador"
+                    value={form.position}
+                    onChange={e => setForm(f => ({ ...f, position: e.target.value }))}
+                  />
+                ) : (
+                  <p className="text-sm min-h-[2rem] flex items-center">{form.position || <span className="text-muted-foreground italic">Sin rellenar</span>}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="department" className="text-xs flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-muted-foreground" /> Departamento
+                </Label>
+                {editing ? (
+                  <Input
+                    id="department"
+                    placeholder="p.ej. Mantenimiento"
+                    value={form.department}
+                    onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
+                  />
+                ) : (
+                  <p className="text-sm min-h-[2rem] flex items-center">{form.department || <span className="text-muted-foreground italic">Sin rellenar</span>}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="initials" className="text-xs flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-muted-foreground" /> Iniciales avatar
+                  <span className="text-muted-foreground">(máx. 2)</span>
+                </Label>
+                {editing ? (
+                  <Input
+                    id="initials"
+                    placeholder={buildInitials(me?.full_name, me?.email)}
+                    maxLength={2}
+                    value={form.avatar_initials}
+                    onChange={e => setForm(f => ({ ...f, avatar_initials: e.target.value.toUpperCase() }))}
+                  />
+                ) : (
+                  <p className="text-sm min-h-[2rem] flex items-center font-mono font-bold">
+                    {displayInitials || <span className="text-muted-foreground italic">Auto</span>}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Security info */}
+        <Card className="mb-4 p-5">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold mb-1">Seguridad de la cuenta</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Puedes iniciar sesión con <strong>email + contraseña</strong>, <strong>Google</strong> o <strong>Apple ID</strong>.
+                Se recomienda activar la <strong>autenticación en 2 pasos (2FA)</strong> desde la configuración de tu cuenta de Google o Apple para mayor seguridad.
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Actions */}
+        <Card className="divide-y divide-border overflow-hidden mb-4">
+          <button
+            onClick={() => base44.auth.logout()}
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <LogOut className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Cerrar sesión</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </Card>
+
+        {/* Help & Legal */}
+        <Card className="divide-y divide-border overflow-hidden mb-4">
+          {[
+            { key: 'help', icon: HelpCircle, label: 'Centro de Ayudas' },
+            { key: 'legal', icon: FileText, label: 'Aviso Legal' },
+            { key: 'gdpr', icon: Scale, label: 'Política GDPR' },
+          ].map(({ key, icon: Icon, label }) => (
+            <button
+              key={key}
+              onClick={() => setLegalDialog(key)}
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <Icon className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">{label}</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
+          ))}
+        </Card>
+
+        {/* Danger zone */}
+        <Card className="border-destructive/30 overflow-hidden">
+          <div className="px-5 py-3 bg-destructive/5 border-b border-destructive/20">
+            <p className="text-xs font-semibold text-destructive uppercase tracking-wider">Zona de peligro</p>
+          </div>
+          <div className="px-5 py-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">Eliminar cuenta</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Esta acción es permanente e irreversible</p>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5 shrink-0">
+                  <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar tu cuenta?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción es permanente. Todos tus datos serán eliminados y no podrás recuperar el acceso.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => base44.auth.logout()}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Sí, eliminar mi cuenta
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </Card>
+
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-6">
           <Info className="w-3.5 h-3.5" />
           <span>Versión {appVersion}</span>
@@ -155,31 +356,18 @@ export default function Profile() {
       <Dialog open={legalDialog === 'help'} onOpenChange={o => setLegalDialog(o ? 'help' : null)}>
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <HelpCircle className="w-5 h-5 text-primary" /> Centro de Ayudas
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><HelpCircle className="w-5 h-5 text-primary" /> Centro de Ayudas</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm">
-            <div>
-              <h4 className="font-semibold mb-2">📋 Partes de Trabajo</h4>
-              <p className="text-muted-foreground">Registra el trabajo realizado, incluyendo operarios, materiales y firmas. Los partes quedan archivados para consulta futura.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">🕐 Control Horario</h4>
-              <p className="text-muted-foreground">Fichajes diarios con entrada, salida y pausa. Visualiza informes por operario, semana o mes. Sistema de apuntes de cantidades.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">🏢 Clientes y Obras</h4>
-              <p className="text-muted-foreground">Gestiona clientes, contactos técnicos y obras asociadas. Consulta pedidos, documentación y planos por proyecto.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">🧾 Gastos Operarios</h4>
-              <p className="text-muted-foreground">Registra gastos con foto de ticket. Sistema OCR automático que extrae datos. Cierra notas cuando esté completo.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">⚙️ Soporte Técnico</h4>
-              <p className="text-muted-foreground">Para problemas, contacta al equipo de administración o revisa la documentación en la sección de Manuales.</p>
-            </div>
+            {[
+              ['📋 Partes de Trabajo', 'Registra el trabajo realizado, incluyendo operarios, materiales y firmas.'],
+              ['🕐 Control Horario', 'Fichajes diarios con entrada, salida y pausa. Informes por operario, semana o mes.'],
+              ['🏢 Clientes y Obras', 'Gestiona clientes, contactos técnicos y obras asociadas.'],
+              ['🧾 Gastos Operarios', 'Registra gastos con foto de ticket. Sistema OCR automático.'],
+              ['⚙️ Soporte Técnico', 'Contacta al equipo de administración o revisa la sección de Manuales.'],
+            ].map(([title, text]) => (
+              <div key={title}><h4 className="font-semibold mb-1">{title}</h4><p className="text-muted-foreground">{text}</p></div>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
@@ -187,31 +375,18 @@ export default function Profile() {
       <Dialog open={legalDialog === 'legal'} onOpenChange={o => setLegalDialog(o ? 'legal' : null)}>
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" /> Aviso Legal
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5 text-primary" /> Aviso Legal</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-xs leading-relaxed text-muted-foreground">
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">1. Titularidad</h4>
-              <p>Esta aplicación y todos sus contenidos son propiedad intelectual de la empresa titular. Queda prohibida su reproducción total o parcial sin autorización escrita.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">2. Aceptación de Términos</h4>
-              <p>El acceso a esta aplicación implica la aceptación de estos términos. Si no estás de acuerdo, no utilices el servicio.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">3. Responsabilidad</h4>
-              <p>La empresa no se responsabiliza por daños indirectos, pérdida de datos o interrupciones del servicio causadas por circunstancias ajenas.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">4. Licencia de Uso</h4>
-              <p>Se concede una licencia personal, intransferible y revocable para el uso de esta aplicación únicamente para fines comerciales autorizados.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">5. Cambios en los Términos</h4>
-              <p>La empresa se reserva el derecho de modificar estos términos en cualquier momento. El uso continuado implica aceptación de cambios.</p>
-            </div>
+            {[
+              ['1. Titularidad', 'Esta aplicación y todos sus contenidos son propiedad intelectual de la empresa titular.'],
+              ['2. Aceptación de Términos', 'El acceso implica la aceptación de estos términos.'],
+              ['3. Responsabilidad', 'La empresa no se responsabiliza por daños indirectos o pérdida de datos.'],
+              ['4. Licencia de Uso', 'Se concede una licencia personal, intransferible y revocable.'],
+              ['5. Cambios en los Términos', 'La empresa se reserva el derecho de modificar estos términos.'],
+            ].map(([title, text]) => (
+              <div key={title}><h4 className="font-semibold text-foreground mb-1">{title}</h4><p>{text}</p></div>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
@@ -219,39 +394,23 @@ export default function Profile() {
       <Dialog open={legalDialog === 'gdpr'} onOpenChange={o => setLegalDialog(o ? 'gdpr' : null)}>
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Scale className="w-5 h-5 text-primary" /> Política GDPR
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Scale className="w-5 h-5 text-primary" /> Política GDPR</DialogTitle>
             <DialogDescription>Reglamento General de Protección de Datos (UE) 2016/679</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 text-xs leading-relaxed text-muted-foreground">
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">📊 Datos Recopilados</h4>
-              <p>Recopilamos: email, nombre completo, datos de fichas de trabajo, fichajes horarios, gastos y documentación asociada al trabajo. Estos datos se procesan exclusivamente para gestión laboral y operativa.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">🔒 Seguridad de Datos</h4>
-              <p>Los datos se almacenan en servidores seguros con encriptación. Se aplican medidas técnicas y organizativas para prevenir acceso no autorizado.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">📋 Derechos del Usuario</h4>
-              <p>Tienes derecho a acceder, corregir, borrar y portar tus datos. Para ejercer estos derechos, contacta a administración con tu solicitud formal.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">🕐 Conservación de Datos</h4>
-              <p>Los datos se conservan durante el período de relación laboral/comercial y según lo requerido por ley. Tras finalizar, se eliminan según política de retención.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">👥 Compartición de Datos</h4>
-              <p>Los datos se comparten únicamente internamente entre roles autorizados (admin, jefe de obra). No se ceden a terceros sin consentimiento expreso.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground mb-2">⚠️ Cookies y Análisis</h4>
-              <p>Se utilizan cookies esenciales para la sesión. Se recopilan análisis de uso anónimos para mejorar el servicio. Puedes revocar estas autorizaciones en cualquier momento.</p>
-            </div>
+            {[
+              ['📊 Datos Recopilados', 'Email, nombre, fichajes, gastos y documentación laboral.'],
+              ['🔒 Seguridad de Datos', 'Servidores seguros con encriptación y medidas técnicas anti-acceso.'],
+              ['📋 Derechos del Usuario', 'Acceso, corrección, borrado y portabilidad de datos. Contacta a administración.'],
+              ['🕐 Conservación de Datos', 'Período de relación laboral/comercial y según ley vigente.'],
+              ['👥 Compartición de Datos', 'Solo internamente entre roles autorizados. No se ceden a terceros.'],
+              ['⚠️ Cookies y Análisis', 'Cookies esenciales de sesión y análisis anónimos de uso.'],
+            ].map(([title, text]) => (
+              <div key={title}><h4 className="font-semibold text-foreground mb-1">{title}</h4><p>{text}</p></div>
+            ))}
           </div>
-          </DialogContent>
-          </Dialog>
-          </div>
-          );
-          }
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

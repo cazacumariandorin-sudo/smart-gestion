@@ -8,19 +8,36 @@
         "admin",
         "jefe_obra",
         "operario",
-        "control_horario"
+        "control_horario",
+        "cliente_obra"
       ],
       "default": "operario",
-      "description": "Tipo de usuario"
+      "description": "Rol del usuario"
     },
-    "operario_id": {
+    "phone": {
       "type": "string",
-      "description": "ID del operario vinculado (para rol operario)"
+      "description": "Tel\u00e9fono de contacto"
+    },
+    "position": {
+      "type": "string",
+      "description": "Cargo / puesto de trabajo"
+    },
+    "department": {
+      "type": "string",
+      "description": "Departamento o equipo"
+    },
+    "avatar_initials": {
+      "type": "string",
+      "description": "Iniciales personalizadas (m\u00e1x. 2 caracteres)"
+    },
+    "user_id_code": {
+      "type": "string",
+      "description": "ID \u00fanico generado: User-MMYYYY##  (p.ej. User-042601)"
     },
     "acceso_total_hasta": {
       "type": "string",
       "format": "date",
-      "description": "Fecha hasta la que tiene acceso completo temporal (admin puede conceder)"
+      "description": "Fecha hasta la que tiene acceso total temporal (demo)"
     }
   }
 }
