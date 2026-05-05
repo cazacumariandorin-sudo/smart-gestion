@@ -51,7 +51,7 @@ export default function Users() {
     }
   };
 
-  return (
+  return (<>
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -121,5 +121,6 @@ export default function Users() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }
