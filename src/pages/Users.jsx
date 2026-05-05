@@ -174,7 +174,7 @@ export default function Users() {
     setInviting(true);
     setInviteError('');
     try {
-      await base44.users.inviteUser(inviteEmail, inviteRole === 'admin' ? 'admin' : 'user');
+      await base44.functions.invoke('inviteUserFunction', { email: inviteEmail, role: inviteRole });
       setInviteOpen(false);
       setInviteEmail('');
       setInviteRole('operario');
