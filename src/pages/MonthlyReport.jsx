@@ -30,7 +30,6 @@ export default function MonthlyReport() {
   const prevMonth = () => setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1));
   const nextMonth = () => setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1));
 
-  // Filter orders for the selected month
   const monthOrders = useMemo(() => {
     return workOrders.filter(o => {
       if (!o.date) return false;
@@ -39,7 +38,6 @@ export default function MonthlyReport() {
     });
   }, [workOrders, monthStart, monthEnd]);
 
-  // Group by client
   const clientStats = useMemo(() => {
     const map = {};
 
@@ -59,7 +57,6 @@ export default function MonthlyReport() {
       map[clientId].orders.push(order);
       map[clientId].totalHours += order.total_hours || 0;
 
-      // Accumulate materials
       (order.materials || []).forEach(mat => {
         const key = `${mat.name}__${mat.unit}`;
         if (!map[clientId].materials[key]) {
@@ -68,7 +65,6 @@ export default function MonthlyReport() {
         map[clientId].materials[key].quantity += mat.quantity || 0;
       });
 
-      // Accumulate workers hours
       (order.workers || []).forEach(w => {
         if (!map[clientId].workerSummary[w.name]) {
           map[clientId].workerSummary[w.name] = { name: w.name, hours: 0 };
@@ -82,18 +78,15 @@ export default function MonthlyReport() {
 
   const totalMonthHours = clientStats.reduce((s, c) => s + c.totalHours, 0);
   const totalMonthOrders = monthOrders.length;
-
   const isLoading = loadingOrders || loadingClients;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Informe Mensual</h1>
         <p className="text-sm text-muted-foreground mt-1">Horas y materiales por cliente</p>
       </div>
 
-      {/* Month selector */}
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" size="icon" onClick={prevMonth}>
           <ChevronLeft className="w-4 h-4" />
@@ -106,7 +99,6 @@ export default function MonthlyReport() {
         </Button>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <Card className="p-4 text-center">
           <ClipboardList className="w-5 h-5 text-primary mx-auto mb-1.5" />
@@ -165,7 +157,6 @@ export default function MonthlyReport() {
 
               <AccordionContent className="px-5 pb-5">
                 <div className="grid sm:grid-cols-2 gap-4 mt-2">
-                  {/* Hours by worker */}
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                       Horas por operario
@@ -190,7 +181,6 @@ export default function MonthlyReport() {
                     )}
                   </div>
 
-                  {/* Materials */}
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                       Materiales utilizados
@@ -214,7 +204,6 @@ export default function MonthlyReport() {
                   </div>
                 </div>
 
-                {/* Orders list */}
                 <div className="mt-4">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                     Partes del mes
