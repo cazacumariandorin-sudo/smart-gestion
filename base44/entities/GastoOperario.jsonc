@@ -17,7 +17,8 @@
     "date": {
       "type": "string",
       "format": "date",
-      "description": "Fecha del gasto"
+      "description": "Fecha del gasto (no puede ser anterior a 2024-01-01)",
+      "minimum": "2024-01-01"
     },
     "categoria": {
       "type": "string",
@@ -27,18 +28,19 @@
         "material",
         "varios",
         "peaje",
-        "parking",
-        "adelanto"
+        "parking"
       ],
-      "description": "Categor\u00eda del gasto"
+      "description": "Categor\u00eda del gasto \u2014 los adelantos se gestionan en entidad separada"
     },
     "importe": {
       "type": "number",
-      "description": "Importe (\u20ac)"
+      "description": "Importe (\u20ac)",
+      "minimum": 0.01,
+      "maximum": 5000
     },
     "descripcion": {
       "type": "string",
-      "description": "Descripci\u00f3n / concepto"
+      "description": "Descripci\u00f3n / concepto del gasto"
     },
     "proveedor": {
       "type": "string",
@@ -46,11 +48,27 @@
     },
     "ticket_url": {
       "type": "string",
-      "description": "URL foto ticket/factura"
+      "description": "URL foto ticket/factura \u2014 obligatorio para combustible, comida, material, peaje, parking"
+    },
+    "ticket_requerido": {
+      "type": "boolean",
+      "default": true,
+      "description": "Indica si esta categor\u00eda requiere ticket obligatorio"
     },
     "ocr_raw": {
       "type": "string",
-      "description": "Texto extra\u00eddo por OCR"
+      "description": "Texto extra\u00eddo por OCR del ticket"
+    },
+    "ocr_status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "procesado",
+        "validado",
+        "error"
+      ],
+      "default": "pendiente",
+      "description": "Estado del procesamiento OCR"
     },
     "work_order_id": {
       "type": "string",
@@ -59,13 +77,38 @@
     "project": {
       "type": "string",
       "description": "Obra (opcional)"
+    },
+    "estado_aprobacion": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "aprobado",
+        "rechazado"
+      ],
+      "default": "pendiente",
+      "description": "Estado de aprobaci\u00f3n del gasto por el responsable"
+    },
+    "aprobado_por": {
+      "type": "string",
+      "description": "Email del usuario que aprob\u00f3 o rechaz\u00f3 el gasto"
+    },
+    "fecha_aprobacion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en que se aprob\u00f3 o rechaz\u00f3"
+    },
+    "motivo_rechazo": {
+      "type": "string",
+      "description": "Motivo del rechazo si estado_aprobacion = rechazado"
     }
   },
   "required": [
     "operario_id",
+    "operario_name",
     "date",
     "categoria",
-    "importe"
+    "importe",
+    "descripcion"
   ],
   "rls": {
     "create": true,
