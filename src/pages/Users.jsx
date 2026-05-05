@@ -86,7 +86,7 @@ export default function Users() {
       setInviteRole('operario');
       queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (e) {
-      setInviteError(e.message || 'Error al invitar');
+      setInviteError(e.response?.data?.error || e.message || 'Error al invitar');
     } finally {
       setInviting(false);
     }
@@ -289,12 +289,6 @@ function RoleSimulator() {
   const navigate = useNavigate();
   const [current, setCurrent] = useState(getSimulatedRole());
 
-  const simulate = (role) => {
-    setSimulatedRole(role);
-    setCurrent(role);
-    navigate('/', { replace: true });
-  };
-
   return (
     <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-4">
       <div className="flex items-center gap-2 mb-3">
@@ -306,7 +300,11 @@ function RoleSimulator() {
         {ROLES_TO_SIMULATE.map(r => (
           <button
             key={r.value}
-            onClick={() => simulate(r.value)}
+            onClick={() => {
+              setSimulatedRole(r.value);
+              setCurrent(r.value);
+              navigate('/', { replace: true });
+            }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
               current === r.value
                 ? 'bg-amber-500 text-white border-amber-500 shadow'
