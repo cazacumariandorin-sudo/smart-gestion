@@ -47,8 +47,8 @@ export default function UsersPage() {
   });
 
   const updateRoleMutation = useMutation({
-    mutationFn: async (newRole) => {
-      await base44.auth.updateMe({ role: newRole });
+    mutationFn: async ({ userId, newRole }) => {
+      await base44.entities.User.update(userId, { role: newRole });
     },
     onSuccess: () => {
       setOpenEdit(false);
@@ -87,7 +87,7 @@ export default function UsersPage() {
 
   const handleSaveRole = () => {
     if (editingUser && role !== editingUser.role) {
-      updateRoleMutation.mutate(role);
+      updateRoleMutation.mutate({ userId: editingUser.id, newRole: role });
     }
   };
 
