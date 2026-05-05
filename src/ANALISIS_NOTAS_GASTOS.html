@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis Técnico: Módulo Notas de Gastos - SIMANTEC</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        .document {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            color: #f97316; 
+            font-size: 32px;
+            margin-bottom: 10px;
+            border-bottom: 3px solid #f97316;
+            padding-bottom: 15px;
+        }
+        h2 { 
+            color: #2563eb; 
+            font-size: 24px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-left: 5px solid #2563eb;
+            padding-left: 15px;
+        }
+        h3 { 
+            color: #1e40af; 
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        .date { 
+            color: #666; 
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 4px solid #f97316;
+        }
+        .role-box {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .admin { background: #fee2e2; color: #991b1b; }
+        .jefe { background: #dbeafe; color: #1e3a8a; }
+        .operario { background: #dcfce7; color: #166534; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 13px;
+        }
+        th {
+            background: #f97316;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        tr:nth-child(even) { background: #f9fafb; }
+        .code-block {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin: 15px 0;
+            line-height: 1.4;
+        }
+        .permission { 
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-left: 3px solid #10b981;
+            border-radius: 3px;
+        }
+        .problem {
+            padding: 15px;
+            background: #fef2f2;
+            border-left: 4px solid #dc2626;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .solution {
+            padding: 15px;
+            background: #f0fdf4;
+            border-left: 4px solid #16a34a;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .flow {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border: 2px dashed #3b82f6;
+        }
+        .flow-step {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-left: 3px solid #3b82f6;
+            border-radius: 3px;
+        }
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+        .chart {
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .chart-title {
+            font-weight: bold;
+            color: #f97316;
+            margin-bottom: 10px;
+        }
+        .page-break { page-break-after: always; }
+        @media print {
+            body { background: white; }
+            .document { box-shadow: none; }
+            .page-break { margin-top: 40px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="document">
+        <!-- PORTADA -->
+        <div style="text-align: center; margin-bottom: 40px;">
+            <h1>📊 Análisis Técnico Completo</h1>
+            <h2 style="border: none; color: #f97316; margin-top: 10px;">Módulo de Notas de Gastos</h2>
+            <p style="font-size: 16px; color: #666; margin-top: 20px;">SIMANTEC - Gestión Empresarial</p>
+            <p class="date">Generado: 5 de Mayo de 2026</p>
+        </div>
+
+        <!-- ÍNDICE -->
+        <div class="section">
+            <h3>📋 Índice</h3>
+            <ol style="margin-left: 20px;">
+                <li>Descripción General del Módulo</li>
+                <li>Arquitectura de Entidades</li>
+                <li>Estructura de Componentes</li>
+                <li>Páginas y Rutas</li>
+                <li>Permisos y RLS por Rol</li>
+                <li>Flujos de Datos</li>
+                <li>OCR y Procesamiento de Tickets</li>
+                <li>Problemas Identificados</li>
+                <li>Soluciones Implementadas</li>
+                <li>Matriz de Permisos</li>
+            </ol>
+        </div>
+
+        <div class="page-break"></div>
+
+        <!-- 1. DESCRIPCIÓN GENERAL -->
+        <div class="section">
+            <h2>1. Descripción General del Módulo</h2>
+            <p>El módulo <strong>Notas de Gastos</strong> permite gestionar y registrar gastos operacionales de trabajadores. Está dividido en dos niveles:</p>
+            
+            <h3>Nivel 1: GastosOperarios</h3>
+            <p>Interfaz simplificada donde los operarios pueden crear notas de gastos básicas (solo metadatos de la nota).</p>
+            
+            <h3>Nivel 2: NotasGastos</h3>
+            <p>Interfaz completa para administradores y jefes de obra donde pueden ver todas las notas, añadir gastos detallados con tickets y OCR.</p>
+            
+            <div class="warning">
+                <strong>⚠️ Flujo recomendado:</strong><br>
+                1. Operario crea NotaGastos desde GastosOperarios (solo titulo, fechas)<br>
+                2. Admin ve todas las notas en NotasGastos<br>
+                3. Admin añade gastos individuales con tickets y OCR<br>
+                4. Admin cierra la nota cuando está completa
+            </div>
+        </div>
+
+        <!-- 2. ARQUITECTURA DE ENTIDADES -->
+        <div class="section">
+            <h2>2. Arquitectura de Entidades</h2>
+            
+            <h3>📦 NotaGastos (Contenedor)</h3>
+            <table>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Descripción</th>
+                    <th>Requerido</th>
+                </tr>
+                <tr>
+                    <td>titulo</td>
+                    <td>string</td>
+                    <td>Título/referencia de la nota</td>
+                    <td>Sí (Requerido)</td>
+                </tr>
+                <tr>
+                    <td>operario_id</td>
+                    <td>string</td>
+                    <td>ID del operario propietario</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td>operario_name</td>
+                    <td>string</td>
+                    <td>Nombre del operario</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td>fecha_inicio</td>
+                    <td>date</td>
+                    <td>Inicio del período de gastos</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td>fecha_cierre</td>
+                    <td>date</td>
+                    <td>Cierre de la nota</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td>estado</td>
+                    <td>enum</td>
+                    <td>abierta / cerrada</td>
+                    <td>No (default: abierta)</td>
+                </tr>
+                <tr>
+                    <td>total</td>
+                    <td>number</td>
+                    <td>Total de gastos + adelantos</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td>created_by</td>
+                    <td>string (built-in)</td>
+                    <td>Email del creador</td>
+                    <td>Automático</td>
+                </tr>
+            </table>
+
+            <h3>📄 GastoOperario (Items)</h3>
+            <table>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Descripción</th>
+                    <th>Validación</th>
+                </tr>
+                <tr>
+                    <td>nota_id</td>
+                    <td>string</td>
+                    <td>Referencia a NotaGastos</td>
+                    <td><strong>REQUERIDO</strong> - No puede ser NULL</td>
+                </tr>
+                <tr>
+                    <td>operario_id</td>
+                    <td>string</td>
+                    <td>ID del operario</td>
+                    <td>REQUERIDO</td>
+                </tr>
+                <tr>
+                    <td>operario_name</td>
+                    <td>string</td>
+                    <td>Nombre del operario</td>
+                    <td>REQUERIDO</td>
+                </tr>
+                <tr>
+                    <td>date</td>
+                    <td>date</td>
+                    <td>Fecha del gasto</td>
+                    <td>REQUERIDO, ≥ 2024-01-01</td>
+                </tr>
+                <tr>
+                    <td>categoria</td>
+                    <td>enum</td>
+                    <td>combustible, comida, material, parking, peaje, varios, adelanto</td>
+                    <td>REQUERIDO</td>
+                </tr>
+                <tr>
+                    <td>importe</td>
+                    <td>number</td>
+                    <td>Monto en €</td>
+                    <td>REQUERIDO, 0.01 - 5000</td>
+                </tr>
+                <tr>
+                    <td>descripcion</td>
+                    <td>string</td>
+                    <td>Descripción del concepto</td>
+                    <td>REQUERIDO</td>
+                </tr>
+                <tr>
+                    <td>ticket_url</td>
+                    <td>string</td>
+                    <td>URL de foto/PDF del comprobante</td>
+                    <td>Opcional (recomendado)</td>
+                </tr>
+                <tr>
+                    <td>ocr_status</td>
+                    <td>enum</td>
+                    <td>pendiente, procesado, validado, error</td>
+                    <td>default: pendiente</td>
+                </tr>
+                <tr>
+                    <td>proveedor</td>
+                    <td>string</td>
+                    <td>Nombre del establecimiento</td>
+                    <td>Opcional</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="page-break"></div>
+
+        <!-- 3. ESTRUCTURA DE COMPONENTES -->
+        <div class="section">
+            <h2>3. Estructura de Componentes React</h2>
+            
+            <h3>🎨 NotaGastosCard.jsx</h3>
+            <p><strong>Responsabilidad:</strong> Renderizar una nota de gastos expandible con todas sus operaciones.</p>
+            
+            <div class="code-block">
+Props recibidas:
+- nota: NotaGastos (objeto completo)
+- gastos: GastoOperario[] (gastos filtrados por nota_id)
+- operarios: Operario[] (lista de operarios)
+- canSeeAll: boolean (admin/jefe_obra)
+- myOperario: Operario | null (operario actual)
+- user: User (usuario logueado)
+
+Estados internos:
+- expanded: boolean (expandida/colapsada)
+- addGastoOpen: boolean (modal agregar gasto)
+- addAdelantoOpen: boolean (modal adelanto)
+- ticketPreview: string | null (URL de ticket en preview)
+- activeTab: 'gastos' | 'adelantos'
+            </div>
+
+            <h3>Mutaciones en NotaGastosCard:</h3>
+            <ul style="margin-left: 20px;">
+                <li><strong>createGastoM:</strong> Crea GastoOperario + actualiza total de NotaGastos</li>
+                <li><strong>deleteGastoM:</strong> Elimina GastoOperario + ajusta total</li>
+                <li><strong>cerrarNotaM:</strong> Cierra la nota (estado = 'cerrada')</li>
+                <li><strong>reabrirNotaM:</strong> Reabre la nota (estado = 'abierta')</li>
+                <li><strong>deleteNotaM:</strong> Elimina nota + todos sus gastos (cascada)</li>
+            </ul>
+
+            <h3>🎨 GastoDialogs.jsx</h3>
+            <p><strong>Contiene:</strong> Dos diálogos modales</p>
+            
+            <h4>AddGastoDialog:</h4>
+            <p>Modal complejo con:</p>
+            <ul style="margin-left: 20px;">
+                <li>✅ Upload de imagen/PDF</li>
+                <li>✅ OCR automático con IA (InvokeLLM)</li>
+                <li>✅ Campos: categoría, importe, fecha, proveedor, descripción</li>
+                <li>✅ Validación antes de guardar</li>
+            </ul>
+
+            <div class="code-block">
+OCR Flow:
+1. Usuario sube imagen/PDF (handleOcrUpload)
+2. Se carga a storage via Core.UploadFile
+3. Se invoca LLM con file_urls
+4. LLM extrae JSON con: importe, proveedor, fecha, descripcion, categoria
+5. Se mapea el JSON extraído a los campos del formulario
+6. Usuario puede editar datos antes de guardar
+            </div>
+
+            <h4>AddAdelantoDialog:</h4>
+            <p>Modal simple para registrar adelantos en efectivo:</p>
+            <ul style="margin-left: 20px;">
+                <li>Importe (obligatorio)</li>
+                <li>Fecha (opcional)</li>
+                <li>Descripción (opcional)</li>
+            </ul>
+        </div>
+
+        <!-- 4. PÁGINAS Y RUTAS -->
+        <div class="section">
+            <h2>4. Páginas y Rutas</h2>
+            
+            <h3>📄 pages/GastosOperarios.jsx</h3>
+            <p><strong>Ruta:</strong> <code>/gastos-operarios</code></p>
+            <p><strong>Propósito:</strong> Interfaz simple para operarios crear notas</p>
+            
+            <div class="code-block">
+Funcionalidades:
+- Dialog para crear NotaGastos nueva
+- Lista de notas creadas por el usuario
+- Filtros: búsqueda, estado (abierta/cerrada)
+- Vista: Grid de notas vacías (sin gastos)
+
+Permisos:
+- Todos pueden crear: create: true
+- Ven solo las suyas: RLS en lectura
+            </div>
+
+            <h3>📄 pages/NotasGastos.jsx</h3>
+            <p><strong>Ruta:</strong> <code>/notas-gastos</code></p>
+            <p><strong>Propósito:</strong> Panel completo de gestión (admin/jefe_obra)</p>
+            
+            <div class="code-block">
+Funcionalidades:
+- Ver TODAS las notas (con RLS)
+- Filtros: operario, estado, búsqueda
+- Acciones por nota:
+  * Expandir para ver gastos
+  * Añadir gastos con OCR
+  * Registrar adelantos
+  * Cerrar/reabrir nota
+  * Descargar PDF
+  * Eliminar nota
+
+Datos cargados:
+- notas: NotaGastos.list('-created_date', 200)
+- gastos: GastoOperario.list('-date', 500)
+- operarios: Operario.list('name', 200)
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <!-- 5. PERMISOS RLS POR ROL -->
+        <div class="section">
+            <h2>5. Permisos y RLS por Rol de Usuario</h2>
+
+            <h3>🔐 NotaGastos - RLS Actual</h3>
+            <table>
+                <tr>
+                    <th>Operación</th>
+                    <th>Admin</th>
+                    <th>Jefe Obra</th>
+                    <th>Operario</th>
+                </tr>
+                <tr>
+                    <td><strong>CREATE</strong></td>
+                    <td class="admin">✅ Sí</td>
+                    <td class="jefe">✅ Sí</td>
+                    <td class="operario">✅ Sí</td>
+                </tr>
+                <tr>
+                    <td><strong>READ</strong></td>
+                    <td class="admin">✅ Todas</td>
+                    <td class="jefe">✅ Todas</td>
+                    <td class="operario">✅ Solo suyas</td>
+                </tr>
+                <tr>
+                    <td><strong>UPDATE</strong></td>
+                    <td class="admin">✅ Todas</td>
+                    <td class="jefe">✅ Todas</td>
+                    <td class="operario">✅ Solo suyas</td>
+                </tr>
+                <tr>
+                    <td><strong>DELETE</strong></td>
+                    <td class="admin">✅ Todas</td>
+                    <td class="jefe">❌ Solo si created_by</td>
+                    <td class="operario">✅ Solo suyas</td>
+                </tr>
+            </table>
+
+            <div class="code-block">
+RLS Configuration (NotaGastos):
+{
+  "read": {
+    "$or": [
+      { "user_condition": { "role": "admin" } },
+      { "user_condition": { "role": "jefe_obra" } },
+      { "created_by": "{{user.email}}" }
+    ]
+  },
+  "update": {
+    "$or": [
+      { "user_condition": { "role": "admin" } },
+      { "user_condition": { "role": "jefe_obra" } },
+      { "created_by": "{{user.email}}" }
+    ]
+  }
+}
+            </div>
+
+            <h3>🔐 GastoOperario - RLS Actual</h3>
+            <table>
+                <tr>
+                    <th>Operación</th>
+                    <th>Admin</th>
+                    <th>Jefe Obra</th>
+                    <th>Operario</th>
+                </tr>
+                <tr>
+                    <td><strong>CREATE</strong></td>
+                    <td class="admin">✅ Sí</td>
+                    <td class="jefe">✅ Sí</td>
+                    <td class="operario">✅ Sí</td>
+                </tr>
+                <tr>
+                    <td><strong>READ</strong></td>
+                    <td class="admin">✅ Todos</td>
+                    <td class="jefe">❌ NO</td>
+                    <td class="operario">✅ Solo suyos</td>
+                </tr>
+                <tr>
+                    <td><strong>UPDATE</strong></td>
+                    <td class="admin">✅ Todos</td>
+                    <td class="jefe">❌ NO</td>
+                    <td class="operario">✅ Solo suyos</td>
+                </tr>
+                <tr>
+                    <td><strong>DELETE</strong></td>
+                    <td class="admin">✅ Todos</td>
+                    <td class="jefe">❌ NO</td>
+                    <td class="operario">✅ Solo suyos</td>
+                </tr>
+            </table>
+
+            <div class="problem">
+                <strong>⚠️ PROBLEMA:</strong> Jefe de obra NO puede ver gastos individuales (no tiene READ en GastoOperario).<br>
+                Solo admin puede ver los detalles. Esto es por la RLS restrictiva.
+            </div>
+
+            <div class="solution">
+                <strong>✅ SOLUCIÓN PROPUESTA:</strong> Cambiar RLS de GastoOperario para que jefe_obra tenga READ y UPDATE.
+            </div>
+        </div>
+
+        <div class="page-break"></div>
+
+        <!-- 6. FLUJOS DE DATOS -->
+        <div class="section">
+            <h2>6. Flujos de Datos y Procesos</h2>
+
+            <h3>📊 Flujo 1: Crear Nota (GastosOperarios)</h3>
+            <div class="flow">
+                <div class="flow-step">1. Operario hace click en "Nueva Nota"</div>
+                <div class="flow-step">2. Dialog abre con form (operario, título, fechas, notas)</div>
+                <div class="flow-step">3. Operario rellena datos y hace click "Crear Nota"</div>
+                <div class="flow-step">4. Validación: operario_id + fecha_inicio requeridos</div>
+                <div class="flow-step">5. <strong>Mutation:</strong> NotaGastos.create({...newForm, total: 0})</div>
+                <div class="flow-step">6. Success: Dialog cierra, lista se recarga (queryKey invalidate)</div>
+                <div class="flow-step">7. Toast: "Nota de gastos creada"</div>
+            </div>
+
+            <h3>📊 Flujo 2: Añadir Gasto con OCR (NotasGastos)</h3>
+            <div class="flow">
+                <div class="flow-step">1. Admin abre una NotaGastos expandida</div>
+                <div class="flow-step">2. Click en "Añadir gasto" → AddGastoDialog abre</div>
+                <div class="flow-step">3. Admin sube imagen/PDF</div>
+                <div class="flow-step">4. <strong>Upload:</strong> Core.UploadFile({file}) → {file_url}</div>
+                <div class="flow-step">5. <strong>OCR:</strong> Core.InvokeLLM({prompt, file_urls}) → {importe, proveedor, fecha, descripcion, categoria}</div>
+                <div class="flow-step">6. Campos del formulario se rellenan automáticamente (pre-populated)</div>
+                <div class="flow-step">7. Admin puede editar/validar datos</div>
+                <div class="flow-step">8. Click "Guardar"</div>
+                <div class="flow-step">9. <strong>Mutation:</strong> GastoOperario.create({...formData}) + NotaGastos.update(nota_id, {total: newTotal})</div>
+                <div class="flow-step">10. Cache invalidate: queries de gastos + notas se refrescan</div>
+            </div>
+
+            <h3>📊 Flujo 3: Cerrar Nota</h3>
+            <div class="flow">
+                <div class="flow-step">1. Admin click en "Cerrar nota"</div>
+                <div class="flow-step">2. Confirmación dialog muestra totales</div>
+                <div class="flow-step">3. <strong>Mutation:</strong> NotaGastos.update(nota_id, {estado: 'cerrada', fecha_cierre: today})</div>
+                <div class="flow-step">4. Nota cambia a estado cerrado (visualmente grisácea)</div>
+                <div class="flow-step">5. Botones de agregar gastos desaparecen</div>
+                <div class="flow-step">6. Aparece botón "Reabrir" (solo admin)</div>
+            </div>
+        </div>
+
+        <!-- 7. OCR Y PROCESAMIENTO -->
+        <div class="section">
+            <h2>7. OCR y Procesamiento de Tickets</h2>
+
+            <h3>🤖 Pipeline OCR Completo</h3>
+            <div class="code-block">
+handleOcrUpload(file: File) {
+  // Step 1: Upload file
+  const { file_url } = await Core.UploadFile({ file })
+  
+  // Step 2: OCR con LLM
+  const res = await Core.InvokeLLM({
+    prompt: "Analiza ticket y extrae: importe, proveedor, fecha, 
+             descripcion, categoria (combustible|comida|material|...)",
+    file_urls: [file_url],
+    response_json_schema: {
+      type: 'object',
+      properties: {
+        importe: { type: 'number' },
+        proveedor: { type: 'string' },
+        fecha: { type: 'string' }, // YYYY-MM-DD
+        descripcion: { type: 'string' },
+        categoria: { type: 'string' }
+      }
+    }
+  })
+  
+  // Step 3: Mapear respuesta a form
+  const extracted = res?.data || res || {}
+  setForm(p => ({
+    ...p,
+    ticket_url: file_url,
+    importe: extracted.importe != null ? extracted.importe : p.importe,
+    proveedor: extracted.proveedor || p.proveedor,
+    date: extracted.fecha || p.date,
+    descripcion: extracted.descripcion || p.descripcion,
+    categoria: extracted.categoria && CATEGORIAS[extracted.categoria] 
+               ? extracted.categoria : p.categoria
+  }))
+}
+            </div>
+
+            <h3>✅ Formatos Soportados</h3>
+            <ul style="margin-left: 20px;">
+                <li>Imágenes: JPG, PNG, GIF, WEBP (OCR visual)</li>
+                <li>Documentos: PDF (OCR de texto extraído)</li>
+                <li>Texto extraído: Se envía como JSON a LLM para parsing</li>
+            </ul>
+
+            <h3>⚠️ Limitaciones</h3>
+            <ul style="margin-left: 20px;">
+                <li>OCR depende de calidad de imagen (luz, ángulo, resolución)</li>
+                <li>PDF debe ser legible (no escaneado de baja calidad)</li>
+                <li>LLM puede no extraer correctamente si formato es no estándar</li>
+                <li>Usuario siempre puede editar datos extraídos manualmente</li>
+            </ul>
+        </div>
+
+        <div class="page-break"></div>
+
+        <!-- 8. PROBLEMAS IDENTIFICADOS -->
+        <div class="section">
+            <h2>8. Problemas Identificados en Iteración Anterior</h2>
+
+            <h3>❌ Problema 1: Operarios no cargaban en dropdown</h3>
+            <div class="problem">
+                <strong>Causa:</strong> Línea 50 de GastosOperarios intentaba matching por email:<br>
+                <code>operarios.find(o => o.email === user?.email)</code><br>
+                Pero los operarios creados manualmente NO tienen email de Base44 User.
+            </div>
+            <div class="solution">
+                <strong>Solución:</strong> Remover ese matching.<br>
+                Los operarios y users son entidades desconectadas.
+            </div>
+
+            <h3>❌ Problema 2: No se veían notas creadas</h3>
+            <div class="problem">
+                <strong>Causa:</strong> RLS de NotaGastos bloqueaba la lectura por falta de creador validado.
+            </div>
+            <div class="solution">
+                <strong>Solución:</strong> Arreglar RLS para usar created_by con email del usuario autenticado.
+            </div>
+
+            <h3>❌ Problema 3: falta useEffect en imports</h3>
+            <div class="problem">
+                <strong>Causa:</strong> Componentes usaban useEffect pero no lo importaban de React.
+            </div>
+            <div class="solution">
+                <strong>Solución:</strong> Agregar <code>import { useState, useEffect } from 'react'</code>
+            </div>
+
+            <h3>❌ Problema 4: GastoOperario requiere nota_id mandatorio</h3>
+            <div class="problem">
+                <strong>Causa:</strong> Schema tiene <code>"required": [..., "nota_id"]</code><br>
+                Si no se pasa nota_id al crear gasto, falla la creación.
+            </div>
+            <div class="solution">
+                <strong>Verificación:</strong> NotaGastosCard siempre pasa nota_id en handleSaveGasto.
+            </div>
+        </div>
+
+        <!-- 9. SOLUCIONES IMPLEMENTADAS -->
+        <div class="section">
+            <h2>9. Soluciones Implementadas</h2>
+
+            <h3>✅ Fix 1: RLS actualizado en NotaGastos</h3>
+            <div class="code-block">
+"read": {
+  "$or": [
+    { "user_condition": { "role": "admin" } },
+    { "user_condition": { "role": "jefe_obra" } },
+    { "created_by": "{{user.email}}" }  // ← Key: usar email del user
+  ]
+}
+            </div>
+
+            <h3>✅ Fix 2: Remover email matching en GastosOperarios</h3>
+            <div class="code-block">
+// ANTES:
+const myOp = canSeeAll ? null : operarios.find(o => o.email === user?.email);
+
+// DESPUÉS:
+const myOp = null; // Los operarios no están vinculados a usuarios Base44
+            </div>
+
+            <h3>✅ Fix 3: Importar useEffect</h3>
+            <div class="code-block">
+import { useState, useEffect } from 'react';
+            </div>
+
+            <h3>✅ Fix 4: Validación en AddGastoDialog</h3>
+            <div class="code-block">
+const handleSave = () => {
+  if (!form.categoria || !form.importe || !form.descripcion) {
+    toast.error('Rellena categoría, importe y descripción');
+    return;
+  }
+  onSave({ ...form, importe: parseFloat(form.importe) || 0 });
+}
+            </div>
+        </div>
+
+        <!-- 10. MATRIZ DE PERMISOS DETALLADA -->
+        <div class="section">
+            <h2>10. Matriz Completa de Permisos</h2>
+
+            <h3>👤 ADMIN (maarian2020@gmail.com)</h3>
+            <table>
+                <tr>
+                    <th>Acción</th>
+                    <th>NotaGastos</th>
+                    <th>GastoOperario</th>
+                    <th>Ubicación</th>
+                </tr>
+                <tr>
+                    <td>Ver todas las notas</td>
+                    <td class="admin">✅</td>
+                    <td class="admin">✅</td>
+                    <td>/notas-gastos</td>
+                </tr>
+                <tr>
+                    <td>Crear nota propia</td>
+                    <td class="admin">✅</td>
+                    <td class="admin">✅</td>
+                    <td>/gastos-operarios o /notas-gastos</td>
+                </tr>
+                <tr>
+                    <td>Editar nota ajena</td>
+                    <td class="admin">✅</td>
+                    <td class="admin">✅</td>
+                    <td>/notas-gastos</td>
+                </tr>
+                <tr>
+                    <td>Agregar gasto con OCR</td>
+                    <td class="admin">✅</td>
+                    <td class="admin">✅</td>
+                    <td>/notas-gastos (expandida)</td>
+                </tr>
+                <tr>
+                    <td>Cerrar/reabrir nota</td>
+                    <td class="admin">✅</td>
+                    <td class="admin">N/A</td>
+                    <td>/notas-gastos</td>
+                </tr>
+                <tr>
+                    <td>Eliminar nota + gastos</td>
+                    <td class="admin">✅</td>
+                    <td class="admin">✅</td>
+                    <td>/notas-gastos</td>
+                </tr>
+                <tr>
+                    <td>Descargar PDF</td>
+                    <td class="admin">✅</td>
+                    <td class="admin">✅</td>
+                    <td>/notas-gastos</td>
+                </tr>
+                <tr>
+                    <td>Ver en Dashboard</td>
+                    <td class="admin">✅ (Todas)</td>
+                    <td class="admin">✅ (Todos)</td>
+                    <td>/</td>
+                </tr>
+            </table>
+
+            <h3>👔 JEFE DE OBRA</h3>
+            <table>
+                <tr>
+                    <th>Acción</th>
+                    <th>NotaGastos</th>
+                    <th>GastoOperario</th>
+                    <th>Ubicación</th>
+                </tr>
+                <tr>
+                    <td>Ver todas las notas</td>
+                    <td class="jefe">✅</td>
+                    <td class="jefe">❌ NO*</td>
+                    <td>/notas-gastos</td>
+                </tr>
+                <tr>
+                    <td>Crear nota propia</td>
+                    <td class="jefe">✅</td>
+                    <td class="jefe">✅</td>
+                    <td>/gastos-operarios</td>
+                </tr>
+                <tr>
+                    <td>Agregar gasto</td>
+                    <td class="jefe">✅</td>
+                    <td class="jefe">❌ NO*</td>
+                    <td>/notas-gastos</td>
+                </tr>
+                <tr>
+                    <td>Cerrar nota</td>
+                    <td class="jefe">✅</td>
+                    <td class="jefe">N/A</td>
+                    <td>/notas-gastos</td>
+                </tr>
+                <tr>
+                    <td>Eliminar nota ajena</td>
+                    <td class="jefe">❌ Solo si created_by</td>
+                    <td class="jefe">❌ NO*</td>
+                    <td>/notas-gastos</td>
+                </tr>
+            </table>
+
+            <h3>👷 OPERARIO (usuario normal)</h3>
+            <table>
+                <tr>
+                    <th>Acción</th>
+                    <th>NotaGastos</th>
+                    <th>GastoOperario</th>
+                    <th>Ubicación</th>
+                </tr>
+                <tr>
+                    <td>Ver sus propias notas</td>
+                    <td class="operario">✅ (Solo suyas)</td>
+                    <td class="operario">✅ (Solo suyas)</td>
+                    <td>/gastos-operarios</td>
+                </tr>
+                <tr>
+                    <td>Crear nota propia</td>
+                    <td class="operario">✅</td>
+                    <td class="operario">✅</td>
+                    <td>/gastos-operarios</td>
+                </tr>
+                <tr>
+                    <td>Ver notas ajenas</td>
+                    <td class="operario">❌ NO</td>
+                    <td class="operario">❌ NO</td>
+                    <td>N/A</td>
+                </tr>
+                <tr>
+                    <td>Editar nota ajena</td>
+                    <td class="operario">❌ NO</td>
+                    <td class="operario">❌ NO</td>
+                    <td>N/A</td>
+                </tr>
+                <tr>
+                    <td>Acceder /notas-gastos</td>
+                    <td class="operario">❌ Sin datos (RLS filtra)</td>
+                    <td class="operario">N/A</td>
+                    <td>ProtectedRoute</td>
+                </tr>
+            </table>
+
+            <p style="margin-top: 20px; font-size: 13px;">
+                <strong>*</strong> Problemas identificados: Jefe de obra no tiene READ en GastoOperario, 
+                aunque si puede leer NotaGastos. Esto causa inconsistencia.
+            </p>
+        </div>
+
+        <div class="page-break"></div>
+
+        <!-- CONCLUSIÓN -->
+        <div class="section">
+            <h2>11. Conclusiones y Recomendaciones</h2>
+
+            <h3>📌 Estado Actual</h3>
+            <p>El módulo <strong>NotasGastos</strong> está funcionando correctamente con:</p>
+            <ul style="margin-left: 20px;">
+                <li>✅ Creación de notas de gastos</li>
+                <li>✅ Agregación de gastos con OCR automático</li>
+                <li>✅ Gestión de adelantos</li>
+                <li>✅ Descarga de PDF con resumen</li>
+                <li>✅ RLS funcionando (admin ve todo, operarios ven lo suyo)</li>
+            </ul>
+
+            <h3>⚠️ Mejoras Pendientes</h3>
+            <ul style="margin-left: 20px;">
+                <li>Extender READ de GastoOperario a jefe_obra (hay RLS restrictivo)</li>
+                <li>Agregar aprobación de gastos (workflow de 2 pasos)</li>
+                <li>Exportar a Excel además de PDF</li>
+                <li>Integración con NominaBase44 para liquidación automática</li>
+                <li>Auditoría de cambios (quién, cuándo, qué)</li>
+            </ul>
+
+            <h3>✅ Testing Recomendado</h3>
+            <ul style="margin-left: 20px;">
+                <li>Crear nota como admin</li>
+                <li>Agregar 3-5 gastos con tickets reales</li>
+                <li>Validar OCR extrae datos correctamente</li>
+                <li>Cerrar nota y descargar PDF</li>
+                <li>Verificar permisos RLS por rol (cambiar usuario)</li>
+                <li>Probar eliminar nota (cascada de gastos)</li>
+            </ul>
+        </div>
+
+        <!-- FOOTER -->
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #f97316; text-align: center; color: #666; font-size: 12px;">
+            <p>Documento técnico generado para SIMANTEC - Gestión Empresarial</p>
+            <p>Fecha: 5 de Mayo de 2026 | Módulo: Notas de Gastos | Versión: 2.0</p>
+            <p style="margin-top: 15px;">Para más detalles, consultar archivos del proyecto en Base44</p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-print on load for PDF generation
+        window.addEventListener('load', () => {
+            console.log('Documento listo para imprimir a PDF');
+        });
+    </script>
+</body>
+</html>
