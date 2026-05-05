@@ -32,6 +32,7 @@ const Obras = lazy(() => import('./pages/Obras'));
 const CalendarioVacaciones = lazy(() => import('./pages/CalendarioVacaciones'));
 const Manuales = lazy(() => import('./pages/Manuales'));
 const Fabricantes = lazy(() => import('./pages/Fabricantes'));
+const AdminBackup = lazy(() => import('./pages/AdminBackup'));
 const SolarPedidos = lazy(() => import('./pages/SolarPedidos'));
 const DatosSensibles = lazy(() => import('./pages/DatosSensibles'));
 const Inventario = lazy(() => import('./pages/Inventario'));
@@ -116,6 +117,7 @@ function AnimatedRoutes() {
             <Route path="/calendario-vacaciones" element={<ProtectedRoute module="calendario-vacaciones"><Suspense fallback={<PageLoader />}><CalendarioVacaciones /></Suspense></ProtectedRoute>} />
 
             <Route path="/fabricantes" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><Fabricantes /></Suspense></ProtectedRoute>} />
+            <Route path="/admin-backup" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><AdminBackup /></Suspense></ProtectedRoute>} />
             <Route path="/solar-pedidos" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><SolarPedidos /></Suspense></ProtectedRoute>} />
             <Route path="/solar-obras" element={<ProtectedRoute module="obras"><Suspense fallback={<PageLoader />}><SolarPedidos /></Suspense></ProtectedRoute>} />
             <Route path="/datos-sensibles" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DatosSensibles /></Suspense></ProtectedRoute>} />
