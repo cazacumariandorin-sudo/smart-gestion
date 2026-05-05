@@ -2,13 +2,18 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { Plus, Search, Pencil, Trash2, Zap, Loader2, Save, X, ChevronDown, ChevronUp, Phone, User } from 'lucide-react';
+import {
+  Plus, Search, Pencil, Trash2, Zap, Loader2, Save, X,
+  ChevronDown, ChevronUp, Phone, User, Upload, FileText,
+  ExternalLink, Sparkles, CheckCircle2
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -44,6 +49,11 @@ export default function SolarObras() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [expandedId, setExpandedId] = useState(null);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [ocrFile, setOcrFile] = useState(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrDone, setOcrDone] = useState(false);
 
   const { data: obras = [], isLoading } = useQuery({
     queryKey: ['solar_obras'],
@@ -72,14 +82,85 @@ export default function SolarObras() {
   const open_ = (o = null) => {
     setEditing(o);
     setForm(o ? { ...o, budget: o.budget || '', potencia_kw: o.potencia_kw || '', num_paneles: o.num_paneles || '' } : emptyForm);
+    setUploadedFiles(o?.attached_files || []);
+    setOcrFile(null);
+    setOcrDone(false);
     setDialogOpen(true);
   };
-  const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyForm); };
+  const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyForm); setUploadedFiles([]); setOcrFile(null); setOcrDone(false); };
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const handleClientChange = id => {
     const c = clientes.find(c => c.id === id);
     setForm(p => ({ ...p, client_id: id, client_name: c?.name || '' }));
+  };
+
+  // OCR import
+  const handleOcrImport = async (file) => {
+    setOcrFile(file);
+    setOcrLoading(true);
+    setOcrDone(false);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const data = await base44.integrations.Core.InvokeLLM({
+      prompt: `Extrae los datos del siguiente documento de obra/instalación solar o presupuesto.
+Devuelve un JSON con esta estructura:
+{
+  "name": "nombre del proyecto/obra",
+  "code": "código o referencia si existe",
+  "client_name": "nombre del cliente",
+  "address": "dirección de la instalación",
+  "potencia_kw": número (potencia en kW, si aparece),
+  "num_paneles": número entero (número de paneles, si aparece),
+  "tipo_instalacion": "autoconsumo|vertido_red|aislada|hibrida (el que mejor corresponda)",
+  "budget": número (importe total o presupuesto en euros, si aparece),
+  "contact_person": "nombre del contacto si aparece",
+  "contact_phone": "teléfono de contacto si aparece",
+  "description": "descripción breve del proyecto",
+  "notes": "otras observaciones relevantes"
+}
+Si un campo no aparece, déjalo como null o cadena vacía.`,
+      file_urls: [file_url],
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' }, code: { type: 'string' },
+          client_name: { type: 'string' }, address: { type: 'string' },
+          potencia_kw: { type: 'number' }, num_paneles: { type: 'number' },
+          tipo_instalacion: { type: 'string' }, budget: { type: 'number' },
+          contact_person: { type: 'string' }, contact_phone: { type: 'string' },
+          description: { type: 'string' }, notes: { type: 'string' },
+        }
+      }
+    });
+    setForm(p => ({
+      ...p,
+      name: data.name || p.name,
+      code: data.code || p.code,
+      client_name: data.client_name || p.client_name,
+      address: data.address || p.address,
+      potencia_kw: data.potencia_kw || p.potencia_kw,
+      num_paneles: data.num_paneles || p.num_paneles,
+      tipo_instalacion: data.tipo_instalacion && tipoInstalacion[data.tipo_instalacion] ? data.tipo_instalacion : p.tipo_instalacion,
+      budget: data.budget || p.budget,
+      contact_person: data.contact_person || p.contact_person,
+      contact_phone: data.contact_phone || p.contact_phone,
+      description: data.description || p.description,
+      notes: data.notes || p.notes,
+    }));
+    // Save file as attachment too
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    setUploadedFiles(prev => [...prev, { name: file.name, url: file_url, type: ext }]);
+    setOcrLoading(false);
+    setOcrDone(true);
+  };
+
+  const handleFileUpload = async (file) => {
+    setUploadingFile(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    setUploadedFiles(prev => [...prev, { name: file.name, url: file_url, type: ext }]);
+    setUploadingFile(false);
+    toast.success('Archivo subido');
   };
 
   const handleSave = () => {
@@ -88,6 +169,7 @@ export default function SolarObras() {
       budget: form.budget ? parseFloat(form.budget) : null,
       potencia_kw: form.potencia_kw ? parseFloat(form.potencia_kw) : null,
       num_paneles: form.num_paneles ? parseInt(form.num_paneles) : null,
+      attached_files: uploadedFiles,
     };
     if (editing) updateM.mutate({ id: editing.id, d: data });
     else createM.mutate(data);
@@ -122,7 +204,6 @@ export default function SolarObras() {
         </MobileSelect>
       </div>
 
-      {/* Summary badges */}
       <div className="flex gap-2 flex-wrap">
         {Object.entries(statusCfg).map(([k, v]) => {
           const count = obras.filter(o => o.status === k).length;
@@ -153,6 +234,11 @@ export default function SolarObras() {
                         {o.code && <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{o.code}</span>}
                         <h3 className="font-semibold text-sm">{o.name}</h3>
                         <Badge variant="outline" className={`${cfg.className} text-[10px]`}>{cfg.label}</Badge>
+                        {o.attached_files?.length > 0 && (
+                          <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-600 border-blue-200">
+                            <FileText className="w-2.5 h-2.5 mr-1" />{o.attached_files.length} archivo{o.attached_files.length > 1 ? 's' : ''}
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                         {o.client_name && <span>{o.client_name}</span>}
@@ -178,8 +264,9 @@ export default function SolarObras() {
                     </div>
                   </div>
                 </div>
+
                 {isExpanded && (
-                  <div className="border-t border-border bg-muted/30 px-4 py-3 space-y-2 text-xs">
+                  <div className="border-t border-border bg-muted/30 px-4 py-3 space-y-3 text-xs">
                     {o.description && <p className="text-muted-foreground italic">{o.description}</p>}
                     <div className="flex flex-wrap gap-4">
                       {o.budget > 0 && <span className="font-semibold text-primary">{o.budget?.toLocaleString('es-ES')} € presupuesto</span>}
@@ -188,6 +275,30 @@ export default function SolarObras() {
                       {o.end_date && <span>Fin previsto: {format(parseISO(o.end_date), 'd MMM yyyy', { locale: es })}</span>}
                     </div>
                     {o.notes && <p className="text-muted-foreground">{o.notes}</p>}
+
+                    {/* Archivos adjuntos */}
+                    {o.attached_files?.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">ARCHIVOS ADJUNTOS</p>
+                        <div className="space-y-1.5">
+                          {o.attached_files.map((f, i) => (
+                            <div key={i} className="flex items-center gap-2 bg-card rounded-lg px-3 py-2 border border-border">
+                              <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span className="flex-1 truncate font-medium">{f.name}</span>
+                              <a
+                                href={f.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download={f.name}
+                                className="flex items-center gap-1 text-primary hover:underline shrink-0"
+                              >
+                                <ExternalLink className="w-3 h-3" /> Ver / Descargar
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </Card>
@@ -196,79 +307,180 @@ export default function SolarObras() {
         </div>
       )}
 
+      {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? 'Editar obra solar' : 'Nueva obra solar'}</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Nombre *</Label>
-                <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Nombre de la obra" />
+
+          <Tabs defaultValue="datos">
+            <TabsList className="mb-4">
+              <TabsTrigger value="datos">📋 Datos</TabsTrigger>
+              <TabsTrigger value="ocr">✨ Importar OCR</TabsTrigger>
+              <TabsTrigger value="archivos">📎 Archivos</TabsTrigger>
+            </TabsList>
+
+            {/* DATOS */}
+            <TabsContent value="datos">
+              <div className="space-y-3 py-1">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs">Nombre *</Label>
+                    <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Nombre de la obra" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Código</Label>
+                    <Input value={form.code} onChange={e => set('code', e.target.value)} placeholder="SOL-001" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Estado</Label>
+                    <MobileSelect value={form.status} onValueChange={v => set('status', v)} placeholder="Estado">
+                      {Object.entries(statusCfg).map(([k, v]) => <MobileSelectItem key={k} value={k}>{v.label}</MobileSelectItem>)}
+                    </MobileSelect>
+                  </div>
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs">Cliente solar</Label>
+                    <MobileSelect value={form.client_id} onValueChange={handleClientChange} placeholder="Seleccionar cliente...">
+                      {clientes.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
+                    </MobileSelect>
+                  </div>
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs">Dirección instalación</Label>
+                    <Input value={form.address} onChange={e => set('address', e.target.value)} placeholder="Calle..." />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Tipo instalación</Label>
+                    <MobileSelect value={form.tipo_instalacion} onValueChange={v => set('tipo_instalacion', v)} placeholder="Tipo">
+                      {Object.entries(tipoInstalacion).map(([k, v]) => <MobileSelectItem key={k} value={k}>{v}</MobileSelectItem>)}
+                    </MobileSelect>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Presupuesto (€)</Label>
+                    <Input type="number" value={form.budget} onChange={e => set('budget', e.target.value)} placeholder="0" min="0" step="0.01" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Potencia (kW)</Label>
+                    <Input type="number" value={form.potencia_kw} onChange={e => set('potencia_kw', e.target.value)} placeholder="0" min="0" step="0.01" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Nº paneles</Label>
+                    <Input type="number" value={form.num_paneles} onChange={e => set('num_paneles', e.target.value)} placeholder="0" min="0" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Fecha inicio</Label>
+                    <Input type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Fecha fin prevista</Label>
+                    <Input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Persona contacto</Label>
+                    <Input value={form.contact_person} onChange={e => set('contact_person', e.target.value)} placeholder="Nombre..." />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Teléfono contacto</Label>
+                    <Input value={form.contact_phone} onChange={e => set('contact_phone', e.target.value)} placeholder="+34..." />
+                  </div>
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs">Descripción</Label>
+                    <Textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2} placeholder="Descripción del proyecto..." />
+                  </div>
+                  <div className="space-y-1.5 col-span-2">
+                    <Label className="text-xs">Observaciones</Label>
+                    <Textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} placeholder="Notas..." />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Código</Label>
-                <Input value={form.code} onChange={e => set('code', e.target.value)} placeholder="SOL-001" />
+            </TabsContent>
+
+            {/* OCR */}
+            <TabsContent value="ocr">
+              <div className="space-y-4 py-2">
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold">Importar datos con OCR + IA</p>
+                      <p className="text-xs text-muted-foreground mt-1">Sube un presupuesto, proyecto técnico o cualquier documento de la obra solar. La IA extraerá automáticamente todos los datos disponibles.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <label className={`block border-2 border-dashed rounded-lg h-32 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${ocrLoading ? 'opacity-60 pointer-events-none' : 'hover:bg-muted/30'} ${ocrDone ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' : 'border-primary/30'}`}>
+                  {ocrLoading ? (
+                    <>
+                      <Loader2 className="w-7 h-7 animate-spin text-primary" />
+                      <p className="text-xs text-primary font-medium">Analizando documento con IA...</p>
+                      <p className="text-[10px] text-muted-foreground">Esto puede tardar unos segundos</p>
+                    </>
+                  ) : ocrDone ? (
+                    <>
+                      <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+                      <p className="text-xs text-emerald-700 font-semibold">¡Datos importados correctamente!</p>
+                      <p className="text-[10px] text-muted-foreground">Revisa y completa en la pestaña "Datos"</p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-7 h-7 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground font-medium">Subir presupuesto o proyecto técnico</p>
+                      <p className="text-[10px] text-muted-foreground">PDF, imagen (JPG, PNG), Excel, Word</p>
+                    </>
+                  )}
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx,.doc,.docx" className="hidden"
+                    onChange={e => e.target.files[0] && handleOcrImport(e.target.files[0])} />
+                </label>
+
+                {ocrFile && !ocrLoading && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" /> {ocrFile.name}
+                  </p>
+                )}
+
+                {ocrDone && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 p-3 space-y-1">
+                    <p className="text-xs font-semibold text-emerald-700">Datos extraídos:</p>
+                    {form.name && <p className="text-xs text-emerald-600">· Obra: {form.name}</p>}
+                    {form.client_name && <p className="text-xs text-emerald-600">· Cliente: {form.client_name}</p>}
+                    {form.potencia_kw && <p className="text-xs text-emerald-600">· Potencia: {form.potencia_kw} kW</p>}
+                    {form.budget && <p className="text-xs text-emerald-600">· Presupuesto: {form.budget} €</p>}
+                    <p className="text-xs text-muted-foreground mt-1">El archivo también se ha añadido como adjunto.</p>
+                  </div>
+                )}
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Estado</Label>
-                <MobileSelect value={form.status} onValueChange={v => set('status', v)} placeholder="Estado">
-                  {Object.entries(statusCfg).map(([k, v]) => <MobileSelectItem key={k} value={k}>{v.label}</MobileSelectItem>)}
-                </MobileSelect>
+            </TabsContent>
+
+            {/* ARCHIVOS */}
+            <TabsContent value="archivos">
+              <div className="space-y-4 py-2">
+                <p className="text-sm text-muted-foreground">Adjunta documentos relacionados con la obra (presupuestos, planos, contratos...).</p>
+                <label className="block border-2 border-dashed rounded-lg h-24 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-muted/30 transition-colors">
+                  {uploadingFile ? <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /> : <Upload className="w-6 h-6 text-muted-foreground" />}
+                  <p className="text-xs text-muted-foreground">{uploadingFile ? 'Subiendo...' : 'Subir archivo (PDF, imagen, Excel...)'}</p>
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx,.doc,.docx" className="hidden"
+                    onChange={e => e.target.files[0] && handleFileUpload(e.target.files[0])} />
+                </label>
+
+                {uploadedFiles.length > 0 && (
+                  <div className="space-y-2">
+                    {uploadedFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-3 p-2.5 border rounded-lg bg-muted/30">
+                        <FileText className="w-4 h-4 text-primary shrink-0" />
+                        <span className="text-xs flex-1 font-medium truncate">{f.name}</span>
+                        <a href={f.url} target="_blank" rel="noopener noreferrer">
+                          <Button variant="ghost" size="icon" className="h-7 w-7"><ExternalLink className="w-3.5 h-3.5" /></Button>
+                        </a>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+                          onClick={() => setUploadedFiles(prev => prev.filter((_, idx) => idx !== i))}>
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Cliente solar</Label>
-                <MobileSelect value={form.client_id} onValueChange={handleClientChange} placeholder="Seleccionar cliente...">
-                  {clientes.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
-                </MobileSelect>
-              </div>
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Dirección instalación</Label>
-                <Input value={form.address} onChange={e => set('address', e.target.value)} placeholder="Calle..." />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo instalación</Label>
-                <MobileSelect value={form.tipo_instalacion} onValueChange={v => set('tipo_instalacion', v)} placeholder="Tipo">
-                  {Object.entries(tipoInstalacion).map(([k, v]) => <MobileSelectItem key={k} value={k}>{v}</MobileSelectItem>)}
-                </MobileSelect>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Presupuesto (€)</Label>
-                <Input type="number" value={form.budget} onChange={e => set('budget', e.target.value)} placeholder="0" min="0" step="0.01" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Potencia (kW)</Label>
-                <Input type="number" value={form.potencia_kw} onChange={e => set('potencia_kw', e.target.value)} placeholder="0" min="0" step="0.01" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nº paneles</Label>
-                <Input type="number" value={form.num_paneles} onChange={e => set('num_paneles', e.target.value)} placeholder="0" min="0" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Fecha inicio</Label>
-                <Input type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Fecha fin prevista</Label>
-                <Input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Persona contacto</Label>
-                <Input value={form.contact_person} onChange={e => set('contact_person', e.target.value)} placeholder="Nombre..." />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Teléfono contacto</Label>
-                <Input value={form.contact_phone} onChange={e => set('contact_phone', e.target.value)} placeholder="+34..." />
-              </div>
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Descripción</Label>
-                <Textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2} placeholder="Descripción del proyecto..." />
-              </div>
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Observaciones</Label>
-                <Textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} placeholder="Notas..." />
-              </div>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
+
           <DialogFooter>
             <Button variant="outline" onClick={close_}>Cancelar</Button>
             <Button onClick={handleSave} disabled={!form.name || isPending} className="gap-2 min-w-24">

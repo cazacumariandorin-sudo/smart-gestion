@@ -80,6 +80,24 @@
     "notes": {
       "type": "string",
       "description": "Observaciones"
+    },
+    "attached_files": {
+      "type": "array",
+      "description": "Archivos adjuntos",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "required": [
