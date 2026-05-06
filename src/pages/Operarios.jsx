@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '@/components/layout/PageHeader';
-import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
@@ -47,23 +46,18 @@ export default function Operarios() {
     queryFn: () => base44.entities.Obra.list('name', 300),
   });
 
-  const createM = useOptimisticMutation(
-    d => base44.entities.Operario.create(d),
-    'operarios',
-    (prev, d) => [...prev, { ...d, id: `temp_${Date.now()}` }],
-    () => close_()
-  );
-  const updateM = useOptimisticMutation(
-    ({ id, d }) => base44.entities.Operario.update(id, d),
-    'operarios',
-    (prev, { id, d }) => prev.map(op => op.id === id ? { ...op, ...d } : op),
-    () => close_()
-  );
-  const deleteM = useOptimisticMutation(
-    id => base44.entities.Operario.delete(id),
-    'operarios',
-    (prev, id) => prev.filter(op => op.id !== id)
-  );
+  const createM = useMutation({
+    mutationFn: d => base44.entities.Operario.create(d),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['operarios'] }); close_(); },
+  });
+  const updateM = useMutation({
+    mutationFn: ({ id, d }) => base44.entities.Operario.update(id, d),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['operarios'] }); close_(); },
+  });
+  const deleteM = useMutation({
+    mutationFn: id => base44.entities.Operario.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['operarios'] }),
+  });
 
   const open_ = (op = null) => {
     setEditing(op);
