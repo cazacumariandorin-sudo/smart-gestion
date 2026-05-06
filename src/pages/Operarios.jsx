@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, Receipt, FileText } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, Receipt, FileText, Link2 } from 'lucide-react';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import DocsList from '@/components/operarios/DocsList';
 
-const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true };
+const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true, user_email: '', user_id: '' };
 
 export default function Operarios() {
   const qc = useQueryClient();
@@ -36,6 +37,11 @@ export default function Operarios() {
     queryFn: () => base44.entities.Operario.list('name', 200),
   });
 
+  const { data: appUsers = [] } = useQuery({
+    queryKey: ['app_users_list'],
+    queryFn: () => base44.entities.User.list('full_name', 200),
+  });
+
   const { data: obras = [] } = useQuery({
     queryKey: ['obras'],
     queryFn: () => base44.entities.Obra.list('name', 300),
@@ -45,7 +51,11 @@ export default function Operarios() {
   const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Operario.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['operarios'] }); close_(); } });
   const deleteM = useMutation({ mutationFn: id => base44.entities.Operario.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['operarios'] }) });
 
-  const open_ = (op = null) => { setEditing(op); setForm(op ? { ...op } : empty); setDialogOpen(true); };
+  const open_ = (op = null) => {
+    setEditing(op);
+    setForm(op ? { name: op.name||'', dni: op.dni||'', email: op.email||'', phone: op.phone||'', role: op.role||'', active: op.active!==false, user_email: op.user_email||'', user_id: op.user_id||'' } : empty);
+    setDialogOpen(true);
+  };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(empty); };
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const handleSave = () => editing ? updateM.mutate({ id: editing.id, d: form }) : createM.mutate(form);
@@ -130,6 +140,10 @@ export default function Operarios() {
                     {op.dni && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CreditCard className="w-3 h-3 shrink-0" /> {op.dni}</p>}
                     {op.phone && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Phone className="w-3 h-3 shrink-0" /> {op.phone}</p>}
                     {op.email && <p className="text-xs text-muted-foreground flex items-center gap-1.5 truncate"><Mail className="w-3 h-3 shrink-0" /> {op.email}</p>}
+                    {op.user_email
+                      ? <p className="text-xs text-green-600 flex items-center gap-1.5 truncate"><Link2 className="w-3 h-3 shrink-0" /> {op.user_email}</p>
+                      : <p className="text-xs text-amber-500 flex items-center gap-1.5"><Link2 className="w-3 h-3 shrink-0" /> Sin usuario vinculado</p>
+                    }
                   </div>
                   <div className="mt-3 pt-3 border-t border-border">
                     <Link to={`/gastos-operarios?operario=${op.id}`} className="text-xs text-primary hover:underline font-medium">
@@ -172,6 +186,29 @@ export default function Operarios() {
             <div className="space-y-1.5">
               <Label className="text-xs">Puesto / Categoría</Label>
               <Input value={form.role} onChange={e => set('role', e.target.value)} placeholder="Oficial, Peón, Encargado..." />
+            </div>
+            <div className="space-y-1.5 pt-1 border-t border-border mt-1">
+              <Label className="text-xs flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5 text-primary" /> Usuario de la app vinculado</Label>
+              <p className="text-xs text-muted-foreground">Asocia este operario a un usuario que hace login. Su nombre aparecerá en lugar del email.</p>
+              <MobileSelect
+                value={form.user_email}
+                onValueChange={(val) => {
+                  const u = appUsers.find(u => u.email === val);
+                  set('user_email', val);
+                  set('user_id', u?.id || '');
+                }}
+                placeholder="Sin usuario vinculado"
+              >
+                <MobileSelectItem value="">Sin usuario vinculado</MobileSelectItem>
+                {appUsers.map(u => (
+                  <MobileSelectItem key={u.id} value={u.email}>
+                    {u.full_name || u.email} — {u.email}
+                  </MobileSelectItem>
+                ))}
+              </MobileSelect>
+              {form.user_email && (
+                <p className="text-xs text-green-600 font-medium">✓ Vinculado: {form.user_email}</p>
+              )}
             </div>
           </div>
           <DialogFooter>

@@ -12,6 +12,7 @@ import NotaGastoCard from '@/components/gastos/NotaGastoCard';
 import NotaGastoDetalle from '@/components/gastos/NotaGastoDetalle';
 import InformeGastos from '@/components/gastos/InformeGastos';
 import { useAuth } from '@/lib/AuthContext';
+import { useOperarioName } from '@/hooks/useOperarioName';
 
 const ESTADOS = ['todos', 'borrador', 'pendiente', 'validada', 'cerrada', 'rechazada'];
 const CATEGORIAS = ['todas', 'material', 'combustible', 'peaje', 'parking', 'otros'];
@@ -19,7 +20,12 @@ const CATEGORIAS = ['todas', 'material', 'combustible', 'peaje', 'parking', 'otr
 export default function NotasGastos() {
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
+  const { getOperarioName, operarios } = useOperarioName();
   const qc = useQueryClient();
+
+  // Resolve current user's operario name (if linked)
+  const miOperario = operarios.find(op => op.user_email === user?.email);
+  const miNombre = miOperario?.name || user?.full_name || user?.email || '';
 
   const [showForm, setShowForm] = useState(false);
   const [notaSeleccionada, setNotaSeleccionada] = useState(null);
@@ -33,8 +39,12 @@ export default function NotasGastos() {
     queryFn: () => base44.entities.NotaGasto.list('-created_date', 300),
   });
 
-  // Operario actual (User como operario)
-  const operarioActual = { id: user?.id, name: user?.full_name, email: user?.email };
+  // Operario actual: usa el nombre del operario vinculado si existe
+  const operarioActual = {
+    id: miOperario?.id || user?.id,
+    name: miNombre,
+    email: user?.email,
+  };
 
   const notas = notasRaw.filter(n => {
     const txt = busqueda.toLowerCase();

@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   User, Mail, Shield, LogOut, Trash2, ChevronRight, HelpCircle,
-  FileText, Scale, Info, Phone, Briefcase, Pencil, Save, X, Hash, ShieldCheck,
+  FileText, Scale, Info, Phone, Briefcase, Pencil, Save, X, Hash, ShieldCheck, Link2,
 } from 'lucide-react';
+import { useOperarioName } from '@/hooks/useOperarioName';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -45,6 +46,7 @@ function generateUserId(createdDate, counter = 1) {
 
 export default function Profile() {
   const queryClient = useQueryClient();
+  const { getOperarioName, operarios } = useOperarioName();
   const [legalDialog, setLegalDialog] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ phone: '', position: '', department: '', avatar_initials: '' });
@@ -93,6 +95,9 @@ export default function Profile() {
   const role = me?.role || 'operario';
   const roleCfg = roleLabels[role] || roleLabels.operario;
 
+  // Check if this user has a linked operario record
+  const miOperario = operarios.find(op => op.user_email === me?.email);
+
   const displayInitials = me?.avatar_initials
     ? me.avatar_initials.toUpperCase()
     : buildInitials(me?.full_name, me?.email);
@@ -128,7 +133,14 @@ export default function Profile() {
             {displayInitials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-base truncate">{me?.full_name || '—'}</p>
+            <p className="font-semibold text-base truncate">
+              {miOperario ? miOperario.name : (me?.full_name || '—')}
+            </p>
+            {miOperario && (
+              <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
+                <Link2 className="w-3 h-3" /> Operario vinculado
+              </p>
+            )}
             <p className="text-sm text-muted-foreground flex items-center gap-1.5 truncate mt-0.5">
               <Mail className="w-3.5 h-3.5 shrink-0" /> {me?.email}
             </p>

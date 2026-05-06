@@ -107,7 +107,10 @@ export default function FichajesTab() {
   };
 
   // For control_horario role, find their own operario record and restrict to it
-  const myOperario = isControlHorarioOnly ? operarios.find(o => o.email === user?.email) : null;
+  // Try to match by user_email first (new way), fallback to email field (old way)
+  const myOperario = isControlHorarioOnly
+    ? (operarios.find(o => o.user_email === user?.email) || operarios.find(o => o.email === user?.email))
+    : null;
 
   const filtered = fichajes.filter(f => {
     // control_horario only sees their own fichajes

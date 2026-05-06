@@ -12,7 +12,7 @@
     },
     "email": {
       "type": "string",
-      "description": "Correo electr\u00f3nico"
+      "description": "Correo electr\u00f3nico personal"
     },
     "phone": {
       "type": "string",
@@ -26,6 +26,14 @@
       "type": "boolean",
       "default": true,
       "description": "Activo"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email del usuario de la app vinculado a este operario (para login)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID del usuario de la app vinculado"
     }
   },
   "required": [
