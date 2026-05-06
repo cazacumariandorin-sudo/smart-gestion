@@ -19,7 +19,7 @@ const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true,
 
 export default function Operarios() {
   const qc = useQueryClient();
-  const defaultTab = window.location.pathname.includes('documentacion') ? 'documentacion' : 'operarios';
+  const defaultTab = typeof window !== 'undefined' && window.location.pathname.includes('documentacion') ? 'documentacion' : 'operarios';
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
