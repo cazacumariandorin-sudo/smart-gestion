@@ -8,13 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Lock, CheckCircle2, XCircle, Edit2, Trash2, FileText, Image, ExternalLink, Loader2, Save } from 'lucide-react';
+import { Lock, CheckCircle2, XCircle, Edit2, Trash2, FileText, Image, ExternalLink, Loader2, Save, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const CATEGORIAS = ['material', 'combustible', 'peaje', 'parking', 'otros'];
 
-export default function NotaGastoDetalle({ nota, isAdmin, open, onClose }) {
+export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operarios = [] }) {
   const qc = useQueryClient();
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState({});
@@ -91,6 +91,8 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose }) {
       categoria: nota.categoria || '',
       notas_admin: nota.notas_admin || '',
       numero_secuencia: nota.numero_secuencia || '',
+      operario_id: nota.operario_id || '',
+      operario_name: nota.operario_name || '',
     });
     setEditando(true);
   };
@@ -109,6 +111,25 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose }) {
           {/* Info básica */}
           {editando ? (
             <div className="space-y-3">
+              {isAdmin && operarios.length > 0 && (
+                <div className="space-y-1 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <Label className="text-xs flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+                    <UserCheck className="w-3.5 h-3.5" /> Operario asignado
+                  </Label>
+                  <MobileSelect
+                    value={form.operario_id}
+                    onValueChange={v => {
+                      const op = operarios.find(o => o.id === v);
+                      setForm(f => ({ ...f, operario_id: v, operario_name: op?.name || f.operario_name }));
+                    }}
+                    placeholder="Seleccionar operario"
+                  >
+                    {operarios.filter(op => op.active !== false).map(op => (
+                      <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
+                    ))}
+                  </MobileSelect>
+                </div>
+              )}
               {isAdmin && (
                 <div className="space-y-1">
                   <Label className="text-xs">Nº Secuencia (XX) — Solo admin</Label>

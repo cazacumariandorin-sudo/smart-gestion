@@ -172,6 +172,7 @@ export default function NotasGastos() {
         <NotaGastoDetalle
           nota={notaSeleccionada}
           isAdmin={isAdmin}
+          operarios={operarios}
           open={!!notaSeleccionada}
           onClose={() => {
             setNotaSeleccionada(null);
