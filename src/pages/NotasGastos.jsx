@@ -25,16 +25,19 @@ export default function NotasGastos() {
   const handleExportPDF = async () => {
     setExportingPDF(true);
     try {
-      const response = await base44.functions.invoke('exportNotasGastosPDF', {});
+      const response = await base44.functions.invoke('exportNotasGastosPDF', {}, { responseType: 'arraybuffer' });
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `notas-gastos-completo-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error(e);
+      toast.error('Error al exportar el PDF');
     } finally {
       setExportingPDF(false);
     }
