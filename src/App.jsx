@@ -26,7 +26,6 @@ const MaterialCatalog = lazy(() => import('./pages/MaterialCatalog'));
 const Drawings = lazy(() => import('./pages/Drawings'));
 const Orders = lazy(() => import('./pages/Orders'));
 const Operarios = lazy(() => import('./pages/Operarios'));
-const GastosOperarios = lazy(() => import('./pages/GastosOperarios'));
 const ControlHorario = lazy(() => import('./pages/ControlHorario'));
 const Obras = lazy(() => import('./pages/Obras'));
 const CalendarioVacaciones = lazy(() => import('./pages/CalendarioVacaciones'));
@@ -38,7 +37,6 @@ const DatosSensibles = lazy(() => import('./pages/DatosSensibles'));
 const Inventario = lazy(() => import('./pages/Inventario'));
 const DemoUsers = lazy(() => import('./pages/DemoUsers'));
 const InformeObras = lazy(() => import('./pages/InformeObras'));
-const NotasGastos = lazy(() => import('./pages/NotasGastos'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -112,7 +110,6 @@ function AnimatedRoutes() {
 
             <Route path="/operarios" element={<ProtectedRoute module="operarios"><Suspense fallback={<PageLoader />}><Operarios /></Suspense></ProtectedRoute>} />
             <Route path="/documentacion-operarios" element={<ProtectedRoute module="operarios"><Suspense fallback={<PageLoader />}><Operarios /></Suspense></ProtectedRoute>} />
-            <Route path="/gastos-operarios" element={<ProtectedRoute module="gastos-operarios"><Suspense fallback={<PageLoader />}><GastosOperarios /></Suspense></ProtectedRoute>} />
             <Route path="/control-horario" element={<ProtectedRoute module="control-horario"><Suspense fallback={<PageLoader />}><ControlHorario /></Suspense></ProtectedRoute>} />
             <Route path="/calendario-vacaciones" element={<ProtectedRoute module="calendario-vacaciones"><Suspense fallback={<PageLoader />}><CalendarioVacaciones /></Suspense></ProtectedRoute>} />
 
@@ -124,7 +121,6 @@ function AnimatedRoutes() {
             <Route path="/inventario" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><Inventario /></Suspense></ProtectedRoute>} />
             <Route path="/demo-users" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DemoUsers /></Suspense></ProtectedRoute>} />
             <Route path="/informe-obras" element={<ProtectedRoute module="informe-obras"><Suspense fallback={<PageLoader />}><InformeObras /></Suspense></ProtectedRoute>} />
-            <Route path="/notas-gastos" element={<ProtectedRoute module="gastos-operarios"><Suspense fallback={<PageLoader />}><NotasGastos /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="*" element={<PageNotFound />} />
         </Routes>
