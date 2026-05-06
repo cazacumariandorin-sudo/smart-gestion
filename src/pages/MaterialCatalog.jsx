@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useI18n } from '@/lib/i18n';
 import { Plus, Search, Pencil, Trash2, Package, ExternalLink, Upload, Loader2, Save } from 'lucide-react';
+import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -76,9 +77,12 @@ export default function MaterialCatalog() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder={t('search') + '...'} value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        <div className="relative flex-1 flex gap-1">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder={t('search') + '...'} value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <VoiceInputButton onResult={txt => setSearch(txt)} />
         </div>
         <div className="flex gap-2 flex-wrap">
           {['all', ...categories].map(c => (
@@ -151,7 +155,10 @@ export default function MaterialCatalog() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">{t('name')} *</Label>
-                <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Cemento Portland..." />
+                <div className="flex gap-1">
+                  <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Cemento Portland..." />
+                  <VoiceInputButton onResult={txt => set('name', txt)} />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">{t('code')}</Label>
@@ -171,11 +178,17 @@ export default function MaterialCatalog() {
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">{t('supplier')}</Label>
-                <Input value={form.supplier} onChange={e => set('supplier', e.target.value)} placeholder="Nombre del proveedor" />
+                <div className="flex gap-1">
+                  <Input value={form.supplier} onChange={e => set('supplier', e.target.value)} placeholder="Nombre del proveedor" />
+                  <VoiceInputButton onResult={txt => set('supplier', txt)} />
+                </div>
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">{t('description')}</Label>
-                <Textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2} placeholder="Especificaciones técnicas..." />
+                <div className="flex gap-1 items-start">
+                  <Textarea value={form.description} onChange={e => set('description', e.target.value)} rows={2} placeholder="Especificaciones técnicas..." className="flex-1" />
+                  <VoiceInputButton onResult={txt => set('description', form.description ? form.description + ' ' + txt : txt)} />
+                </div>
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">{t('manual')} (PDF / URL)</Label>
