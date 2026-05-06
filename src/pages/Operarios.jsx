@@ -5,7 +5,7 @@ import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, Receipt, FileText, Link2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, FileText, Link2 } from 'lucide-react';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,6 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Link } from 'react-router-dom';
 import DocsList from '@/components/operarios/DocsList';
 
 const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true, user_email: '', user_id: '' };
@@ -155,11 +154,7 @@ export default function Operarios() {
                       : <p className="text-xs text-amber-500 flex items-center gap-1.5"><Link2 className="w-3 h-3 shrink-0" /> Sin usuario vinculado</p>
                     }
                   </div>
-                  <div className="mt-3 pt-3 border-t border-border">
-                    <Link to={`/gastos-operarios?operario=${op.id}`} className="text-xs text-primary hover:underline font-medium">
-                      Ver gastos →
-                    </Link>
-                  </div>
+
                 </Card>
               ))}
             </div>
