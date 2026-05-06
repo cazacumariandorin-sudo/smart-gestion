@@ -33,6 +33,7 @@ export default function NotasGastos() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [filtroCategoria, setFiltroCategoria] = useState('todas');
+  const [filtroOperario, setFiltroOperario] = useState('todos');
 
   const { data: notasRaw = [], isLoading } = useQuery({
     queryKey: ['notas_gasto'],
@@ -54,7 +55,8 @@ export default function NotasGastos() {
       (n.operario_name || '').toLowerCase().includes(txt);
     const matchEstado = filtroEstado === 'todos' || n.estado === filtroEstado;
     const matchCat = filtroCategoria === 'todas' || n.categoria === filtroCategoria;
-    return matchBusq && matchEstado && matchCat;
+    const matchOp = filtroOperario === 'todos' || n.operario_id === filtroOperario;
+    return matchBusq && matchEstado && matchCat && matchOp;
   });
 
   const totalFiltrado = notas.reduce((s, n) => s + (n.importe || 0), 0);
@@ -112,6 +114,14 @@ export default function NotasGastos() {
         <MobileSelect value={filtroCategoria} onValueChange={setFiltroCategoria} placeholder="Categoría" triggerClassName="w-36">
           {CATEGORIAS.map(c => <MobileSelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</MobileSelectItem>)}
         </MobileSelect>
+        {isAdmin && operarios.length > 0 && (
+          <MobileSelect value={filtroOperario} onValueChange={setFiltroOperario} placeholder="Operario" triggerClassName="w-40">
+            <MobileSelectItem value="todos">Todos los operarios</MobileSelectItem>
+            {operarios.filter(op => op.active !== false).map(op => (
+              <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
+            ))}
+          </MobileSelect>
+        )}
       </div>
 
       {/* Resumen rápido */}
@@ -131,7 +141,7 @@ export default function NotasGastos() {
         <div className="text-center py-16 border border-dashed rounded-xl">
           <Receipt className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground mb-3">
-            {busqueda || filtroEstado !== 'todos' || filtroCategoria !== 'todas'
+            {busqueda || filtroEstado !== 'todos' || filtroCategoria !== 'todas' || filtroOperario !== 'todos'
               ? 'No hay notas con estos filtros'
               : 'No hay notas de gastos aún'}
           </p>
