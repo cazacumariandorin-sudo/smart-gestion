@@ -52,12 +52,14 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ phone: '', position: '', department: '', avatar_initials: '' });
   const [gdriveConnecting, setGdriveConnecting] = useState(false);
+  const [gdriveDialog, setGdriveDialog] = useState(false);
   const appVersion = '1.0.05';
   const CONNECTOR_ID = '69dfc310ad25fc28aa873104'; // SIMANTEC DRIVE  APP
 
   const handleConnectGdrive = async () => {
     try {
       setGdriveConnecting(true);
+      setGdriveDialog(false);
       const url = await base44.connectors.connectAppUser(CONNECTOR_ID);
       const popup = window.open(url, '_blank', 'width=600,height=800');
       
@@ -336,7 +338,7 @@ export default function Profile() {
             </div>
             <Button 
               size="sm" 
-              onClick={handleConnectGdrive} 
+              onClick={() => setGdriveDialog(true)}
               disabled={gdriveConnecting}
               className="gap-2 shrink-0"
             >
@@ -345,6 +347,43 @@ export default function Profile() {
             </Button>
           </div>
         </Card>
+
+        {/* Google Drive connection dialog */}
+        <Dialog open={gdriveDialog} onOpenChange={setGdriveDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Cloud className="w-5 h-5 text-blue-500" /> Conectar Google Drive
+              </DialogTitle>
+              <DialogDescription>
+                Selecciona la cuenta de Google con la que deseas conectar.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-4">
+              <p className="text-sm text-muted-foreground">
+                Se abrirá una ventana para que autorices el acceso a Google Drive. Podrás elegir la cuenta durante el proceso.
+              </p>
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <p className="text-xs text-blue-700 dark:text-blue-400">
+                  💡 <strong>Consejo:</strong> Usa una cuenta compartida o comercial de Google Drive para que todo el equipo tenga acceso a los documentos.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setGdriveDialog(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleConnectGdrive}
+                disabled={gdriveConnecting}
+                className="flex-1 gap-2"
+              >
+                {gdriveConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+                {gdriveConnecting ? 'Conectando...' : 'Continuar'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Actions */}
         <Card className="divide-y divide-border overflow-hidden mb-4">
