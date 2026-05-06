@@ -38,6 +38,7 @@ const Inventario = lazy(() => import('./pages/Inventario'));
 const DemoUsers = lazy(() => import('./pages/DemoUsers'));
 const InformeObras = lazy(() => import('./pages/InformeObras'));
 const NotasGastos = lazy(() => import('./pages/NotasGastos'));
+const Vehiculos = lazy(() => import('./pages/Vehiculos'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -123,6 +124,7 @@ function AnimatedRoutes() {
             <Route path="/demo-users" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DemoUsers /></Suspense></ProtectedRoute>} />
             <Route path="/informe-obras" element={<ProtectedRoute module="informe-obras"><Suspense fallback={<PageLoader />}><InformeObras /></Suspense></ProtectedRoute>} />
             <Route path="/notas-gastos" element={<ProtectedRoute module="notas-gastos"><Suspense fallback={<PageLoader />}><NotasGastos /></Suspense></ProtectedRoute>} />
+            <Route path="/vehiculos" element={<ProtectedRoute module="vehiculos"><Suspense fallback={<PageLoader />}><Vehiculos /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="*" element={<PageNotFound />} />
         </Routes>

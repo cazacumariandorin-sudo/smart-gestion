@@ -1,0 +1,106 @@
+{
+  "name": "Vehiculo",
+  "type": "object",
+  "properties": {
+    "matricula": {
+      "type": "string",
+      "description": "Matr\u00edcula del veh\u00edculo"
+    },
+    "modelo": {
+      "type": "string",
+      "description": "Marca y modelo del veh\u00edculo"
+    },
+    "anio": {
+      "type": "integer",
+      "description": "A\u00f1o del veh\u00edculo"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color del veh\u00edculo"
+    },
+    "asignado_a": {
+      "type": "string",
+      "description": "Nombre del operario/conductor asignado"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones generales"
+    },
+    "itv_fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de caducidad de la ITV"
+    },
+    "neumaticos_km": {
+      "type": "number",
+      "description": "Km actuales en el momento del \u00faltimo cambio de neum\u00e1ticos"
+    },
+    "neumaticos_km_cambio": {
+      "type": "number",
+      "description": "Km previstos para el pr\u00f3ximo cambio de neum\u00e1ticos"
+    },
+    "neumaticos_fecha_ultimo": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del \u00faltimo cambio de neum\u00e1ticos"
+    },
+    "aceite_fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de caducidad / pr\u00f3ximo cambio de aceite"
+    },
+    "aceite_km": {
+      "type": "number",
+      "description": "Km para el pr\u00f3ximo cambio de aceite"
+    },
+    "filtros_fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de caducidad / pr\u00f3ximo cambio de filtros"
+    },
+    "filtros_km": {
+      "type": "number",
+      "description": "Km para el pr\u00f3ximo cambio de filtros"
+    },
+    "ac_fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la pr\u00f3xima revisi\u00f3n de aire acondicionado"
+    },
+    "km_actuales": {
+      "type": "number",
+      "description": "Km actuales del veh\u00edculo (actualizar manualmente)"
+    },
+    "alertas_email": {
+      "type": "string",
+      "description": "Emails para recibir alertas (separados por coma)"
+    },
+    "alertas_activas": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activar env\u00edo de alertas por email"
+    }
+  },
+  "required": [
+    "matricula",
+    "modelo"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": true,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

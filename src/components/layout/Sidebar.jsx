@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera,
-  UserCog, CircleUser, Package, FileImage, ShoppingCart, Clock, Receipt,
+  UserCog, CircleUser, Package, FileImage, ShoppingCart, Clock, Receipt, Car,
   Building2, BookOpen, CalendarDays, ChevronDown, ChevronRight, Sun, Factory, Settings, FlaskConical, BarChart2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -112,6 +112,7 @@ export default function Sidebar() {
     { label: 'Usuarios Demo',   path: '/demo-users',       icon: FlaskConical,  module: 'users' },
     { label: 'Datos Sensibles', path: '/datos-sensibles',  icon: Settings,      module: 'users' },
     { label: 'Inventario',      path: '/inventario',       icon: Package,       module: 'users' },
+    { label: 'Vehículos',       path: '/vehiculos',        icon: Car,           module: 'vehiculos' },
     { label: 'Informe Mensual', path: '/reports',          icon: BarChart3,     module: 'reports' },
   ].filter(i => canAccess(i.module));
 
