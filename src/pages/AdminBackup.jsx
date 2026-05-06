@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
-import { HardDrive, Download, Trash2, Loader2, Plus, RotateCcw, FileDown } from 'lucide-react';
+import { HardDrive, Download, Trash2, Loader2, Plus, RotateCcw, FileDown, DatabaseBackup } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,12 @@ export default function AdminBackup() {
   const handleExportPDF = async () => {
     setExportingPDF(true);
     try {
-      const response = await base44.functions.invoke('exportNotasGastosPDF', {}, { responseType: 'arraybuffer' });
+      const response = await base44.functions.invoke('exportarNotasGastosPDF', {
+        operario_name: 'Todos',
+        periodo: 'Completo',
+        fecha_inicio: '2020-01-01',
+        fecha_fin: new Date().toISOString().split('T')[0],
+      }, { responseType: 'arraybuffer' });
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -33,6 +38,22 @@ export default function AdminBackup() {
       console.error(e);
     } finally {
       setExportingPDF(false);
+    }
+  };
+
+  const handleBackupGastos = async () => {
+    try {
+      const res = await base44.functions.invoke('backupGastosOperarios', {});
+      if (res.data?.file_url) {
+        const a = document.createElement('a');
+        a.href = res.data.file_url;
+        a.download = `backup-gastos-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -75,6 +96,10 @@ export default function AdminBackup() {
           <p className="text-sm text-muted-foreground mt-1">Gestiona copias de seguridad automáticas</p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={handleBackupGastos} variant="outline" className="gap-2 shadow-sm">
+            <DatabaseBackup className="w-4 h-4" />
+            <span className="hidden sm:inline">Backup Gastos</span>
+          </Button>
           <Button onClick={handleExportPDF} disabled={exportingPDF} variant="outline" className="gap-2 shadow-sm">
             {exportingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
             <span className="hidden sm:inline">PDF Notas Gastos</span>

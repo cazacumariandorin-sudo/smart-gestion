@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Clock, Users, ShoppingCart, Camera, Building2, BookOpen, CalendarDays, UserCog, HardHat, BarChart3, Sun, Package } from 'lucide-react';
+import { ClipboardList, Clock, Users, ShoppingCart, Camera, Building2, BookOpen, CalendarDays, UserCog, HardHat, BarChart3, Sun, Package, Receipt } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -123,6 +123,17 @@ const ALL_MODULES = [
     iconColor: 'text-slate-600',
     emoji: '⚙️',
     image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&q=80',
+  },
+  {
+    key: 'notas-gastos',
+    label: 'Notas de Gastos',
+    path: '/notas-gastos',
+    icon: Receipt,
+    bg: 'bg-rose-50 dark:bg-rose-950/30',
+    border: 'border-rose-200 dark:border-rose-800',
+    iconColor: 'text-rose-600',
+    emoji: '🧾',
+    image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&q=80',
   },
   {
     key: 'informe-obras',

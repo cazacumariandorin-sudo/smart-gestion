@@ -36,9 +36,9 @@ export function useUserRole() {
     if (isAdmin) return true;
 
     const perms = {
-      admin: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'users', 'materials', 'drawings', 'orders', 'operarios', 'control-horario', 'obras', 'calendario-vacaciones', 'manuales', 'informe-obras', 'fabricantes', 'admin-backup', 'datos-sensibles', 'demo-users', 'solar-pedidos', 'inventario'],
-      jefe_obra: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'materials', 'drawings', 'manuales', 'informe-obras', 'operarios'],
-      operario: ['dashboard', 'work-orders', 'control-horario', 'orders', 'obras', 'materials', 'drawings', 'manuales', 'calendario-vacaciones', 'photos'],
+      admin: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'users', 'materials', 'drawings', 'orders', 'operarios', 'control-horario', 'obras', 'calendario-vacaciones', 'manuales', 'informe-obras', 'fabricantes', 'admin-backup', 'datos-sensibles', 'demo-users', 'solar-pedidos', 'inventario', 'notas-gastos'],
+      jefe_obra: ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'materials', 'drawings', 'manuales', 'informe-obras', 'operarios', 'notas-gastos'],
+      operario: ['dashboard', 'work-orders', 'control-horario', 'orders', 'obras', 'materials', 'drawings', 'manuales', 'calendario-vacaciones', 'photos', 'notas-gastos'],
       control_horario: ['dashboard', 'control-horario', 'work-orders'],
       cliente_obra: ['dashboard', 'informe-obras'],
     };

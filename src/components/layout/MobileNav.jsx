@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Package, BarChart2, UserCircle, Camera, UserCog, Factory, Sun } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Package, BarChart2, UserCircle, Camera, UserCog, Factory, Sun, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserRole } from '@/lib/useUserRole';
@@ -14,6 +14,7 @@ const ALL_MAIN_ITEMS = [
 
 const ALL_OPERARIOS_ITEMS = [
   { path: '/operarios',              icon: Users,       label: 'Operarios',  module: 'operarios' },
+  { path: '/notas-gastos',           icon: Receipt,     label: 'Gastos',     module: 'notas-gastos' },
   { path: '/calendario-vacaciones',  icon: CalendarDays,label: 'Vacaciones', module: 'calendario-vacaciones' },
   { path: '/users',                  icon: UserCog,     label: 'Usuarios',   module: 'users' },
   { path: '/inventario',             icon: Package,     label: 'Inventario', module: 'users' },

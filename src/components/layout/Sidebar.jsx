@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera,
-  UserCog, CircleUser, Package, FileImage, ShoppingCart, Clock,
+  UserCog, CircleUser, Package, FileImage, ShoppingCart, Clock, Receipt,
   Building2, BookOpen, CalendarDays, ChevronDown, ChevronRight, Sun, Factory, Settings, FlaskConical, BarChart2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -87,6 +87,7 @@ export default function Sidebar() {
   const operariosItems = [
     { label: 'Operarios',       path: '/operarios',              icon: Users,       module: 'operarios' },
     { label: 'Documentación',   path: '/documentacion-operarios',icon: FileImage,   module: 'operarios' },
+    { label: 'Notas de Gastos', path: '/notas-gastos',           icon: Receipt,     module: 'notas-gastos' },
     { label: 'Vacaciones',      path: '/calendario-vacaciones',  icon: CalendarDays,module: 'calendario-vacaciones' },
     { label: 'Control Horario', path: '/control-horario',        icon: Clock,       module: 'control-horario' },
   ].filter(i => canAccess(i.module));
