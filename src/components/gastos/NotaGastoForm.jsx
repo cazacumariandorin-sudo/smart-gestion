@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import OcrUploader from './OcrUploader';
 import ObraSelector from './ObraSelector';
 import { Loader2, AlertTriangle, FileCheck, UserCheck } from 'lucide-react';
+import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -195,13 +196,19 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
 
             <div className="space-y-1.5">
               <Label className="text-xs">Concepto</Label>
-              <Input placeholder="Descripción del gasto" value={form.concepto} onChange={e => setField('concepto', e.target.value)} />
+              <div className="flex gap-1">
+                <Input placeholder="Descripción del gasto" value={form.concepto} onChange={e => setField('concepto', e.target.value)} />
+                <VoiceInputButton onResult={txt => setField('concepto', txt)} />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Comercio / Proveedor</Label>
-                <Input placeholder="Nombre comercio" value={form.nombre_comercio} onChange={e => setField('nombre_comercio', e.target.value)} />
+                <div className="flex gap-1">
+                  <Input placeholder="Nombre comercio" value={form.nombre_comercio} onChange={e => setField('nombre_comercio', e.target.value)} />
+                  <VoiceInputButton onResult={txt => setField('nombre_comercio', txt)} />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">NIF / CIF</Label>

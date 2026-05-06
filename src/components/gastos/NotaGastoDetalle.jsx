@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Lock, CheckCircle2, XCircle, Edit2, Trash2, FileText, Image, ExternalLink, Loader2, Save, UserCheck } from 'lucide-react';
+import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -150,12 +151,18 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Concepto</Label>
-                <Input value={form.concepto} onChange={e => setForm(f => ({ ...f, concepto: e.target.value }))} />
+                <div className="flex gap-1">
+                  <Input value={form.concepto} onChange={e => setForm(f => ({ ...f, concepto: e.target.value }))} />
+                  <VoiceInputButton onResult={txt => setForm(f => ({ ...f, concepto: txt }))} />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Comercio</Label>
-                  <Input value={form.nombre_comercio} onChange={e => setForm(f => ({ ...f, nombre_comercio: e.target.value }))} />
+                  <div className="flex gap-1">
+                    <Input value={form.nombre_comercio} onChange={e => setForm(f => ({ ...f, nombre_comercio: e.target.value }))} />
+                    <VoiceInputButton onResult={txt => setForm(f => ({ ...f, nombre_comercio: txt }))} />
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">NIF/CIF</Label>
