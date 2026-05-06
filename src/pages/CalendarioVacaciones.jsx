@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
@@ -55,9 +56,22 @@ export default function CalendarioVacaciones() {
     queryFn: () => base44.entities.Operario.list('name', 200),
   });
 
-  const createM = useMutation({ mutationFn: d => base44.entities.Vacacion.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['vacaciones'] }); setDialogOpen(false); setForm(emptyForm); } });
-  const deleteM = useMutation({ mutationFn: id => base44.entities.Vacacion.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['vacaciones'] }) });
-  const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Vacacion.update(id, d), onSuccess: () => qc.invalidateQueries({ queryKey: ['vacaciones'] }) });
+  const createM = useOptimisticMutation(
+    d => base44.entities.Vacacion.create(d),
+    'vacaciones',
+    (prev, d) => [...prev, { ...d, id: `temp_${Date.now()}` }],
+    () => { setDialogOpen(false); setForm(emptyForm); }
+  );
+  const deleteM = useOptimisticMutation(
+    id => base44.entities.Vacacion.delete(id),
+    'vacaciones',
+    (prev, id) => prev.filter(v => v.id !== id)
+  );
+  const updateM = useOptimisticMutation(
+    ({ id, d }) => base44.entities.Vacacion.update(id, d),
+    'vacaciones',
+    (prev, { id, d }) => prev.map(v => v.id === id ? { ...v, ...d } : v)
+  );
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 

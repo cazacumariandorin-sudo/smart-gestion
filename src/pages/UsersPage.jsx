@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, Loader2, Edit2, Trash2 } from 'lucide-react';
@@ -16,6 +18,9 @@ import { toast } from 'sonner';
 export default function UsersPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+
+  const onRefresh = useCallback(() => qc.invalidateQueries({ queryKey: ['users'] }), [qc]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
   const [isAdmin, setIsAdmin] = useState(false);
   const [openInvite, setOpenInvite] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
@@ -119,6 +124,7 @@ export default function UsersPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold">Gestión de Usuarios ({users.length})</h1>
         <Button onClick={() => setOpenInvite(true)} className="gap-2">

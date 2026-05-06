@@ -1,5 +1,8 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { Car, Plus, Edit2, Trash2, Bell, BellOff, AlertTriangle, CheckCircle2, Clock, Wrench, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
@@ -163,6 +166,9 @@ export default function Vehiculos() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [testando, setTestando] = useState(false);
 
+  const onRefresh = useCallback(() => qc.invalidateQueries({ queryKey: ['vehiculos'] }), [qc]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
+
   const { data: vehiculos = [], isLoading } = useQuery({
     queryKey: ['vehiculos'],
     queryFn: () => base44.entities.Vehiculo.list('matricula', 200),
@@ -170,26 +176,31 @@ export default function Vehiculos() {
 
   const setF = (field) => (val) => setForm(f => ({ ...f, [field]: val }));
 
-  const saveMutation = useMutation({
-    mutationFn: async (data) => {
+  const saveMutation = useOptimisticMutation(
+    async (data) => {
       if (editing) return base44.entities.Vehiculo.update(editing.id, data);
       return base44.entities.Vehiculo.create(data);
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['vehiculos'] });
+    'vehiculos',
+    (prev, data) => editing
+      ? prev.map(v => v.id === editing.id ? { ...v, ...data } : v)
+      : [...prev, { ...data, id: `temp_${Date.now()}` }],
+    () => {
       setOpen(false);
       setEditing(null);
       setForm(EMPTY_FORM);
       toast.success(editing ? 'Vehículo actualizado' : 'Vehículo creado');
     },
-    onError: () => toast.error('Error al guardar'),
-  });
+    () => toast.error('Error al guardar')
+  );
 
-  const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Vehiculo.delete(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['vehiculos'] }); toast.success('Vehículo eliminado'); },
-    onError: () => toast.error('Error al eliminar'),
-  });
+  const deleteMutation = useOptimisticMutation(
+    (id) => base44.entities.Vehiculo.delete(id),
+    'vehiculos',
+    (prev, id) => prev.filter(v => v.id !== id),
+    () => toast.success('Vehículo eliminado'),
+    () => toast.error('Error al eliminar')
+  );
 
   const handleEdit = (v) => {
     setEditing(v);
@@ -235,6 +246,7 @@ export default function Vehiculos() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div>

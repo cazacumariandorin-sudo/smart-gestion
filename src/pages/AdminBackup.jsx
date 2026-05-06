@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { HardDrive, Download, Trash2, Loader2, Plus, RotateCcw, FileDown, DatabaseBackup } from 'lucide-react';
@@ -13,6 +15,9 @@ import { es } from 'date-fns/locale';
 export default function AdminBackup() {
   const qc = useQueryClient();
   const { isAdmin } = useUserRole();
+
+  const onRefresh = useCallback(() => qc.invalidateQueries({ queryKey: ['backups'] }), [qc]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
   const [creatingBackup, setCreatingBackup] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
 
@@ -88,6 +93,7 @@ export default function AdminBackup() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
