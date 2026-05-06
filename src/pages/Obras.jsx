@@ -174,7 +174,7 @@ export default function Obras() {
       </div>
       {/* Obra Detail Panel */}
       <Dialog open={!!detailObra} onOpenChange={v => { if (!v) setDetailObra(null); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto pb-[env(keyboard-inset-height,0)]">
           <DialogHeader>
             <div className="flex items-center justify-between pr-6">
               <div>
@@ -216,7 +216,7 @@ export default function Obras() {
       </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto pb-[env(keyboard-inset-height,0)]">
           <DialogHeader><DialogTitle>{editing ? 'Editar Obra' : 'Nueva Obra'}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,6 +95,13 @@ export default function Profile() {
 
   const role = me?.role || 'operario';
   const roleCfg = roleLabels[role] || roleLabels.operario;
+
+  const deleteMutation = useMutation({
+    mutationFn: () => base44.functions.invoke('requestAccountDeletion', {}),
+    onSuccess: () => {
+      base44.auth.logout();
+    },
+  });
 
   // Check if this user has a linked operario record
   const miOperario = operarios.find(op => op.user_email === me?.email);
@@ -350,10 +358,13 @@ export default function Profile() {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction
-                    onClick={() => base44.auth.logout()}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={() => {
+                      deleteMutation.mutate();
+                    }}
+                    disabled={deleteMutation.isPending}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
                   >
-                    Sí, eliminar mi cuenta
+                    {deleteMutation.isPending ? 'Eliminando...' : 'Sí, eliminar mi cuenta'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

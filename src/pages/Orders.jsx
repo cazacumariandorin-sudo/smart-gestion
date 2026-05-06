@@ -374,7 +374,7 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
       </div>
       {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto pb-[env(keyboard-inset-height,0)]">
           <DialogHeader><DialogTitle>{editing ? t('edit') : t('new_order')}</DialogTitle></DialogHeader>
           <Tabs defaultValue="datos">
             <TabsList className="mb-4">

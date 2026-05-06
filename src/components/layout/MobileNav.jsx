@@ -38,7 +38,7 @@ function haptic(ms = 8) {
   if (navigator?.vibrate) navigator.vibrate(ms);
 }
 
-function BottomSheet({ title, items, onClose }) {
+function BottomSheet({ title, items, onClose, saveTabPath }) {
   const location = useLocation();
   return (
     <motion.div
@@ -73,7 +73,7 @@ function BottomSheet({ title, items, onClose }) {
               <Link
                 key={item.path}
                 to={item.path}
-                onClick={() => { haptic(); onClose(); }}
+                onClick={() => { haptic(); saveTabPath(item.path, item.path); onClose(); }}
                 className={cn(
                   'flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-2xl transition-all active:scale-95',
                   isActive
@@ -165,6 +165,17 @@ export default function MobileNav() {
   const [showOperarios, setShowOperarios] = useState(false);
   const [showPedidos, setShowPedidos] = useState(false);
 
+  // Tab stack preservation: store last path per tab in sessionStorage
+  const getTabKey = (tabPath) => `tab_last_path_${tabPath}`;
+  const saveTabPath = useCallback((tabPath, fullPath) => {
+    if (tabPath && fullPath.startsWith(tabPath)) {
+      sessionStorage.setItem(getTabKey(tabPath), fullPath);
+    }
+  }, []);
+  const getTabPath = useCallback((tabPath) => {
+    return sessionStorage.getItem(getTabKey(tabPath)) || tabPath;
+  }, []);
+
   const mainItems      = ALL_MAIN_ITEMS.filter(i => i.module === null || canAccess(i.module));
   const operariosItems = ALL_OPERARIOS_ITEMS.filter(i => canAccess(i.module));
   const pedidosItems   = ALL_PEDIDOS_ITEMS.filter(i => canAccess(i.module));
@@ -174,42 +185,48 @@ export default function MobileNav() {
 
   const closeAll = useCallback(() => { setShowOperarios(false); setShowPedidos(false); }, []);
 
-  // Tab reset: navigate to root of tab, scroll to top
+  // Tab reset: navigate to last stored path or root of tab, scroll to top
   const handleReset = useCallback((path) => {
     closeAll();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    navigate(path, { replace: true });
-  }, [navigate, closeAll]);
+    const lastPath = getTabPath(path);
+    navigate(lastPath, { replace: true });
+  }, [navigate, closeAll, getTabPath]);
 
   const handleNavigate = useCallback((path) => {
     closeAll();
+    // Save current tab path before navigating to new tab
+    const rootTab = path.split('/')[1] ? '/' + path.split('/')[1] : path;
+    saveTabPath(rootTab, location.pathname);
     navigate(path);
-  }, [navigate, closeAll]);
+  }, [navigate, closeAll, location.pathname, saveTabPath]);
 
-  // Group tab reset: if already on a group tab → navigate to first item root and reset
+  // Group tab reset: if already on a group tab → navigate to last stored path, else open menu
   const handleGroupReset = useCallback((items, setShow, otherSet) => {
     haptic();
     const groupActive = items.some(i => location.pathname.startsWith(i.path));
     if (groupActive) {
-      // Reset to first item of the group
+      // Reset to last stored path in group
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      navigate(items[0].path, { replace: true });
+      const groupTabPath = '/' + items[0].path.split('/')[1];
+      const lastPath = getTabPath(groupTabPath);
+      navigate(lastPath, { replace: true });
       setShow(false);
       otherSet(false);
     } else {
       setShow(o => !o);
       otherSet(false);
     }
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, getTabPath]);
 
   return (
     <>
       <AnimatePresence>
         {showOperarios && (
-          <BottomSheet title="Equipos" items={operariosItems} onClose={() => setShowOperarios(false)} />
+          <BottomSheet title="Equipos" items={operariosItems} onClose={() => setShowOperarios(false)} saveTabPath={saveTabPath} />
         )}
         {showPedidos && (
-          <BottomSheet title="Pedidos y Obras" items={pedidosItems} onClose={() => setShowPedidos(false)} />
+          <BottomSheet title="Pedidos y Obras" items={pedidosItems} onClose={() => setShowPedidos(false)} saveTabPath={saveTabPath} />
         )}
       </AnimatePresence>
 
