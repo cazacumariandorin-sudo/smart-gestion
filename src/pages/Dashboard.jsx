@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
-import { ClipboardList, Clock, Users, ShoppingCart, Camera, Building2, BookOpen, CalendarDays, UserCog, HardHat, BarChart3, Sun, Package, Receipt } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ClipboardList, Clock, Users, ShoppingCart, Camera, Building2, BookOpen, CalendarDays, UserCog, HardHat, BarChart3, Sun, Package, Receipt, Plus, Filter, Eye } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -23,6 +23,10 @@ const ALL_MODULES = [
     iconColor: 'text-orange-600',
     emoji: '📋',
     image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&q=80',
+    shortcuts: [
+      { label: 'Nuevo parte', path: '/work-orders/new', icon: Plus },
+      { label: 'Ver todos', path: '/work-orders', icon: Eye },
+    ],
   },
   {
     key: 'control-horario',
@@ -34,6 +38,10 @@ const ALL_MODULES = [
     iconColor: 'text-cyan-600',
     emoji: '🕐',
     image: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=400&q=80',
+    shortcuts: [
+      { label: 'Fichajes', path: '/control-horario', icon: Clock },
+      { label: 'Informes', path: '/control-horario', icon: BarChart3 },
+    ],
   },
   {
     key: 'clients',
@@ -45,6 +53,9 @@ const ALL_MODULES = [
     iconColor: 'text-teal-600',
     emoji: '🏢',
     image: 'https://images.unsplash.com/photo-1560472355-536de3962603?w=400&q=80',
+    shortcuts: [
+      { label: 'Ver clientes', path: '/clients', icon: Eye },
+    ],
   },
   {
     key: 'orders',
@@ -56,6 +67,10 @@ const ALL_MODULES = [
     iconColor: 'text-blue-600',
     emoji: '🛒',
     image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&q=80',
+    shortcuts: [
+      { label: 'Ver pedidos', path: '/orders', icon: Eye },
+      { label: 'Materiales', path: '/materials', icon: Package },
+    ],
   },
   {
     key: 'obras',
@@ -67,8 +82,11 @@ const ALL_MODULES = [
     iconColor: 'text-amber-600',
     emoji: '🏗️',
     image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400&q=80',
+    shortcuts: [
+      { label: 'Ver obras', path: '/obras', icon: Eye },
+      { label: 'Informe', path: '/informe-obras', icon: BarChart3 },
+    ],
   },
-
   {
     key: 'calendario-vacaciones',
     label: 'Vacaciones',
@@ -79,6 +97,9 @@ const ALL_MODULES = [
     iconColor: 'text-indigo-600',
     emoji: '🏖️',
     image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80',
+    shortcuts: [
+      { label: 'Calendario', path: '/calendario-vacaciones', icon: CalendarDays },
+    ],
   },
   {
     key: 'photos',
@@ -90,6 +111,9 @@ const ALL_MODULES = [
     iconColor: 'text-pink-600',
     emoji: '📷',
     image: 'https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400&q=80',
+    shortcuts: [
+      { label: 'Ver galería', path: '/photos', icon: Camera },
+    ],
   },
   {
     key: 'reports',
@@ -101,6 +125,9 @@ const ALL_MODULES = [
     iconColor: 'text-green-600',
     emoji: '📊',
     image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80',
+    shortcuts: [
+      { label: 'Ver informes', path: '/reports', icon: Eye },
+    ],
   },
   {
     key: 'operarios',
@@ -112,6 +139,10 @@ const ALL_MODULES = [
     iconColor: 'text-violet-600',
     emoji: '👷',
     image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&q=80',
+    shortcuts: [
+      { label: 'Ver operarios', path: '/operarios', icon: Eye },
+      { label: 'Horario', path: '/control-horario', icon: Clock },
+    ],
   },
   {
     key: 'users',
@@ -123,6 +154,10 @@ const ALL_MODULES = [
     iconColor: 'text-slate-600',
     emoji: '⚙️',
     image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&q=80',
+    shortcuts: [
+      { label: 'Usuarios', path: '/users', icon: Users },
+      { label: 'Backup', path: '/admin-backup', icon: Eye },
+    ],
   },
   {
     key: 'notas-gastos',
@@ -134,6 +169,10 @@ const ALL_MODULES = [
     iconColor: 'text-rose-600',
     emoji: '🧾',
     image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&q=80',
+    shortcuts: [
+      { label: 'Ver notas', path: '/notas-gastos', icon: Eye },
+      { label: 'Nueva nota', path: '/notas-gastos', icon: Plus },
+    ],
   },
   {
     key: 'informe-obras',
@@ -145,17 +184,22 @@ const ALL_MODULES = [
     iconColor: 'text-emerald-600',
     emoji: '📈',
     image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=80',
+    shortcuts: [
+      { label: 'Ver informe', path: '/informe-obras', icon: Eye },
+    ],
   },
-
 ];
 
 function ModuleCard({ mod, count, subtitle }) {
   const Icon = mod.icon;
+  const navigate = useNavigate();
+  const shortcuts = mod.shortcuts || [];
+
   return (
-    <Link to={mod.path}>
-      <Card className={`overflow-hidden hover:shadow-xl transition-all hover:scale-[1.03] cursor-pointer border-2 ${mod.border} group`}>
-        {/* Photo header */}
-        <div className="relative h-24 overflow-hidden">
+    <Card className={`overflow-hidden hover:shadow-xl transition-all border-2 ${mod.border} group flex flex-col`}>
+      {/* Photo header — clickable to main path */}
+      <Link to={mod.path} className="block">
+        <div className="relative h-20 overflow-hidden cursor-pointer">
           <img
             src={mod.image}
             alt={mod.label}
@@ -164,20 +208,47 @@ function ModuleCard({ mod, count, subtitle }) {
           />
           <div className={`absolute inset-0 ${mod.bg} opacity-60`} />
           <div className="absolute top-2 right-2">
-            <div className={`w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow`}>
+            <div className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow">
               <Icon className={`w-4 h-4 ${mod.iconColor}`} />
             </div>
           </div>
           <span className="absolute bottom-2 left-2 text-xl drop-shadow">{mod.emoji}</span>
         </div>
-        {/* Content */}
-        <div className="p-3">
-          <p className="text-xs font-bold text-foreground leading-tight">{mod.label}</p>
-          {count !== undefined && <p className="text-lg font-bold text-foreground mt-0.5">{count}</p>}
-          {subtitle && <p className="text-[10px] text-muted-foreground">{subtitle}</p>}
-        </div>
-      </Card>
-    </Link>
+      </Link>
+
+      {/* Content */}
+      <div className="p-2.5 flex flex-col flex-1">
+        <Link to={mod.path}>
+          <p className="text-xs font-bold text-foreground leading-tight hover:text-primary transition-colors">{mod.label}</p>
+        </Link>
+        {count !== undefined && (
+          <p className="text-base font-bold text-foreground mt-0.5 leading-none">{count}
+            {subtitle && <span className="text-[10px] font-normal text-muted-foreground ml-1">{subtitle}</span>}
+          </p>
+        )}
+        {!count && subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
+
+        {/* Dynamic shortcut buttons */}
+        {shortcuts.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {shortcuts.map((s, i) => {
+              const SIcon = s.icon;
+              return (
+                <button
+                  key={i}
+                  onClick={e => { e.preventDefault(); navigate(s.path); }}
+                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border transition-colors
+                    ${mod.bg} ${mod.border} ${mod.iconColor} hover:opacity-80 active:scale-95`}
+                >
+                  <SIcon className="w-2.5 h-2.5 shrink-0" />
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 
