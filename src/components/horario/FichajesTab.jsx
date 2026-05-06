@@ -5,6 +5,7 @@ import { useUserRole } from '@/lib/useUserRole';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { calcularHoras } from '@/lib/horasUtils';
 import { Plus, Search, Trash2, Pencil, Save, Loader2, Clock, ChevronDown, ChevronUp, ClipboardList } from 'lucide-react';
+import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -278,7 +279,10 @@ export default function FichajesTab() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Obra</Label>
-                <Input value={form.project} onChange={e => set('project', e.target.value)} placeholder="Nombre obra..." />
+                <div className="flex gap-1">
+                  <Input value={form.project} onChange={e => set('project', e.target.value)} placeholder="Nombre obra..." />
+                  <VoiceInputButton onResult={txt => set('project', txt)} />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Hora entrada *</Label>
@@ -325,7 +329,10 @@ export default function FichajesTab() {
             )}
             <div className="space-y-1.5">
               <Label className="text-xs">Notas</Label>
-              <Textarea value={form.notas} onChange={e => set('notas', e.target.value)} rows={2} placeholder="Observaciones..." />
+              <div className="flex gap-1 items-start">
+                <Textarea value={form.notas} onChange={e => set('notas', e.target.value)} rows={2} placeholder="Observaciones..." className="flex-1" />
+                <VoiceInputButton onResult={txt => set('notas', form.notas ? form.notas + ' ' + txt : txt)} />
+              </div>
             </div>
 
             {/* Apuntes de cantidades */}
@@ -339,8 +346,9 @@ export default function FichajesTab() {
                 </div>
                 {apuntes.map((a, i) => (
                   <div key={i} className="grid grid-cols-12 gap-1.5 items-end">
-                    <div className="col-span-5">
-                      <Input value={a.concepto} onChange={e => setApunteField(i, 'concepto', e.target.value)} placeholder="Concepto..." className="h-8 text-xs" />
+                    <div className="col-span-5 flex gap-1">
+                      <Input value={a.concepto} onChange={e => setApunteField(i, 'concepto', e.target.value)} placeholder="Concepto..." className="h-8 text-xs flex-1" />
+                      <VoiceInputButton onResult={txt => setApunteField(i, 'concepto', txt)} />
                     </div>
                     <div className="col-span-2">
                       <Input type="number" step="0.01" value={a.cantidad} onChange={e => setApunteField(i, 'cantidad', e.target.value)} placeholder="Cant." className="h-8 text-xs" />

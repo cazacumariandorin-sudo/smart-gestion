@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Plus, Download, Trash2, Pencil, Save, Loader2, ClipboardList, TrendingUp } from 'lucide-react';
+import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -339,11 +340,17 @@ export default function ApuntesTab() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Obra</Label>
-                <Input value={form.obra_name} onChange={e => set('obra_name', e.target.value)} placeholder="Nombre obra..." />
+                <div className="flex gap-1">
+                  <Input value={form.obra_name} onChange={e => set('obra_name', e.target.value)} placeholder="Nombre obra..." />
+                  <VoiceInputButton onResult={txt => set('obra_name', txt)} />
+                </div>
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Concepto *</Label>
-                <Input value={form.concepto} onChange={e => set('concepto', e.target.value)} placeholder="Descripción del trabajo..." />
+                <div className="flex gap-1">
+                  <Input value={form.concepto} onChange={e => set('concepto', e.target.value)} placeholder="Descripción del trabajo..." />
+                  <VoiceInputButton onResult={txt => set('concepto', txt)} />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Cantidad *</Label>
@@ -371,7 +378,10 @@ export default function ApuntesTab() {
             )}
             <div className="space-y-1.5">
               <Label className="text-xs">Notas</Label>
-              <Textarea value={form.notas} onChange={e => set('notas', e.target.value)} rows={2} placeholder="Observaciones..." />
+              <div className="flex gap-1 items-start">
+                <Textarea value={form.notas} onChange={e => set('notas', e.target.value)} rows={2} placeholder="Observaciones..." className="flex-1" />
+                <VoiceInputButton onResult={txt => set('notas', form.notas ? form.notas + ' ' + txt : txt)} />
+              </div>
             </div>
           </div>
           <DialogFooter>
