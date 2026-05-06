@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Save, Loader2, Camera, Upload, X, ImageIcon } from 'lucide-react';
+import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { toast } from 'sonner';
 import WorkerFields from '@/components/workorders/WorkerFields';
 import MaterialFields from '@/components/workorders/MaterialFields';
@@ -157,7 +158,10 @@ export default function CreateWorkOrder() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Descripción</Label>
-            <Textarea placeholder="Descripción del trabajo realizado..." value={form.description} onChange={(e) => updateField('description', e.target.value)} rows={3} />
+            <div className="flex gap-1 items-start">
+              <Textarea placeholder="Descripción del trabajo realizado..." value={form.description} onChange={(e) => updateField('description', e.target.value)} rows={3} className="flex-1" />
+              <VoiceInputButton onResult={txt => updateField('description', form.description ? form.description + ' ' + txt : txt)} />
+            </div>
           </div>
         </Card>
 
@@ -217,7 +221,10 @@ export default function CreateWorkOrder() {
         {/* Observaciones */}
         <Card className="p-5 space-y-3">
           <Label className="text-sm font-semibold">Observaciones</Label>
-          <Textarea placeholder="Notas adicionales..." value={form.notes} onChange={(e) => updateField('notes', e.target.value)} rows={2} />
+          <div className="flex gap-1 items-start">
+            <Textarea placeholder="Notas adicionales..." value={form.notes} onChange={(e) => updateField('notes', e.target.value)} rows={2} className="flex-1" />
+            <VoiceInputButton onResult={txt => updateField('notes', form.notes ? form.notes + ' ' + txt : txt)} />
+          </div>
         </Card>
 
         <div className="flex justify-end gap-3 pt-2">

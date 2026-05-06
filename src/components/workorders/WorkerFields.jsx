@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Plus, Trash2, Users } from 'lucide-react';
+import VoiceInputButton from '@/components/ui/VoiceInputButton';
 
 export default function WorkerFields({ workers, onChange }) {
   const { data: operarios = [] } = useQuery({
@@ -74,6 +75,7 @@ export default function WorkerFields({ workers, onChange }) {
                 onChange={e => updateWorker(i, 'name', e.target.value)}
                 className="flex-1 h-10"
               />
+              <VoiceInputButton onResult={txt => updateWorker(i, 'name', txt)} />
               <Input
                 placeholder="Rol"
                 value={worker.role}
