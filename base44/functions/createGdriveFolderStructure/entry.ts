@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-const CONNECTOR_ID = '69dfc310ad25fc28aa873104'; // SIMANTEC DRIVE  APP
 const ROOT_FOLDER_ID = '1yJzcwSzo2acrswgmtKLbNTKVd7WxUtF1';
 
 const folderStructure = {
@@ -47,8 +46,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get OneDrive connection (app user connector)
-    const { accessToken } = await base44.asServiceRole.connectors.getCurrentAppUserConnection(CONNECTOR_ID);
+    // Get shared Google Drive connection (authorized connector)
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
 
     const created = [];
     const failed = [];
