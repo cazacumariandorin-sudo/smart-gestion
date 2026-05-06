@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useI18n } from '@/lib/i18n';
@@ -38,6 +40,12 @@ export default function Orders() {
   const { t } = useI18n();
   const qc = useQueryClient();
   const { role } = useUserRole();
+
+  const onRefresh = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ['orders'] });
+    qc.invalidateQueries({ queryKey: ['clients'] });
+  }, [qc]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
   const showPrices = role === 'admin';
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -223,6 +231,7 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">

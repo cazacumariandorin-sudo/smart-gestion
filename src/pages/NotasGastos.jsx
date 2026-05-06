@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { Button } from '@/components/ui/button';
@@ -22,6 +24,11 @@ export default function NotasGastos() {
   const { isAdmin } = useUserRole();
   const { getOperarioName, operarios } = useOperarioName();
   const qc = useQueryClient();
+
+  const onRefresh = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ['notas_gasto'] });
+  }, [qc]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
   // Resolve current user's operario name (if linked)
   const miOperario = operarios.find(op => op.user_email === user?.email);
@@ -64,6 +71,7 @@ export default function NotasGastos() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
