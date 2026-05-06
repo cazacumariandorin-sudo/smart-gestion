@@ -356,16 +356,27 @@ export default function Profile() {
                 <Cloud className="w-5 h-5 text-blue-500" /> Conectar Google Drive
               </DialogTitle>
               <DialogDescription>
-                Selecciona la cuenta de Google con la que deseas conectar.
+                Elige la cuenta Google a conectar
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-4">
               <p className="text-sm text-muted-foreground">
-                Se abrirá una ventana para que autorices el acceso a Google Drive. Podrás elegir la cuenta durante el proceso.
+                Se abrirá Google en una ventana emergente. En el popup, haz clic en "Usar otra cuenta" para seleccionar la cuenta comercial que prefieras.
               </p>
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 space-y-2">
+                <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">
+                  📝 Pasos:
+                </p>
+                <ol className="text-xs text-amber-700 dark:text-amber-400 space-y-1 ml-3 list-decimal">
+                  <li>Haz clic en "Continuar"</li>
+                  <li>En el popup, selecciona "Usar otra cuenta"</li>
+                  <li>Elige tu cuenta Google comercial</li>
+                  <li>Autoriza el acceso a Google Drive</li>
+                </ol>
+              </div>
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                 <p className="text-xs text-blue-700 dark:text-blue-400">
-                  💡 <strong>Consejo:</strong> Usa una cuenta compartida o comercial de Google Drive para que todo el equipo tenga acceso a los documentos.
+                  💡 <strong>Recomendación:</strong> Usa una cuenta comercial compartida (ej: drive@simantec.com) para que todo el equipo tenga acceso.
                 </p>
               </div>
             </div>
