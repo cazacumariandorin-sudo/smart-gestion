@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { HardDrive, Download, Trash2, Loader2, Plus, RotateCcw } from 'lucide-react';
+import { useUserRole } from '@/lib/useUserRole';
+import { HardDrive, Download, Trash2, Loader2, Plus, RotateCcw, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +12,28 @@ import { es } from 'date-fns/locale';
 
 export default function AdminBackup() {
   const qc = useQueryClient();
+  const { isAdmin } = useUserRole();
   const [creatingBackup, setCreatingBackup] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
+
+  const handleExportPDF = async () => {
+    setExportingPDF(true);
+    try {
+      const response = await base44.functions.invoke('exportNotasGastosPDF', {});
+      // La función devuelve PDF directamente — abrimos la URL de descarga
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `notas-gastos-completo-${new Date().toISOString().split('T')[0]}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setExportingPDF(false);
+    }
+  };
 
   const { data: backups = [], isLoading, refetch } = useQuery({
     queryKey: ['backups'],
@@ -51,10 +73,16 @@ export default function AdminBackup() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Gestiona copias de seguridad automáticas</p>
         </div>
-        <Button onClick={handleCreateBackup} disabled={creatingBackup} className="gap-2 shadow-sm">
-          {creatingBackup ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-          <span className="hidden sm:inline">Crear Backup</span>
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleExportPDF} disabled={exportingPDF} variant="outline" className="gap-2 shadow-sm">
+            {exportingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+            <span className="hidden sm:inline">PDF Notas Gastos</span>
+          </Button>
+          <Button onClick={handleCreateBackup} disabled={creatingBackup} className="gap-2 shadow-sm">
+            {creatingBackup ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            <span className="hidden sm:inline">Crear Backup</span>
+          </Button>
+        </div>
       </div>
 
       <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/30 p-4">

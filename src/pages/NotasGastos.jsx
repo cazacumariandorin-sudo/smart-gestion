@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, FileText, Search } from 'lucide-react';
+import { Plus, FileText, Search, FileDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -20,6 +20,25 @@ export default function NotasGastos() {
   const [opFilter, setOpFilter] = useState('all');
   const [estFilter, setEstFilter] = useState('all');
   const [newOpen, setNewOpen] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
+
+  const handleExportPDF = async () => {
+    setExportingPDF(true);
+    try {
+      const response = await base44.functions.invoke('exportNotasGastosPDF', {});
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `notas-gastos-completo-${new Date().toISOString().split('T')[0]}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setExportingPDF(false);
+    }
+  };
 
   const today = new Date().toISOString().split('T')[0];
   const [newForm, setNewForm] = useState({ operario_id: '', operario_name: '', titulo: '', fecha_inicio: today, fecha_cierre: '', notas: '', estado: 'abierta' });
@@ -106,7 +125,17 @@ export default function NotasGastos() {
         title="Notas de Gastos"
         subtitle={`${filtered.length} notas · ${totalGeneral.toFixed(2)} € total`}
         backTo="/operarios"
-        actions={<Button onClick={handleOpenNew} className="gap-2 h-9"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nueva Nota</span></Button>}
+        actions={
+          <div className="flex gap-2">
+            {isAdmin && (
+              <Button onClick={handleExportPDF} disabled={exportingPDF} variant="outline" className="gap-2 h-9">
+                {exportingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                <span className="hidden sm:inline">Exportar PDF</span>
+              </Button>
+            )}
+            <Button onClick={handleOpenNew} className="gap-2 h-9"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nueva Nota</span></Button>
+          </div>
+        }
       />
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
