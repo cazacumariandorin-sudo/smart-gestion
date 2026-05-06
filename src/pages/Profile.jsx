@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   User, Mail, Shield, LogOut, Trash2, ChevronRight, HelpCircle,
-  FileText, Scale, Info, Phone, Briefcase, Pencil, Save, X, Hash, ShieldCheck, Link2,
+  FileText, Scale, Info, Phone, Briefcase, Pencil, Save, X, Hash, ShieldCheck, Link2, Cloud, Loader2,
 } from 'lucide-react';
 import { useOperarioName } from '@/hooks/useOperarioName';
 import {
@@ -51,7 +51,32 @@ export default function Profile() {
   const [legalDialog, setLegalDialog] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ phone: '', position: '', department: '', avatar_initials: '' });
+  const [gdriveConnecting, setGdriveConnecting] = useState(false);
   const appVersion = '1.0.05';
+  const CONNECTOR_ID = '69dfc310ad25fc28aa873104'; // SIMANTEC DRIVE  APP
+
+  const handleConnectGdrive = async () => {
+    try {
+      setGdriveConnecting(true);
+      const url = await base44.connectors.connectAppUser(CONNECTOR_ID);
+      const popup = window.open(url, '_blank', 'width=600,height=800');
+      
+      // Poll until popup closes, then refresh and run setup
+      const timer = setInterval(async () => {
+        if (!popup || popup.closed) {
+          clearInterval(timer);
+          toast.success('Google Drive conectado!');
+          // Run folder structure setup
+          await base44.functions.invoke('createGdriveFolderStructure', {});
+          toast.success('Carpetas creadas en Google Drive');
+        }
+      }, 500);
+    } catch (error) {
+      toast.error(error.message || 'Error conectando Google Drive');
+    } finally {
+      setGdriveConnecting(false);
+    }
+  };
 
   const { data: me, isLoading } = useQuery({
     queryKey: ['me'],
@@ -294,6 +319,30 @@ export default function Profile() {
                 Se recomienda activar la <strong>autenticación en 2 pasos (2FA)</strong> desde la configuración de tu cuenta de Google o Apple para mayor seguridad.
               </p>
             </div>
+          </div>
+        </Card>
+
+        {/* Google Drive integration */}
+        <Card className="mb-4 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3 flex-1">
+              <Cloud className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold mb-1">Google Drive</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Conecta tu Google Drive para almacenar y gestionar archivos de pedidos, obras, gastos y partes de trabajo.
+                </p>
+              </div>
+            </div>
+            <Button 
+              size="sm" 
+              onClick={handleConnectGdrive} 
+              disabled={gdriveConnecting}
+              className="gap-2 shrink-0"
+            >
+              {gdriveConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+              {gdriveConnecting ? 'Conectando...' : 'Conectar'}
+            </Button>
           </div>
         </Card>
 
