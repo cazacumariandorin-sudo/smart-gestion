@@ -145,6 +145,17 @@ const ALL_MODULES = [
     emoji: '📈',
     image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=80',
   },
+  {
+    key: 'notas-gastos',
+    label: 'Notas de Gastos',
+    path: '/notas-gastos',
+    icon: FileText,
+    bg: 'bg-rose-50 dark:bg-rose-950/30',
+    border: 'border-rose-200 dark:border-rose-800',
+    iconColor: 'text-rose-600',
+    emoji: '🧾',
+    image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&q=80',
+  },
 ];
 
 function ModuleCard({ mod, count, subtitle }) {
@@ -216,6 +227,7 @@ export default function Dashboard() {
     'operarios':            'en plantilla',
     'photos':               'fotos',
     'gastos-operarios':     'gastos',
+    'notas-gastos':         'notas de gastos',
     'calendario-vacaciones':'vacaciones',
     'reports':              'informes',
     'obras':                'obras',
