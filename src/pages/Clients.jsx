@@ -5,6 +5,7 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Phone, Mail, MapPin, Pencil, Trash2, User, Save, Loader2, ChevronDown, ChevronUp, Building, CreditCard, Wrench } from 'lucide-react';
+import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -122,15 +123,15 @@ export default function Clients() {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
+      <PageHeader
+        title="Clientes"
+        subtitle={`${clients.length} clientes`}
+        hideBack={true}
+        actions={<Button onClick={openCreate} className="gap-2 shadow-sm" size="sm"><Plus className="w-4 h-4" /><span className="hidden sm:inline">Nuevo Cliente</span></Button>}
+      />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Clientes</h1>
-          <p className="text-sm text-muted-foreground mt-1">{clients.length} clientes</p>
-        </div>
-        <Button onClick={openCreate} className="gap-2 shadow-sm"><Plus className="w-4 h-4" /><span className="hidden sm:inline">Nuevo Cliente</span></Button>
-      </div>
+      <div className="p-4 sm:p-6 lg:p-8">
 
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -211,6 +212,7 @@ export default function Clients() {
         </div>
       )}
 
+      </div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? 'Editar Cliente' : 'Nuevo Cliente'}</DialogTitle></DialogHeader>

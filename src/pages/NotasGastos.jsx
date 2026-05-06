@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import PageHeader from '@/components/layout/PageHeader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
@@ -70,33 +71,30 @@ export default function NotasGastos() {
   const pendientes = notasRaw.filter(n => n.estado === 'pendiente').length;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto">
+      <PageHeader
+        title="Notas de Gastos"
+        subtitle={isAdmin && pendientes > 0 ? `${pendientes} pendiente${pendientes > 1 ? 's' : ''} de validar` : undefined}
+        hideBack={true}
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant={tab === 'informe' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTab(tab === 'informe' ? 'notas' : 'informe')}
+              className="gap-1.5"
+            >
+              <FileBarChart2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Informe</span>
+            </Button>
+            <Button onClick={() => setShowForm(true)} size="sm" className="gap-1.5">
+              <Plus className="w-4 h-4" /> Nueva nota
+            </Button>
+          </div>
+        }
+      />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Receipt className="w-6 h-6 text-primary" /> Notas de Gastos
-          </h1>
-          {isAdmin && pendientes > 0 && (
-            <p className="text-xs text-amber-600 mt-0.5">{pendientes} nota{pendientes > 1 ? 's' : ''} pendiente{pendientes > 1 ? 's' : ''} de validar</p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant={tab === 'informe' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTab(tab === 'informe' ? 'notas' : 'informe')}
-            className="gap-1.5"
-          >
-            <FileBarChart2 className="w-4 h-4" />
-            <span className="hidden sm:inline">Informe</span>
-          </Button>
-          <Button onClick={() => setShowForm(true)} className="gap-1.5">
-            <Plus className="w-4 h-4" /> Nueva nota
-          </Button>
-        </div>
-      </div>
+      <div className="p-4 sm:p-6 lg:p-8">
 
       {/* Informe */}
       {tab === 'informe' && (
@@ -165,6 +163,7 @@ export default function NotasGastos() {
         </div>
       )}
 
+      </div>
       {/* Form crear */}
       <NotaGastoForm
         open={showForm}

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import PageHeader from '@/components/layout/PageHeader';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
@@ -84,19 +85,15 @@ export default function Obras() {
   });
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
+      <PageHeader
+        title="Obras"
+        subtitle={`${filtered.length} obras`}
+        hideBack={true}
+        actions={<Button onClick={() => open_()} className="gap-2 shadow-sm" size="sm"><Plus className="w-4 h-4" /><span className="hidden sm:inline">Nueva Obra</span></Button>}
+      />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Building2 className="w-7 h-7 text-primary" /> Base de Datos de Obras
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">{filtered.length} obras</p>
-        </div>
-        <Button onClick={() => open_()} className="gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nueva Obra</span>
-        </Button>
-      </div>
+      <div className="p-4 sm:p-6 lg:p-8">
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
@@ -174,6 +171,7 @@ export default function Obras() {
         </div>
       )}
 
+      </div>
       {/* Obra Detail Panel */}
       <Dialog open={!!detailObra} onOpenChange={v => { if (!v) setDetailObra(null); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

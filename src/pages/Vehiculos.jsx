@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import PageHeader from '@/components/layout/PageHeader';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
@@ -245,33 +246,25 @@ export default function Vehiculos() {
   }).length;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto">
+      <PageHeader
+        title="Vehículos"
+        subtitle={`${vehiculos.length} vehículo${vehiculos.length !== 1 ? 's' : ''}${alertasUrgentes > 0 ? ` · ${alertasUrgentes} con alertas urgentes` : ''}`}
+        hideBack={true}
+        actions={isAdmin ? (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleTestAlertas} disabled={testando} size="sm" className="gap-2">
+              {testando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+              <span className="hidden sm:inline">Enviar alertas</span>
+            </Button>
+            <Button onClick={() => { setEditing(null); setForm(EMPTY_FORM); setOpen(true); }} size="sm" className="gap-2">
+              <Plus className="w-4 h-4" /> Añadir
+            </Button>
+          </div>
+        ) : undefined}
+      />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-            <Car className="w-7 h-7 text-primary" /> Vehículos
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {vehiculos.length} vehículo{vehiculos.length !== 1 ? 's' : ''}
-            {alertasUrgentes > 0 && <span className="ml-2 text-red-600 font-semibold">· {alertasUrgentes} con alertas urgentes</span>}
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {isAdmin && (
-            <>
-              <Button variant="outline" onClick={handleTestAlertas} disabled={testando} className="gap-2">
-                {testando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
-                <span className="hidden sm:inline">Enviar alertas</span>
-              </Button>
-              <Button onClick={() => { setEditing(null); setForm(EMPTY_FORM); setOpen(true); }} className="gap-2">
-                <Plus className="w-4 h-4" /> Añadir
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+      <div className="p-4 sm:p-6 lg:p-8">
 
       {/* Legend */}
       <div className="flex flex-wrap gap-2 mb-4 text-xs">
@@ -298,6 +291,7 @@ export default function Vehiculos() {
         </div>
       )}
 
+      </div>
       {/* Form Dialog */}
       <Dialog open={open} onOpenChange={(o) => { if (!o) { setOpen(false); setEditing(null); setForm(EMPTY_FORM); } else setOpen(o); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

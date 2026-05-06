@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import PageHeader from '@/components/layout/PageHeader';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
@@ -82,27 +83,21 @@ export default function Operarios() {
   });
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <User className="w-7 h-7 text-primary" /> Operarios
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">{operarios.length} operarios registrados</p>
-        </div>
-        <div className="flex gap-2">
-          <Link to="/gastos-operarios">
-            <Button variant="outline" className="gap-2 shadow-sm">
-              <Receipt className="w-4 h-4" />
-              <span className="hidden sm:inline">Gastos</span>
+    <div className="max-w-6xl mx-auto">
+      <PageHeader
+        title="Operarios"
+        subtitle={`${operarios.length} operarios registrados`}
+        hideBack={true}
+        actions={
+          <div className="flex gap-2">
+            <Button onClick={() => open_()} className="gap-2 shadow-sm" size="sm">
+              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nuevo Operario</span>
             </Button>
-          </Link>
-          <Button onClick={() => open_()} className="gap-2 shadow-sm">
-            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nuevo Operario</span>
-          </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
+      <div className="p-4 sm:p-6 lg:p-8">
 
       <Tabs defaultValue={defaultTab}>
         <TabsList className="mb-6">
@@ -176,6 +171,7 @@ export default function Operarios() {
         </TabsContent>
       </Tabs>
 
+      </div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editing ? 'Editar Operario' : 'Nuevo Operario'}</DialogTitle></DialogHeader>

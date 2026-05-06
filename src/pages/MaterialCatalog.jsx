@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import PageHeader from '@/components/layout/PageHeader';
 import { base44 } from '@/api/base44Client';
 import { useI18n } from '@/lib/i18n';
 import { Plus, Search, Pencil, Trash2, Package, ExternalLink, Upload, Loader2, Save } from 'lucide-react';
@@ -18,6 +21,10 @@ const empty = { name: '', code: '', category: '', unit: '', unit_price: '', supp
 export default function MaterialCatalog() {
   const { t } = useI18n();
   const qc = useQueryClient();
+
+  const onRefresh = useCallback(() => qc.invalidateQueries({ queryKey: ['material_catalog'] }), [qc]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
+
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -62,19 +69,15 @@ export default function MaterialCatalog() {
   const isPending = createM.isPending || updateM.isPending;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Package className="w-7 h-7 text-primary" /> {t('material_catalog')}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">{filtered.length} {t('materials').toLowerCase()}</p>
-        </div>
-        <Button onClick={() => open_()} className="gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">{t('new_material')}</span>
-        </Button>
-      </div>
-
+    <div className="max-w-6xl mx-auto">
+      <PageHeader
+        title={t('material_catalog')}
+        subtitle={`${filtered.length} ${t('materials').toLowerCase()}`}
+        hideBack={true}
+        actions={<Button onClick={() => open_()} size="sm" className="gap-2 shadow-sm"><Plus className="w-4 h-4" /><span className="hidden sm:inline">{t('new_material')}</span></Button>}
+      />
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
+      <div className="p-4 sm:p-6 lg:p-8">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 flex gap-1">
@@ -147,6 +150,7 @@ export default function MaterialCatalog() {
         </div>
       )}
 
+      </div>
       {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">

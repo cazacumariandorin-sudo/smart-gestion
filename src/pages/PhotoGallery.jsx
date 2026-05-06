@@ -4,9 +4,10 @@ import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Camera, Search, X } from 'lucide-react';
+import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Badge } from '@/components/ui/badge';
 
 export default function PhotoGallery() {
@@ -64,13 +65,9 @@ export default function PhotoGallery() {
   const activeFilters = [clientFilter, projectFilter, monthFilter].filter(f => f !== 'all').length;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-          <Camera className="w-7 h-7 text-primary" /> Galería de Fotos
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">{filtered.length} fotos</p>
-      </div>
+    <div className="max-w-6xl mx-auto">
+      <PageHeader title="Galería de Fotos" subtitle={`${filtered.length} fotos`} hideBack={true} />
+      <div className="p-4 sm:p-6 lg:p-8">
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2 mb-6 flex-wrap">
@@ -78,37 +75,22 @@ export default function PhotoGallery() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue placeholder="Cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los clientes</SelectItem>
-            {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={projectFilter} onValueChange={setProjectFilter}>
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue placeholder="Obra" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las obras</SelectItem>
-            {projects.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={monthFilter} onValueChange={setMonthFilter}>
-          <SelectTrigger className="w-full sm:w-40">
-            <SelectValue placeholder="Mes" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los meses</SelectItem>
-            {months.map(m => (
-              <SelectItem key={m} value={m}>
-                {format(parseISO(m + '-01'), 'MMMM yyyy', { locale: es })}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MobileSelect value={clientFilter} onValueChange={setClientFilter} placeholder="Cliente" triggerClassName="w-full sm:w-44">
+          <MobileSelectItem value="all">Todos los clientes</MobileSelectItem>
+          {clients.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
+        </MobileSelect>
+        <MobileSelect value={projectFilter} onValueChange={setProjectFilter} placeholder="Obra" triggerClassName="w-full sm:w-44">
+          <MobileSelectItem value="all">Todas las obras</MobileSelectItem>
+          {projects.map(p => <MobileSelectItem key={p} value={p}>{p}</MobileSelectItem>)}
+        </MobileSelect>
+        <MobileSelect value={monthFilter} onValueChange={setMonthFilter} placeholder="Mes" triggerClassName="w-full sm:w-40">
+          <MobileSelectItem value="all">Todos los meses</MobileSelectItem>
+          {months.map(m => (
+            <MobileSelectItem key={m} value={m}>
+              {format(parseISO(m + '-01'), 'MMMM yyyy', { locale: es })}
+            </MobileSelectItem>
+          ))}
+        </MobileSelect>
         {activeFilters > 0 && (
           <Button variant="outline" size="sm" className="h-10 gap-1.5"
             onClick={() => { setClientFilter('all'); setProjectFilter('all'); setMonthFilter('all'); setSearch(''); }}>
@@ -172,6 +154,7 @@ export default function PhotoGallery() {
         </div>
       )}
 
+      </div>
       {/* Lightbox */}
       {lightbox && (
         <div

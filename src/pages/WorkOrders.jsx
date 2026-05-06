@@ -5,6 +5,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
+import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
@@ -46,20 +47,22 @@ export default function WorkOrders() {
   });
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
+      <PageHeader
+        title="Partes de Trabajo"
+        subtitle={`${filtered.length} partes encontrados`}
+        hideBack={true}
+        actions={
+          <Link to="/work-orders/new">
+            <Button className="gap-2 shadow-sm" size="sm">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Nuevo Parte</span>
+            </Button>
+          </Link>
+        }
+      />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Partes de Trabajo</h1>
-          <p className="text-sm text-muted-foreground mt-1">{filtered.length} partes encontrados</p>
-        </div>
-        <Link to="/work-orders/new">
-          <Button className="gap-2 shadow-sm">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Nuevo Parte</span>
-          </Button>
-        </Link>
-      </div>
+      <div className="p-4 sm:p-6 lg:p-8">
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
@@ -95,6 +98,7 @@ export default function WorkOrders() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

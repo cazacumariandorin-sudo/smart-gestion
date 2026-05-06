@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import PageHeader from '@/components/layout/PageHeader';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
@@ -230,19 +231,15 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
   const isPending = createM.isPending || updateM.isPending;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
+      <PageHeader
+        title={t('orders')}
+        subtitle={`${filtered.length} pedidos`}
+        hideBack={true}
+        actions={<Button onClick={() => open_()} size="sm" className="gap-2 shadow-sm"><Plus className="w-4 h-4" /><span className="hidden sm:inline">{t('new_order')}</span></Button>}
+      />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <ShoppingCart className="w-7 h-7 text-primary" /> {t('orders')}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">{filtered.length} pedidos</p>
-        </div>
-        <Button onClick={() => open_()} className="gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">{t('new_order')}</span>
-        </Button>
-      </div>
+      <div className="p-4 sm:p-6 lg:p-8">
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -374,6 +371,7 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
         </div>
       )}
 
+      </div>
       {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
