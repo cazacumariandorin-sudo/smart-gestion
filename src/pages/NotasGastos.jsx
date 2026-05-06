@@ -153,6 +153,8 @@ export default function NotasGastos() {
         onClose={() => setShowForm(false)}
         onCreated={() => qc.invalidateQueries({ queryKey: ['notas_gasto'] })}
         operario={operarioActual}
+        isAdmin={isAdmin}
+        operarios={operarios}
       />
 
       {/* Detalle */}

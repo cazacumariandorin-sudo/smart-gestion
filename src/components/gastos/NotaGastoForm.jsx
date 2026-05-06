@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import OcrUploader from './OcrUploader';
 import ObraSelector from './ObraSelector';
-import { Loader2, AlertTriangle, FileCheck } from 'lucide-react';
+import { Loader2, AlertTriangle, FileCheck, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -27,18 +27,24 @@ const defaultForm = {
   obra_tipo: '',
 };
 
-export default function NotaGastoForm({ open, onClose, onCreated, operario }) {
+export default function NotaGastoForm({ open, onClose, onCreated, operario, isAdmin = false, operarios = [] }) {
   const [form, setForm] = useState(defaultForm);
   const [archivos, setArchivos] = useState([]);
   const [ocrRaw, setOcrRaw] = useState('');
   const [loading, setLoading] = useState(false);
   const [showDupAlert, setShowDupAlert] = useState(false);
   const [posibleDup, setPosibleDup] = useState(null);
+  const [operarioSeleccionado, setOperarioSeleccionado] = useState(null);
+
+  // El operario efectivo: si admin seleccionó uno, usar ese; si no, el propio
+  const operarioEfectivo = (isAdmin && operarioSeleccionado)
+    ? operarios.find(op => op.id === operarioSeleccionado) || operario
+    : operario;
 
   const { data: notasExistentes = [] } = useQuery({
-    queryKey: ['notas_gasto_check'],
-    queryFn: () => base44.entities.NotaGasto.filter({ operario_id: operario?.id }),
-    enabled: !!operario?.id,
+    queryKey: ['notas_gasto_check', operarioEfectivo?.id],
+    queryFn: () => base44.entities.NotaGasto.filter({ operario_id: operarioEfectivo?.id }),
+    enabled: !!operarioEfectivo?.id,
   });
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -88,8 +94,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario }) {
       await base44.entities.NotaGasto.create({
         numero_nota,
         numero_secuencia,
-        operario_id: operario?.id,
-        operario_name: operario?.name || operario?.full_name,
+        operario_id: operarioEfectivo?.id,
+        operario_name: operarioEfectivo?.name || operarioEfectivo?.full_name,
         categoria: form.categoria,
         concepto: form.concepto,
         importe: parseFloat(form.importe),
@@ -114,6 +120,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario }) {
       setArchivos([]);
       setOcrRaw('');
       setPosibleDup(null);
+      setOperarioSeleccionado(null);
       onCreated?.();
       onClose();
     } catch (e) {
@@ -132,6 +139,29 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario }) {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
+            {/* Selector de operario — solo para admins */}
+            {isAdmin && operarios.length > 0 && (
+              <div className="space-y-1.5 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                <Label className="text-xs flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+                  <UserCheck className="w-3.5 h-3.5" /> Asignar a operario
+                </Label>
+                <MobileSelect
+                  value={operarioSeleccionado || ''}
+                  onValueChange={v => setOperarioSeleccionado(v || null)}
+                  placeholder={`${operario?.name || 'Operario propio'} (por defecto)`}
+                >
+                  {operarios.filter(op => op.active !== false).map(op => (
+                    <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
+                  ))}
+                </MobileSelect>
+                {operarioSeleccionado && (
+                  <p className="text-xs text-blue-600">
+                    ✓ Se creará en nombre de: <strong>{operarioEfectivo?.name}</strong>
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* OCR Upload */}
             <OcrUploader
               onDatosExtraidos={handleOcrDatos}
