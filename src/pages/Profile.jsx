@@ -50,7 +50,7 @@ export default function Profile() {
   const [legalDialog, setLegalDialog] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ phone: '', position: '', department: '', avatar_initials: '' });
-  const appVersion = '1.0.0';
+  const appVersion = '1.0.05';
 
   const { data: me, isLoading } = useQuery({
     queryKey: ['me'],
