@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import DocSignaturePad from '@/components/operarios/DocSignaturePad.jsx';
+import DocSignaturePad from '@/components/operarios/DocSignaturePad';
 
 const DOC_CATS_OPERARIO = ['DNI/NIE', 'Contrato', 'Certificado PRL', 'Carnet conducir', 'Aptitud médica', 'Formación', 'Otro'];
 const DOC_CATS_OBRA     = ['Plano', 'Permiso obra', 'Proyecto', 'Acta', 'Medición', 'Otro'];
