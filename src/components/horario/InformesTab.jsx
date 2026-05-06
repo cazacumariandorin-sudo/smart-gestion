@@ -3,8 +3,9 @@ import { useUserRole } from '@/lib/useUserRole';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { groupByWeek, groupByMonth } from '@/lib/horasUtils';
-import { Download, BarChart3, User, Calendar } from 'lucide-react';
+import { Download, BarChart3, User, Calendar, Table } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import InformeTableView from './InformeTableView';
 import { Card } from '@/components/ui/card';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Input } from '@/components/ui/input';
@@ -54,7 +55,7 @@ function drawTable(doc, headers, rows, startY, margin = 14) {
 }
 
 export default function InformesTab() {
-  const [mode, setMode] = useState('mes');
+  const [mode, setMode] = useState('tabla');
   const [opFilter, setOpFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
 
@@ -205,12 +206,17 @@ export default function InformesTab() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <MobileSelect value={mode} onValueChange={setMode} placeholder="Vista" triggerClassName="w-full sm:w-44">
+      {mode === 'tabla' ? (
+        <InformeTableView />
+      ) : (
+        <>
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+         <MobileSelect value={mode} onValueChange={setMode} placeholder="Vista" triggerClassName="w-full sm:w-44">
+          <MobileSelectItem value="tabla">Vista Tabla</MobileSelectItem>
           <MobileSelectItem value="mes">Por Mes</MobileSelectItem>
           <MobileSelectItem value="semana">Por Semana</MobileSelectItem>
           <MobileSelectItem value="operario">Por Operario</MobileSelectItem>
-        </MobileSelect>
+         </MobileSelect>
         <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-full sm:w-40" />
         {canSeeAll && (
           <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
@@ -329,8 +335,10 @@ export default function InformesTab() {
               <p className="text-sm text-muted-foreground">No hay datos para el período seleccionado</p>
             </div>
           )}
-        </div>
-      )}
-    </div>
-  );
-}
+          </div>
+          )}
+          </>
+          )}
+          </div>
+          );
+          }
