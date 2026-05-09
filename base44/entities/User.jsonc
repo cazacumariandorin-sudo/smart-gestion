@@ -39,5 +39,13 @@
       "format": "date",
       "description": "Fecha hasta la que tiene acceso total temporal (demo)"
     }
-  }
+  },
+  "required": [
+    "phone",
+    "position",
+    "department",
+    "avatar_initials",
+    "user_id_code",
+    "acceso_total_hasta"
+  ]
 }

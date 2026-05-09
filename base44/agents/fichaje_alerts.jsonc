@@ -30,5 +30,15 @@
       ]
     }
   ],
+  "selected_skill_names": [
+    "refund-policy"
+  ],
+  "selected_workspace_skill_ids": [],
+  "model": "automatic",
+  "memory_config": {
+    "enabled": true,
+    "scope": "both",
+    "instructions": null
+  },
   "name": "fichaje_alerts"
 }

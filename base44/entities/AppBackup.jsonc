@@ -1,0 +1,77 @@
+{
+  "name": "AppBackup",
+  "type": "object",
+  "properties": {
+    "snapshot_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del snapshot"
+    },
+    "version": {
+      "type": "string",
+      "description": "Versi\u00f3n de la app al momento del backup"
+    },
+    "data_summary": {
+      "type": "object",
+      "description": "Resumen de datos: cantidad de registros por entidad",
+      "properties": {
+        "total_entities": {
+          "type": "integer"
+        },
+        "total_records": {
+          "type": "integer"
+        },
+        "entities": {
+          "type": "object"
+        }
+      }
+    },
+    "backup_file_url": {
+      "type": "string",
+      "description": "URL del archivo JSON comprimido con los datos"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completado",
+        "en_progreso",
+        "error"
+      ],
+      "default": "en_progreso",
+      "description": "Estado del backup"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Mensaje de error si algo fall\u00f3"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones adicionales"
+    }
+  },
+  "required": [
+    "snapshot_date"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

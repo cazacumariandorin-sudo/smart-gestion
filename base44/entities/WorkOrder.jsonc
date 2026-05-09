@@ -103,9 +103,7 @@
     "project"
   ],
   "rls": {
-    "create": {
-      "created_by": "{{user.email}}"
-    },
+    "create": true,
     "read": true,
     "update": {
       "$or": [
