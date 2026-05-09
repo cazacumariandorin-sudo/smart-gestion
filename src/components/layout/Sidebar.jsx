@@ -124,7 +124,7 @@ export default function Sidebar() {
             <HardHat className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="tracking-tight leading-tight text-lg font-extrabold text-justify">SIMANTEC</h1>
+            <h1 className="tracking-tight leading-tight text-lg font-extrabold text-justify uppercase">SIMANTEC</h1>
             <p className="text-xs text-muted-foreground leading-tight">Gestión Empresarial</p>
           </div>
         </div>
