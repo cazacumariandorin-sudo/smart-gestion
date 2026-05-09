@@ -121,7 +121,7 @@ export default function Sidebar() {
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <HardHat className="w-5 h-5 text-primary-foreground bg-[hsl(var(--background))]" />
+            <HardHat className="w-5 h-5 text-primary-foreground bg-[hsl(var(--border))]" />
           </div>
           <div>
             <h1 className="tracking-tight leading-tight text-lg font-extrabold text-justify uppercase bg-[hsl(var(--background))] text-emerald-600 px-3 px-2">SIMANTEC</h1>
