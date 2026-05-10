@@ -1,45 +1,91 @@
 {
   "name": "MaterialCatalog",
-  "type": "object",
   "properties": {
-    "name": {
-      "type": "string",
-      "description": "Nombre del material"
-    },
-    "code": {
-      "type": "string",
-      "description": "C\u00f3digo / referencia"
+    "active": {
+      "default": true,
+      "type": "boolean"
     },
     "category": {
-      "type": "string",
-      "description": "Categor\u00eda"
+      "type": "string"
     },
-    "unit": {
-      "type": "string",
-      "description": "Unidad de medida (m, kg, ud, m\u00b2, ...)"
-    },
-    "unit_price": {
-      "type": "number",
-      "description": "Precio unitario (\u20ac)"
-    },
-    "supplier": {
-      "type": "string",
-      "description": "Proveedor"
+    "code": {
+      "type": "string"
     },
     "description": {
-      "type": "string",
-      "description": "Descripci\u00f3n / especificaciones"
+      "type": "string"
     },
     "manual_url": {
-      "type": "string",
-      "description": "URL del manual / ficha t\u00e9cnica"
+      "type": "string"
     },
-    "active": {
-      "type": "boolean",
-      "default": true
+    "name": {
+      "type": "string"
+    },
+    "supplier": {
+      "type": "string"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "unit_price": {
+      "type": "number"
     }
   },
   "required": [
     "name"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "type": "object"
 }
