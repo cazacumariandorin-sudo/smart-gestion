@@ -1,33 +1,43 @@
 {
   "name": "Drawing",
+  "type": "object",
   "properties": {
-    "client_id": {
-      "type": "string"
-    },
-    "client_name": {
-      "type": "string"
-    },
-    "date": {
-      "format": "date",
-      "type": "string"
-    },
-    "file_url": {
-      "type": "string"
-    },
-    "notes": {
-      "type": "string"
-    },
-    "project": {
-      "type": "string"
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo del plano"
     },
     "reference": {
-      "type": "string"
+      "type": "string",
+      "description": "Referencia / n\u00famero"
     },
-    "title": {
-      "type": "string"
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "project": {
+      "type": "string",
+      "description": "Obra"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del plano"
     },
     "version": {
-      "type": "string"
+      "type": "string",
+      "description": "Versi\u00f3n"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL del archivo (PDF/imagen)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
     }
   },
   "required": [
@@ -87,6 +97,5 @@
         "role": "admin"
       }
     }
-  },
-  "type": "object"
+  }
 }
