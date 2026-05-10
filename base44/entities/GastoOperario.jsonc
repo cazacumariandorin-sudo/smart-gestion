@@ -1,10 +1,27 @@
 {
   "name": "GastoOperario",
+  "type": "object",
   "properties": {
-    "aprobado_por": {
-      "type": "string"
+    "nota_id": {
+      "type": "string",
+      "description": "ID de la nota de gastos a la que pertenece"
+    },
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del gasto (no puede ser anterior a 2024-01-01)",
+      "minimum": "2024-01-01"
     },
     "categoria": {
+      "type": "string",
       "enum": [
         "combustible",
         "comida",
@@ -13,74 +30,76 @@
         "peaje",
         "parking"
       ],
-      "type": "string"
-    },
-    "date": {
-      "format": "date",
-      "minimum": "2024-01-01",
-      "type": "string"
-    },
-    "descripcion": {
-      "type": "string"
-    },
-    "estado_aprobacion": {
-      "default": "pendiente",
-      "enum": [
-        "pendiente",
-        "aprobado",
-        "rechazado"
-      ],
-      "type": "string"
-    },
-    "fecha_aprobacion": {
-      "format": "date",
-      "type": "string"
+      "description": "Categor\u00eda del gasto \u2014 los adelantos se gestionan en entidad separada"
     },
     "importe": {
-      "maximum": 5000,
+      "type": "number",
+      "description": "Importe (\u20ac)",
       "minimum": 0.01,
-      "type": "number"
+      "maximum": 5000
     },
-    "motivo_rechazo": {
-      "type": "string"
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n / concepto del gasto"
     },
-    "nota_id": {
-      "type": "string"
+    "proveedor": {
+      "type": "string",
+      "description": "Proveedor / establecimiento"
+    },
+    "ticket_url": {
+      "type": "string",
+      "description": "URL foto ticket/factura \u2014 obligatorio para combustible, comida, material, peaje, parking"
+    },
+    "ticket_requerido": {
+      "type": "boolean",
+      "default": true,
+      "description": "Indica si esta categor\u00eda requiere ticket obligatorio"
     },
     "ocr_raw": {
-      "type": "string"
+      "type": "string",
+      "description": "Texto extra\u00eddo por OCR del ticket"
     },
     "ocr_status": {
-      "default": "pendiente",
+      "type": "string",
       "enum": [
         "pendiente",
         "procesado",
         "validado",
         "error"
       ],
-      "type": "string"
-    },
-    "operario_id": {
-      "type": "string"
-    },
-    "operario_name": {
-      "type": "string"
-    },
-    "project": {
-      "type": "string"
-    },
-    "proveedor": {
-      "type": "string"
-    },
-    "ticket_requerido": {
-      "default": true,
-      "type": "boolean"
-    },
-    "ticket_url": {
-      "type": "string"
+      "default": "pendiente",
+      "description": "Estado del procesamiento OCR"
     },
     "work_order_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Parte de trabajo asociado (opcional)"
+    },
+    "project": {
+      "type": "string",
+      "description": "Obra (opcional)"
+    },
+    "estado_aprobacion": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "aprobado",
+        "rechazado"
+      ],
+      "default": "pendiente",
+      "description": "Estado de aprobaci\u00f3n del gasto por el responsable"
+    },
+    "aprobado_por": {
+      "type": "string",
+      "description": "Email del usuario que aprob\u00f3 o rechaz\u00f3 el gasto"
+    },
+    "fecha_aprobacion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en que se aprob\u00f3 o rechaz\u00f3"
+    },
+    "motivo_rechazo": {
+      "type": "string",
+      "description": "Motivo del rechazo si estado_aprobacion = rechazado"
     }
   },
   "required": [
@@ -93,7 +112,9 @@
     "descripcion"
   ],
   "rls": {
-    "create": true,
+    "create": {
+      "created_by": "{{user.email}}"
+    },
     "read": {
       "$or": [
         {
@@ -140,6 +161,5 @@
         }
       ]
     }
-  },
-  "type": "object"
+  }
 }
