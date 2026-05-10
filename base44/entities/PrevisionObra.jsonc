@@ -1,38 +1,39 @@
 {
   "name": "PrevisionObra",
+  "type": "object",
   "properties": {
-    "client_id": {
-      "type": "string"
-    },
-    "client_name": {
-      "type": "string"
-    },
-    "fecha_fin": {
-      "format": "date",
-      "type": "string"
-    },
-    "fecha_inicio": {
-      "format": "date",
-      "type": "string"
-    },
-    "horas_totales_previstas": {
-      "type": "number"
-    },
-    "notas": {
-      "type": "string"
-    },
     "obra_id": {
-      "type": "string"
+      "type": "string",
+      "description": "ID de la obra"
     },
     "obra_name": {
-      "type": "string"
+      "type": "string",
+      "description": "Nombre de la obra"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "fecha_inicio": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio prevista"
+    },
+    "fecha_fin": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de fin prevista"
     },
     "operarios_asignados": {
+      "type": "array",
+      "description": "Operarios asignados a esta previsi\u00f3n",
       "items": {
+        "type": "object",
         "properties": {
-          "horas_previstas": {
-            "type": "number"
-          },
           "operario_id": {
             "type": "string"
           },
@@ -41,21 +42,31 @@
           },
           "rol": {
             "type": "string"
+          },
+          "horas_previstas": {
+            "type": "number"
           }
-        },
-        "type": "object"
-      },
-      "type": "array"
+        }
+      }
+    },
+    "horas_totales_previstas": {
+      "type": "number",
+      "description": "Total horas previstas"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones"
     },
     "status": {
-      "default": "planificada",
+      "type": "string",
       "enum": [
         "planificada",
         "en_curso",
         "completada",
         "cancelada"
       ],
-      "type": "string"
+      "default": "planificada",
+      "description": "Estado de la previsi\u00f3n"
     }
   },
   "required": [
@@ -110,6 +121,5 @@
         "role": "admin"
       }
     }
-  },
-  "type": "object"
+  }
 }
