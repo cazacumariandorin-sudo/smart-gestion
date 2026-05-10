@@ -1,77 +1,118 @@
 {
   "name": "OperarioDoc",
-  "type": "object",
   "properties": {
-    "operario_id": {
-      "type": "string",
-      "description": "ID del operario"
+    "categoria": {
+      "type": "string"
     },
-    "operario_name": {
-      "type": "string",
-      "description": "Nombre del operario"
+    "date": {
+      "format": "date",
+      "type": "string"
+    },
+    "expiry_date": {
+      "format": "date",
+      "type": "string"
+    },
+    "fecha_firma": {
+      "format": "date",
+      "type": "string"
+    },
+    "file_url": {
+      "type": "string"
+    },
+    "firma_url": {
+      "type": "string"
+    },
+    "firmado": {
+      "default": false,
+      "type": "boolean"
+    },
+    "notes": {
+      "type": "string"
     },
     "obra_id": {
-      "type": "string",
-      "description": "ID de la obra (si aplica)"
+      "type": "string"
     },
     "obra_name": {
-      "type": "string",
-      "description": "Nombre de la obra"
+      "type": "string"
+    },
+    "operario_id": {
+      "type": "string"
+    },
+    "operario_name": {
+      "type": "string"
     },
     "tipo": {
-      "type": "string",
+      "default": "doc_operario",
       "enum": [
         "doc_operario",
         "doc_obra",
         "doc_empresa"
       ],
-      "default": "doc_operario",
-      "description": "Tipo: doc_operario=propio operario, doc_obra=documentaci\u00f3n de obra, doc_empresa=documento empresa para firmar"
-    },
-    "categoria": {
-      "type": "string",
-      "description": "Categor\u00eda del documento"
+      "type": "string"
     },
     "title": {
-      "type": "string",
-      "description": "T\u00edtulo del documento"
-    },
-    "date": {
-      "type": "string",
-      "format": "date",
-      "description": "Fecha del documento"
-    },
-    "expiry_date": {
-      "type": "string",
-      "format": "date",
-      "description": "Fecha de caducidad"
-    },
-    "file_url": {
-      "type": "string",
-      "description": "URL del archivo"
-    },
-    "firma_url": {
-      "type": "string",
-      "description": "URL imagen firma del operario"
-    },
-    "fecha_firma": {
-      "type": "string",
-      "format": "date",
-      "description": "Fecha en que fue firmado"
-    },
-    "firmado": {
-      "type": "boolean",
-      "default": false,
-      "description": "Si el operario ha firmado el documento"
-    },
-    "notes": {
-      "type": "string",
-      "description": "Observaciones"
+      "type": "string"
     }
   },
   "required": [
     "operario_id",
     "tipo",
     "title"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "data.operario_id": "{{user.id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "data.operario_id": "{{user.id}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "type": "object"
 }
