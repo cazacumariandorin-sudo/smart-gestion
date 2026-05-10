@@ -1,35 +1,27 @@
 {
   "name": "WorkPhoto",
-  "type": "object",
   "properties": {
-    "work_order_id": {
-      "type": "string",
-      "description": "ID del parte de trabajo"
+    "caption": {
+      "type": "string"
     },
     "client_id": {
-      "type": "string",
-      "description": "ID del cliente"
+      "type": "string"
     },
     "client_name": {
-      "type": "string",
-      "description": "Nombre del cliente"
-    },
-    "project": {
-      "type": "string",
-      "description": "Nombre de la obra"
+      "type": "string"
     },
     "date": {
-      "type": "string",
       "format": "date",
-      "description": "Fecha de la foto"
+      "type": "string"
     },
     "photo_url": {
-      "type": "string",
-      "description": "URL de la foto"
+      "type": "string"
     },
-    "caption": {
-      "type": "string",
-      "description": "Descripci\u00f3n de la foto"
+    "project": {
+      "type": "string"
+    },
+    "work_order_id": {
+      "type": "string"
     }
   },
   "required": [
@@ -94,5 +86,6 @@
         "role": "admin"
       }
     }
-  }
+  },
+  "type": "object"
 }
