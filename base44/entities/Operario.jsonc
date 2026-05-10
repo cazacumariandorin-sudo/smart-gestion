@@ -1,33 +1,39 @@
 {
   "name": "Operario",
+  "type": "object",
   "properties": {
-    "active": {
-      "default": true,
-      "type": "boolean"
+    "name": {
+      "type": "string",
+      "description": "Nombre completo"
     },
     "dni": {
-      "type": "string"
+      "type": "string",
+      "description": "DNI / NIE"
     },
     "email": {
-      "type": "string"
-    },
-    "name": {
-      "type": "string"
+      "type": "string",
+      "description": "Correo electr\u00f3nico personal"
     },
     "phone": {
-      "type": "string"
+      "type": "string",
+      "description": "Tel\u00e9fono"
     },
     "role": {
-      "type": "string"
+      "type": "string",
+      "description": "Puesto / categor\u00eda profesional"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activo"
     },
     "user_email": {
-      "type": "string"
+      "type": "string",
+      "description": "Email del usuario de la app vinculado a este operario (para login)"
     },
     "user_id": {
-      "type": "string"
-    },
-    "user_vinculado_nombre": {
-      "type": "string"
+      "type": "string",
+      "description": "ID del usuario de la app vinculado"
     }
   },
   "required": [
@@ -78,6 +84,5 @@
         "role": "admin"
       }
     }
-  },
-  "type": "object"
+  }
 }
