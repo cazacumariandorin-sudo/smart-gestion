@@ -1,33 +1,42 @@
 {
   "name": "MaterialCatalog",
+  "type": "object",
   "properties": {
-    "active": {
-      "default": true,
-      "type": "boolean"
-    },
-    "category": {
-      "type": "string"
+    "name": {
+      "type": "string",
+      "description": "Nombre del material"
     },
     "code": {
-      "type": "string"
+      "type": "string",
+      "description": "C\u00f3digo / referencia"
     },
-    "description": {
-      "type": "string"
-    },
-    "manual_url": {
-      "type": "string"
-    },
-    "name": {
-      "type": "string"
-    },
-    "supplier": {
-      "type": "string"
+    "category": {
+      "type": "string",
+      "description": "Categor\u00eda"
     },
     "unit": {
-      "type": "string"
+      "type": "string",
+      "description": "Unidad de medida (m, kg, ud, m\u00b2, ...)"
     },
     "unit_price": {
-      "type": "number"
+      "type": "number",
+      "description": "Precio unitario (\u20ac)"
+    },
+    "supplier": {
+      "type": "string",
+      "description": "Proveedor"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n / especificaciones"
+    },
+    "manual_url": {
+      "type": "string",
+      "description": "URL del manual / ficha t\u00e9cnica"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
     }
   },
   "required": [
@@ -86,6 +95,5 @@
         "role": "admin"
       }
     }
-  },
-  "type": "object"
+  }
 }
