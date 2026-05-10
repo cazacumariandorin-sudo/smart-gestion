@@ -74,6 +74,18 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "operario"
+              }
+            },
+            {
+              "data.operario_name": "{{user.full_name}}"
+            }
+          ]
         }
       ]
     },
