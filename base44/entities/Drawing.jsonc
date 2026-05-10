@@ -1,47 +1,92 @@
 {
   "name": "Drawing",
-  "type": "object",
   "properties": {
-    "title": {
-      "type": "string",
-      "description": "T\u00edtulo del plano"
-    },
-    "reference": {
-      "type": "string",
-      "description": "Referencia / n\u00famero"
-    },
     "client_id": {
-      "type": "string",
-      "description": "ID del cliente"
+      "type": "string"
     },
     "client_name": {
-      "type": "string",
-      "description": "Nombre del cliente"
-    },
-    "project": {
-      "type": "string",
-      "description": "Obra"
+      "type": "string"
     },
     "date": {
-      "type": "string",
       "format": "date",
-      "description": "Fecha del plano"
-    },
-    "version": {
-      "type": "string",
-      "description": "Versi\u00f3n"
+      "type": "string"
     },
     "file_url": {
-      "type": "string",
-      "description": "URL del archivo (PDF/imagen)"
+      "type": "string"
     },
     "notes": {
-      "type": "string",
-      "description": "Observaciones"
+      "type": "string"
+    },
+    "project": {
+      "type": "string"
+    },
+    "reference": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
     }
   },
   "required": [
     "title",
     "client_id"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "type": "object"
 }
