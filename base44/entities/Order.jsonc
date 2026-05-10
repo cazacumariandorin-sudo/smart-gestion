@@ -1,11 +1,6 @@
 {
   "name": "Order",
-  "type": "object",
   "properties": {
-    "order_number": {
-      "type": "string",
-      "description": "N\u00famero de pedido"
-    },
     "client_id": {
       "type": "string",
       "description": "ID del cliente"
@@ -14,41 +9,18 @@
       "type": "string",
       "description": "Nombre del cliente"
     },
-    "project": {
-      "type": "string",
-      "description": "Obra"
-    },
     "date": {
-      "type": "string",
       "format": "date",
+      "type": "string",
       "description": "Fecha del pedido"
     },
     "expected_delivery": {
-      "type": "string",
       "format": "date",
+      "type": "string",
       "description": "Fecha de entrega prevista"
     },
-    "status": {
-      "type": "string",
-      "enum": [
-        "pendiente",
-        "confirmado",
-        "en_transito",
-        "entregado",
-        "cancelado"
-      ],
-      "default": "pendiente",
-      "description": "Estado del pedido"
-    },
-    "supplier": {
-      "type": "string",
-      "description": "Proveedor"
-    },
     "items": {
-      "type": "array",
-      "description": "L\u00edneas del pedido",
       "items": {
-        "type": "object",
         "properties": {
           "material_id": {
             "type": "string"
@@ -59,25 +31,52 @@
           "quantity": {
             "type": "number"
           },
+          "total_price": {
+            "type": "number"
+          },
           "unit": {
             "type": "string"
           },
           "unit_price": {
             "type": "number"
-          },
-          "total_price": {
-            "type": "number"
           }
-        }
-      }
-    },
-    "total_amount": {
-      "type": "number",
-      "description": "Importe total (\u20ac)"
+        },
+        "type": "object"
+      },
+      "type": "array",
+      "description": "L\u00edneas del pedido"
     },
     "notes": {
       "type": "string",
       "description": "Observaciones"
+    },
+    "order_number": {
+      "type": "string",
+      "description": "N\u00famero de pedido"
+    },
+    "proyecto": {
+      "type": "string",
+      "description": "Proyecto (antes: Obra)"
+    },
+    "status": {
+      "default": "pendiente",
+      "enum": [
+        "pendiente",
+        "confirmado",
+        "en_transito",
+        "entregado",
+        "cancelado"
+      ],
+      "type": "string",
+      "description": "Estado del pedido"
+    },
+    "supplier": {
+      "type": "string",
+      "description": "Proveedor"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Importe total (\u20ac)"
     },
     "tracking_number": {
       "type": "string",
@@ -86,7 +85,62 @@
   },
   "required": [
     "client_id",
-    "project",
+    "proyecto",
     "date"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "type": "object"
 }
