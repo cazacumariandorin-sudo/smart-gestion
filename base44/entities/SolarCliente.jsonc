@@ -1,52 +1,97 @@
 {
   "name": "SolarCliente",
-  "type": "object",
   "properties": {
-    "name": {
-      "type": "string",
-      "description": "Nombre del cliente solar"
-    },
-    "nif": {
-      "type": "string",
-      "description": "NIF / CIF"
+    "active": {
+      "default": true,
+      "type": "boolean"
     },
     "address": {
-      "type": "string",
-      "description": "Direcci\u00f3n"
-    },
-    "postal_code": {
-      "type": "string",
-      "description": "C\u00f3digo postal"
-    },
-    "phone": {
-      "type": "string",
-      "description": "Tel\u00e9fono"
+      "type": "string"
     },
     "email": {
-      "type": "string",
-      "description": "Email"
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "nif": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "postal_code": {
+      "type": "string"
     },
     "tipo": {
-      "type": "string",
+      "default": "particular",
       "enum": [
         "particular",
         "empresa",
         "comunidad"
       ],
-      "default": "particular",
-      "description": "Tipo de cliente"
-    },
-    "active": {
-      "type": "boolean",
-      "default": true,
-      "description": "Cliente activo"
-    },
-    "notes": {
-      "type": "string",
-      "description": "Observaciones"
+      "type": "string"
     }
   },
   "required": [
     "name"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "type": "object"
 }
