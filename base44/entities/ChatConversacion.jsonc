@@ -90,20 +90,8 @@
     "participantes"
   ],
   "rls": {
-    "create": true,
-    "delete": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
-        }
-      ]
+    "create": {
+      "created_by": "{{user.email}}"
     },
     "read": {
       "$or": [
@@ -140,6 +128,20 @@
         },
         {
           "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
         }
       ]
     }
