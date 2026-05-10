@@ -102,6 +102,23 @@
   ],
   "rls": {
     "create": true,
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
     "read": {
       "$or": [
         {
@@ -115,28 +132,13 @@
           }
         },
         {
-          "created_by": "{{user.email}}"
+          "data.conversacion_id": {
+            "$exists": true
+          }
         }
       ]
     },
     "update": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
-        },
-        {
-          "created_by": "{{user.email}}"
-        }
-      ]
-    },
-    "delete": {
       "$or": [
         {
           "user_condition": {
