@@ -1,51 +1,39 @@
 {
   "name": "Manual",
-  "type": "object",
   "properties": {
-    "title": {
-      "type": "string",
-      "description": "T\u00edtulo del manual / documento"
+    "categoria": {
+      "type": "string"
     },
     "client_id": {
-      "type": "string",
-      "description": "ID del cliente"
+      "type": "string"
     },
     "client_name": {
-      "type": "string",
-      "description": "Nombre del cliente"
-    },
-    "obra_id": {
-      "type": "string",
-      "description": "ID de la obra"
-    },
-    "obra_name": {
-      "type": "string",
-      "description": "Nombre de la obra"
-    },
-    "categoria": {
-      "type": "string",
-      "description": "Categor\u00eda (instalaci\u00f3n, mantenimiento, certificado...)"
-    },
-    "file_url": {
-      "type": "string",
-      "description": "URL del archivo (PDF, Excel, Word...)"
-    },
-    "file_type": {
-      "type": "string",
-      "description": "Tipo de archivo (pdf, xlsx, docx...)"
-    },
-    "version": {
-      "type": "string",
-      "description": "Versi\u00f3n"
+      "type": "string"
     },
     "date": {
-      "type": "string",
       "format": "date",
-      "description": "Fecha del documento"
+      "type": "string"
+    },
+    "file_type": {
+      "type": "string"
+    },
+    "file_url": {
+      "type": "string"
     },
     "notes": {
-      "type": "string",
-      "description": "Observaciones"
+      "type": "string"
+    },
+    "obra_id": {
+      "type": "string"
+    },
+    "obra_name": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
     }
   },
   "required": [
@@ -104,5 +92,6 @@
         "role": "admin"
       }
     }
-  }
+  },
+  "type": "object"
 }
