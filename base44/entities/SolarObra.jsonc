@@ -1,85 +1,103 @@
 {
   "name": "SolarObra",
+  "type": "object",
   "properties": {
-    "address": {
-      "type": "string"
-    },
-    "attached_files": {
-      "items": {
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "type": "array"
-    },
-    "budget": {
-      "type": "number"
-    },
-    "client_id": {
-      "type": "string"
-    },
-    "client_name": {
-      "type": "string"
+    "name": {
+      "type": "string",
+      "description": "Nombre de la obra solar"
     },
     "code": {
-      "type": "string"
+      "type": "string",
+      "description": "C\u00f3digo / referencia interna"
     },
-    "contact_person": {
-      "type": "string"
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente solar"
     },
-    "contact_phone": {
-      "type": "string"
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente solar"
     },
-    "description": {
-      "type": "string"
-    },
-    "end_date": {
-      "format": "date",
-      "type": "string"
-    },
-    "name": {
-      "type": "string"
-    },
-    "notes": {
-      "type": "string"
-    },
-    "num_paneles": {
-      "type": "number"
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n de la instalaci\u00f3n"
     },
     "potencia_kw": {
-      "type": "number"
+      "type": "number",
+      "description": "Potencia instalada (kW)"
     },
-    "start_date": {
-      "format": "date",
-      "type": "string"
-    },
-    "status": {
-      "default": "presupuesto",
-      "enum": [
-        "presupuesto",
-        "activa",
-        "pausada",
-        "finalizada"
-      ],
-      "type": "string"
+    "num_paneles": {
+      "type": "number",
+      "description": "N\u00famero de paneles"
     },
     "tipo_instalacion": {
+      "type": "string",
       "enum": [
         "autoconsumo",
         "vertido_red",
         "aislada",
         "hibrida"
       ],
-      "type": "string"
+      "description": "Tipo de instalaci\u00f3n solar"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de fin prevista"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "presupuesto",
+        "activa",
+        "pausada",
+        "finalizada"
+      ],
+      "default": "presupuesto",
+      "description": "Estado de la obra solar"
+    },
+    "budget": {
+      "type": "number",
+      "description": "Presupuesto (\u20ac)"
+    },
+    "contact_person": {
+      "type": "string",
+      "description": "Persona de contacto"
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de contacto"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n / alcance"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    },
+    "attached_files": {
+      "type": "array",
+      "description": "Archivos adjuntos",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "required": [
@@ -138,6 +156,5 @@
         "role": "admin"
       }
     }
-  },
-  "type": "object"
+  }
 }
