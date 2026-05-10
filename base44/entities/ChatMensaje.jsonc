@@ -101,8 +101,10 @@
     "iv"
   ],
   "rls": {
-    "create": true,
-    "delete": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
       "$or": [
         {
           "user_condition": {
@@ -119,7 +121,7 @@
         }
       ]
     },
-    "read": {
+    "update": {
       "$or": [
         {
           "user_condition": {
@@ -132,13 +134,11 @@
           }
         },
         {
-          "data.conversacion_id": {
-            "$exists": true
-          }
+          "created_by": "{{user.email}}"
         }
       ]
     },
-    "update": {
+    "delete": {
       "$or": [
         {
           "user_condition": {
