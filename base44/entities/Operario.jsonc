@@ -1,42 +1,83 @@
 {
   "name": "Operario",
-  "type": "object",
   "properties": {
-    "name": {
-      "type": "string",
-      "description": "Nombre completo"
+    "active": {
+      "default": true,
+      "type": "boolean"
     },
     "dni": {
-      "type": "string",
-      "description": "DNI / NIE"
+      "type": "string"
     },
     "email": {
-      "type": "string",
-      "description": "Correo electr\u00f3nico personal"
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
     },
     "phone": {
-      "type": "string",
-      "description": "Tel\u00e9fono"
+      "type": "string"
     },
     "role": {
-      "type": "string",
-      "description": "Puesto / categor\u00eda profesional"
-    },
-    "active": {
-      "type": "boolean",
-      "default": true,
-      "description": "Activo"
+      "type": "string"
     },
     "user_email": {
-      "type": "string",
-      "description": "Email del usuario de la app vinculado a este operario (para login)"
+      "type": "string"
     },
     "user_id": {
-      "type": "string",
-      "description": "ID del usuario de la app vinculado"
+      "type": "string"
+    },
+    "user_vinculado_nombre": {
+      "type": "string"
     }
   },
   "required": [
     "name"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "data.user_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "data.user_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "type": "object"
 }
