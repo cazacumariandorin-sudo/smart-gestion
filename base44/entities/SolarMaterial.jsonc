@@ -1,13 +1,7 @@
 {
   "name": "SolarMaterial",
-  "type": "object",
   "properties": {
-    "name": {
-      "type": "string",
-      "description": "Nombre del material / equipo solar"
-    },
     "categoria": {
-      "type": "string",
       "enum": [
         "panel",
         "inversor",
@@ -18,40 +12,91 @@
         "monitor",
         "otros"
       ],
-      "description": "Categor\u00eda"
+      "type": "string"
     },
     "marca": {
-      "type": "string",
-      "description": "Marca / fabricante"
+      "type": "string"
     },
     "modelo": {
-      "type": "string",
-      "description": "Modelo / referencia"
+      "type": "string"
     },
-    "unit": {
-      "type": "string",
-      "description": "Unidad (ud, m, kg...)",
-      "default": "ud"
-    },
-    "unit_price": {
-      "type": "number",
-      "description": "Precio unitario (\u20ac)"
-    },
-    "stock": {
-      "type": "number",
-      "description": "Stock disponible"
-    },
-    "potencia_w": {
-      "type": "number",
-      "description": "Potencia (W) si aplica"
+    "name": {
+      "type": "string"
     },
     "notas": {
-      "type": "string",
-      "description": "Observaciones"
+      "type": "string"
+    },
+    "potencia_w": {
+      "type": "number"
+    },
+    "stock": {
+      "type": "number"
+    },
+    "unit": {
+      "default": "ud",
+      "type": "string"
+    },
+    "unit_price": {
+      "type": "number"
     }
   },
   "required": [
     "name",
     "categoria"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "type": "object"
 }
