@@ -1,27 +1,31 @@
 {
   "name": "Vacacion",
-  "type": "object",
   "properties": {
-    "operario_id": {
-      "type": "string",
-      "description": "ID del operario"
+    "aprobado": {
+      "default": false,
+      "type": "boolean"
     },
-    "operario_name": {
-      "type": "string",
-      "description": "Nombre del operario"
-    },
-    "fecha_inicio": {
-      "type": "string",
-      "format": "date",
-      "description": "Fecha inicio"
+    "dias": {
+      "type": "number"
     },
     "fecha_fin": {
-      "type": "string",
       "format": "date",
-      "description": "Fecha fin"
+      "type": "string"
+    },
+    "fecha_inicio": {
+      "format": "date",
+      "type": "string"
+    },
+    "notas": {
+      "type": "string"
+    },
+    "operario_id": {
+      "type": "string"
+    },
+    "operario_name": {
+      "type": "string"
     },
     "tipo": {
-      "type": "string",
       "enum": [
         "vacaciones",
         "baja_medica",
@@ -29,20 +33,7 @@
         "fiesta",
         "vacaciones_convenio"
       ],
-      "description": "Tipo de ausencia"
-    },
-    "dias": {
-      "type": "number",
-      "description": "N\u00famero de d\u00edas"
-    },
-    "notas": {
-      "type": "string",
-      "description": "Observaciones"
-    },
-    "aprobado": {
-      "type": "boolean",
-      "default": false,
-      "description": "Aprobado por responsable"
+      "type": "string"
     }
   },
   "required": [
@@ -106,5 +97,6 @@
         }
       ]
     }
-  }
+  },
+  "type": "object"
 }
