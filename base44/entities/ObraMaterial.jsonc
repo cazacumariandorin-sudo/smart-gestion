@@ -1,17 +1,44 @@
 {
   "name": "ObraMaterial",
-  "type": "object",
   "properties": {
+    "cantidad": {
+      "type": "number"
+    },
+    "fecha": {
+      "format": "date",
+      "type": "string"
+    },
+    "file_url": {
+      "type": "string"
+    },
+    "notas": {
+      "type": "string"
+    },
+    "nombre": {
+      "type": "string"
+    },
+    "num_documento": {
+      "type": "string"
+    },
     "obra_id": {
-      "type": "string",
-      "description": "ID de la obra"
+      "type": "string"
     },
     "obra_name": {
-      "type": "string",
-      "description": "Nombre de la obra"
+      "type": "string"
+    },
+    "precio_total": {
+      "type": "number"
+    },
+    "precio_unidad": {
+      "type": "number"
+    },
+    "proveedor": {
+      "type": "string"
+    },
+    "referencia": {
+      "type": "string"
     },
     "tipo": {
-      "type": "string",
       "enum": [
         "material",
         "herramienta",
@@ -20,58 +47,71 @@
         "transporte",
         "varios"
       ],
-      "description": "Tipo de partida"
-    },
-    "nombre": {
-      "type": "string",
-      "description": "Nombre / descripci\u00f3n del material"
-    },
-    "referencia": {
-      "type": "string",
-      "description": "Referencia o c\u00f3digo"
-    },
-    "proveedor": {
-      "type": "string",
-      "description": "Proveedor / suministrador"
-    },
-    "cantidad": {
-      "type": "number",
-      "description": "Cantidad"
+      "type": "string"
     },
     "unidad": {
-      "type": "string",
-      "description": "Unidad (ud, m, m\u00b2, kg...)",
-      "default": "ud"
-    },
-    "precio_unidad": {
-      "type": "number",
-      "description": "Precio unitario (\u20ac)"
-    },
-    "precio_total": {
-      "type": "number",
-      "description": "Precio total (\u20ac)"
-    },
-    "fecha": {
-      "type": "string",
-      "format": "date",
-      "description": "Fecha del albar\u00e1n / factura"
-    },
-    "num_documento": {
-      "type": "string",
-      "description": "N\u00ba albar\u00e1n / factura / presupuesto"
-    },
-    "file_url": {
-      "type": "string",
-      "description": "URL del documento adjunto"
-    },
-    "notas": {
-      "type": "string",
-      "description": "Observaciones"
+      "default": "ud",
+      "type": "string"
     }
   },
   "required": [
     "obra_id",
     "nombre",
     "tipo"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "type": "object"
 }
