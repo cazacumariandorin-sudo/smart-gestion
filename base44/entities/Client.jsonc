@@ -2,109 +2,85 @@
   "name": "Client",
   "type": "object",
   "properties": {
-    "active": {
-      "default": true,
-      "description": "Cliente activo",
-      "type": "boolean"
-    },
-    "address": {
-      "description": "Direcci\u00f3n",
-      "type": "string"
-    },
-    "client_id_code": {
-      "description": "ID \u00fanico generado",
-      "type": "string"
-    },
-    "contact_person": {
-      "description": "Persona de contacto principal",
-      "type": "string"
-    },
-    "contacto_admin": {
-      "description": "Contacto Administraci\u00f3n",
-      "properties": {
-        "email": {
-          "type": "string"
-        },
-        "nombre": {
-          "type": "string"
-        },
-        "telefono": {
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "contacto_facturacion": {
-      "description": "Contacto Facturaci\u00f3n",
-      "properties": {
-        "email": {
-          "type": "string"
-        },
-        "nombre": {
-          "type": "string"
-        },
-        "telefono": {
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "email": {
-      "description": "Email principal",
-      "type": "string"
-    },
     "name": {
-      "description": "Nombre del cliente",
-      "type": "string"
+      "type": "string",
+      "description": "Nombre del cliente"
     },
     "nif": {
-      "description": "NIF / CIF",
-      "type": "string"
+      "type": "string",
+      "description": "NIF / CIF"
     },
-    "notes": {
-      "description": "Observaciones",
-      "type": "string"
-    },
-    "phone": {
-      "description": "Tel\u00e9fono",
-      "type": "string"
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n"
     },
     "postal_code": {
-      "description": "C\u00f3digo postal",
-      "type": "string"
+      "type": "string",
+      "description": "C\u00f3digo postal"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observaciones"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Cliente activo"
+    },
+    "client_id_code": {
+      "type": "string",
+      "description": "ID \u00fanico generado: Client Id-PPYYXXX (2 primeros d\u00edgitos CP + 2 \u00faltimos a\u00f1o + 3 \u00faltimos d\u00edgitos NIF)"
+    },
+    "contacto_admin": {
+      "type": "object",
+      "description": "Contacto Administraci\u00f3n",
+      "properties": {
+        "nombre": {
+          "type": "string"
+        },
+        "telefono": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "contacto_facturacion": {
+      "type": "object",
+      "description": "Contacto Facturaci\u00f3n",
+      "properties": {
+        "nombre": {
+          "type": "string"
+        },
+        "telefono": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      }
     },
     "tecnicos": {
+      "type": "array",
       "description": "T\u00e9cnicos de contacto (hasta 4)",
       "items": {
+        "type": "object",
         "properties": {
-          "cargo": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
           "nombre": {
             "type": "string"
           },
           "telefono": {
             "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "cargo": {
+            "type": "string"
           }
-        },
-        "type": "object"
-      },
-      "type": "array"
-    },
-    "usuario_vinculado_email": {
-      "description": "Email del usuario vinculado",
-      "type": "string"
-    },
-    "usuario_vinculado_id": {
-      "description": "ID del usuario vinculado",
-      "type": "string"
-    },
-    "usuario_vinculado_nombre": {
-      "description": "Nombre del usuario vinculado",
-      "type": "string"
+        }
+      }
     }
   },
   "required": [
