@@ -1,0 +1,214 @@
+{
+  "name": "FotoProyecto",
+  "type": "object",
+  "properties": {
+    "foto_url": {
+      "type": "string",
+      "description": "URL de la foto subida"
+    },
+    "miniatura_url": {
+      "type": "string",
+      "description": "URL miniatura (thumbnail)"
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "parte_trabajo",
+        "obra",
+        "nota_gastos",
+        "presupuesto",
+        "averia"
+      ],
+      "description": "Categor\u00eda de la foto"
+    },
+    "proyecto_id": {
+      "type": "string",
+      "description": "ID del proyecto (Obra o SolarObra) al que pertenece"
+    },
+    "proyecto_name": {
+      "type": "string",
+      "description": "Nombre del proyecto"
+    },
+    "proyecto_tipo": {
+      "type": "string",
+      "enum": [
+        "obra",
+        "solar"
+      ],
+      "description": "Tipo de proyecto"
+    },
+    "referencia_id": {
+      "type": "string",
+      "description": "ID del registro relacionado (WorkOrder, NotaGasto, Presupuesto, etc.)"
+    },
+    "referencia_tipo": {
+      "type": "string",
+      "enum": [
+        "WorkOrder",
+        "Obra",
+        "NotaGasto",
+        "Presupuesto",
+        "Averia"
+      ],
+      "description": "Tipo de entidad relacionada"
+    },
+    "referencia_nombre": {
+      "type": "string",
+      "description": "Descripci\u00f3n/nombre del registro relacionado"
+    },
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario que sube la foto"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario"
+    },
+    "fecha_foto": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en que se tom\u00f3 la foto"
+    },
+    "hora_foto": {
+      "type": "string",
+      "description": "Hora en que se tom\u00f3 la foto (HH:MM)"
+    },
+    "fecha_hora_subida": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora exacta de subida al sistema (autom\u00e1tico)"
+    },
+    "geolocalizacion": {
+      "type": "object",
+      "description": "Coordenadas GPS opcionales",
+      "properties": {
+        "lat": {
+          "type": "number"
+        },
+        "lng": {
+          "type": "number"
+        },
+        "direccion": {
+          "type": "string"
+        }
+      }
+    },
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo o nombre descriptivo de la foto"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n detallada del contenido"
+    },
+    "estado_averia": {
+      "type": "string",
+      "enum": [
+        "detectada",
+        "en_reparacion",
+        "resuelta"
+      ],
+      "description": "Estado de la aver\u00eda (solo si categor\u00eda = averia)"
+    },
+    "validada": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si el jefe de obra o admin ha validado la foto"
+    },
+    "validada_por": {
+      "type": "string",
+      "description": "Email del usuario que valid\u00f3"
+    },
+    "fecha_validacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de validaci\u00f3n"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Notas adicionales"
+    }
+  },
+  "required": [
+    "foto_url",
+    "categoria",
+    "proyecto_id",
+    "operario_id",
+    "fecha_foto",
+    "hora_foto"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "control_horario"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "name": "ChatMensaje",
+  "properties": {
+    "adjuntos": {
+      "items": {
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "number"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "algoritmo": {
+      "default": "AES-256-GCM",
+      "type": "string"
+    },
+    "autor_avatar": {
+      "type": "string"
+    },
+    "autor_email": {
+      "type": "string"
+    },
+    "autor_nombre": {
+      "type": "string"
+    },
+    "autor_rol": {
+      "type": "string"
+    },
+    "conversacion_id": {
+      "type": "string"
+    },
+    "editado": {
+      "default": false,
+      "type": "boolean"
+    },
+    "fecha_edicion": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "fecha_envio": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "iv": {
+      "type": "string"
+    },
+    "leido_por": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "menciones": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "mensaje_cifrado": {
+      "type": "string"
+    },
+    "obra_id": {
+      "type": "string"
+    },
+    "parte_id": {
+      "type": "string"
+    },
+    "reply_a_id": {
+      "type": "string"
+    },
+    "reply_preview": {
+      "type": "string"
+    },
+    "tipo_mensaje": {
+      "default": "texto",
+      "enum": [
+        "texto",
+        "imagen",
+        "archivo",
+        "sistema",
+        "reply"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "conversacion_id",
+    "autor_email",
+    "mensaje_cifrado",
+    "iv"
+  ],
+  "rls": {
+    "create": true,
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "data.conversacion_id": {
+            "$exists": true
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  },
+  "type": "object"
+}

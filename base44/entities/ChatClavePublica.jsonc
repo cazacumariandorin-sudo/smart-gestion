@@ -1,0 +1,59 @@
+{
+  "name": "ChatClavePublica",
+  "properties": {
+    "activa": {
+      "default": true,
+      "type": "boolean"
+    },
+    "algoritmo": {
+      "default": "RSA-OAEP-2048",
+      "description": "Algoritmo de la clave p\u00fablica",
+      "type": "string"
+    },
+    "clave_privada_cifrada": {
+      "description": "Clave privada RSA cifrada con la contrase\u00f1a del usuario (solo el propio usuario puede descifrarla)",
+      "type": "string"
+    },
+    "clave_publica_jwk": {
+      "description": "Clave p\u00fablica RSA en formato JWK (JSON Web Key) \u2014 visible por todos para cifrar mensajes dirigidos a este usuario",
+      "type": "string"
+    },
+    "fecha_creacion": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "fecha_rotacion": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "huella_digital": {
+      "description": "SHA-256 fingerprint de la clave p\u00fablica para verificaci\u00f3n de identidad",
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "user_nombre": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "user_email",
+    "clave_publica_jwk"
+  ],
+  "rls": {
+    "create": true,
+    "delete": {
+      "created_by": "{{user.email}}"
+    },
+    "read": true,
+    "update": {
+      "created_by": "{{user.email}}"
+    }
+  },
+  "type": "object"
+}

@@ -1,0 +1,148 @@
+{
+  "name": "ChatConversacion",
+  "properties": {
+    "activa": {
+      "default": true,
+      "type": "boolean"
+    },
+    "cifrado_activo": {
+      "default": true,
+      "type": "boolean"
+    },
+    "clave_sala": {
+      "type": "string"
+    },
+    "creado_por_email": {
+      "type": "string"
+    },
+    "creado_por_nombre": {
+      "type": "string"
+    },
+    "nombre": {
+      "type": "string"
+    },
+    "obra_id": {
+      "type": "string"
+    },
+    "obra_nombre": {
+      "type": "string"
+    },
+    "participantes": {
+      "items": {
+        "properties": {
+          "avatar_initials": {
+            "type": "string"
+          },
+          "fecha_union": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "nombre_display": {
+            "type": "string"
+          },
+          "rol": {
+            "type": "string"
+          },
+          "silenciado": {
+            "default": false,
+            "type": "boolean"
+          },
+          "ultimo_leido_id": {
+            "type": "string"
+          },
+          "user_email": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "tipo": {
+      "default": "directo",
+      "enum": [
+        "directo",
+        "grupo",
+        "canal_admin"
+      ],
+      "type": "string"
+    },
+    "total_mensajes": {
+      "default": 0,
+      "type": "number"
+    },
+    "ultimo_mensaje_autor": {
+      "type": "string"
+    },
+    "ultimo_mensaje_fecha": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "ultimo_mensaje_texto": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "tipo",
+    "participantes"
+  ],
+  "rls": {
+    "create": true,
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "data.participantes": {
+            "$elemMatch": {
+              "user_email": "{{user.email}}"
+            }
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  },
+  "type": "object"
+}

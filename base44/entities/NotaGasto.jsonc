@@ -1,101 +1,10 @@
 {
   "name": "NotaGasto",
-  "type": "object",
   "properties": {
-    "numero_nota": {
-      "type": "string",
-      "description": "N\u00famero de nota formato NOT-YYYY-XX-MM. Ej: NOT-2026-10-05"
-    },
-    "numero_secuencia": {
-      "type": "integer",
-      "description": "Valor XX editable solo por admin"
-    },
-    "operario_id": {
-      "type": "string",
-      "description": "ID del operario propietario"
-    },
-    "operario_name": {
-      "type": "string",
-      "description": "Nombre del operario"
-    },
-    "categoria": {
-      "type": "string",
-      "enum": [
-        "material",
-        "combustible",
-        "peaje",
-        "parking",
-        "otros"
-      ],
-      "description": "Categor\u00eda del gasto"
-    },
-    "concepto": {
-      "type": "string",
-      "description": "Descripci\u00f3n del concepto"
-    },
-    "importe": {
-      "type": "number",
-      "description": "Importe total (\u20ac)"
-    },
-    "nif_comercio": {
-      "type": "string",
-      "description": "NIF/CIF del comercio"
-    },
-    "nombre_comercio": {
-      "type": "string",
-      "description": "Nombre del comercio/proveedor"
-    },
-    "fecha_documento": {
-      "type": "string",
-      "format": "date",
-      "description": "Fecha del documento (ticket/factura)"
-    },
-    "fecha_creacion_real": {
-      "type": "string",
-      "format": "date",
-      "description": "Fecha real de creaci\u00f3n en sistema"
-    },
-    "es_gasto_tardio": {
-      "type": "boolean",
-      "default": false,
-      "description": "True si el documento es posterior al cierre de nota"
-    },
-    "obra_id": {
-      "type": "string",
-      "description": "ID de la obra (Obra o SolarObra)"
-    },
-    "obra_name": {
-      "type": "string",
-      "description": "Nombre de la obra"
-    },
-    "obra_tipo": {
-      "type": "string",
-      "enum": [
-        "obra",
-        "solar",
-        "manual"
-      ],
-      "description": "Tipo de origen de la obra"
-    },
-    "estado": {
-      "type": "string",
-      "enum": [
-        "borrador",
-        "pendiente",
-        "validada",
-        "cerrada",
-        "rechazada"
-      ],
-      "default": "borrador",
-      "description": "Estado de la nota"
-    },
     "archivos": {
-      "type": "array",
-      "description": "Archivos adjuntos (fotos, PDFs, docs)",
       "items": {
-        "type": "object",
         "properties": {
-          "url": {
+          "fecha_subida": {
             "type": "string"
           },
           "nombre": {
@@ -104,45 +13,114 @@
           "tipo": {
             "type": "string"
           },
-          "fecha_subida": {
+          "url": {
             "type": "string"
           }
-        }
-      }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "categoria": {
+      "enum": [
+        "material",
+        "combustible",
+        "peaje",
+        "parking",
+        "otros"
+      ],
+      "type": "string"
+    },
+    "concepto": {
+      "type": "string"
+    },
+    "duplicado_confirmado": {
+      "default": false,
+      "type": "boolean"
+    },
+    "es_gasto_tardio": {
+      "default": false,
+      "type": "boolean"
+    },
+    "es_posible_duplicado": {
+      "default": false,
+      "type": "boolean"
+    },
+    "estado": {
+      "default": "borrador",
+      "enum": [
+        "borrador",
+        "pendiente",
+        "validada",
+        "cerrada",
+        "rechazada"
+      ],
+      "type": "string"
+    },
+    "fecha_creacion_real": {
+      "format": "date",
+      "type": "string"
+    },
+    "fecha_documento": {
+      "format": "date",
+      "type": "string"
+    },
+    "fecha_validacion": {
+      "format": "date",
+      "type": "string"
+    },
+    "importe": {
+      "type": "number"
+    },
+    "nif_comercio": {
+      "type": "string"
+    },
+    "nombre_comercio": {
+      "type": "string"
+    },
+    "notas_admin": {
+      "type": "string"
+    },
+    "numero_nota": {
+      "type": "string"
+    },
+    "numero_secuencia": {
+      "type": "integer"
+    },
+    "obra_id": {
+      "type": "string"
+    },
+    "obra_name": {
+      "type": "string"
+    },
+    "obra_tipo": {
+      "enum": [
+        "obra",
+        "solar",
+        "manual"
+      ],
+      "type": "string"
     },
     "ocr_raw": {
-      "type": "string",
-      "description": "Texto extra\u00eddo por OCR+IA"
+      "type": "string"
     },
     "ocr_status": {
-      "type": "string",
+      "default": "pendiente",
       "enum": [
         "pendiente",
         "procesado",
         "error"
       ],
-      "default": "pendiente"
+      "type": "string"
     },
-    "notas_admin": {
-      "type": "string",
-      "description": "Observaciones del administrador"
+    "operario_id": {
+      "type": "string"
+    },
+    "operario_name": {
+      "type": "string"
     },
     "validado_por": {
-      "type": "string",
-      "description": "Email del admin que valid\u00f3/cerr\u00f3"
-    },
-    "fecha_validacion": {
-      "type": "string",
-      "format": "date"
-    },
-    "es_posible_duplicado": {
-      "type": "boolean",
-      "default": false
-    },
-    "duplicado_confirmado": {
-      "type": "boolean",
-      "default": false,
-      "description": "El usuario confirm\u00f3 que no es duplicado"
+      "type": "string"
     }
   },
   "required": [
@@ -160,6 +138,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
           "created_by": "{{user.email}}"
         }
       ]
@@ -169,6 +152,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
           }
         },
         {
@@ -206,5 +194,6 @@
         }
       ]
     }
-  }
+  },
+  "type": "object"
 }
