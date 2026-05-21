@@ -158,32 +158,7 @@
   ],
   "rls": {
     "create": {
-      "$or": [
-        {
-          "created_by": "{{user.email}}"
-        },
-        {
-          "created_by": "{{user.email}}"
-        }
-      ]
-    },
-    "read": {
-      "$or": [
-        {
-          "created_by": "{{user.email}}"
-        },
-        {
-          "created_by": "{{user.email}}"
-        },
-        {
-          "user_condition": {
-            "role": "jefe_obra"
-          }
-        },
-        {
-          "data.asignado_id": "{{user.id}}"
-        }
-      ]
+      "created_by": "{{user.email}}"
     },
     "update": {
       "$or": [
@@ -194,24 +169,15 @@
         },
         {
           "user_condition": {
-            "role": "gerencia"
+            "role": "admin"
           }
         }
       ]
     },
     "delete": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     }
   }
 }
