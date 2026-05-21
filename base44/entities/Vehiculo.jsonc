@@ -8,19 +8,23 @@
     },
     "modelo": {
       "type": "string",
-      "description": "Marca y modelo del veh\u00edculo"
+      "description": "Marca y modelo"
     },
     "anio": {
       "type": "integer",
-      "description": "A\u00f1o del veh\u00edculo"
+      "description": "A\u00f1o"
     },
     "color": {
       "type": "string",
-      "description": "Color del veh\u00edculo"
+      "description": "Color"
     },
     "asignado_a": {
       "type": "string",
       "description": "Nombre del operario/conductor asignado"
+    },
+    "asignado_id": {
+      "type": "string",
+      "description": "ID del operario asignado"
     },
     "notas": {
       "type": "string",
@@ -29,56 +33,123 @@
     "itv_fecha": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de caducidad de la ITV"
+      "description": "Fecha caducidad ITV"
     },
     "neumaticos_km": {
       "type": "number",
-      "description": "Km actuales en el momento del \u00faltimo cambio de neum\u00e1ticos"
+      "description": "Km en \u00faltimo cambio neum\u00e1ticos"
     },
     "neumaticos_km_cambio": {
       "type": "number",
-      "description": "Km previstos para el pr\u00f3ximo cambio de neum\u00e1ticos"
+      "description": "Km previstos pr\u00f3ximo cambio"
     },
     "neumaticos_fecha_ultimo": {
       "type": "string",
       "format": "date",
-      "description": "Fecha del \u00faltimo cambio de neum\u00e1ticos"
+      "description": "Fecha \u00faltimo cambio neum\u00e1ticos"
     },
     "aceite_fecha": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de caducidad / pr\u00f3ximo cambio de aceite"
+      "description": "Fecha pr\u00f3ximo cambio aceite"
     },
     "aceite_km": {
       "type": "number",
-      "description": "Km para el pr\u00f3ximo cambio de aceite"
+      "description": "Km pr\u00f3ximo cambio aceite"
     },
     "filtros_fecha": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de caducidad / pr\u00f3ximo cambio de filtros"
+      "description": "Fecha pr\u00f3ximo cambio filtros"
     },
     "filtros_km": {
       "type": "number",
-      "description": "Km para el pr\u00f3ximo cambio de filtros"
+      "description": "Km pr\u00f3ximo cambio filtros"
     },
     "ac_fecha": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de la pr\u00f3xima revisi\u00f3n de aire acondicionado"
+      "description": "Fecha revisi\u00f3n aire acondicionado"
     },
     "km_actuales": {
       "type": "number",
-      "description": "Km actuales del veh\u00edculo (actualizar manualmente)"
+      "description": "Km actuales del veh\u00edculo"
     },
     "alertas_email": {
       "type": "string",
-      "description": "Emails para recibir alertas (separados por coma)"
+      "description": "Emails para alertas (separados por coma)"
     },
     "alertas_activas": {
       "type": "boolean",
       "default": true,
-      "description": "Activar env\u00edo de alertas por email"
+      "description": "Activar alertas por email"
+    },
+    "telematica_id": {
+      "type": "string",
+      "description": "ID del veh\u00edculo en sistema telem\u00e1tico (Geotab/Verizon)"
+    },
+    "telematica_proveedor": {
+      "type": "string",
+      "enum": [
+        "geotab",
+        "verizon",
+        "manual",
+        "otro"
+      ],
+      "default": "manual",
+      "description": "Proveedor de telem\u00e1tica"
+    },
+    "telematica_activa": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si tiene telem\u00e1tica conectada"
+    },
+    "ultima_posicion_lat": {
+      "type": "number",
+      "description": "\u00daltima latitud conocida"
+    },
+    "ultima_posicion_lng": {
+      "type": "number",
+      "description": "\u00daltima longitud conocida"
+    },
+    "ultima_posicion_fecha": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha/hora \u00faltima posici\u00f3n"
+    },
+    "ultima_posicion_direccion": {
+      "type": "string",
+      "description": "Direcci\u00f3n aproximada \u00faltima posici\u00f3n"
+    },
+    "km_mes_actual": {
+      "type": "number",
+      "description": "Km acumulados en el mes en curso"
+    },
+    "consumo_medio_l100": {
+      "type": "number",
+      "description": "Consumo medio L/100km"
+    },
+    "estado_motor": {
+      "type": "string",
+      "enum": [
+        "en_marcha",
+        "parado",
+        "desconocido"
+      ],
+      "default": "desconocido",
+      "description": "Estado actual del motor"
+    },
+    "velocidad_actual": {
+      "type": "number",
+      "description": "Velocidad actual km/h (en tiempo real si hay telem\u00e1tica)"
+    },
+    "proyecto_actual_id": {
+      "type": "string",
+      "description": "ID del proyecto al que est\u00e1 asignado hoy"
+    },
+    "proyecto_actual_nombre": {
+      "type": "string",
+      "description": "Nombre del proyecto actual"
     }
   },
   "required": [
@@ -87,11 +158,34 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
     },
     "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "data.asignado_id": "{{user.id}}"
+        }
+      ]
+    },
+    "update": {
       "$or": [
         {
           "user_condition": {
@@ -100,25 +194,24 @@
         },
         {
           "user_condition": {
-            "role": "jefe_obra"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "operario"
+            "role": "gerencia"
           }
         }
       ]
     },
-    "update": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     }
   }
 }
