@@ -154,7 +154,7 @@ function EditUserDialog({ user, operarios, onSave, onClose }) {
 }
 
 // ── Add user tab ───────────────────────────────────────────────────────────────
-function AddUserTab({ users, onInvited }) {
+function AddUserTab({ users, onInvited, isOwner }) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('operario');
   const [cargo, setCargo] = useState('');
@@ -233,7 +233,9 @@ function AddUserTab({ users, onInvited }) {
         <div className="space-y-1.5">
           <Label className="text-xs">Rol *</Label>
           <MobileSelect value={role} onValueChange={setRole} placeholder="Rol">
-            {ROLES.map(r => <MobileSelectItem key={r.value} value={r.value}>{r.label}</MobileSelectItem>)}
+            {ROLES.filter(r => isOwner || r.value !== 'director_comercial').map(r => (
+              <MobileSelectItem key={r.value} value={r.value}>{r.label}</MobileSelectItem>
+            ))}
           </MobileSelect>
         </div>
         <div className="space-y-1.5">
@@ -308,13 +310,26 @@ export default function UsersPage() {
   }, [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const isOwner = currentUser?.email === 'cazacu.mariandorin@gmail.com';
+
   const { data: users = [], isLoading: usersLoading } = useQuery({
-    queryKey: ['users'],
+    queryKey: ['users', isOwner],
     queryFn: async () => {
       const all = await base44.entities.User.list('full_name', 200);
-      return all.filter(u => u.email !== 'cazacu.mariandorin@gmail.com');
+      return all.filter(u => {
+        // Ocultar siempre la cuenta del propietario de la lista
+        if (u.email === 'cazacu.mariandorin@gmail.com') return false;
+        // director_comercial solo visible para el propietario
+        if (u.role === 'director_comercial' && !isOwner) return false;
+        return true;
+      });
     },
-    enabled: canView,
+    enabled: canView && currentUser !== undefined,
   });
 
   const { data: operarios = [] } = useQuery({
@@ -499,6 +514,7 @@ export default function UsersPage() {
           <TabsContent value="añadir">
             <AddUserTab
               users={users}
+              isOwner={isOwner}
               onInvited={() => {
                 qc.invalidateQueries({ queryKey: ['users'] });
                 setTab('lista');
