@@ -2,132 +2,78 @@
   "name": "NotaGasto",
   "type": "object",
   "properties": {
-    "archivos": {
-      "items": {
-        "properties": {
-          "fecha_subida": {
-            "type": "string"
-          },
-          "nombre": {
-            "type": "string"
-          },
-          "tipo": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "type": "array"
+    "numero_nota": {
+      "type": "string",
+      "description": "Autonum\u00e9rico NG-YYYY-MM-NNN"
     },
-    "categoria": {
-      "enum": [
-        "material",
-        "combustible",
-        "peaje",
-        "parking",
-        "otros"
-      ],
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario"
+    },
+    "periodo_mes": {
+      "type": "string",
+      "description": "Mes del periodo YYYY-MM"
+    },
+    "fecha_apertura": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha apertura autom\u00e1tica"
+    },
+    "fecha_cierre": {
+      "type": "string",
+      "format": "date"
+    },
+    "cerrada_por": {
       "type": "string"
-    },
-    "concepto": {
-      "type": "string"
-    },
-    "duplicado_confirmado": {
-      "default": false,
-      "type": "boolean"
-    },
-    "es_gasto_tardio": {
-      "default": false,
-      "type": "boolean"
-    },
-    "es_posible_duplicado": {
-      "default": false,
-      "type": "boolean"
     },
     "estado": {
-      "default": "borrador",
+      "type": "string",
       "enum": [
-        "borrador",
-        "pendiente",
+        "abierta",
+        "pendiente_validacion",
         "validada",
         "cerrada",
         "rechazada"
       ],
-      "type": "string"
+      "default": "abierta"
     },
-    "fecha_creacion_real": {
-      "format": "date",
-      "type": "string"
+    "total_importes": {
+      "type": "number",
+      "default": 0,
+      "description": "Suma calculada de todos los GastoOperario"
     },
-    "fecha_documento": {
-      "format": "date",
-      "type": "string"
-    },
-    "fecha_validacion": {
-      "format": "date",
-      "type": "string"
-    },
-    "importe": {
-      "type": "number"
-    },
-    "nif_comercio": {
-      "type": "string"
-    },
-    "nombre_comercio": {
-      "type": "string"
+    "num_registros": {
+      "type": "integer",
+      "default": 0
     },
     "notas_admin": {
       "type": "string"
     },
-    "numero_nota": {
+    "motivo_rechazo": {
       "type": "string"
     },
-    "numero_secuencia": {
-      "type": "integer"
+    "validado_por": {
+      "type": "string"
+    },
+    "fecha_validacion": {
+      "type": "string",
+      "format": "date"
     },
     "obra_id": {
       "type": "string"
     },
     "obra_name": {
       "type": "string"
-    },
-    "obra_tipo": {
-      "enum": [
-        "obra",
-        "solar",
-        "manual"
-      ],
-      "type": "string"
-    },
-    "ocr_raw": {
-      "type": "string"
-    },
-    "ocr_status": {
-      "default": "pendiente",
-      "enum": [
-        "pendiente",
-        "procesado",
-        "error"
-      ],
-      "type": "string"
-    },
-    "operario_id": {
-      "type": "string"
-    },
-    "operario_name": {
-      "type": "string"
-    },
-    "validado_por": {
-      "type": "string"
     }
   },
   "required": [
     "operario_id",
-    "categoria",
-    "importe"
+    "operario_name",
+    "periodo_mes"
   ],
   "rls": {
     "create": {
@@ -138,6 +84,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
           }
         },
         {
@@ -164,7 +115,7 @@
         },
         {
           "user_condition": {
-            "role": "director_comercial"
+            "role": "gerencia"
           }
         },
         {
@@ -178,34 +129,16 @@
               "created_by": "{{user.email}}"
             },
             {
-              "data.estado": {
-                "$nin": [
-                  "cerrada"
-                ]
-              }
+              "data.estado": "abierta"
             }
           ]
         }
       ]
     },
     "delete": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "$and": [
-            {
-              "created_by": "{{user.email}}"
-            },
-            {
-              "data.estado": "borrador"
-            }
-          ]
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     }
   }
 }

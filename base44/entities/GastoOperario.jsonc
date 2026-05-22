@@ -4,21 +4,22 @@
   "properties": {
     "nota_id": {
       "type": "string",
-      "description": "ID de la nota de gastos a la que pertenece"
+      "description": "ID de la NotaGasto a la que pertenece"
+    },
+    "numero_registro": {
+      "type": "string",
+      "description": "Autonum\u00e9rico dentro de la nota: R-001, R-002..."
     },
     "operario_id": {
-      "type": "string",
-      "description": "ID del operario"
+      "type": "string"
     },
     "operario_name": {
-      "type": "string",
-      "description": "Nombre del operario"
+      "type": "string"
     },
     "date": {
       "type": "string",
       "format": "date",
-      "description": "Fecha del gasto",
-      "minimum": "2024-01-01"
+      "description": "Fecha del gasto"
     },
     "categoria": {
       "type": "string",
@@ -26,38 +27,33 @@
         "combustible",
         "comida",
         "material",
-        "varios",
         "peaje",
-        "parking"
-      ],
-      "description": "Categor\u00eda del gasto"
+        "parking",
+        "varios"
+      ]
     },
     "importe": {
       "type": "number",
-      "description": "Importe (\u20ac)",
-      "minimum": 0.01,
-      "maximum": 5000
+      "minimum": 0.01
     },
     "descripcion": {
-      "type": "string",
-      "description": "Descripci\u00f3n / concepto del gasto"
+      "type": "string"
     },
     "proveedor": {
-      "type": "string",
-      "description": "Proveedor / establecimiento"
+      "type": "string"
     },
     "ticket_url": {
-      "type": "string",
-      "description": "URL foto ticket/factura"
+      "type": "string"
+    },
+    "ticket_thumbnail_url": {
+      "type": "string"
     },
     "ticket_requerido": {
       "type": "boolean",
-      "default": true,
-      "description": "Indica si esta categor\u00eda requiere ticket obligatorio"
+      "default": true
     },
     "ocr_raw": {
-      "type": "string",
-      "description": "Texto extra\u00eddo por OCR del ticket"
+      "type": "string"
     },
     "ocr_status": {
       "type": "string",
@@ -67,16 +63,17 @@
         "validado",
         "error"
       ],
-      "default": "pendiente",
-      "description": "Estado del procesamiento OCR"
+      "default": "pendiente"
     },
     "work_order_id": {
-      "type": "string",
-      "description": "Parte de trabajo asociado (opcional)"
+      "type": "string"
     },
     "project": {
       "type": "string",
-      "description": "Obra (opcional)"
+      "description": "Obra vinculada (nombre)"
+    },
+    "obra_id": {
+      "type": "string"
     },
     "estado_aprobacion": {
       "type": "string",
@@ -85,21 +82,25 @@
         "aprobado",
         "rechazado"
       ],
-      "default": "pendiente",
-      "description": "Estado de aprobaci\u00f3n del gasto"
+      "default": "pendiente"
     },
     "aprobado_por": {
-      "type": "string",
-      "description": "Email del usuario que aprob\u00f3 o rechaz\u00f3 el gasto"
+      "type": "string"
     },
     "fecha_aprobacion": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha en que se aprob\u00f3 o rechaz\u00f3"
+      "format": "date"
     },
     "motivo_rechazo": {
-      "type": "string",
-      "description": "Motivo del rechazo si estado_aprobacion = rechazado"
+      "type": "string"
+    },
+    "es_posible_duplicado": {
+      "type": "boolean",
+      "default": false
+    },
+    "duplicado_confirmado": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [
@@ -120,6 +121,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
           }
         },
         {
@@ -146,7 +152,7 @@
         },
         {
           "user_condition": {
-            "role": "director_comercial"
+            "role": "gerencia"
           }
         },
         {
