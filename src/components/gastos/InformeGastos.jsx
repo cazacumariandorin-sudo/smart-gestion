@@ -91,7 +91,7 @@ export default function InformeGastos({ operario, notas = [], isAdmin }) {
 
     const ws = XLSX.utils.json_to_sheet(datos);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Notas de Gastos');
+    XLSX.utils.book_append_sheet(wb, ws, 'Registros de Gasto');
 
     // Hoja resumen
     const resumen = [
@@ -141,13 +141,13 @@ export default function InformeGastos({ operario, notas = [], isAdmin }) {
           <Card key={t.cat} className="p-3">
             <p className="text-xs text-muted-foreground capitalize">{t.cat}</p>
             <p className="font-bold text-base">{t.total.toFixed(2)} €</p>
-            <p className="text-xs text-muted-foreground">{t.count} nota{t.count !== 1 ? 's' : ''}</p>
+            <p className="text-xs text-muted-foreground">{t.count} reg.</p>
           </Card>
         ))}
         <Card className="p-3 border-primary/30 bg-primary/5">
           <p className="text-xs font-semibold text-primary">TOTAL {label}</p>
           <p className="font-bold text-xl text-primary">{totalGeneral.toFixed(2)} €</p>
-          <p className="text-xs text-muted-foreground">{notasFiltradas.length} notas</p>
+          <p className="text-xs text-muted-foreground">{notasFiltradas.length} registros</p>
         </Card>
       </div>
     </div>

@@ -161,7 +161,7 @@ const ALL_MODULES = [
   },
   {
     key: 'notas-gastos',
-    label: 'Notas de Gastos',
+    label: 'Registros de Gasto',
     path: '/notas-gastos',
     icon: Receipt,
     bg: 'bg-rose-50 dark:bg-rose-950/30',
@@ -170,8 +170,8 @@ const ALL_MODULES = [
     emoji: '🧾',
     image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&q=80',
     shortcuts: [
-      { label: 'Ver notas', path: '/notas-gastos', icon: Eye },
-      { label: 'Nueva nota', path: '/notas-gastos', icon: Plus },
+      { label: 'Ver registros', path: '/notas-gastos', icon: Eye },
+      { label: 'Nuevo registro', path: '/notas-gastos', icon: Plus },
     ],
   },
   {

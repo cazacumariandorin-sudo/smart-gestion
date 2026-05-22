@@ -259,7 +259,7 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>¿Eliminar registro?</AlertDialogTitle>
-                      <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                        <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>

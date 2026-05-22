@@ -1,230 +1,202 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+/**
+ * TicketCapture — paso 1 del flujo de creación de registro de gasto.
+ * Detecta si es móvil/tablet y ofrece opciones adaptadas.
+ * En móvil: "Hacer foto" (cámara directa) y "Subir desde galería".
+ * En escritorio: "Capturar con webcam" (getUserMedia) y "Subir archivo".
+ * Tras captura/subida, llama a onDone({ file_url, archivo, ocrDatos }).
+ */
+import { useState, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Camera, Upload, X, RotateCcw, Image, Loader2, CheckCircle2, AlertCircle, Aperture } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Camera, Upload, Image, SkipForward, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 
-const isMobile = () => 'ontouchstart' in window || /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+const isMobile = () => 'ontouchstart' in window || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
-/**
- * TicketCapture
- * Props:
- *   onCapturado(archivo, previewUrl, datosOcr) — llamado cuando imagen lista (con o sin OCR)
- *   onSaltar() — usuario quiere continuar sin imagen
- */
-export default function TicketCapture({ onCapturado, onSaltar }) {
-  const [modo, setModo] = useState(null); // null | 'webcam' | 'procesando'
-  const [preview, setPreview] = useState(null);
-  const [estado, setEstado] = useState('idle'); // idle | uploading | ocr | ok | error
+export default function TicketCapture({ onDone, onSkip }) {
+  const [estado, setEstado] = useState('idle'); // idle | uploading | ocr | ok | error | webcam
   const [mensaje, setMensaje] = useState('');
-  const [streamActivo, setStreamActivo] = useState(false);
-
-  const inputRefFoto = useRef(null);
-  const inputRefGaleria = useRef(null);
+  const [preview, setPreview] = useState(null);
+  const [stream, setStream] = useState(null);
   const videoRef = useRef(null);
-  const streamRef = useRef(null);
   const canvasRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
-  const mobile = isMobile();
-
-  // Limpiar stream al desmontar
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
-      }
-    };
-  }, []);
-
-  const iniciarWebcam = async () => {
-    setModo('webcam');
+  const procesarArchivo = useCallback(async (file) => {
+    setEstado('uploading');
+    setMensaje('Subiendo ticket...');
+    setPreview(URL.createObjectURL(file));
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setStreamActivo(true);
-      }
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const archivo = { url: file_url, nombre: file.name, tipo: file.type, fecha_subida: new Date().toISOString() };
+
+      setEstado('ocr');
+      setMensaje('Extrayendo datos con IA...');
+      let ocrDatos = {};
+      try {
+        const res = await base44.functions.invoke('procesarOcrNota', { file_url, file_tipo: file.type });
+        if (res.data?.success && res.data?.datos) ocrDatos = res.data.datos;
+      } catch { /* OCR no disponible — continuar sin datos */ }
+
+      setEstado('ok');
+      setMensaje('Imagen procesada');
+      onDone({ file_url, archivo, ocrDatos });
+    } catch (e) {
+      setEstado('error');
+      setMensaje('Error al subir: ' + e.message);
+    }
+  }, [onDone]);
+
+  // ── WEBCAM ──
+  const startWebcam = async () => {
+    setEstado('webcam');
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      setStream(s);
+      if (videoRef.current) videoRef.current.srcObject = s;
     } catch {
       setEstado('error');
       setMensaje('No se pudo acceder a la cámara');
-      setModo(null);
     }
   };
 
-  const capturarFotoWebcam = () => {
+  const captureFrame = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
+    stream?.getTracks().forEach(t => t.stop());
+    setStream(null);
     canvas.toBlob(blob => {
-      if (!blob) return;
-      const file = new File([blob], `ticket_${Date.now()}.jpg`, { type: 'image/jpeg' });
-      const url = URL.createObjectURL(blob);
-      // Parar stream
-      streamRef.current?.getTracks().forEach(t => t.stop());
-      setStreamActivo(false);
-      setModo(null);
-      procesarArchivo(file, url);
-    }, 'image/jpeg', 0.9);
+      if (blob) procesarArchivo(new File([blob], 'webcam-capture.jpg', { type: 'image/jpeg' }));
+    }, 'image/jpeg', 0.92);
   };
 
-  const procesarArchivo = async (file, previewUrl) => {
-    const url = previewUrl || URL.createObjectURL(file);
-    setPreview(url);
-    setEstado('uploading');
-    setMensaje('Subiendo imagen...');
-
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-
-      setEstado('ocr');
-      setMensaje('Extrayendo datos con IA...');
-
-      let datosOcr = null;
-      try {
-        const res = await base44.functions.invoke('procesarOcrNota', { file_url, file_tipo: file.type });
-        if (res.data?.success && res.data?.datos) {
-          datosOcr = res.data.datos;
-        }
-      } catch {
-        // OCR falló pero archivo OK — continuar
-      }
-
-      const archivo = { url: file_url, nombre: file.name, tipo: file.type, fecha_subida: new Date().toISOString() };
-      setEstado('ok');
-      setMensaje(datosOcr ? `Datos extraídos (confianza: ${datosOcr.confianza || 'media'})` : 'Imagen subida (sin extracción automática)');
-      onCapturado(archivo, url, datosOcr);
-    } catch (e) {
-      setEstado('error');
-      setMensaje('Error al subir: ' + e.message);
-    }
+  const stopWebcam = () => {
+    stream?.getTracks().forEach(t => t.stop());
+    setStream(null);
+    setEstado('idle');
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) procesarArchivo(file);
-    e.target.value = '';
-  };
-
-  const reiniciar = () => {
-    setPreview(null);
+  const reset = () => {
     setEstado('idle');
     setMensaje('');
-    setModo(null);
-    setStreamActivo(false);
-    streamRef.current?.getTracks().forEach(t => t.stop());
+    setPreview(null);
+    stream?.getTracks().forEach(t => t.stop());
+    setStream(null);
   };
 
-  // Vista previa con resultado
-  if (preview) {
-    return (
-      <div className="space-y-4">
-        <div className="relative rounded-xl overflow-hidden bg-black aspect-video max-h-52 flex items-center justify-center">
-          <img src={preview} alt="Ticket" className="max-h-52 w-auto object-contain" />
-          <button
-            onClick={reiniciar}
-            className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        </div>
-        {estado === 'uploading' || estado === 'ocr' ? (
-          <div className="flex items-center gap-2 text-sm text-primary">
-            <Loader2 className="w-4 h-4 animate-spin" />{mensaje}
-          </div>
-        ) : estado === 'ok' ? (
-          <div className="flex items-center gap-2 text-sm text-green-700">
-            <CheckCircle2 className="w-4 h-4" />{mensaje}
-          </div>
-        ) : estado === 'error' ? (
-          <div className="flex items-center gap-2 text-sm text-red-600">
-            <AlertCircle className="w-4 h-4" />{mensaje}
-          </div>
-        ) : null}
-      </div>
-    );
-  }
+  const mobile = isMobile();
 
-  // Modo webcam
-  if (modo === 'webcam') {
+  // ── WEBCAM VIEW ──
+  if (estado === 'webcam') {
     return (
       <div className="space-y-3">
-        <div className="relative rounded-xl overflow-hidden bg-black aspect-video">
-          <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-          <canvas ref={canvasRef} className="hidden" />
-          {!streamActivo && (
-            <div className="absolute inset-0 flex items-center justify-center text-white">
-              <Loader2 className="w-6 h-6 animate-spin" />
-            </div>
-          )}
-        </div>
+        <video ref={videoRef} autoPlay playsInline className="w-full rounded-xl border bg-black aspect-video object-cover" />
+        <canvas ref={canvasRef} className="hidden" />
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => { streamRef.current?.getTracks().forEach(t => t.stop()); setModo(null); setStreamActivo(false); }} className="flex-1">
-            <X className="w-4 h-4 mr-1.5" /> Cancelar
+          <Button onClick={captureFrame} className="flex-1 gap-2">
+            <Camera className="w-4 h-4" /> Capturar foto
           </Button>
-          <Button onClick={capturarFotoWebcam} disabled={!streamActivo} className="flex-1 gap-2">
-            <Aperture className="w-4 h-4" /> Capturar foto
-          </Button>
+          <Button variant="outline" onClick={stopWebcam}>Cancelar</Button>
         </div>
       </div>
     );
   }
 
-  // Pantalla de selección inicial
+  // ── PROCESANDO ──
+  if (estado === 'uploading' || estado === 'ocr') {
+    return (
+      <div className="flex flex-col items-center gap-3 py-8">
+        {preview && <img src={preview} alt="ticket" className="w-32 h-32 object-cover rounded-xl border shadow" />}
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <p className="text-sm font-medium text-primary">{mensaje}</p>
+      </div>
+    );
+  }
+
+  // ── OK ──
+  if (estado === 'ok') {
+    return (
+      <div className="flex flex-col items-center gap-3 py-4">
+        {preview && <img src={preview} alt="ticket" className="w-32 h-32 object-cover rounded-xl border shadow" />}
+        <div className="flex items-center gap-2 text-green-700">
+          <CheckCircle2 className="w-5 h-5" />
+          <span className="text-sm font-medium">{mensaje}</span>
+        </div>
+        <Button variant="outline" size="sm" onClick={reset} className="gap-1.5">
+          <RefreshCw className="w-3.5 h-3.5" /> Repetir captura
+        </Button>
+      </div>
+    );
+  }
+
+  // ── ERROR ──
+  if (estado === 'error') {
+    return (
+      <div className="flex flex-col items-center gap-3 py-4">
+        <AlertCircle className="w-8 h-8 text-red-500" />
+        <p className="text-sm text-red-600">{mensaje}</p>
+        <Button variant="outline" size="sm" onClick={reset}>Reintentar</Button>
+      </div>
+    );
+  }
+
+  // ── IDLE ──
   return (
     <div className="space-y-3">
-      <p className="text-sm font-semibold text-center">📷 Añadir imagen del ticket</p>
-      <p className="text-xs text-muted-foreground text-center">Los datos se extraerán automáticamente</p>
-
-      {/* Inputs ocultos */}
-      <input ref={inputRefFoto} type="file" className="hidden" accept="image/*" capture="environment" onChange={handleFileChange} />
-      <input ref={inputRefGaleria} type="file" className="hidden" accept="image/*,.pdf" onChange={handleFileChange} />
+      <p className="text-sm font-semibold text-center text-muted-foreground">Captura el ticket o factura</p>
 
       {mobile ? (
         <div className="grid grid-cols-2 gap-3">
+          {/* Cámara directa */}
           <button
-            onClick={() => inputRefFoto.current?.click()}
-            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/5 transition-all"
+            onClick={() => cameraInputRef.current?.click()}
+            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors"
           >
             <Camera className="w-8 h-8 text-primary" />
-            <span className="text-sm font-medium">Hacer foto</span>
-            <span className="text-xs text-muted-foreground">Cámara directa</span>
+            <span className="text-xs font-semibold text-primary">Hacer foto</span>
           </button>
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) procesarArchivo(f); e.target.value = ''; }} />
+
+          {/* Galería */}
           <button
-            onClick={() => inputRefGaleria.current?.click()}
-            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-accent/30 transition-colors"
           >
             <Image className="w-8 h-8 text-muted-foreground" />
-            <span className="text-sm font-medium">Desde galería</span>
-            <span className="text-xs text-muted-foreground">Subir imagen</span>
+            <span className="text-xs font-semibold text-muted-foreground">Galería</span>
           </button>
+          <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) procesarArchivo(f); e.target.value = ''; }} />
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
+          {/* Webcam */}
           <button
-            onClick={iniciarWebcam}
-            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/5 transition-all"
+            onClick={startWebcam}
+            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors"
           >
             <Camera className="w-8 h-8 text-primary" />
-            <span className="text-sm font-medium">Webcam</span>
-            <span className="text-xs text-muted-foreground">Capturar en vivo</span>
+            <span className="text-xs font-semibold text-primary">Capturar con webcam</span>
           </button>
+          <canvas ref={canvasRef} className="hidden" />
+
+          {/* Subir archivo */}
           <button
-            onClick={() => inputRefGaleria.current?.click()}
-            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-accent/30 transition-colors"
           >
             <Upload className="w-8 h-8 text-muted-foreground" />
-            <span className="text-sm font-medium">Subir archivo</span>
-            <span className="text-xs text-muted-foreground">Imagen o PDF</span>
+            <span className="text-xs font-semibold text-muted-foreground">Subir archivo</span>
           </button>
+          <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) procesarArchivo(f); e.target.value = ''; }} />
         </div>
       )}
 
-      <Button variant="ghost" size="sm" onClick={onSaltar} className="w-full text-muted-foreground">
-        Saltar — continuar sin imagen
+      <Button variant="ghost" size="sm" onClick={onSkip} className="w-full gap-1.5 text-muted-foreground">
+        <SkipForward className="w-3.5 h-3.5" /> Saltar — rellenar manualmente
       </Button>
     </div>
   );

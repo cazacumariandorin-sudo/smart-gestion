@@ -88,7 +88,7 @@ export default function Sidebar() {
   const operariosItems = [
   { label: 'Operarios', path: '/operarios', icon: Users, module: 'operarios' },
   { label: 'Documentación', path: '/documentacion-operarios', icon: FileImage, module: 'operarios' },
-  { label: 'Notas de Gastos', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
+  { label: 'Registros de Gasto', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
   { label: 'Vacaciones', path: '/calendario-vacaciones', icon: CalendarDays, module: 'calendario-vacaciones' },
   { label: 'Control Horario', path: '/control-horario', icon: Clock, module: 'control-horario' }].
   filter((i) => canAccess(i.module));
@@ -113,7 +113,7 @@ export default function Sidebar() {
   { label: 'Usuarios Demo', path: '/demo-users', icon: FlaskConical, module: 'users' },
   { label: 'Datos Sensibles', path: '/datos-sensibles', icon: Settings, module: 'users' },
   { label: 'Inventario', path: '/inventario', icon: Package, module: 'users' },
-  { label: 'Vehículos', path: '/vehiculos', icon: Car, module: 'vehiculos' },
+  { label: 'Flota', path: '/flota', icon: Car, module: 'flota' },
   { label: 'Informe Mensual', path: '/reports', icon: BarChart3, module: 'reports' }].
   filter((i) => canAccess(i.module));
 

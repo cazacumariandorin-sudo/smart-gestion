@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import ObraSelector from './ObraSelector';
 import TicketCapture from './TicketCapture';
-import { Loader2, AlertTriangle, RotateCcw, UserCheck, FileCheck } from 'lucide-react';
+import { Loader2, AlertTriangle, FileCheck, UserCheck, Image, RefreshCw } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -29,16 +29,38 @@ const defaultForm = {
   notas: '',
 };
 
+/** Genera un número de nota en el frontend: NOT-YYYY-XX-MM */
+function generarNumeroNota() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const sec = String(Math.floor(Math.random() * 900) + 100); // 3 dígitos aleatorios como secuencia temporal
+  return { numero_nota: `REG-${year}-${sec}-${mm}`, numero_secuencia: parseInt(sec) };
+}
+
 export default function NotaGastoForm({ open, onClose, onCreated, operario, isAdmin = false, operarios = [] }) {
   const [paso, setPaso] = useState('captura'); // captura | formulario
   const [form, setForm] = useState(defaultForm);
-  const [archivo, setArchivo] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [archivos, setArchivos] = useState([]);
   const [ocrRaw, setOcrRaw] = useState('');
+  const [ticketPreview, setTicketPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showDupAlert, setShowDupAlert] = useState(false);
   const [posibleDup, setPosibleDup] = useState(null);
   const [operarioSeleccionado, setOperarioSeleccionado] = useState(null);
+
+  // Reset al abrir/cerrar
+  useEffect(() => {
+    if (open) {
+      setPaso('captura');
+      setForm(defaultForm);
+      setArchivos([]);
+      setOcrRaw('');
+      setTicketPreview(null);
+      setPosibleDup(null);
+      setOperarioSeleccionado(null);
+    }
+  }, [open]);
 
   const operarioEfectivo = (isAdmin && operarioSeleccionado)
     ? operarios.find(op => op.id === operarioSeleccionado) || operario
@@ -52,28 +74,16 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  // Callback desde TicketCapture
-  const handleCapturado = (archivoObj, urlPreview, datosOcr) => {
-    setArchivo(archivoObj);
-    setPreviewUrl(urlPreview);
-    if (datosOcr) {
-      setForm(f => ({
-        ...f,
-        concepto: datosOcr.concepto || f.concepto,
-        importe: datosOcr.importe ? String(datosOcr.importe) : f.importe,
-        nif_comercio: datosOcr.nif_comercio || f.nif_comercio,
-        nombre_comercio: datosOcr.nombre_comercio || f.nombre_comercio,
-        fecha_documento: datosOcr.fecha_documento || f.fecha_documento,
-        categoria: datosOcr.categoria_sugerida || f.categoria,
-      }));
-      if (datosOcr.ocr_raw) setOcrRaw(datosOcr.ocr_raw);
-    }
-    setPaso('formulario');
-  };
-
-  const handleSaltar = () => {
-    setArchivo(null);
-    setPreviewUrl(null);
+  const handleTicketDone = ({ file_url, archivo, ocrDatos }) => {
+    setArchivos([archivo]);
+    if (ocrDatos.ocr_raw) setOcrRaw(ocrDatos.ocr_raw);
+    if (ocrDatos.concepto) setField('concepto', ocrDatos.concepto);
+    if (ocrDatos.importe) setField('importe', String(ocrDatos.importe));
+    if (ocrDatos.nif_comercio) setField('nif_comercio', ocrDatos.nif_comercio);
+    if (ocrDatos.nombre_comercio) setField('nombre_comercio', ocrDatos.nombre_comercio);
+    if (ocrDatos.fecha_documento) setField('fecha_documento', ocrDatos.fecha_documento);
+    if (ocrDatos.categoria_sugerida) setField('categoria', ocrDatos.categoria_sugerida);
+    setTicketPreview(file_url);
     setPaso('formulario');
   };
 
@@ -87,53 +97,53 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     ) || null;
   };
 
-  const doCreate = async () => {
+  const handleSubmit = async () => {
     if (!operarioEfectivo?.id) {
-      toast.error('No se encontró tu perfil de operario. Contacta con administración.');
+      toast.error('No se pudo identificar al operario. Asegúrate de tener un perfil vinculado.');
+      return;
+    }
+    if (!form.categoria || !form.importe) {
+      toast.error('Categoría e importe son obligatorios');
+      return;
+    }
+
+    const dup = checkDuplicado();
+    if (dup && !posibleDup) {
+      setPosibleDup(dup);
+      setShowDupAlert(true);
       return;
     }
 
     setLoading(true);
     try {
+      const { numero_nota, numero_secuencia } = generarNumeroNota();
       const hoy = format(new Date(), 'yyyy-MM-dd');
-
-      // Generar número de referencia localmente si la función no está disponible
-      let numero_nota = `Reg-${format(new Date(), 'yyyy')}-${Date.now().toString().slice(-6)}`;
-      let numero_secuencia = null;
-      try {
-        const resNum = await base44.functions.invoke('generarNumeroNota', {});
-        numero_nota = resNum.data.numero_nota;
-        numero_secuencia = resNum.data.numero_secuencia;
-      } catch {
-        // función no disponible (plan sin backend) — usar referencia local
-      }
 
       await base44.entities.NotaGasto.create({
         numero_nota,
         numero_secuencia,
         operario_id: operarioEfectivo.id,
-        operario_name: operarioEfectivo.name || operarioEfectivo.full_name || '',
+        operario_name: operarioEfectivo.name || operarioEfectivo.full_name,
         categoria: form.categoria,
-        concepto: form.concepto || '',
+        concepto: form.concepto,
         importe: parseFloat(form.importe),
-        nif_comercio: form.nif_comercio || '',
-        nombre_comercio: form.nombre_comercio || '',
+        nif_comercio: form.nif_comercio,
+        nombre_comercio: form.nombre_comercio,
         fecha_documento: form.fecha_documento || hoy,
         fecha_creacion_real: hoy,
         obra_id: form.obra_id || null,
         obra_name: form.obra_name || null,
         obra_tipo: form.obra_tipo || null,
         estado: 'pendiente',
-        archivos: archivo ? [archivo] : [],
-        ocr_raw: ocrRaw || '',
+        archivos,
+        ocr_raw: ocrRaw,
         ocr_status: ocrRaw ? 'procesado' : 'pendiente',
         es_gasto_tardio: false,
-        es_posible_duplicado: !!posibleDup,
+        es_posible_duplicado: !!dup,
         duplicado_confirmado: !!posibleDup,
       });
 
       toast.success(`Registro ${numero_nota} creado`);
-      resetForm();
       onCreated?.();
       onClose();
     } catch (e) {
@@ -143,164 +153,141 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     }
   };
 
-  const handleSubmit = async () => {
-    if (!form.categoria || !form.importe) {
-      toast.error('Categoría e importe son obligatorios');
-      return;
-    }
-    const dup = checkDuplicado();
-    if (dup && !posibleDup) {
-      setPosibleDup(dup);
-      setShowDupAlert(true);
-      return;
-    }
-    await doCreate();
-  };
-
-  const resetForm = () => {
-    setForm(defaultForm);
-    setArchivo(null);
-    setPreviewUrl(null);
-    setOcrRaw('');
-    setPosibleDup(null);
-    setOperarioSeleccionado(null);
-    setPaso('captura');
-  };
-
-  const handleClose = () => {
-    resetForm();
-    onClose();
-  };
-
   return (
     <>
-      <Dialog open={open} onOpenChange={handleClose}>
+      <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {paso === 'captura' ? '📷 Nuevo Registro de Gasto' : '✏️ Datos del Registro'}
+              {paso === 'captura' ? 'Nuevo Registro de Gasto — Ticket' : 'Nuevo Registro de Gasto'}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            {/* PASO 1: Captura de ticket */}
-            {paso === 'captura' && (
-              <TicketCapture
-                onCapturado={handleCapturado}
-                onSaltar={handleSaltar}
-              />
-            )}
+          {/* PASO 1: CAPTURA */}
+          {paso === 'captura' && (
+            <TicketCapture
+              onDone={handleTicketDone}
+              onSkip={() => setPaso('formulario')}
+            />
+          )}
 
-            {/* PASO 2: Formulario */}
-            {paso === 'formulario' && (
-              <>
-                {/* Selector de operario — solo para admins */}
-                {isAdmin && operarios.length > 0 && (
-                  <div className="space-y-1.5 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <Label className="text-xs flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
-                      <UserCheck className="w-3.5 h-3.5" /> Asignar a operario
-                    </Label>
-                    <MobileSelect
-                      value={operarioSeleccionado || ''}
-                      onValueChange={v => setOperarioSeleccionado(v || null)}
-                      placeholder={`${operario?.name || 'Operario propio'} (por defecto)`}
-                    >
-                      {operarios.filter(op => op.active !== false).map(op => (
-                        <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
-                      ))}
-                    </MobileSelect>
-                    {operarioSeleccionado && (
-                      <p className="text-xs text-blue-600">
-                        ✓ Se creará en nombre de: <strong>{operarioEfectivo?.name}</strong>
-                      </p>
-                    )}
-                  </div>
-                )}
+          {/* PASO 2: FORMULARIO */}
+          {paso === 'formulario' && (
+            <div className="space-y-4 py-2">
+              {/* Selector de operario — solo admins */}
+              {isAdmin && operarios.length > 0 && (
+                <div className="space-y-1.5 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <Label className="text-xs flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+                    <UserCheck className="w-3.5 h-3.5" /> Asignar a operario
+                  </Label>
+                  <MobileSelect
+                    value={operarioSeleccionado || ''}
+                    onValueChange={v => setOperarioSeleccionado(v || null)}
+                    placeholder={`${operario?.name || 'Operario propio'} (por defecto)`}
+                  >
+                    {operarios.filter(op => op.active !== false).map(op => (
+                      <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
+                    ))}
+                  </MobileSelect>
+                  {operarioSeleccionado && (
+                    <p className="text-xs text-blue-600">✓ En nombre de: <strong>{operarioEfectivo?.name}</strong></p>
+                  )}
+                </div>
+              )}
 
-                {/* Thumbnail del ticket + opción de repetir */}
-                {previewUrl ? (
-                  <div className="flex items-center gap-3 p-2 bg-accent/30 rounded-lg border">
-                    <img src={previewUrl} alt="Ticket" className="h-14 w-14 object-cover rounded-md border" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{archivo?.nombre || 'Imagen capturada'}</p>
-                      <p className="text-xs text-green-600 flex items-center gap-1"><FileCheck className="w-3 h-3" /> Subido correctamente</p>
-                    </div>
-                    <Button size="sm" variant="ghost" onClick={() => setPaso('captura')} className="shrink-0 gap-1 text-xs">
-                      <RotateCcw className="w-3 h-3" /> Cambiar
-                    </Button>
+              {/* Thumbnail ticket + opción de repetir */}
+              {ticketPreview ? (
+                <div className="flex items-center gap-3 p-2 bg-muted/40 rounded-lg border">
+                  <img src={ticketPreview} alt="ticket" className="w-14 h-14 object-cover rounded-lg border shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{archivos[0]?.nombre || 'Ticket'}</p>
+                    {ocrRaw && <p className="text-xs text-green-600">✓ Datos extraídos automáticamente</p>}
                   </div>
-                ) : (
-                  <Button variant="outline" size="sm" onClick={() => setPaso('captura')} className="w-full gap-2 text-muted-foreground">
-                    <RotateCcw className="w-4 h-4" /> Añadir imagen del ticket
+                  <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => setPaso('captura')}>
+                    <RefreshCw className="w-3.5 h-3.5" />
                   </Button>
-                )}
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" className="gap-1.5 w-full" onClick={() => setPaso('captura')}>
+                  <Image className="w-3.5 h-3.5" /> Añadir imagen del ticket
+                </Button>
+              )}
 
-                {/* Fecha del documento */}
+              {archivos.length > 1 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {archivos.slice(1).map((a, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 bg-accent text-accent-foreground text-xs px-2 py-1 rounded-full">
+                      <FileCheck className="w-3 h-3" /> {a.nombre}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Fecha documento */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Fecha del documento</Label>
+                <Input type="date" value={form.fecha_documento} onChange={e => setField('fecha_documento', e.target.value)} />
+              </div>
+
+              {/* Categoría + Importe */}
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Fecha del documento</Label>
-                  <Input type="date" value={form.fecha_documento} onChange={e => setField('fecha_documento', e.target.value)} />
+                  <Label className="text-xs">Categoría *</Label>
+                  <MobileSelect value={form.categoria} onValueChange={v => setField('categoria', v)} placeholder="Categoría">
+                    {CATEGORIAS.map(c => (
+                      <MobileSelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</MobileSelectItem>
+                    ))}
+                  </MobileSelect>
                 </div>
-
-                {/* Categoría e Importe */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Categoría *</Label>
-                    <MobileSelect value={form.categoria} onValueChange={v => setField('categoria', v)} placeholder="Categoría">
-                      {CATEGORIAS.map(c => (
-                        <MobileSelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</MobileSelectItem>
-                      ))}
-                    </MobileSelect>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Importe (€) *</Label>
-                    <Input type="number" step="0.01" placeholder="0.00" value={form.importe} onChange={e => setField('importe', e.target.value)} />
-                  </div>
-                </div>
-
-                {/* Nombre comercio y NIF */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Comercio / Proveedor</Label>
-                    <div className="flex gap-1">
-                      <Input placeholder="Nombre comercio" value={form.nombre_comercio} onChange={e => setField('nombre_comercio', e.target.value)} />
-                      <VoiceInputButton onResult={txt => setField('nombre_comercio', txt)} />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">NIF / CIF</Label>
-                    <Input placeholder="B12345678" value={form.nif_comercio} onChange={e => setField('nif_comercio', e.target.value)} />
-                  </div>
-                </div>
-
-                {/* Concepto */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Concepto / Descripción</Label>
+                  <Label className="text-xs">Importe (€) *</Label>
+                  <Input type="number" step="0.01" placeholder="0.00" value={form.importe} onChange={e => setField('importe', e.target.value)} />
+                </div>
+              </div>
+
+              {/* Comercio + NIF */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Comercio / Proveedor</Label>
                   <div className="flex gap-1">
-                    <Input placeholder="Descripción del gasto" value={form.concepto} onChange={e => setField('concepto', e.target.value)} />
-                    <VoiceInputButton onResult={txt => setField('concepto', txt)} />
+                    <Input placeholder="Nombre comercio" value={form.nombre_comercio} onChange={e => setField('nombre_comercio', e.target.value)} />
+                    <VoiceInputButton onResult={txt => setField('nombre_comercio', txt)} />
                   </div>
                 </div>
-
-                {/* Obra */}
-                <ObraSelector
-                  value={form.obra_id}
-                  obraName={form.obra_name}
-                  obraTipo={form.obra_tipo}
-                  onChange={({ obra_id, obra_name, obra_tipo }) => setForm(f => ({ ...f, obra_id, obra_name, obra_tipo }))}
-                />
-
-                {/* Notas */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Notas adicionales</Label>
-                  <Input placeholder="Observaciones..." value={form.notas} onChange={e => setField('notas', e.target.value)} />
+                  <Label className="text-xs">NIF / CIF</Label>
+                  <Input placeholder="B12345678" value={form.nif_comercio} onChange={e => setField('nif_comercio', e.target.value)} />
                 </div>
-              </>
-            )}
-          </div>
+              </div>
+
+              {/* Concepto */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Concepto / Descripción</Label>
+                <div className="flex gap-1">
+                  <Input placeholder="Descripción del gasto" value={form.concepto} onChange={e => setField('concepto', e.target.value)} />
+                  <VoiceInputButton onResult={txt => setField('concepto', txt)} />
+                </div>
+              </div>
+
+              {/* Obra */}
+              <ObraSelector
+                value={form.obra_id}
+                obraName={form.obra_name}
+                obraTipo={form.obra_tipo}
+                onChange={({ obra_id, obra_name, obra_tipo }) => setForm(f => ({ ...f, obra_id, obra_name, obra_tipo }))}
+              />
+
+              {/* Notas */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Notas adicionales</Label>
+                <Input placeholder="Observaciones..." value={form.notas} onChange={e => setField('notas', e.target.value)} />
+              </div>
+            </div>
+          )}
 
           {paso === 'formulario' && (
             <DialogFooter>
-              <Button variant="outline" onClick={handleClose}>Cancelar</Button>
+              <Button variant="outline" onClick={onClose}>Cancelar</Button>
               <Button onClick={handleSubmit} disabled={loading} className="gap-2">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Crear Registro
@@ -320,14 +307,12 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
             <AlertDialogDescription>
               Ya existe un registro con el mismo día, comercio e importe:<br />
               <strong>{posibleDup?.numero_nota}</strong> — {posibleDup?.concepto}<br />
-              ¿Confirmas que este gasto es diferente y no es un duplicado?
+              ¿Confirmas que este gasto es diferente?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setPosibleDup(null); setShowDupAlert(false); }}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setShowDupAlert(false); doCreate(); }}>
+            <AlertDialogCancel onClick={() => { setPosibleDup(null); setShowDupAlert(false); }}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setShowDupAlert(false); handleSubmit(); }}>
               Sí, es un gasto diferente
             </AlertDialogAction>
           </AlertDialogFooter>
