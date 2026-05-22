@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -29,6 +29,12 @@ const ROLE_LABELS = {
 export default function EditUserRoleDialog({ open, onOpenChange, user, onSuccess }) {
   const [newRole, setNewRole] = useState(user?.role || 'operario');
   const qc = useQueryClient();
+
+  useEffect(() => {
+    if (user) {
+      setNewRole(user.role || 'operario');
+    }
+  }, [user]);
 
   const updateMutation = useMutation({
     mutationFn: async () => {
