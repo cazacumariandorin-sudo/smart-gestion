@@ -67,7 +67,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     : operario;
 
   const createMutation = useOptimisticMutation(
-    (payload) => base44.entities.NotaGasto.create(payload),
+    (payload) => base44.entities.RegistroGasto.create(payload),
     'notas_gasto',
     (prev, payload) => [{ id: `optimistic-${Date.now()}`, ...payload }, ...prev],
     (data) => {
@@ -80,7 +80,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
 
   const { data: notasExistentes = [] } = useQuery({
     queryKey: ['notas_gasto_check', operarioEfectivo?.id],
-    queryFn: () => base44.entities.NotaGasto.filter({ operario_id: operarioEfectivo?.id }),
+    queryFn: () => base44.entities.RegistroGasto.filter({ operario_id: operarioEfectivo?.id }),
     enabled: !!operarioEfectivo?.id,
   });
 

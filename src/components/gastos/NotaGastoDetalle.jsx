@@ -34,7 +34,7 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
       const extra = estado === 'cerrada' || estado === 'validada'
         ? { validado_por: (await base44.auth.me()).email, fecha_validacion: new Date().toISOString().split('T')[0] }
         : {};
-      await base44.entities.NotaGasto.update(nota.id, { estado, ...extra });
+      await base44.entities.RegistroGasto.update(nota.id, { estado, ...extra });
       toast.success(`Registro ${estado}`);
       invalidar();
       onClose();
@@ -57,7 +57,7 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
           datos.numero_nota = `NOT-${parts[1]}-${xx}-${parts[3]}`;
         }
       }
-      await base44.entities.NotaGasto.update(nota.id, datos);
+      await base44.entities.RegistroGasto.update(nota.id, datos);
       toast.success('Registro actualizado');
       invalidar();
       setEditando(false);
@@ -71,7 +71,7 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
 
   const handleEliminar = async () => {
     try {
-      await base44.entities.NotaGasto.delete(nota.id);
+      await base44.entities.RegistroGasto.delete(nota.id);
       toast.success('Registro eliminado');
       invalidar();
       onClose();

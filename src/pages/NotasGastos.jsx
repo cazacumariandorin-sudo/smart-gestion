@@ -45,7 +45,7 @@ export default function NotasGastos() {
 
   const { data: notasRaw = [], isLoading } = useQuery({
     queryKey: ['notas_gasto'],
-    queryFn: () => base44.entities.NotaGasto.list('-created_date', 300),
+    queryFn: () => base44.entities.RegistroGasto.list('-created_date', 300),
   });
 
   // Operario actual: usa el nombre del operario vinculado si existe
