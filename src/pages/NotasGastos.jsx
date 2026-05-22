@@ -90,7 +90,7 @@ export default function NotasGastos() {
 
   const { data: notasRaw = [], isLoading } = useQuery({
     queryKey: ['notas_gasto'],
-    queryFn: () => base44.entities.RegistroGasto.list('-created_date', 300),
+    queryFn: () => base44.entities.RegistroGasto.list('-created_date', 1000),
   });
 
   const { data: obrasRaw = [] } = useQuery({
