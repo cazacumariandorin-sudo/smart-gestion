@@ -158,6 +158,8 @@ function AddUserTab({ users, onInvited }) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('operario');
   const [cargo, setCargo] = useState('');
+  const [acceso_hasta, setAccesoHasta] = useState('');
+  const [estado, setEstado] = useState('activo');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -175,18 +177,28 @@ function AddUserTab({ users, onInvited }) {
     setLoading(true);
     try {
       await base44.users.inviteUser(email, role);
-      // Si tiene cargo, intentar actualizar el usuario recién creado tras un pequeño delay
-      if (cargo) {
-        setTimeout(async () => {
-          const all = await base44.entities.User.list('full_name', 200);
-          const newUser = all.find(u => u.email === email);
-          if (newUser) await base44.entities.User.update(newUser.id, { cargo });
-        }, 2000);
-      }
-      toast.success(`Invitación enviada a ${email}`);
+      // Actualizar cargo, acceso_hasta y estado tras invitar
+      setTimeout(async () => {
+        const all = await base44.entities.User.list('full_name', 200);
+        const newUser = all.find(u => u.email === email);
+        if (newUser) {
+          const updates = {};
+          if (cargo) updates.cargo = cargo;
+          if (acceso_hasta) updates.acceso_hasta = acceso_hasta;
+          if (estado === 'pendiente') updates.acceso_hasta = ''; // sin fecha = pendiente
+          if (Object.keys(updates).length) await base44.entities.User.update(newUser.id, updates);
+        }
+      }, 2000);
+      toast.success(
+        estado === 'activo'
+          ? `Invitación enviada a ${email} — acceso activo al aceptar`
+          : `Invitación enviada a ${email} — acceso pendiente de validación`
+      );
       setEmail('');
       setRole('operario');
       setCargo('');
+      setAccesoHasta('');
+      setEstado('activo');
       onInvited();
     } catch {
       toast.error('Error al invitar usuario');
@@ -234,6 +246,32 @@ function AddUserTab({ users, onInvited }) {
           />
         </div>
       </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Estado inicial</Label>
+          <MobileSelect value={estado} onValueChange={setEstado} placeholder="Estado">
+            <MobileSelectItem value="activo">✅ Activo al aceptar</MobileSelectItem>
+            <MobileSelectItem value="pendiente">⏳ Pendiente de validación</MobileSelectItem>
+          </MobileSelect>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Acceso hasta (opcional)</Label>
+          <Input
+            type="date"
+            value={acceso_hasta}
+            onChange={e => setAccesoHasta(e.target.value)}
+            className="h-9 text-sm"
+          />
+        </div>
+      </div>
+
+      {estado === 'pendiente' && (
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          El usuario podrá registrarse pero su acceso quedará bloqueado hasta que un administrador le asigne una fecha de acceso válida.
+        </div>
+      )}
 
       <div className="p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground space-y-1">
         <p className="font-medium text-foreground">Permisos del rol seleccionado:</p>
