@@ -6,7 +6,7 @@ import { useMemo } from 'react';
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isSameMonth, isToday, parseISO, isWithinInterval,
-  getDay, format,
+  getDay, format, getWeek,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -68,25 +68,33 @@ export default function PrevisionCalendario({ previsiones, month, onDayClick }) 
           const today = isToday(day);
           const dow = getDay(day); // 0=Sun,6=Sat
           const isWeekend = dow === 0 || dow === 6;
+          const weekNum = getWeek(day, { weekStartsOn: 1 });
 
           return (
             <div
-              key={ds}
-              className={[
-                'min-h-[72px] p-1 cursor-pointer transition-colors flex flex-col gap-0.5',
-                inMonth ? (isWeekend ? 'bg-slate-50 dark:bg-slate-900/50' : 'bg-card') : 'bg-muted/30',
-                today ? 'ring-2 ring-inset ring-primary' : '',
-                items.length > 0 ? 'hover:bg-primary/5' : 'hover:bg-muted/60',
-              ].filter(Boolean).join(' ')}
-              onClick={() => onDayClick(day, items)}
-            >
-              {/* Day number */}
-              <div className={[
-                'text-[11px] font-semibold w-5 h-5 flex items-center justify-center rounded-full mb-0.5',
-                today ? 'bg-primary text-primary-foreground' : inMonth ? 'text-foreground' : 'text-muted-foreground/50',
-              ].join(' ')}>
-                {format(day, 'd')}
-              </div>
+               key={ds}
+               className={[
+                 'min-h-[72px] p-1 cursor-pointer transition-colors flex flex-col gap-0.5',
+                 inMonth ? (isWeekend ? 'bg-slate-50 dark:bg-slate-900/50' : 'bg-card') : 'bg-muted/30',
+                 today ? 'ring-2 ring-inset ring-primary' : '',
+                 items.length > 0 ? 'hover:bg-primary/5' : 'hover:bg-muted/60',
+               ].filter(Boolean).join(' ')}
+               onClick={() => onDayClick(day, items)}
+             >
+               {/* Day number + week number */}
+               <div className="flex items-center justify-between mb-0.5">
+                 <div className={[
+                   'text-[11px] font-semibold w-5 h-5 flex items-center justify-center rounded-full',
+                   today ? 'bg-primary text-primary-foreground' : inMonth ? 'text-foreground' : 'text-muted-foreground/50',
+                 ].join(' ')}>
+                   {format(day, 'd')}
+                 </div>
+                 {dow === 1 && (
+                   <span className="text-[9px] font-medium text-muted-foreground bg-muted/50 px-1 rounded">
+                     S{weekNum}
+                   </span>
+                 )}
+               </div>
 
               {/* Previsiones pills */}
               {items.length > 0 && items.length <= 3 && items.map((p, i) => (

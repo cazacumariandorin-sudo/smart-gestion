@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO, differenceInDays, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const statusCfg = {
@@ -240,7 +240,15 @@ export default function PrevisionObras() {
                               )}
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
-                              {p.fecha_inicio && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{format(parseISO(p.fecha_inicio), 'd MMM yyyy', { locale: es })}</span>}
+                              {p.fecha_inicio && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {format(parseISO(p.fecha_inicio), 'd MMM yyyy', { locale: es })}
+                                  <Badge variant="outline" className="text-[9px] ml-1 h-5">
+                                    S{getWeek(parseISO(p.fecha_inicio), { weekStartsOn: 1 })}
+                                  </Badge>
+                                </span>
+                              )}
                               {p.fecha_fin && <span>→ {format(parseISO(p.fecha_fin), 'd MMM yyyy', { locale: es })}</span>}
                               {dias && <span>({dias} días)</span>}
                               {(p.horas_totales_previstas || totalHorasPrev > 0) && (
