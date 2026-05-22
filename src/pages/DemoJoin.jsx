@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -8,13 +8,16 @@ import { FlaskConical, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { isPast } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function DemoJoin() {
   const urlParams = new URLSearchParams(window.location.search);
   const codigo = urlParams.get('codigo');
 
   const [email, setEmail] = useState('');
-  const [nombre, setNombre] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [accepted, setAccepted] = useState(false);
   const [done, setDone] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -30,11 +33,24 @@ export default function DemoJoin() {
   const joinMutation = useMutation({
     mutationFn: async () => {
       setErrorMsg('');
+      
+      // Validaciones
+      if (password.length < 8) {
+        throw new Error('La contraseña debe tener al menos 8 caracteres');
+      }
+      if (password !== confirmPassword) {
+        throw new Error('Las contraseñas no coinciden');
+      }
+      if (!accepted) {
+        throw new Error('Debes aceptar las condiciones de uso demo');
+      }
+      
       // Verificar email único
       const existingUsers = await base44.entities.User.filter({ email });
       if (existingUsers.length > 0) {
         throw new Error('Este email ya tiene una cuenta activa en la plataforma.');
       }
+      
       // Verificar email destino si aplica
       if (invitacion.email_destino && invitacion.email_destino !== email) {
         throw new Error('Esta invitación está reservada para otro email.');
@@ -45,6 +61,16 @@ export default function DemoJoin() {
       // Invitar usuario con rol demo
       await base44.users.inviteUser(email, 'usuario_demo');
 
+      // Actualizar usuario con datos demo
+      const users = await base44.entities.User.filter({ email });
+      if (users.length > 0) {
+        await base44.entities.User.update(users[0].id, {
+          tipo_cuenta: 'demo',
+          demo_expires_at: expiresAt,
+          invitado_por: invitacion.generada_por_email,
+        });
+      }
+
       // Marcar invitación como usada
       await base44.entities.InvitacionDemo.update(invitacion.id, {
         usada: true,
@@ -53,8 +79,16 @@ export default function DemoJoin() {
       });
 
       setDone(true);
+      toast.success('¡Cuenta demo creada! Redirigiendo al login...');
+      
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
     },
-    onError: (err) => setErrorMsg(err.message || 'Error al procesar la invitación'),
+    onError: (err) => {
+      console.error('Error al crear demo:', err);
+      setErrorMsg(err.message || 'Error al procesar la invitación');
+    },
   });
 
   if (!codigo) {
@@ -108,7 +142,9 @@ export default function DemoJoin() {
             Tu acceso estará disponible hasta el{' '}
             <strong>{format(new Date(invitacion.fecha_expiracion), 'd MMMM yyyy', { locale: es })}</strong>.
           </p>
-          <p className="text-xs text-muted-foreground">Tus datos son completamente independientes y no afectan a la plataforma real.</p>
+          <p className="text-xs text-muted-foreground">
+            Accede con tu email y contraseña para empezar a usar la versión demo.
+          </p>
         </div>
       </div>
     );
@@ -130,13 +166,47 @@ export default function DemoJoin() {
 
         <div className="space-y-3 p-4 rounded-xl border border-border bg-card">
           <div className="space-y-1.5">
-            <Label className="text-xs">Tu email</Label>
+            <Label className="text-xs">Email</Label>
             <Input
               type="email"
               placeholder="email@ejemplo.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
+              disabled={!!invitacion.email_destino}
             />
+          </div>
+          
+          <div className="space-y-1.5">
+            <Label className="text-xs">Contraseña</Label>
+            <Input
+              type="password"
+              placeholder="Mínimo 8 caracteres"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-1.5">
+            <Label className="text-xs">Repetir contraseña</Label>
+            <Input
+              type="password"
+              placeholder="Repite tu contraseña"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-start gap-2 pt-2">
+            <input
+              type="checkbox"
+              id="accept"
+              checked={accepted}
+              onChange={e => setAccepted(e.target.checked)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="accept" className="text-xs font-normal cursor-pointer">
+              Acepto que mis datos demo son independientes y se eliminarán al expirar el acceso
+            </Label>
           </div>
 
           {errorMsg && (
@@ -149,10 +219,10 @@ export default function DemoJoin() {
           <Button
             className="w-full gap-2"
             onClick={() => joinMutation.mutate()}
-            disabled={!email || joinMutation.isPending}
+            disabled={!email || !password || !accepted || joinMutation.isPending}
           >
             {joinMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
-            Activar acceso demo
+            Crear cuenta demo
           </Button>
         </div>
 
