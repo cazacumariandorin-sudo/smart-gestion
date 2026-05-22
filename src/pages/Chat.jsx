@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,8 @@ import { Send, Plus, MessageSquare, Users, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 
 export default function Chat() {
   const [selectedConvId, setSelectedConvId] = useState(null);
@@ -21,6 +23,12 @@ export default function Chat() {
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
+
+  const onRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
+    if (selectedConvId) queryClient.invalidateQueries({ queryKey: ['chat-messages', selectedConvId] });
+  }, [queryClient, selectedConvId]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
   const { data: conversations = [] } = useQuery({
     queryKey: ['chat-conversations'],
@@ -81,7 +89,8 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-background">
+    <div className="flex h-[calc(100vh-4rem)] bg-background relative">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       {/* Sidebar conversaciones */}
       <div className="w-72 border-r border-border flex flex-col bg-card shrink-0">
         <div className="p-4 border-b border-border flex items-center justify-between">

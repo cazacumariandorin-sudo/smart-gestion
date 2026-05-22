@@ -8,6 +8,7 @@ import { Image, Search, X, ZoomIn, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 
 const CATEGORIAS = ['parte_trabajo', 'obra', 'nota_gastos', 'presupuesto', 'averia'];
 const CAT_LABELS = {
@@ -83,14 +84,10 @@ export default function GaleriaFotos() {
           ))}
         </div>
         {operarios.length > 0 && (
-          <select
-            value={filterOperario}
-            onChange={e => setFilterOperario(e.target.value)}
-            className="h-10 px-3 rounded-md border border-input bg-background text-sm"
-          >
-            <option value="">Todos los operarios</option>
-            {operarios.map(op => <option key={op} value={op}>{op}</option>)}
-          </select>
+          <MobileSelect value={filterOperario} onValueChange={setFilterOperario} placeholder="Todos los operarios" triggerClassName="min-w-[160px]">
+            <MobileSelectItem value="">Todos los operarios</MobileSelectItem>
+            {operarios.map(op => <MobileSelectItem key={op} value={op}>{op}</MobileSelectItem>)}
+          </MobileSelect>
         )}
         {(filterCat || filterOperario || search) && (
           <Button variant="ghost" size="sm" onClick={() => { setFilterCat(''); setFilterOperario(''); setSearch(''); }}>

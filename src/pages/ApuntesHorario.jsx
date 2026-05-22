@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,10 @@ import { ClipboardList, Plus, Search, X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 
 const EMPTY_FORM = {
   operario_id: '',
@@ -53,19 +57,31 @@ export default function ApuntesHorario() {
     queryFn: () => base44.entities.Obra.list('name', 100),
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.ApunteHorario.create({
+  const onRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['apuntes-horario'] });
+  }, [queryClient]);
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
+
+  const createMutation = useOptimisticMutation(
+    (data) => base44.entities.ApunteHorario.create({
       ...data,
       cantidad: parseFloat(data.cantidad) || 0,
       precio_unitario: data.precio_unitario ? parseFloat(data.precio_unitario) : undefined,
       total: data.cantidad && data.precio_unitario ? parseFloat(data.cantidad) * parseFloat(data.precio_unitario) : undefined,
     }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['apuntes-horario'] });
-      setShowForm(false);
-      setForm(EMPTY_FORM);
-    },
-  });
+    'apuntes-horario',
+    (prev, data) => [
+      {
+        id: `optimistic-${Date.now()}`,
+        ...data,
+        cantidad: parseFloat(data.cantidad) || 0,
+        precio_unitario: data.precio_unitario ? parseFloat(data.precio_unitario) : undefined,
+        total: data.cantidad && data.precio_unitario ? parseFloat(data.cantidad) * parseFloat(data.precio_unitario) : undefined,
+      },
+      ...prev,
+    ],
+    () => { setShowForm(false); setForm(EMPTY_FORM); }
+  );
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.ApunteHorario.delete(id),
@@ -84,18 +100,19 @@ export default function ApuntesHorario() {
 
   const totalImporte = filtrados.reduce((sum, a) => sum + (a.total || 0), 0);
 
-  const handleOperarioChange = (e) => {
-    const op = operarios.find(o => o.id === e.target.value);
-    setForm(f => ({ ...f, operario_id: e.target.value, operario_name: op?.name || '' }));
+  const handleOperarioChange = (val) => {
+    const op = operarios.find(o => o.id === val);
+    setForm(f => ({ ...f, operario_id: val, operario_name: op?.name || '' }));
   };
 
-  const handleObraChange = (e) => {
-    const obra = obras.find(o => o.id === e.target.value);
-    setForm(f => ({ ...f, obra_id: e.target.value, obra_name: obra?.name || '' }));
+  const handleObraChange = (val) => {
+    const obra = obras.find(o => o.id === val);
+    setForm(f => ({ ...f, obra_id: val, obra_name: obra?.name || '' }));
   };
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <ClipboardList className="w-6 h-6 text-primary" />
@@ -115,11 +132,9 @@ export default function ApuntesHorario() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Operario *</label>
-                <select value={form.operario_id} onChange={handleOperarioChange}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
-                  <option value="">Seleccionar...</option>
-                  {operarios.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                </select>
+                <MobileSelect value={form.operario_id} onValueChange={handleOperarioChange} placeholder="Seleccionar...">
+                  {operarios.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Fecha *</label>
@@ -127,11 +142,10 @@ export default function ApuntesHorario() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Obra</label>
-                <select value={form.obra_id} onChange={handleObraChange}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
-                  <option value="">Sin obra</option>
-                  {obras.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                </select>
+                <MobileSelect value={form.obra_id} onValueChange={handleObraChange} placeholder="Sin obra">
+                  <MobileSelectItem value="">Sin obra</MobileSelectItem>
+                  {obras.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="sm:col-span-2">
                 <label className="text-xs text-muted-foreground mb-1 block">Concepto *</label>
@@ -178,18 +192,16 @@ export default function ApuntesHorario() {
           <Input placeholder="Buscar concepto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         {allOperarios.length > 0 && (
-          <select value={filterOperario} onChange={e => setFilterOperario(e.target.value)}
-            className="h-10 px-3 rounded-md border border-input bg-background text-sm">
-            <option value="">Todos los operarios</option>
-            {allOperarios.map(op => <option key={op} value={op}>{op}</option>)}
-          </select>
+          <MobileSelect value={filterOperario} onValueChange={setFilterOperario} placeholder="Todos los operarios" triggerClassName="min-w-[160px]">
+            <MobileSelectItem value="">Todos los operarios</MobileSelectItem>
+            {allOperarios.map(op => <MobileSelectItem key={op} value={op}>{op}</MobileSelectItem>)}
+          </MobileSelect>
         )}
         {allObras.length > 0 && (
-          <select value={filterObra} onChange={e => setFilterObra(e.target.value)}
-            className="h-10 px-3 rounded-md border border-input bg-background text-sm">
-            <option value="">Todas las obras</option>
-            {allObras.map(ob => <option key={ob} value={ob}>{ob}</option>)}
-          </select>
+          <MobileSelect value={filterObra} onValueChange={setFilterObra} placeholder="Todas las obras" triggerClassName="min-w-[140px]">
+            <MobileSelectItem value="">Todas las obras</MobileSelectItem>
+            {allObras.map(ob => <MobileSelectItem key={ob} value={ob}>{ob}</MobileSelectItem>)}
+          </MobileSelect>
         )}
         {(search || filterOperario || filterObra) && (
           <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setFilterOperario(''); setFilterObra(''); }}>

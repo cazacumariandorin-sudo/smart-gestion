@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,7 +45,6 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [archivos, setArchivos] = useState([]);
   const [ocrRaw, setOcrRaw] = useState('');
   const [ticketPreview, setTicketPreview] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [showDupAlert, setShowDupAlert] = useState(false);
   const [posibleDup, setPosibleDup] = useState(null);
   const [operarioSeleccionado, setOperarioSeleccionado] = useState(null);
@@ -65,6 +65,18 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const operarioEfectivo = (isAdmin && operarioSeleccionado)
     ? operarios.find(op => op.id === operarioSeleccionado) || operario
     : operario;
+
+  const createMutation = useOptimisticMutation(
+    (payload) => base44.entities.NotaGasto.create(payload),
+    'notas_gasto',
+    (prev, payload) => [{ id: `optimistic-${Date.now()}`, ...payload }, ...prev],
+    (data) => {
+      toast.success(`Registro ${data?.numero_nota || ''} creado`);
+      onCreated?.();
+      onClose();
+    },
+    (err) => toast.error('Error al crear registro: ' + err.message)
+  );
 
   const { data: notasExistentes = [] } = useQuery({
     queryKey: ['notas_gasto_check', operarioEfectivo?.id],
@@ -97,7 +109,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     ) || null;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!operarioEfectivo?.id) {
       toast.error('No se pudo identificar al operario. Asegúrate de tener un perfil vinculado.');
       return;
@@ -114,43 +126,32 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       return;
     }
 
-    setLoading(true);
-    try {
-      const { numero_nota, numero_secuencia } = generarNumeroNota();
-      const hoy = format(new Date(), 'yyyy-MM-dd');
+    const { numero_nota, numero_secuencia } = generarNumeroNota();
+    const hoy = format(new Date(), 'yyyy-MM-dd');
 
-      await base44.entities.NotaGasto.create({
-        numero_nota,
-        numero_secuencia,
-        operario_id: operarioEfectivo.id,
-        operario_name: operarioEfectivo.name || operarioEfectivo.full_name,
-        categoria: form.categoria,
-        concepto: form.concepto,
-        importe: parseFloat(form.importe),
-        nif_comercio: form.nif_comercio,
-        nombre_comercio: form.nombre_comercio,
-        fecha_documento: form.fecha_documento || hoy,
-        fecha_creacion_real: hoy,
-        obra_id: form.obra_id || null,
-        obra_name: form.obra_name || null,
-        obra_tipo: form.obra_tipo || null,
-        estado: 'pendiente',
-        archivos,
-        ocr_raw: ocrRaw,
-        ocr_status: ocrRaw ? 'procesado' : 'pendiente',
-        es_gasto_tardio: false,
-        es_posible_duplicado: !!dup,
-        duplicado_confirmado: !!posibleDup,
-      });
-
-      toast.success(`Registro ${numero_nota} creado`);
-      onCreated?.();
-      onClose();
-    } catch (e) {
-      toast.error('Error al crear registro: ' + e.message);
-    } finally {
-      setLoading(false);
-    }
+    createMutation.mutate({
+      numero_nota,
+      numero_secuencia,
+      operario_id: operarioEfectivo.id,
+      operario_name: operarioEfectivo.name || operarioEfectivo.full_name,
+      categoria: form.categoria,
+      concepto: form.concepto,
+      importe: parseFloat(form.importe),
+      nif_comercio: form.nif_comercio,
+      nombre_comercio: form.nombre_comercio,
+      fecha_documento: form.fecha_documento || hoy,
+      fecha_creacion_real: hoy,
+      obra_id: form.obra_id || null,
+      obra_name: form.obra_name || null,
+      obra_tipo: form.obra_tipo || null,
+      estado: 'pendiente',
+      archivos,
+      ocr_raw: ocrRaw,
+      ocr_status: ocrRaw ? 'procesado' : 'pendiente',
+      es_gasto_tardio: false,
+      es_posible_duplicado: !!dup,
+      duplicado_confirmado: !!posibleDup,
+    });
   };
 
   return (
@@ -288,8 +289,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
           {paso === 'formulario' && (
             <DialogFooter>
               <Button variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button onClick={handleSubmit} disabled={loading} className="gap-2">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              <Button onClick={handleSubmit} disabled={createMutation.isPending} className="gap-2">
+                {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Crear Registro
               </Button>
             </DialogFooter>
