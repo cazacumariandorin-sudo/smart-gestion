@@ -5,12 +5,25 @@ import { useUserRole } from '@/lib/useUserRole';
 import PageHeader from '@/components/layout/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { format, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Users, FlaskConical } from 'lucide-react';
+import { Users, FlaskConical, Plus } from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
-import AddUserTab from './AddUserTab';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
+import RealUsersModal from './RealUsersModal';
+import DemoInvitationsModal from './DemoInvitationsModal';
 
 const ROLES = {
   admin: { label: 'ADMIN', color: 'bg-red-500/10 text-red-600 border-red-200' },
@@ -20,7 +33,6 @@ const ROLES = {
   operario: { label: 'OPERARIO', color: 'bg-gray-500/10 text-gray-600 border-gray-200' },
   control_horario: { label: 'CONTROL', color: 'bg-orange-500/10 text-orange-600 border-orange-200' },
   cliente_obra: { label: 'CLIENTE', color: 'bg-pink-500/10 text-pink-600 border-pink-200' },
-  usuario_demo: { label: 'DEMO', color: 'bg-amber-500/10 text-amber-600 border-amber-200' },
 };
 
 function RoleBadge({ role }) {
@@ -32,13 +44,19 @@ function RoleBadge({ role }) {
   );
 }
 
-function UsersListTab({ users, isLoading, onRefresh }) {
-  const { user: authUser, isOwner } = useUserRole();
-  
-  const realUsers = users.filter(u => u.tipo_cuenta !== 'demo');
-  
+function RealUsersTab({ users, isLoading, onRefresh }) {
+  const realUsers = users.filter(u => u.tipo_cuenta !== 'demo' && u.role !== 'usuario_demo');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+          <Plus className="w-4 h-4" />
+          Añadir usuario real
+        </Button>
+      </div>
+
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3].map(i => (
@@ -98,15 +116,39 @@ function UsersListTab({ users, isLoading, onRefresh }) {
           </table>
         </div>
       )}
+
+      <RealUsersModal 
+        open={isModalOpen} 
+        onOpenChange={setIsModalOpen} 
+        users={users}
+        onSuccess={() => {
+          setIsModalOpen(false);
+          onRefresh();
+        }}
+      />
     </div>
   );
 }
 
-function DemoUsersListTab({ users, isLoading }) {
+function DemoUsersTab({ users, isLoading }) {
   const demoUsers = users.filter(u => u.tipo_cuenta === 'demo' || u.role === 'usuario_demo');
-  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const qc = useQueryClient();
+
+  const { data: invitaciones = [] } = useQuery({
+    queryKey: ['invitaciones-demo'],
+    queryFn: () => base44.entities.InvitacionDemo.list('-created_date', 100),
+  });
+
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setIsModalOpen(true)} variant="secondary" className="gap-2">
+          <Plus className="w-4 h-4" />
+          Generar invitación demo
+        </Button>
+      </div>
+
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3].map(i => (
@@ -160,6 +202,58 @@ function DemoUsersListTab({ users, isLoading }) {
           </table>
         </div>
       )}
+
+      {/* Subtabla: Invitaciones generadas */}
+      <div className="mt-6">
+        <h3 className="text-sm font-semibold mb-2">Invitaciones generadas</h3>
+        {invitaciones.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground text-sm border border-dashed border-border rounded-xl">
+            No hay invitaciones generadas
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/50 text-xs text-muted-foreground">
+                  <th className="text-left py-2 px-3 font-medium">Código</th>
+                  <th className="text-left py-2 px-3 font-medium">Email destino</th>
+                  <th className="text-left py-2 px-3 font-medium">Duración</th>
+                  <th className="text-left py-2 px-3 font-medium">Expira</th>
+                  <th className="text-left py-2 px-3 font-medium">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invitaciones.map(inv => {
+                  const expired = isPast(new Date(inv.fecha_expiracion));
+                  const isActive = inv.activa && !expired && !inv.usada;
+                  return (
+                    <tr key={inv.id} className="border-t border-border hover:bg-muted/30">
+                      <td className="py-2 px-3 font-mono text-xs">{inv.codigo?.slice(0, 18)}…</td>
+                      <td className="py-2 px-3 text-xs">{inv.email_destino || '—'}</td>
+                      <td className="py-2 px-3 text-xs">{inv.duracion_dias}d</td>
+                      <td className="py-2 px-3 text-xs">
+                        {format(new Date(inv.fecha_expiracion), 'd MMM yyyy', { locale: es })}
+                      </td>
+                      <td className="py-2 px-3">
+                        <Badge variant={isActive ? 'default' : 'secondary'} className="text-xs">
+                          {inv.usada ? 'Usada' : isActive ? 'Activa' : 'Expirada/Revocada'}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <DemoInvitationsModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        users={users}
+        onSuccess={() => qc.invalidateQueries({ queryKey: ['invitaciones-demo'] })}
+      />
     </div>
   );
 }
@@ -169,13 +263,12 @@ export default function UsersPage() {
   const { isAdmin, role, user: authUser } = useUserRole();
   const canView = isAdmin || role === 'gerencia';
   const isOwner = authUser?.email === 'cazacu.mariandorin@gmail.com';
-  const [tab, setTab] = useState('lista');
+  const [tab, setTab] = useState('reales');
 
   const onRefresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['users'] });
     qc.invalidateQueries({ queryKey: ['operarios'] });
   }, [qc]);
-  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users', isOwner],
@@ -189,6 +282,8 @@ export default function UsersPage() {
     },
     enabled: canView && authUser !== undefined,
   });
+
+  const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
   if (!canView) {
     return (
@@ -211,19 +306,17 @@ export default function UsersPage() {
       <div className="p-4 sm:p-6">
         <Tabs value={tab} onValueChange={setTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="lista">Usuarios Reales</TabsTrigger>
+            <TabsTrigger value="reales">Usuarios Reales</TabsTrigger>
             <TabsTrigger value="demo">Usuarios Demo</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="lista">
-            <UsersListTab users={users} isLoading={usersLoading} onRefresh={onRefresh} />
+          <TabsContent value="reales">
+            <RealUsersTab users={users} isLoading={usersLoading} onRefresh={onRefresh} />
           </TabsContent>
 
           <TabsContent value="demo">
-            <DemoUsersListTab users={users} isLoading={usersLoading} />
+            <DemoUsersTab users={users} isLoading={usersLoading} />
           </TabsContent>
-
-
         </Tabs>
       </div>
     </div>

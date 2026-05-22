@@ -8,18 +8,18 @@ import { FlaskConical, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { isPast } from 'date-fns';
-import { toast } from 'sonner';
 
 export default function DemoJoin() {
   const urlParams = new URLSearchParams(window.location.search);
   const codigo = urlParams.get('codigo');
 
+  const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [accepted, setAccepted] = useState(false);
   const [done, setDone] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [error, setError] = useState('');
 
   const { data: invitaciones = [], isLoading: loadingInv } = useQuery({
     queryKey: ['inv-demo-public', codigo],
@@ -28,13 +28,27 @@ export default function DemoJoin() {
   });
 
   const invitacion = invitaciones[0];
-  const isValid = invitacion && invitacion.activa && !invitacion.usada && !isPast(new Date(invitacion.fecha_expiracion));
+  
+  // Validaciones del link
+  let invalidReason = null;
+  if (invitacion) {
+    if (invitacion.usada) invalidReason = 'usada';
+    else if (isPast(new Date(invitacion.fecha_expiracion))) invalidReason = 'expirada';
+    else if (!invitacion.activa) invalidReason = 'revocada';
+  } else if (!loadingInv) {
+    invalidReason = 'no_encontrada';
+  }
 
-  const joinMutation = useMutation({
+  const isValid = invitacion && !invalidReason;
+
+  const registerMutation = useMutation({
     mutationFn: async () => {
-      setErrorMsg('');
+      setError('');
       
-      // Validaciones
+      // Validaciones del formulario
+      if (!nombre || !email || !password || !confirmPassword) {
+        throw new Error('Completa todos los campos obligatorios');
+      }
       if (password.length < 8) {
         throw new Error('La contraseña debe tener al menos 8 caracteres');
       }
@@ -42,29 +56,30 @@ export default function DemoJoin() {
         throw new Error('Las contraseñas no coinciden');
       }
       if (!accepted) {
-        throw new Error('Debes aceptar las condiciones de uso demo');
+        throw new Error('Debes aceptar las condiciones');
       }
       
       // Verificar email único
       const existingUsers = await base44.entities.User.filter({ email });
       if (existingUsers.length > 0) {
-        throw new Error('Este email ya tiene una cuenta activa en la plataforma.');
+        throw new Error('Este email ya tiene una cuenta');
       }
       
       // Verificar email destino si aplica
       if (invitacion.email_destino && invitacion.email_destino !== email) {
-        throw new Error('Esta invitación está reservada para otro email.');
+        throw new Error('Esta invitación está reservada para otro email');
       }
 
       const expiresAt = new Date(invitacion.fecha_expiracion).toISOString();
 
-      // Invitar usuario con rol demo
+      // Registrar usuario demo
       await base44.users.inviteUser(email, 'usuario_demo');
 
       // Actualizar usuario con datos demo
-      const users = await base44.entities.User.filter({ email });
-      if (users.length > 0) {
-        await base44.entities.User.update(users[0].id, {
+      const createdUsers = await base44.entities.User.filter({ email });
+      if (createdUsers.length > 0) {
+        await base44.entities.User.update(createdUsers[0].id, {
+          full_name: nombre,
           tipo_cuenta: 'demo',
           demo_expires_at: expiresAt,
           invitado_por: invitacion.generada_por_email,
@@ -79,30 +94,28 @@ export default function DemoJoin() {
       });
 
       setDone(true);
-      toast.success('¡Cuenta demo creada! Redirigiendo al login...');
-      
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 2000);
     },
     onError: (err) => {
-      console.error('Error al crear demo:', err);
-      setErrorMsg(err.message || 'Error al procesar la invitación');
+      setError(err.message || 'Error al crear la cuenta demo');
     },
   });
 
+  // Pantalla: Link no válido (sin código)
   if (!codigo) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-3 max-w-sm">
           <AlertTriangle className="w-10 h-10 text-destructive mx-auto" />
-          <h1 className="text-lg font-semibold">Link inválido</h1>
-          <p className="text-sm text-muted-foreground">Este link de invitación no es válido.</p>
+          <h1 className="text-lg font-semibold">Link no válido</h1>
+          <p className="text-sm text-muted-foreground">
+            Este link de invitación no es válido. Solicita una nueva invitación.
+          </p>
         </div>
       </div>
     );
   }
 
+  // Pantalla: Cargando
   if (loadingInv) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -111,6 +124,7 @@ export default function DemoJoin() {
     );
   }
 
+  // Pantalla: Link inválido (varios motivos)
   if (!isValid) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -118,37 +132,37 @@ export default function DemoJoin() {
           <AlertTriangle className="w-10 h-10 text-destructive mx-auto" />
           <h1 className="text-lg font-semibold">Invitación no válida</h1>
           <p className="text-sm text-muted-foreground">
-            {!invitacion
-              ? 'Esta invitación no existe.'
-              : invitacion.usada
-              ? 'Esta invitación ya fue utilizada.'
-              : !invitacion.activa
-              ? 'Esta invitación fue revocada.'
-              : 'Esta invitación ha expirado.'}
+            {invalidReason === 'no_encontrada' && 'Link de invitación no válido.'}
+            {invalidReason === 'usada' && 'Este link ya fue utilizado.'}
+            {invalidReason === 'expirada' && 'Este link ha caducado.'}
+            {invalidReason === 'revocada' && 'Esta invitación ha sido revocada.'}
           </p>
         </div>
       </div>
     );
   }
 
+  // Pantalla: Éxito
   if (done) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="text-center space-y-4 max-w-sm">
           <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
-          <h1 className="text-xl font-bold">¡Invitación aceptada!</h1>
+          <h1 className="text-xl font-bold">¡Cuenta demo creada!</h1>
           <p className="text-sm text-muted-foreground">
-            Recibirás un email en <strong>{email}</strong> para activar tu cuenta demo.
-            Tu acceso estará disponible hasta el{' '}
-            <strong>{format(new Date(invitacion.fecha_expiracion), 'd MMMM yyyy', { locale: es })}</strong>.
+            Ya puedes acceder con tu email y contraseña.
           </p>
-          <p className="text-xs text-muted-foreground">
-            Accede con tu email y contraseña para empezar a usar la versión demo.
-          </p>
+          <Button onClick={() => window.location.href = '/'} className="mt-4">
+            Ir al login
+          </Button>
         </div>
       </div>
     );
   }
+
+  // Pantalla: Formulario de registro
+  const expiresDate = new Date(invitacion.fecha_expiracion);
+  const emailDisabled = !!invitacion.email_destino;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -160,39 +174,49 @@ export default function DemoJoin() {
           <h1 className="text-xl font-bold">Acceso Demo</h1>
           <p className="text-sm text-muted-foreground">
             Has sido invitado a probar SIMANTEC en modo demo.
-            Tendrás acceso durante <strong>{invitacion.duracion_dias} días</strong>.
+            Tendrás acceso hasta el{' '}
+            <strong>{format(expiresDate, 'dd/MM/yyyy', { locale: es })}</strong>.
           </p>
         </div>
 
-        <div className="space-y-3 p-4 rounded-xl border border-border bg-card">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Email</Label>
+        <div className="space-y-4 p-4 rounded-xl border border-border bg-card">
+          <div className="space-y-2">
+            <Label className="text-xs">Nombre completo *</Label>
+            <Input
+              placeholder="Tu nombre"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Email *</Label>
             <Input
               type="email"
               placeholder="email@ejemplo.com"
               value={email}
-              onChange={e => setEmail(e.target.value)}
-              disabled={!!invitacion.email_destino}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={emailDisabled}
             />
           </div>
           
-          <div className="space-y-1.5">
-            <Label className="text-xs">Contraseña</Label>
+          <div className="space-y-2">
+            <Label className="text-xs">Contraseña *</Label>
             <Input
               type="password"
               placeholder="Mínimo 8 caracteres"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
           
-          <div className="space-y-1.5">
-            <Label className="text-xs">Repetir contraseña</Label>
+          <div className="space-y-2">
+            <Label className="text-xs">Confirmar contraseña *</Label>
             <Input
               type="password"
               placeholder="Repite tu contraseña"
               value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
+              onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </div>
 
@@ -201,27 +225,28 @@ export default function DemoJoin() {
               type="checkbox"
               id="accept"
               checked={accepted}
-              onChange={e => setAccepted(e.target.checked)}
+              onChange={(e) => setAccepted(e.target.checked)}
               className="mt-0.5"
             />
             <Label htmlFor="accept" className="text-xs font-normal cursor-pointer">
-              Acepto que mis datos demo son independientes y se eliminarán al expirar el acceso
+              Entiendo que mis datos demo son independientes y expiran el{' '}
+              <strong>{format(expiresDate, 'dd/MM/yyyy')}</strong>
             </Label>
           </div>
 
-          {errorMsg && (
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-destructive/10 text-destructive text-xs">
+          {error && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-xs">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-              {errorMsg}
+              {error}
             </div>
           )}
 
           <Button
             className="w-full gap-2"
-            onClick={() => joinMutation.mutate()}
-            disabled={!email || !password || !accepted || joinMutation.isPending}
+            onClick={() => registerMutation.mutate()}
+            disabled={!nombre || !email || !password || !accepted || registerMutation.isPending}
           >
-            {joinMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
+            {registerMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
             Crear cuenta demo
           </Button>
         </div>
