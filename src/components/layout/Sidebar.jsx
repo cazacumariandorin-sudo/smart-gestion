@@ -170,16 +170,23 @@ export default function Sidebar() {
           </div>
         }
 
-        {/* Nuevas páginas */}
-        {canAccess('chat') !== false &&
-        <div className="pt-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Herramientas</p>
-          <NavItem item={{ label: 'Chat', path: '/chat', icon: MessageSquare }} isActive={path === '/chat'} />
-          {canAccess('flota') && <NavItem item={{ label: 'Flota', path: '/flota', icon: Truck }} isActive={path.startsWith('/flota')} />}
-          {canAccess('galeria-fotos') && <NavItem item={{ label: 'Galería Fotos', path: '/galeria-fotos', icon: Images }} isActive={path.startsWith('/galeria-fotos')} />}
-          {canAccess('apuntes-horario') && <NavItem item={{ label: 'Apuntes Horario', path: '/apuntes-horario', icon: PenLine }} isActive={path.startsWith('/apuntes-horario')} />}
-        </div>
-        }
+        {/* Herramientas group */}
+        {(() => {
+          const herramientasItems = [
+            { label: 'Chat', path: '/chat', icon: MessageSquare, module: null },
+            { label: 'Galería Fotos', path: '/galeria-fotos', icon: Images, module: 'galeria-fotos' },
+            { label: 'Apuntes Horario', path: '/apuntes-horario', icon: PenLine, module: 'apuntes-horario' },
+          ].filter(i => i.module === null || canAccess(i.module));
+          if (herramientasItems.length === 0) return null;
+          return (
+            <div className="pt-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Herramientas</p>
+              <NavGroup icon={MessageSquare} label="Herramientas" currentPath={path} defaultOpen={herramientasItems.some(i => path.startsWith(i.path))}>
+                {herramientasItems}
+              </NavGroup>
+            </div>
+          );
+        })()}
       </nav>
 
       {/* Language selector */}
