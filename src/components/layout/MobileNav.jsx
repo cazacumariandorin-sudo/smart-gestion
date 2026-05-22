@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Package, BarChart2, UserCircle, Camera, UserCog, Factory, Sun, Receipt, Car } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Package, BarChart2, UserCircle, Camera, UserCog, Factory, Sun, Receipt, Car, MessageSquare, Truck, Images, PenLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserRole } from '@/lib/useUserRole';
@@ -19,6 +19,13 @@ const ALL_OPERARIOS_ITEMS = [
   { path: '/vehiculos',              icon: Car,         label: 'Vehículos',  module: 'vehiculos' },
   { path: '/users',                  icon: UserCog,     label: 'Usuarios',   module: 'users' },
   { path: '/inventario',             icon: Package,     label: 'Inventario', module: 'users' },
+];
+
+const ALL_EXTRA_ITEMS = [
+  { path: '/chat',            icon: MessageSquare, label: 'Chat',    module: null },
+  { path: '/flota',           icon: Truck,         label: 'Flota',   module: 'flota' },
+  { path: '/galeria-fotos',   icon: Images,        label: 'Galería', module: 'galeria-fotos' },
+  { path: '/apuntes-horario', icon: PenLine,       label: 'Apuntes', module: 'apuntes-horario' },
 ];
 
 const ALL_PEDIDOS_ITEMS = [
@@ -179,11 +186,14 @@ export default function MobileNav() {
   const mainItems      = ALL_MAIN_ITEMS.filter(i => i.module === null || canAccess(i.module));
   const operariosItems = ALL_OPERARIOS_ITEMS.filter(i => canAccess(i.module));
   const pedidosItems   = ALL_PEDIDOS_ITEMS.filter(i => canAccess(i.module));
+  const extraItems     = ALL_EXTRA_ITEMS.filter(i => i.module === null || canAccess(i.module));
 
   const isOperariosActive = operariosItems.some(i => location.pathname.startsWith(i.path));
   const isPedidosActive   = pedidosItems.some(i => location.pathname.startsWith(i.path));
+  const isExtraActive     = extraItems.some(i => location.pathname.startsWith(i.path));
 
-  const closeAll = useCallback(() => { setShowOperarios(false); setShowPedidos(false); }, []);
+  const [showExtra, setShowExtra] = useState(false);
+  const closeAll = useCallback(() => { setShowOperarios(false); setShowPedidos(false); setShowExtra(false); }, []);
 
   // Tab reset: navigate to last stored path or root of tab, scroll to top
   const handleReset = useCallback((path) => {
@@ -228,6 +238,9 @@ export default function MobileNav() {
         {showPedidos && (
           <BottomSheet title="Pedidos y Obras" items={pedidosItems} onClose={() => setShowPedidos(false)} saveTabPath={saveTabPath} />
         )}
+        {showExtra && (
+          <BottomSheet title="Herramientas" items={extraItems} onClose={() => setShowExtra(false)} saveTabPath={saveTabPath} />
+        )}
       </AnimatePresence>
 
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-md border-t border-border"
@@ -264,6 +277,16 @@ export default function MobileNav() {
               isActive={isPedidosActive}
               isOpen={showPedidos}
               onClick={() => handleGroupReset(pedidosItems, setShowPedidos, setShowOperarios)}
+            />
+          )}
+
+          {extraItems.length > 0 && (
+            <GroupNavItem
+              icon={MessageSquare}
+              label="Más"
+              isActive={isExtraActive}
+              isOpen={showExtra}
+              onClick={() => { haptic(); setShowExtra(o => !o); setShowOperarios(false); setShowPedidos(false); }}
             />
           )}
 

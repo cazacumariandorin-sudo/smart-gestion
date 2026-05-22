@@ -39,6 +39,10 @@ const DemoUsers = lazy(() => import('./pages/DemoUsers'));
 const InformeObras = lazy(() => import('./pages/InformeObras'));
 const NotasGastos = lazy(() => import('./pages/NotasGastos'));
 const Vehiculos = lazy(() => import('./pages/Vehiculos'));
+const Chat = lazy(() => import('./pages/Chat'));
+const Flota = lazy(() => import('./pages/Flota'));
+const GaleriaFotos = lazy(() => import('./pages/GaleriaFotos'));
+const ApuntesHorario = lazy(() => import('./pages/ApuntesHorario'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -125,6 +129,10 @@ function AnimatedRoutes() {
             <Route path="/informe-obras" element={<ProtectedRoute module="informe-obras"><Suspense fallback={<PageLoader />}><InformeObras /></Suspense></ProtectedRoute>} />
             <Route path="/notas-gastos" element={<ProtectedRoute module="notas-gastos"><Suspense fallback={<PageLoader />}><NotasGastos /></Suspense></ProtectedRoute>} />
             <Route path="/vehiculos" element={<ProtectedRoute module="vehiculos"><Suspense fallback={<PageLoader />}><Vehiculos /></Suspense></ProtectedRoute>} />
+            <Route path="/chat" element={<Suspense fallback={<PageLoader />}><Chat /></Suspense>} />
+            <Route path="/flota" element={<ProtectedRoute module="flota"><Suspense fallback={<PageLoader />}><Flota /></Suspense></ProtectedRoute>} />
+            <Route path="/galeria-fotos" element={<ProtectedRoute module="galeria-fotos"><Suspense fallback={<PageLoader />}><GaleriaFotos /></Suspense></ProtectedRoute>} />
+            <Route path="/apuntes-horario" element={<ProtectedRoute module="apuntes-horario"><Suspense fallback={<PageLoader />}><ApuntesHorario /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="*" element={<PageNotFound />} />
         </Routes>

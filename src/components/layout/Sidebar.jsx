@@ -3,7 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera,
   UserCog, CircleUser, Package, FileImage, ShoppingCart, Clock, Receipt, Car,
-  Building2, BookOpen, CalendarDays, ChevronDown, ChevronRight, Sun, Factory, Settings, FlaskConical, BarChart2 } from
+  Building2, BookOpen, CalendarDays, ChevronDown, ChevronRight, Sun, Factory, Settings, FlaskConical, BarChart2,
+  MessageSquare, Truck, Images, PenLine } from
 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -168,6 +169,17 @@ export default function Sidebar() {
               {adminItems}
             </NavGroup>
           </div>
+        }
+
+        {/* Nuevas páginas */}
+        {canAccess('chat') !== false &&
+        <div className="pt-2">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Herramientas</p>
+          <NavItem item={{ label: 'Chat', path: '/chat', icon: MessageSquare }} isActive={path === '/chat'} />
+          {canAccess('flota') && <NavItem item={{ label: 'Flota', path: '/flota', icon: Truck }} isActive={path.startsWith('/flota')} />}
+          {canAccess('galeria-fotos') && <NavItem item={{ label: 'Galería Fotos', path: '/galeria-fotos', icon: Images }} isActive={path.startsWith('/galeria-fotos')} />}
+          {canAccess('apuntes-horario') && <NavItem item={{ label: 'Apuntes Horario', path: '/apuntes-horario', icon: PenLine }} isActive={path.startsWith('/apuntes-horario')} />}
+        </div>
         }
       </nav>
 
