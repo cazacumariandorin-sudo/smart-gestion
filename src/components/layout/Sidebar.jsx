@@ -53,7 +53,7 @@ export const HUBS = [
     activeBg: 'bg-amber-50 dark:bg-amber-950/40',
     borderColor: 'border-amber-400',
     items: [
-      { label: 'Notas de Gasto', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
+      { label: 'Registro de Gasto', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
       { label: 'Pedidos', path: '/orders', icon: ShoppingCart, module: 'orders' },
       { label: 'Datos Sensibles', path: '/datos-sensibles', icon: Shield, module: 'users' },
     ],
