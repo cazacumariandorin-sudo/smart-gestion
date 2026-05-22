@@ -6,46 +6,23 @@
       "type": "string",
       "enum": [
         "admin",
+        "gerencia",
         "jefe_obra",
         "operario",
         "control_horario",
         "cliente_obra"
       ],
       "default": "operario",
-      "description": "Rol del usuario"
+      "description": "Rol del usuario en la aplicaci\u00f3n"
     },
-    "phone": {
+    "cargo": {
       "type": "string",
-      "description": "Tel\u00e9fono de contacto"
+      "description": "Cargo o posici\u00f3n del usuario en la empresa"
     },
-    "position": {
-      "type": "string",
-      "description": "Cargo / puesto de trabajo"
-    },
-    "department": {
-      "type": "string",
-      "description": "Departamento o equipo"
-    },
-    "avatar_initials": {
-      "type": "string",
-      "description": "Iniciales personalizadas (m\u00e1x. 2 caracteres)"
-    },
-    "user_id_code": {
-      "type": "string",
-      "description": "ID \u00fanico generado: User-MMYYYY##  (p.ej. User-042601)"
-    },
-    "acceso_total_hasta": {
+    "acceso_hasta": {
       "type": "string",
       "format": "date",
-      "description": "Fecha hasta la que tiene acceso total temporal (demo)"
+      "description": "Fecha l\u00edmite de acceso del usuario"
     }
-  },
-  "required": [
-    "phone",
-    "position",
-    "department",
-    "avatar_initials",
-    "user_id_code",
-    "acceso_total_hasta"
-  ]
+  }
 }

@@ -4,7 +4,8 @@ import PageHeader from '@/components/layout/PageHeader';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, FileText, Link2 } from 'lucide-react';
+import { useUserRole } from '@/lib/useUserRole';
+import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, FileText, Link2, CheckCircle2 } from 'lucide-react';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,8 @@ const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true,
 
 export default function Operarios() {
   const qc = useQueryClient();
+  const { isAdmin, isJefeObra } = useUserRole();
+  const showUserCol = isAdmin || isJefeObra;
   const defaultTab = typeof window !== 'undefined' && typeof window.location !== 'undefined' && window.location.pathname.includes('documentacion') ? 'documentacion' : 'operarios';
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -184,14 +187,16 @@ export default function Operarios() {
                           <Mail className="w-3 h-3 shrink-0" /> {op.email}
                         </p>
                       )}
-                      {op.user_email ? (
-                        <p className="text-xs text-green-600 flex items-center gap-1.5 truncate">
-                          <Link2 className="w-3 h-3 shrink-0" /> {op.user_email}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-amber-500 flex items-center gap-1.5">
-                          <Link2 className="w-3 h-3 shrink-0" /> Sin usuario vinculado
-                        </p>
+                      {showUserCol && (
+                        op.user_email ? (
+                          <p className="text-xs text-green-600 flex items-center gap-1.5 truncate">
+                            <CheckCircle2 className="w-3 h-3 shrink-0" /> {op.user_email}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-amber-500 flex items-center gap-1.5">
+                            <Link2 className="w-3 h-3 shrink-0" /> Sin usuario vinculado
+                          </p>
+                        )
                       )}
                     </div>
                   </Card>
