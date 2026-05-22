@@ -107,11 +107,11 @@ function UserRow({ user, operarios, onSave }) {
       <td className="py-3 px-3">
         <div className="space-y-1">
           <MobileSelect
-            value={row.operario_id}
-            onValueChange={v => set('operario_id', v)}
+            value={row.operario_id || '__none__'}
+            onValueChange={v => set('operario_id', v === '__none__' ? '' : v)}
             placeholder="Sin vincular"
           >
-            <MobileSelectItem value="">Sin vincular</MobileSelectItem>
+            <MobileSelectItem value="__none__">Sin vincular</MobileSelectItem>
             {operarios.map(op => (
               <MobileSelectItem key={op.id} value={op.id}>
                 {op.name}
