@@ -4,11 +4,15 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
-import { UserPlus, Loader2, Save, CheckCircle2, Circle } from 'lucide-react';
+import {
+  UserPlus, Loader2, Save, CheckCircle2, Circle,
+  Users, Pencil, Trash2, AlertTriangle
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -24,25 +28,34 @@ const ROLES = [
   { value: 'cliente_obra', label: 'Cliente Obra' },
 ];
 
-const ROLE_LABEL = Object.fromEntries(ROLES.map(r => [r.value, r.label]));
+const ROLE_COLORS = {
+  admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  gerencia: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  director_comercial: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  jefe_obra: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  operario: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  control_horario: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+  cliente_obra: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  usuario_demo: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+};
 
-// Badge visual: verde si vinculado, naranja si debería, gris si admin/gerencia
+function RoleBadge({ role }) {
+  const label = ROLES.find(r => r.value === role)?.label || role;
+  return (
+    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_COLORS[role] || 'bg-muted text-muted-foreground'}`}>
+      {label}
+    </span>
+  );
+}
+
 function VinculacionBadge({ user, operarios }) {
   const linked = operarios.find(op => op.user_email === user.email);
   const needsLink = ['operario', 'jefe_obra', 'control_horario'].includes(user.role);
-  const isAdminish = ['admin', 'gerencia'].includes(user.role);
 
   if (linked) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
         <CheckCircle2 className="w-3 h-3" /> {linked.name}
-      </span>
-    );
-  }
-  if (isAdminish) {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-        <Circle className="w-3 h-3" /> Sin vincular
       </span>
     );
   }
@@ -60,117 +73,202 @@ function VinculacionBadge({ user, operarios }) {
   );
 }
 
-// Row inline-editable
-function UserRow({ user, operarios, onSave }) {
-  const [row, setRow] = useState({
+// ── Edit dialog ────────────────────────────────────────────────────────────────
+function EditUserDialog({ user, operarios, onSave, onClose }) {
+  const [form, setForm] = useState({
     role: user.role || 'operario',
     cargo: user.cargo || '',
     acceso_hasta: user.acceso_hasta || '',
     operario_id: operarios.find(op => op.user_email === user.email)?.id || '',
   });
-  const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const set = (k, v) => { setRow(p => ({ ...p, [k]: v })); setDirty(true); };
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(user, row);
+    await onSave(user, form);
     setSaving(false);
-    setDirty(false);
+    onClose();
   };
 
-  const linkedOp = operarios.find(op => op.user_email === user.email);
-  const selectedOp = operarios.find(op => op.id === row.operario_id);
-
   return (
-    <tr className="border-b border-border hover:bg-muted/30 transition-colors">
-      {/* Nombre */}
-      <td className="py-3 px-3 text-sm font-medium">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
-            {(user.full_name || user.email || '?')[0].toUpperCase()}
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar usuario</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+            <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
+              {(user.full_name || user.email || '?')[0].toUpperCase()}
+            </div>
+            <div>
+              <p className="text-sm font-medium">{user.full_name || '—'}</p>
+              <p className="text-xs text-muted-foreground">{user.email}</p>
+            </div>
           </div>
-          <span className="truncate max-w-[120px]">{user.full_name || '—'}</span>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Rol</Label>
+              <MobileSelect value={form.role} onValueChange={v => set('role', v)} placeholder="Rol">
+                {ROLES.map(r => <MobileSelectItem key={r.value} value={r.value}>{r.label}</MobileSelectItem>)}
+              </MobileSelect>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Cargo</Label>
+              <Input value={form.cargo} onChange={e => set('cargo', e.target.value)} placeholder="Cargo..." className="h-9 text-sm" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Acceso hasta</Label>
+            <Input type="date" value={form.acceso_hasta} onChange={e => set('acceso_hasta', e.target.value)} className="h-9 text-sm" />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Vincular operario</Label>
+            <MobileSelect
+              value={form.operario_id || '__none__'}
+              onValueChange={v => set('operario_id', v === '__none__' ? '' : v)}
+              placeholder="Sin vincular"
+            >
+              <MobileSelectItem value="__none__">Sin vincular</MobileSelectItem>
+              {operarios.map(op => (
+                <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
+              ))}
+            </MobileSelect>
+          </div>
         </div>
-      </td>
-      {/* Email */}
-      <td className="py-3 px-3 text-xs text-muted-foreground max-w-[150px]">
-        <span className="truncate block">{user.email}</span>
-      </td>
-      {/* Rol */}
-      <td className="py-3 px-3">
-        <MobileSelect value={row.role} onValueChange={v => set('role', v)} placeholder="Rol">
-          {ROLES.map(r => <MobileSelectItem key={r.value} value={r.value}>{r.label}</MobileSelectItem>)}
-        </MobileSelect>
-      </td>
-      {/* Operario vinculado */}
-      <td className="py-3 px-3">
-        <div className="space-y-1">
-          <MobileSelect
-            value={row.operario_id || '__none__'}
-            onValueChange={v => set('operario_id', v === '__none__' ? '' : v)}
-            placeholder="Sin vincular"
-          >
-            <MobileSelectItem value="__none__">Sin vincular</MobileSelectItem>
-            {operarios.map(op => (
-              <MobileSelectItem key={op.id} value={op.id}>
-                {op.name}
-              </MobileSelectItem>
-            ))}
-          </MobileSelect>
-          <VinculacionBadge user={{ ...user, role: row.role }} operarios={operarios} />
-        </div>
-      </td>
-      {/* Cargo */}
-      <td className="py-3 px-3">
-        <Input
-          value={row.cargo}
-          onChange={e => set('cargo', e.target.value)}
-          placeholder="Cargo..."
-          className="h-8 text-xs min-h-0 w-32"
-        />
-      </td>
-      {/* Acceso hasta */}
-      <td className="py-3 px-3">
-        <Input
-          type="date"
-          value={row.acceso_hasta}
-          onChange={e => set('acceso_hasta', e.target.value)}
-          className="h-8 text-xs min-h-0 w-36"
-        />
-      </td>
-      {/* Guardar */}
-      <td className="py-3 px-3">
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={!dirty || saving}
-          className="h-8 gap-1.5 text-xs"
-          variant={dirty ? 'default' : 'outline'}
-        >
-          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-          Guardar
-        </Button>
-      </td>
-    </tr>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving} className="gap-2">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Guardar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
+// ── Add user tab ───────────────────────────────────────────────────────────────
+function AddUserTab({ users, onInvited }) {
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('operario');
+  const [cargo, setCargo] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleInvite = async () => {
+    setErrorMsg('');
+    if (!email) return;
+
+    // Verificar duplicado
+    const exists = users.find(u => u.email === email);
+    if (exists) {
+      setErrorMsg('Este email ya tiene una cuenta activa en la plataforma.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await base44.users.inviteUser(email, role);
+      // Si tiene cargo, intentar actualizar el usuario recién creado tras un pequeño delay
+      if (cargo) {
+        setTimeout(async () => {
+          const all = await base44.entities.User.list('full_name', 200);
+          const newUser = all.find(u => u.email === email);
+          if (newUser) await base44.entities.User.update(newUser.id, { cargo });
+        }, 2000);
+      }
+      toast.success(`Invitación enviada a ${email}`);
+      setEmail('');
+      setRole('operario');
+      setCargo('');
+      onInvited();
+    } catch {
+      toast.error('Error al invitar usuario');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-md space-y-4 py-2">
+      <p className="text-sm text-muted-foreground">
+        El usuario recibirá un email de invitación para activar su cuenta.
+      </p>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">Email *</Label>
+        <Input
+          type="email"
+          placeholder="email@ejemplo.com"
+          value={email}
+          onChange={e => { setEmail(e.target.value); setErrorMsg(''); }}
+        />
+        {errorMsg && (
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-destructive/10 text-destructive text-xs">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            {errorMsg}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Rol *</Label>
+          <MobileSelect value={role} onValueChange={setRole} placeholder="Rol">
+            {ROLES.map(r => <MobileSelectItem key={r.value} value={r.value}>{r.label}</MobileSelectItem>)}
+          </MobileSelect>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Cargo</Label>
+          <Input
+            placeholder="Cargo (opcional)"
+            value={cargo}
+            onChange={e => setCargo(e.target.value)}
+            className="h-9 text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground space-y-1">
+        <p className="font-medium text-foreground">Permisos del rol seleccionado:</p>
+        {role === 'admin' && <p>Acceso completo a todos los módulos y gestión de usuarios.</p>}
+        {role === 'gerencia' && <p>Acceso a obras, clientes, informes, flota y documentación.</p>}
+        {role === 'director_comercial' && <p>Acceso a todos los módulos excepto datos sensibles y backup.</p>}
+        {role === 'jefe_obra' && <p>Obras, partes, clientes, operarios, materiales, notas de gasto.</p>}
+        {role === 'operario' && <p>Partes de trabajo, control horario, materiales, notas de gasto.</p>}
+        {role === 'control_horario' && <p>Control horario y partes de trabajo únicamente.</p>}
+        {role === 'cliente_obra' && <p>Acceso solo al informe de obras y chat.</p>}
+      </div>
+
+      <Button onClick={handleInvite} disabled={!email || loading} className="gap-2 w-full sm:w-auto">
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+        Enviar invitación
+      </Button>
+    </div>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────────
 export default function UsersPage() {
   const qc = useQueryClient();
   const { isAdmin, role } = useUserRole();
   const canView = isAdmin || role === 'gerencia';
+
+  const [editingUser, setEditingUser] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [tab, setTab] = useState('lista');
 
   const onRefresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['users'] });
     qc.invalidateQueries({ queryKey: ['operarios'] });
   }, [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
-
-  const [openInvite, setOpenInvite] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('operario');
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users'],
@@ -187,35 +285,19 @@ export default function UsersPage() {
     enabled: canView,
   });
 
-  const inviteMutation = useMutation({
-    mutationFn: () => base44.users.inviteUser(inviteEmail, inviteRole),
-    onSuccess: () => {
-      setOpenInvite(false);
-      setInviteEmail('');
-      setInviteRole('operario');
-      qc.invalidateQueries({ queryKey: ['users'] });
-      toast.success('Usuario invitado correctamente');
-    },
-    onError: () => toast.error('Error al invitar usuario'),
-  });
-
   const handleSaveRow = async (user, row) => {
-    // 1. Actualizar rol y campos extra del usuario
     await base44.entities.User.update(user.id, {
       role: row.role,
       cargo: row.cargo,
       acceso_hasta: row.acceso_hasta,
     });
 
-    // 2. Gestionar vinculación con operario
     const prevLinked = operarios.find(op => op.user_email === user.email);
     const newOp = operarios.find(op => op.id === row.operario_id);
 
-    // Desvincular operario anterior si cambió
     if (prevLinked && prevLinked.id !== row.operario_id) {
       await base44.entities.Operario.update(prevLinked.id, { user_email: '', user_id: '' });
     }
-    // Vincular nuevo operario
     if (newOp && newOp.user_email !== user.email) {
       await base44.entities.Operario.update(newOp.id, { user_email: user.email, user_id: user.id });
     }
@@ -233,92 +315,170 @@ export default function UsersPage() {
     );
   }
 
+  const realUsers = users.filter(u => u.role !== 'usuario_demo');
+  const demoUsers = users.filter(u => u.role === 'usuario_demo');
+
   return (
     <div className="max-w-7xl mx-auto">
       <PageHeader
         title="Gestión de Usuarios"
         subtitle={`${users.length} usuarios registrados`}
         hideBack={true}
-        actions={
-          <Button onClick={() => setOpenInvite(true)} className="gap-2 shadow-sm" size="sm">
-            <UserPlus className="w-4 h-4" />
-            <span className="hidden sm:inline">Invitar usuario</span>
-          </Button>
-        }
       />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
 
       <div className="p-4 sm:p-6 lg:p-8">
-        {usersLoading ? (
-          <div className="space-y-2">{[1, 2, 3, 4].map(i => <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />)}</div>
-        ) : (
-          <div className="rounded-xl border border-border overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/50 text-xs text-muted-foreground">
-                  <th className="text-left py-3 px-3 font-medium">Nombre</th>
-                  <th className="text-left py-3 px-3 font-medium">Email</th>
-                  <th className="text-left py-3 px-3 font-medium">Rol</th>
-                  <th className="text-left py-3 px-3 font-medium">Operario vinculado</th>
-                  <th className="text-left py-3 px-3 font-medium">Cargo</th>
-                  <th className="text-left py-3 px-3 font-medium">Acceso hasta</th>
-                  <th className="py-3 px-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(user => (
-                  <UserRow
-                    key={user.id}
-                    user={user}
-                    operarios={operarios}
-                    onSave={handleSaveRow}
-                  />
-                ))}
-              </tbody>
-            </table>
-            {users.length === 0 && (
-              <div className="text-center py-10 text-muted-foreground text-sm">No hay usuarios registrados.</div>
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="lista" className="gap-2">
+              <Users className="w-4 h-4" />
+              Usuarios ({users.length})
+            </TabsTrigger>
+            <TabsTrigger value="añadir" className="gap-2">
+              <UserPlus className="w-4 h-4" />
+              Añadir usuario
+            </TabsTrigger>
+          </TabsList>
+
+          {/* ── Tab Lista ── */}
+          <TabsContent value="lista">
+            {usersLoading ? (
+              <div className="space-y-2">{[1, 2, 3, 4].map(i => <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />)}</div>
+            ) : (
+              <div className="space-y-6">
+                {/* Usuarios reales */}
+                <div>
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    Usuarios reales ({realUsers.length})
+                  </h2>
+                  <div className="rounded-xl border border-border overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-muted/50 text-xs text-muted-foreground">
+                          <th className="text-left py-3 px-3 font-medium">Nombre</th>
+                          <th className="text-left py-3 px-3 font-medium">Email</th>
+                          <th className="text-left py-3 px-3 font-medium">Rol</th>
+                          <th className="text-left py-3 px-3 font-medium">Cargo</th>
+                          <th className="text-left py-3 px-3 font-medium">Vinculado</th>
+                          <th className="text-left py-3 px-3 font-medium">Acceso hasta</th>
+                          <th className="py-3 px-3"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {realUsers.map(u => (
+                          <tr key={u.id} className="border-t border-border hover:bg-muted/30 transition-colors">
+                            <td className="py-3 px-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                                  {(u.full_name || u.email || '?')[0].toUpperCase()}
+                                </div>
+                                <span className="font-medium truncate max-w-[120px]">{u.full_name || '—'}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 text-xs text-muted-foreground">
+                              <span className="truncate block max-w-[160px]">{u.email}</span>
+                            </td>
+                            <td className="py-3 px-3"><RoleBadge role={u.role} /></td>
+                            <td className="py-3 px-3 text-xs text-muted-foreground">{u.cargo || '—'}</td>
+                            <td className="py-3 px-3"><VinculacionBadge user={u} operarios={operarios} /></td>
+                            <td className="py-3 px-3 text-xs text-muted-foreground">{u.acceso_hasta || '—'}</td>
+                            <td className="py-3 px-3">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={() => setEditingUser(u)}
+                                title="Editar"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                        {realUsers.length === 0 && (
+                          <tr><td colSpan={7} className="text-center py-8 text-muted-foreground text-sm">Sin usuarios reales.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Usuarios demo */}
+                {demoUsers.length > 0 && (
+                  <div>
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                      Usuarios demo ({demoUsers.length})
+                    </h2>
+                    <div className="rounded-xl border border-border overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-muted/50 text-xs text-muted-foreground">
+                            <th className="text-left py-3 px-3 font-medium">Nombre</th>
+                            <th className="text-left py-3 px-3 font-medium">Email</th>
+                            <th className="text-left py-3 px-3 font-medium">Expira</th>
+                            <th className="text-left py-3 px-3 font-medium">Invitado por</th>
+                            <th className="py-3 px-3"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {demoUsers.map(u => {
+                            const expired = u.demo_expires_at && new Date(u.demo_expires_at) < new Date();
+                            return (
+                              <tr key={u.id} className="border-t border-border hover:bg-muted/30">
+                                <td className="py-3 px-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center text-xs font-bold shrink-0">
+                                      {(u.full_name || u.email || '?')[0].toUpperCase()}
+                                    </div>
+                                    <span className="font-medium truncate max-w-[120px]">{u.full_name || '—'}</span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-3 text-xs text-muted-foreground">{u.email}</td>
+                                <td className="py-3 px-3">
+                                  <Badge variant={expired ? 'destructive' : 'outline'} className="text-xs">
+                                    {u.demo_expires_at ? new Date(u.demo_expires_at).toLocaleDateString('es-ES') : '—'}
+                                  </Badge>
+                                </td>
+                                <td className="py-3 px-3 text-xs text-muted-foreground">{u.invitado_por || '—'}</td>
+                                <td className="py-3 px-3">
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditingUser(u)} title="Editar">
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
-          </div>
-        )}
+          </TabsContent>
+
+          {/* ── Tab Añadir ── */}
+          <TabsContent value="añadir">
+            <AddUserTab
+              users={users}
+              onInvited={() => {
+                qc.invalidateQueries({ queryKey: ['users'] });
+                setTab('lista');
+              }}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* Dialog invitar */}
-      <Dialog open={openInvite} onOpenChange={setOpenInvite}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Invitar usuario</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Email</Label>
-              <Input
-                type="email"
-                placeholder="email@ejemplo.com"
-                value={inviteEmail}
-                onChange={e => setInviteEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Rol</Label>
-              <MobileSelect value={inviteRole} onValueChange={setInviteRole} placeholder="Rol">
-                {ROLES.map(r => <MobileSelectItem key={r.value} value={r.value}>{r.label}</MobileSelectItem>)}
-              </MobileSelect>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenInvite(false)}>Cancelar</Button>
-            <Button
-              onClick={() => inviteMutation.mutate()}
-              disabled={!inviteEmail || inviteMutation.isPending}
-              className="gap-2"
-            >
-              {inviteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              Invitar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Edit dialog */}
+      {editingUser && (
+        <EditUserDialog
+          user={editingUser}
+          operarios={operarios}
+          onSave={handleSaveRow}
+          onClose={() => setEditingUser(null)}
+        />
+      )}
     </div>
   );
 }
