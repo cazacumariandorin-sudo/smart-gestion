@@ -38,14 +38,16 @@ export default function RealUsersModal({ open, onOpenChange, users, onSuccess })
         throw new Error('Este email ya tiene una cuenta registrada');
       }
 
-      // Invitar usuario
-      await base44.users.inviteUser(email, rol);
+      // Invitar usuario con rol "user" o "admin" (son los únicos aceptados por Base44)
+      const inviteRole = rol === 'admin' ? 'admin' : 'user';
+      await base44.users.inviteUser(email, inviteRole);
 
-      // Crear registro en User con datos adicionales
+      // Actualizar usuario con el rol específico y datos adicionales
       const createdUsers = await base44.entities.User.filter({ email });
       if (createdUsers.length > 0) {
         await base44.entities.User.update(createdUsers[0].id, {
           full_name: nombre,
+          role: rol,
           cargo,
           acceso_hasta: accesoHasta || null,
           tipo_cuenta: 'real',
