@@ -4,7 +4,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
-import { UserPlus, Loader2, Save, CheckCircle2, Circle, Trash2 } from 'lucide-react';
+import { UserPlus, Loader2, Save, CheckCircle2, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -61,7 +61,7 @@ function VinculacionBadge({ user, operarios }) {
 }
 
 // Row inline-editable
-function UserRow({ user, operarios, onSave, onDelete }) {
+function UserRow({ user, operarios, onSave }) {
   const [row, setRow] = useState({
     role: user.role || 'operario',
     cargo: user.cargo || '',
@@ -153,18 +153,6 @@ function UserRow({ user, operarios, onSave, onDelete }) {
           Guardar
         </Button>
       </td>
-      {/* Borrar */}
-      <td className="py-3 px-3">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => onDelete(user)}
-          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-          title="Eliminar usuario"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </Button>
-      </td>
     </tr>
   );
 }
@@ -210,17 +198,6 @@ export default function UsersPage() {
     },
     onError: () => toast.error('Error al invitar usuario'),
   });
-
-  const handleDeleteUser = async (user) => {
-    if (!window.confirm(`¿Eliminar al usuario ${user.full_name || user.email}? Esta acción no se puede deshacer.`)) return;
-    await base44.entities.User.delete(user.id);
-    // Desvincular operario si lo tenía
-    const linked = operarios.find(op => op.user_email === user.email);
-    if (linked) await base44.entities.Operario.update(linked.id, { user_email: '', user_id: '' });
-    qc.invalidateQueries({ queryKey: ['users'] });
-    qc.invalidateQueries({ queryKey: ['operarios'] });
-    toast.success(`Usuario ${user.full_name || user.email} eliminado`);
-  };
 
   const handleSaveRow = async (user, row) => {
     // 1. Actualizar rol y campos extra del usuario
@@ -286,7 +263,6 @@ export default function UsersPage() {
                   <th className="text-left py-3 px-3 font-medium">Cargo</th>
                   <th className="text-left py-3 px-3 font-medium">Acceso hasta</th>
                   <th className="py-3 px-3"></th>
-                  <th className="py-3 px-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -296,7 +272,6 @@ export default function UsersPage() {
                     user={user}
                     operarios={operarios}
                     onSave={handleSaveRow}
-                    onDelete={handleDeleteUser}
                   />
                 ))}
               </tbody>
