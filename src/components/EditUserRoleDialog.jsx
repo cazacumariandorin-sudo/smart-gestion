@@ -38,16 +38,21 @@ export default function EditUserRoleDialog({ open, onOpenChange, user, onSuccess
 
   const updateMutation = useMutation({
     mutationFn: async () => {
-      await base44.entities.User.update(user.id, { role: newRole });
+      if (!user?.id) throw new Error('No user selected');
+      console.log('Updating user', user.id, 'role to', newRole);
+      const result = await base44.entities.User.update(user.id, { role: newRole });
+      console.log('Update result:', result);
+      return result;
     },
     onSuccess: () => {
       toast.success(`Rol actualizado a ${ROLE_LABELS[newRole]}`);
       qc.invalidateQueries({ queryKey: ['users'] });
       onOpenChange(false);
-      onSuccess?.();
+      if (onSuccess) onSuccess();
     },
     onError: (err) => {
-      toast.error(`Error: ${err.message}`);
+      console.error('Error updating user role:', err);
+      toast.error(`Error: ${err.message || 'No se pudo actualizar el rol'}`);
     },
   });
 
@@ -80,8 +85,12 @@ export default function EditUserRoleDialog({ open, onOpenChange, user, onSuccess
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending || newRole === user?.role} className="gap-2">
-            {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          <Button 
+            onClick={() => updateMutation.mutate()} 
+            disabled={updateMutation.isPending || newRole === user?.role} 
+            className="gap-2"
+          >
+            {updateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             Guardar
           </Button>
         </DialogFooter>
