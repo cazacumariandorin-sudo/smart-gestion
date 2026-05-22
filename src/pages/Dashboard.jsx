@@ -1,8 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link, useNavigate } from 'react-router-dom';
-import { ClipboardList, Clock, Users, ShoppingCart, Camera, Building2, BookOpen, CalendarDays, UserCog, HardHat, BarChart3, Sun, Package, Receipt, Plus, Filter, Eye } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+import {
+  Building2, Users, Receipt, Car, Folder, Settings,
+  HardHat, Sun, ClipboardList, Clock, Truck, Images,
+  AlertCircle, CheckCircle2, BarChart2
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
@@ -11,327 +14,258 @@ import NotificacionesFichaje from '@/components/dashboard/NotificacionesFichaje'
 import UserRoleDiagnostic from '@/components/debug/UserRoleDiagnostic';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
-const ALL_MODULES = [
+const HUB_CONFIG = [
   {
-    key: 'work-orders',
-    label: 'Partes de Trabajo',
-    path: '/work-orders',
-    icon: ClipboardList,
-    bg: 'bg-orange-50 dark:bg-orange-950/30',
-    border: 'border-orange-200 dark:border-orange-800',
-    iconColor: 'text-orange-600',
-    emoji: '📋',
-    image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&q=80',
-    shortcuts: [
-      { label: 'Nuevo parte', path: '/work-orders/new', icon: Plus },
-      { label: 'Ver todos', path: '/work-orders', icon: Eye },
+    id: 'obras',
+    label: 'Obras & Proyectos',
+    icon: Building2,
+    path: '/obras',
+    color: 'text-purple-600',
+    bg: 'bg-purple-50 dark:bg-purple-950/30',
+    border: 'border-purple-200 dark:border-purple-800',
+    dot: 'bg-purple-500',
+    module: 'obras',
+    links: [
+      { label: 'Obras civiles', path: '/obras', icon: Building2 },
+      { label: 'Solar', path: '/solar-pedidos', icon: Sun },
+      { label: 'Partes', path: '/work-orders', icon: ClipboardList },
+      { label: 'Informe', path: '/informe-obras', icon: BarChart2 },
     ],
   },
   {
-    key: 'control-horario',
-    label: 'Control Horario',
-    path: '/control-horario',
-    icon: Clock,
-    bg: 'bg-cyan-50 dark:bg-cyan-950/30',
-    border: 'border-cyan-200 dark:border-cyan-800',
-    iconColor: 'text-cyan-600',
-    emoji: '🕐',
-    image: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=400&q=80',
-    shortcuts: [
-      { label: 'Fichajes', path: '/control-horario', icon: Clock },
-      { label: 'Informes', path: '/control-horario', icon: BarChart3 },
-    ],
-  },
-  {
-    key: 'clients',
-    label: 'Clientes',
-    path: '/clients',
+    id: 'personas',
+    label: 'Personas & Equipos',
     icon: Users,
+    path: '/operarios',
+    color: 'text-teal-600',
     bg: 'bg-teal-50 dark:bg-teal-950/30',
     border: 'border-teal-200 dark:border-teal-800',
-    iconColor: 'text-teal-600',
-    emoji: '🏢',
-    image: 'https://images.unsplash.com/photo-1560472355-536de3962603?w=400&q=80',
-    shortcuts: [
-      { label: 'Ver clientes', path: '/clients', icon: Eye },
-    ],
-  },
-  {
-    key: 'orders',
-    label: 'Pedidos',
-    path: '/orders',
-    icon: ShoppingCart,
-    bg: 'bg-blue-50 dark:bg-blue-950/30',
-    border: 'border-blue-200 dark:border-blue-800',
-    iconColor: 'text-blue-600',
-    emoji: '🛒',
-    image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&q=80',
-    shortcuts: [
-      { label: 'Ver pedidos', path: '/orders', icon: Eye },
-      { label: 'Materiales', path: '/materials', icon: Package },
-    ],
-  },
-  {
-    key: 'obras',
-    label: 'Obras',
-    path: '/obras',
-    icon: Building2,
-    bg: 'bg-amber-50 dark:bg-amber-950/30',
-    border: 'border-amber-200 dark:border-amber-800',
-    iconColor: 'text-amber-600',
-    emoji: '🏗️',
-    image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400&q=80',
-    shortcuts: [
-      { label: 'Ver obras', path: '/obras', icon: Eye },
-      { label: 'Informe', path: '/informe-obras', icon: BarChart3 },
-    ],
-  },
-  {
-    key: 'calendario-vacaciones',
-    label: 'Vacaciones',
-    path: '/calendario-vacaciones',
-    icon: CalendarDays,
-    bg: 'bg-indigo-50 dark:bg-indigo-950/30',
-    border: 'border-indigo-200 dark:border-indigo-800',
-    iconColor: 'text-indigo-600',
-    emoji: '🏖️',
-    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80',
-    shortcuts: [
-      { label: 'Calendario', path: '/calendario-vacaciones', icon: CalendarDays },
-    ],
-  },
-  {
-    key: 'photos',
-    label: 'Galería de Fotos',
-    path: '/photos',
-    icon: Camera,
-    bg: 'bg-pink-50 dark:bg-pink-950/30',
-    border: 'border-pink-200 dark:border-pink-800',
-    iconColor: 'text-pink-600',
-    emoji: '📷',
-    image: 'https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400&q=80',
-    shortcuts: [
-      { label: 'Ver galería', path: '/photos', icon: Camera },
-    ],
-  },
-  {
-    key: 'reports',
-    label: 'Informes',
-    path: '/reports',
-    icon: BarChart3,
-    bg: 'bg-green-50 dark:bg-green-950/30',
-    border: 'border-green-200 dark:border-green-800',
-    iconColor: 'text-green-600',
-    emoji: '📊',
-    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=80',
-    shortcuts: [
-      { label: 'Ver informes', path: '/reports', icon: Eye },
-    ],
-  },
-  {
-    key: 'operarios',
-    label: 'Operarios',
-    path: '/operarios',
-    icon: HardHat,
-    bg: 'bg-violet-50 dark:bg-violet-950/30',
-    border: 'border-violet-200 dark:border-violet-800',
-    iconColor: 'text-violet-600',
-    emoji: '👷',
-    image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&q=80',
-    shortcuts: [
-      { label: 'Ver operarios', path: '/operarios', icon: Eye },
+    dot: 'bg-teal-500',
+    module: 'operarios',
+    links: [
+      { label: 'Operarios', path: '/operarios', icon: Users },
       { label: 'Horario', path: '/control-horario', icon: Clock },
     ],
   },
   {
-    key: 'users',
-    label: 'Administración',
+    id: 'economico',
+    label: 'Económico',
+    icon: Receipt,
+    path: '/notas-gastos',
+    color: 'text-amber-600',
+    bg: 'bg-amber-50 dark:bg-amber-950/30',
+    border: 'border-amber-200 dark:border-amber-800',
+    dot: 'bg-amber-500',
+    module: 'notas-gastos',
+    links: [
+      { label: 'Gastos', path: '/notas-gastos', icon: Receipt },
+    ],
+  },
+  {
+    id: 'flota',
+    label: 'Flota & Movilidad',
+    icon: Car,
+    path: '/flota',
+    color: 'text-blue-600',
+    bg: 'bg-blue-50 dark:bg-blue-950/30',
+    border: 'border-blue-200 dark:border-blue-800',
+    dot: 'bg-blue-500',
+    module: 'flota',
+    links: [
+      { label: 'Vehículos', path: '/flota', icon: Truck },
+    ],
+  },
+  {
+    id: 'documental',
+    label: 'Documental',
+    icon: Folder,
+    path: '/drawings',
+    color: 'text-orange-600',
+    bg: 'bg-orange-50 dark:bg-orange-950/30',
+    border: 'border-orange-200 dark:border-orange-800',
+    dot: 'bg-orange-500',
+    module: 'orders',
+    links: [
+      { label: 'Planos', path: '/drawings', icon: Folder },
+      { label: 'Galería', path: '/galeria-fotos', icon: Images },
+    ],
+  },
+  {
+    id: 'sistema',
+    label: 'Sistema',
+    icon: Settings,
     path: '/users',
-    icon: UserCog,
+    color: 'text-slate-600',
     bg: 'bg-slate-50 dark:bg-slate-950/30',
     border: 'border-slate-200 dark:border-slate-800',
-    iconColor: 'text-slate-600',
-    emoji: '⚙️',
-    image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&q=80',
-    shortcuts: [
+    dot: 'bg-slate-500',
+    module: 'users',
+    adminOnly: true,
+    links: [
       { label: 'Usuarios', path: '/users', icon: Users },
-      { label: 'Backup', path: '/admin-backup', icon: Eye },
-    ],
-  },
-  {
-    key: 'notas-gastos',
-    label: 'Registros de Gasto',
-    path: '/notas-gastos',
-    icon: Receipt,
-    bg: 'bg-rose-50 dark:bg-rose-950/30',
-    border: 'border-rose-200 dark:border-rose-800',
-    iconColor: 'text-rose-600',
-    emoji: '🧾',
-    image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&q=80',
-    shortcuts: [
-      { label: 'Ver registros', path: '/notas-gastos', icon: Eye },
-      { label: 'Nuevo registro', path: '/notas-gastos', icon: Plus },
-    ],
-  },
-  {
-    key: 'informe-obras',
-    label: 'Informe Obras',
-    path: '/informe-obras',
-    icon: BarChart3,
-    bg: 'bg-emerald-50 dark:bg-emerald-950/30',
-    border: 'border-emerald-200 dark:border-emerald-800',
-    iconColor: 'text-emerald-600',
-    emoji: '📈',
-    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=80',
-    shortcuts: [
-      { label: 'Ver informe', path: '/informe-obras', icon: Eye },
     ],
   },
 ];
 
-function ModuleCard({ mod, count, subtitle }) {
-  const Icon = mod.icon;
-  const navigate = useNavigate();
-  const shortcuts = mod.shortcuts || [];
+const roleLabels = {
+  admin:           { label: 'Administrador',   color: 'bg-red-100 text-red-700 border-red-200' },
+  jefe_obra:       { label: 'Jefe de Obra',    color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  operario:        { label: 'Operario',        color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  control_horario: { label: 'Control Horario', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  cliente_obra:    { label: 'Cliente Obra',    color: 'bg-violet-100 text-violet-700 border-violet-200' },
+  gerencia:        { label: 'Gerencia',        color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+};
 
+function HubCard({ hub, kpi }) {
+  const Icon = hub.icon;
   return (
-    <Card className={`overflow-hidden hover:shadow-xl transition-all border-2 ${mod.border} group flex flex-col`}>
-      {/* Photo header — clickable to main path */}
-      <Link to={mod.path} className="block">
-        <div className="relative h-20 overflow-hidden cursor-pointer">
-          <img
-            src={mod.image}
-            alt={mod.label}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={e => { e.target.style.display = 'none'; }}
-          />
-          <div className={`absolute inset-0 ${mod.bg} opacity-60`} />
-          <div className="absolute top-2 right-2">
-            <div className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow">
-              <Icon className={`w-4 h-4 ${mod.iconColor}`} />
+    <Link to={hub.path} className="block group">
+      <div className={cn('rounded-xl border p-4 transition-all hover:shadow-sm hover:-translate-y-0.5', hub.bg, hub.border)}>
+        {/* Header */}
+        <div className="flex items-start justify-between mb-3">
+          <div className={cn('p-2 rounded-lg', hub.bg)}>
+            <Icon className={cn('w-5 h-5', hub.color)} />
+          </div>
+          {kpi?.alert && (
+            <div className="flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5 text-destructive" />
+              <span className="text-xs font-semibold text-destructive">{kpi.alert}</span>
             </div>
-          </div>
-          <span className="absolute bottom-2 left-2 text-xl drop-shadow">{mod.emoji}</span>
+          )}
         </div>
-      </Link>
 
-      {/* Content */}
-      <div className="p-2.5 flex flex-col flex-1">
-        <Link to={mod.path}>
-          <p className="text-xs font-bold text-foreground leading-tight hover:text-primary transition-colors">{mod.label}</p>
-        </Link>
-        {count !== undefined && (
-          <p className="text-base font-bold text-foreground mt-0.5 leading-none">{count}
-            {subtitle && <span className="text-[10px] font-normal text-muted-foreground ml-1">{subtitle}</span>}
-          </p>
+        {/* Label & KPI */}
+        <p className="text-xs font-bold text-foreground leading-tight mb-1">{hub.label}</p>
+        {kpi?.main !== undefined && (
+          <p className={cn('text-2xl font-bold leading-none', hub.color)}>{kpi.main}</p>
         )}
-        {!count && subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
+        {kpi?.sub && <p className="text-[10px] text-muted-foreground mt-0.5">{kpi.sub}</p>}
 
-        {/* Dynamic shortcut buttons */}
-        {shortcuts.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {shortcuts.map((s, i) => {
-              const SIcon = s.icon;
-              return (
-                <button
-                  key={i}
-                  onClick={e => { e.preventDefault(); navigate(s.path); }}
-                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border transition-colors
-                    ${mod.bg} ${mod.border} ${mod.iconColor} hover:opacity-80 active:scale-95`}
-                >
-                  <SIcon className="w-2.5 h-2.5 shrink-0" />
-                  {s.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Quick links */}
+        <div className="flex flex-wrap gap-1 mt-3">
+          {hub.links.map(l => {
+            const LIcon = l.icon;
+            return (
+              <span
+                key={l.path}
+                className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border', hub.bg, hub.border, hub.color)}
+              >
+                <LIcon className="w-2.5 h-2.5 shrink-0" />
+                {l.label}
+              </span>
+            );
+          })}
+        </div>
       </div>
-    </Card>
+    </Link>
   );
 }
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
-  const { canAccess, role, isLoading: roleLoading } = useUserRole();
+  const { canAccess, isAdmin, role, isLoading: roleLoading } = useUserRole();
+  const isGerencia = role === 'gerencia';
 
   const onRefresh = () => {
-    ['workorders', 'fichajes', 'clients', 'operarios', 'orders_list', 'photos_count'].forEach(k =>
+    ['obras_dash', 'operarios_dash', 'gastos_dash', 'fichajes_hoy', 'flota_dash'].forEach(k =>
       queryClient.invalidateQueries({ queryKey: [k] })
     );
   };
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
-  const { data: orders = [] } = useQuery({ queryKey: ['workorders'], queryFn: () => base44.entities.WorkOrder.list('-date', 50) });
-  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
-  const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
-  const { data: pedidos = [] } = useQuery({ queryKey: ['orders_list'], queryFn: () => base44.entities.Order.list('-date', 50) });
-  const { data: photos = [] } = useQuery({ queryKey: ['photos_count'], queryFn: () => base44.entities.WorkPhoto.list('-date', 200) });
+  const { data: obras = [] } = useQuery({
+    queryKey: ['obras_dash'],
+    queryFn: () => base44.entities.Obra.list('name', 200),
+    enabled: canAccess('obras'),
+  });
+  const { data: operarios = [] } = useQuery({
+    queryKey: ['operarios_dash'],
+    queryFn: () => base44.entities.Operario.list('name', 200),
+    enabled: canAccess('operarios'),
+  });
+  const { data: gastos = [] } = useQuery({
+    queryKey: ['gastos_dash'],
+    queryFn: () => base44.entities.NotaGasto.list('-created_date', 100),
+    enabled: canAccess('notas-gastos'),
+  });
   const { data: fichajesHoy = [] } = useQuery({
     queryKey: ['fichajes_hoy'],
-    queryFn: async () => base44.entities.Fichaje.filter({ date: format(new Date(), 'yyyy-MM-dd') }),
+    queryFn: () => base44.entities.Fichaje.filter({ date: format(new Date(), 'yyyy-MM-dd') }),
+    enabled: canAccess('control-horario'),
+  });
+  const { data: vehiculos = [] } = useQuery({
+    queryKey: ['flota_dash'],
+    queryFn: () => base44.entities.Vehiculo.list('matricula', 100),
+    enabled: canAccess('flota'),
   });
 
-  const counts = {
-    'work-orders':          orders.length,
-    'orders':               pedidos.filter(p => p.status === 'pendiente').length,
-    'control-horario':      fichajesHoy.length,
-    'clients':              clients.length,
-    'operarios':            operarios.length,
-    'photos':               photos.length,
-  };
-  const subtitles = {
-    'work-orders':          `${orders.filter(o => o.status === 'pendiente' || !o.status).length} pendientes`,
-    'orders':               'pendientes',
-    'control-horario':      'fichajes hoy',
-    'clients':              'activos',
-    'operarios':            'en plantilla',
-    'photos':               'fotos',
-    'calendario-vacaciones':'vacaciones',
-    'reports':              'informes',
-    'obras':                'obras',
-    'users':                'administración',
+  const kpis = {
+    obras: {
+      main: obras.filter(o => o.status === 'activa').length,
+      sub: `${obras.length} total · ${obras.filter(o => o.status === 'activa').length} activas`,
+    },
+    personas: {
+      main: operarios.filter(o => o.active !== false).length,
+      sub: `${fichajesHoy.length} fichajes hoy`,
+    },
+    economico: {
+      main: gastos.filter(g => g.estado === 'pendiente').length,
+      sub: 'gastos pendientes',
+      alert: gastos.filter(g => g.estado === 'pendiente').length > 0 ? gastos.filter(g => g.estado === 'pendiente').length : undefined,
+    },
+    flota: {
+      main: vehiculos.length,
+      sub: 'vehículos',
+    },
+    documental: {
+      main: undefined,
+      sub: 'Planos, manuales, fotos',
+    },
+    sistema: {
+      main: undefined,
+      sub: 'Gestión del sistema',
+    },
   };
 
-  const roleLabels = {
-    admin:           { label: 'Administrador',   color: 'bg-red-100 text-red-700 border-red-200' },
-    jefe_obra:       { label: 'Jefe de Obra',    color: 'bg-blue-100 text-blue-700 border-blue-200' },
-    operario:        { label: 'Usuario',         color: 'bg-amber-100 text-amber-700 border-amber-200' },
-    control_horario: { label: 'Control Horario', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-    cliente_obra:    { label: 'Cliente Obra',    color: 'bg-violet-100 text-violet-700 border-violet-200' },
-  };
   const roleCfg = roleLabels[role] || roleLabels.operario;
 
-  const visibleModules = ALL_MODULES.filter(m => canAccess(m.key));
-  const recentOrders = orders.slice(0, 6);
-  const showDiagnostic = visibleModules.length === 0;
+  const visibleHubs = HUB_CONFIG.filter(hub => {
+    if (hub.adminOnly && !isAdmin && !isGerencia) return false;
+    return hub.module === null || canAccess(hub.module);
+  });
+
+  const showDiagnostic = !roleLoading && visibleHubs.length === 0;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
 
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Panel</h1>
-          <p className="text-sm text-muted-foreground mt-0.5 capitalize">
+          <div className="flex items-center gap-2 mb-0.5">
+            <HardHat className="w-5 h-5 text-emerald-600" />
+            <h1 className="text-xl font-bold tracking-tight">Panel General</h1>
+          </div>
+          <p className="text-xs text-muted-foreground capitalize">
             {format(new Date(), "EEEE, d 'de' MMMM yyyy", { locale: es })}
           </p>
         </div>
-        <Badge variant="outline" className={`text-xs font-semibold ${roleCfg.color}`}>{roleCfg.label}</Badge>
+        <Badge variant="outline" className={cn('text-xs font-semibold', roleCfg.color)}>{roleCfg.label}</Badge>
       </div>
 
       {/* Alertas de fichaje */}
       <NotificacionesFichaje />
 
-      {/* Module grid - only accessible modules */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-8">
-        {visibleModules.map(mod => (
-          <ModuleCard key={mod.key} mod={mod} count={counts[mod.key]} subtitle={subtitles[mod.key]} />
+      {/* Hub grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+        {visibleHubs.map(hub => (
+          <HubCard key={hub.id} hub={hub} kpi={kpis[hub.id]} />
         ))}
       </div>
 
-      {/* Debug diagnostic when no modules are visible */}
       {showDiagnostic && <UserRoleDiagnostic />}
     </div>
   );

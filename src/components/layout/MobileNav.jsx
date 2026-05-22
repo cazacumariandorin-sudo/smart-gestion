@@ -1,51 +1,111 @@
 import { useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Package, BarChart2, UserCircle, UserCog, Factory, Sun, Receipt, MessageSquare, Truck, Images, PenLine } from 'lucide-react';
+import {
+  LayoutDashboard, Building2, Users, Receipt, Car, Folder, Settings,
+  UserCircle, X, ClipboardList, Clock, ShoppingCart, Sun,
+  CalendarDays, FileImage, BookOpen, Factory, Package, Truck,
+  Images, MessageSquare, Database, PenLine, Wrench, Shield, BarChart2
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserRole } from '@/lib/useUserRole';
 
-const ALL_MAIN_ITEMS = [
-  { path: '/',               icon: LayoutDashboard, label: 'Panel',   module: null },
-  { path: '/informe-obras',  icon: BarChart2,       label: 'Informe', module: 'informe-obras' },
-  { path: '/work-orders',    icon: ClipboardList,   label: 'Partes',  module: 'work-orders' },
-  { path: '/control-horario',icon: Clock,           label: 'Horario', module: 'control-horario' },
+// Hub items for mobile bottom sheet
+const HUB_GROUPS = [
+  {
+    id: 'obras',
+    label: 'Obras',
+    icon: Building2,
+    color: 'text-purple-600',
+    activeBg: 'bg-purple-100 dark:bg-purple-900/40',
+    module: 'obras',
+    items: [
+      { label: 'Obras', path: '/obras', icon: Building2, module: 'obras' },
+      { label: 'Clientes', path: '/clients', icon: Users, module: 'clients' },
+      { label: 'Solar', path: '/solar-pedidos', icon: Sun, module: 'orders' },
+      { label: 'Partes', path: '/work-orders', icon: ClipboardList, module: 'work-orders' },
+      { label: 'Informe', path: '/informe-obras', icon: BarChart2, module: 'informe-obras' },
+    ],
+  },
+  {
+    id: 'personas',
+    label: 'Personas',
+    icon: Users,
+    color: 'text-teal-600',
+    activeBg: 'bg-teal-100 dark:bg-teal-900/40',
+    module: 'operarios',
+    items: [
+      { label: 'Operarios', path: '/operarios', icon: Users, module: 'operarios' },
+      { label: 'Horario', path: '/control-horario', icon: Clock, module: 'control-horario' },
+      { label: 'Vacaciones', path: '/calendario-vacaciones', icon: CalendarDays, module: 'calendario-vacaciones' },
+      { label: 'Apuntes', path: '/apuntes-horario', icon: PenLine, module: 'apuntes-horario' },
+      { label: 'Docs', path: '/documentacion-operarios', icon: FileImage, module: 'operarios' },
+    ],
+  },
+  {
+    id: 'economico',
+    label: 'Económico',
+    icon: Receipt,
+    color: 'text-amber-600',
+    activeBg: 'bg-amber-100 dark:bg-amber-900/40',
+    module: 'notas-gastos',
+    items: [
+      { label: 'Gastos', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
+      { label: 'Pedidos', path: '/orders', icon: ShoppingCart, module: 'orders' },
+    ],
+  },
+  {
+    id: 'flota',
+    label: 'Flota',
+    icon: Car,
+    color: 'text-blue-600',
+    activeBg: 'bg-blue-100 dark:bg-blue-900/40',
+    module: 'flota',
+    items: [
+      { label: 'Vehículos', path: '/flota', icon: Truck, module: 'flota' },
+    ],
+  },
+  {
+    id: 'documental',
+    label: 'Docs',
+    icon: Folder,
+    color: 'text-orange-600',
+    activeBg: 'bg-orange-100 dark:bg-orange-900/40',
+    module: 'orders',
+    items: [
+      { label: 'Planos', path: '/drawings', icon: FileImage, module: 'orders' },
+      { label: 'Manuales', path: '/manuales', icon: BookOpen, module: 'orders' },
+      { label: 'Galería', path: '/galeria-fotos', icon: Images, module: 'galeria-fotos' },
+      { label: 'Materiales', path: '/materials', icon: Package, module: 'orders' },
+      { label: 'Inventario', path: '/inventario', icon: Wrench, module: 'users' },
+      { label: 'Fabricantes', path: '/fabricantes', icon: Factory, module: 'users' },
+    ],
+  },
+  {
+    id: 'sistema',
+    label: 'Sistema',
+    icon: Settings,
+    color: 'text-slate-600',
+    activeBg: 'bg-slate-100 dark:bg-slate-900/40',
+    module: 'users',
+    adminOnly: true,
+    items: [
+      { label: 'Chat', path: '/chat', icon: MessageSquare, module: null },
+      { label: 'Usuarios', path: '/users', icon: Users, module: 'users' },
+      { label: 'Backup', path: '/admin-backup', icon: Database, module: 'users' },
+    ],
+  },
 ];
 
-const ALL_OPERARIOS_ITEMS = [
-  { path: '/operarios',              icon: Users,       label: 'Operarios',  module: 'operarios' },
-  { path: '/notas-gastos',           icon: Receipt,     label: 'Gastos',     module: 'notas-gastos' },
-  { path: '/calendario-vacaciones',  icon: CalendarDays,label: 'Vacaciones', module: 'calendario-vacaciones' },
-  { path: '/flota',                  icon: Truck,       label: 'Flota',      module: 'flota' },
-  { path: '/users',                  icon: UserCog,     label: 'Usuarios',   module: 'users' },
-  { path: '/inventario',             icon: Package,     label: 'Inventario', module: 'users' },
-];
-
-const ALL_EXTRA_ITEMS = [
-  { path: '/chat',            icon: MessageSquare, label: 'Chat',    module: null },
-  { path: '/flota',           icon: Truck,         label: 'Flota',   module: 'flota' },
-  { path: '/galeria-fotos',   icon: Images,        label: 'Galería', module: 'galeria-fotos' },
-  { path: '/apuntes-horario', icon: PenLine,       label: 'Apuntes', module: 'apuntes-horario' },
-];
-
-const ALL_PEDIDOS_ITEMS = [
-  { path: '/obras',         icon: Building2,   label: 'Obras',      module: 'obras' },
-  { path: '/clients',       icon: UserCog,     label: 'Clientes',   module: 'clients' },
-  { path: '/orders',        icon: ShoppingCart,label: 'Pedidos',    module: 'orders' },
-  { path: '/materials',     icon: Package,     label: 'Materiales', module: 'orders' },
-  { path: '/manuales',      icon: BookOpen,    label: 'Manuales',   module: 'orders' },
-  { path: '/drawings',      icon: FileImage,   label: 'Planos',     module: 'orders' },
-  { path: '/fabricantes',   icon: Factory,     label: 'Fabricantes',module: 'users' },
-  { path: '/solar-pedidos', icon: Sun,         label: 'Solar',      module: 'orders' },
-];
-
-// Trigger vibration if supported
 function haptic(ms = 8) {
   if (navigator?.vibrate) navigator.vibrate(ms);
 }
 
-function BottomSheet({ title, items, onClose, saveTabPath }) {
+function BottomSheet({ hub, onClose, saveTabPath }) {
   const location = useLocation();
+  const { canAccess } = useUserRole();
+  const items = hub.items.filter(i => i.module === null || canAccess(i.module));
+
   return (
     <motion.div
       className="fixed inset-0 z-50 flex flex-col justify-end"
@@ -55,23 +115,20 @@ function BottomSheet({ title, items, onClose, saveTabPath }) {
       transition={{ duration: 0.15 }}
       onClick={onClose}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
-
-      {/* Sheet */}
       <motion.div
-        className="relative bg-card border-t border-border rounded-t-3xl pt-3 pb-8 px-4 shadow-2xl"
+        className="relative bg-card border-t border-border rounded-t-3xl pt-3 pb-8 px-4"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Handle bar */}
         <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
-
-        {title && <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">{title}</p>}
-
+        <div className={cn('flex items-center gap-2 mb-4 px-1')}>
+          <hub.icon className={cn('w-4 h-4', hub.color)} />
+          <p className={cn('text-sm font-bold', hub.color)}>{hub.label}</p>
+        </div>
         <div className="grid grid-cols-3 gap-2.5">
           {items.map(item => {
             const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -82,18 +139,15 @@ function BottomSheet({ title, items, onClose, saveTabPath }) {
                 onClick={() => { haptic(); saveTabPath(item.path, item.path); onClose(); }}
                 className={cn(
                   'flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-2xl transition-all active:scale-95',
-                  isActive
-                    ? 'bg-primary text-primary-foreground shadow-md'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                  isActive ? cn(hub.activeBg, hub.color, 'font-semibold') : 'bg-muted/60 text-muted-foreground hover:bg-muted'
                 )}
               >
                 <item.icon className="w-5 h-5" />
-                <span className="text-[10px] font-semibold">{item.label}</span>
+                <span className="text-[10px] font-semibold text-center leading-tight">{item.label}</span>
               </Link>
             );
           })}
         </div>
-
         <button
           onClick={onClose}
           className="w-full mt-4 flex items-center justify-center gap-1.5 py-2.5 text-xs text-muted-foreground rounded-xl hover:bg-muted transition-colors"
@@ -105,59 +159,23 @@ function BottomSheet({ title, items, onClose, saveTabPath }) {
   );
 }
 
-function NavItem({ item, isActive, onReset, onNavigate }) {
-  const Icon = item.icon;
-
-  const handleClick = () => {
-    haptic();
-    if (isActive) {
-      // Tab reset: scroll to top + navigate to root of this tab
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      onReset(item.path);
-    } else {
-      onNavigate(item.path);
-    }
-  };
-
-  return (
-    <button
-      onClick={handleClick}
-      className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all relative min-w-[52px]"
-    >
-      <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center">
-        {isActive && (
-          <motion.div
-            layoutId="nav-pill"
-            className="absolute -inset-1.5 bg-primary/12 rounded-xl"
-            transition={{ type: 'spring', damping: 26, stiffness: 350 }}
-          />
-        )}
-        <Icon className={cn('w-5 h-5 relative z-10 transition-all', isActive ? 'text-primary stroke-[2.5]' : 'text-muted-foreground')} />
-      </motion.div>
-      <span className={cn('text-[9px] font-semibold transition-colors', isActive ? 'text-primary' : 'text-muted-foreground')}>
-        {item.label}
-      </span>
-    </button>
-  );
-}
-
-function GroupNavItem({ icon: Icon, label, isActive, isOpen, onClick }) {
+function NavTab({ icon: Icon, label, isActive, isOpen, onClick, color }) {
   return (
     <button
       onClick={() => { haptic(); onClick(); }}
-      className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all relative min-w-[52px]"
+      className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all relative min-w-[44px]"
     >
       <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center">
         {(isActive || isOpen) && (
           <motion.div
-            layoutId={`nav-pill-group-${label}`}
-            className="absolute -inset-1.5 bg-primary/12 rounded-xl"
+            layoutId={`nav-pill-${label}`}
+            className="absolute -inset-1.5 bg-primary/10 rounded-xl"
             transition={{ type: 'spring', damping: 26, stiffness: 350 }}
           />
         )}
-        <Icon className={cn('w-5 h-5 relative z-10 transition-all', (isActive || isOpen) ? 'text-primary stroke-[2.5]' : 'text-muted-foreground')} />
+        <Icon className={cn('w-5 h-5 relative z-10 transition-all', (isActive || isOpen) ? (color || 'text-primary') + ' stroke-[2.5]' : 'text-muted-foreground')} />
       </motion.div>
-      <span className={cn('text-[9px] font-semibold transition-colors', (isActive || isOpen) ? 'text-primary' : 'text-muted-foreground')}>
+      <span className={cn('text-[9px] font-semibold transition-colors', (isActive || isOpen) ? (color || 'text-primary') : 'text-muted-foreground')}>
         {label}
       </span>
     </button>
@@ -167,146 +185,90 @@ function GroupNavItem({ icon: Icon, label, isActive, isOpen, onClick }) {
 export default function MobileNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { canAccess } = useUserRole();
-  const [showOperarios, setShowOperarios] = useState(false);
-  const [showPedidos, setShowPedidos] = useState(false);
+  const { canAccess, isAdmin, role } = useUserRole();
+  const isGerencia = role === 'gerencia';
 
-  // Tab stack preservation: store last path per tab in sessionStorage
+  const [openHub, setOpenHub] = useState(null);
+
   const getTabKey = (tabPath) => `tab_last_path_${tabPath}`;
   const saveTabPath = useCallback((tabPath, fullPath) => {
     if (tabPath && fullPath.startsWith(tabPath)) {
       sessionStorage.setItem(getTabKey(tabPath), fullPath);
     }
   }, []);
-  const getTabPath = useCallback((tabPath) => {
-    return sessionStorage.getItem(getTabKey(tabPath)) || tabPath;
-  }, []);
 
-  const mainItems      = ALL_MAIN_ITEMS.filter(i => i.module === null || canAccess(i.module));
-  const operariosItems = ALL_OPERARIOS_ITEMS.filter(i => canAccess(i.module));
-  const pedidosItems   = ALL_PEDIDOS_ITEMS.filter(i => canAccess(i.module));
-  const extraItems     = ALL_EXTRA_ITEMS.filter(i => i.module === null || canAccess(i.module));
+  const closeAll = useCallback(() => setOpenHub(null), []);
 
-  const isOperariosActive = operariosItems.some(i => location.pathname.startsWith(i.path));
-  const isPedidosActive   = pedidosItems.some(i => location.pathname.startsWith(i.path));
-  const isExtraActive     = extraItems.some(i => location.pathname.startsWith(i.path));
+  const visibleHubs = HUB_GROUPS.filter(hub => {
+    if (hub.adminOnly && !isAdmin && !isGerencia) return false;
+    return hub.items.some(i => i.module === null || canAccess(i.module));
+  });
 
-  const [showExtra, setShowExtra] = useState(false);
-  const closeAll = useCallback(() => { setShowOperarios(false); setShowPedidos(false); setShowExtra(false); }, []);
-
-  // Tab reset: navigate to last stored path or root of tab, scroll to top
-  const handleReset = useCallback((path) => {
-    closeAll();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    const lastPath = getTabPath(path);
-    navigate(lastPath, { replace: true });
-  }, [navigate, closeAll, getTabPath]);
-
-  const handleNavigate = useCallback((path) => {
-    closeAll();
-    // Save current tab path before navigating to new tab
-    const rootTab = path.split('/')[1] ? '/' + path.split('/')[1] : path;
-    saveTabPath(rootTab, location.pathname);
-    navigate(path);
-  }, [navigate, closeAll, location.pathname, saveTabPath]);
-
-  // Group tab reset: if already on a group tab → navigate to last stored path, else open menu
-  const handleGroupReset = useCallback((items, setShow, otherSet) => {
-    haptic();
-    const groupActive = items.some(i => location.pathname.startsWith(i.path));
-    if (groupActive) {
-      // Reset to last stored path in group
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      const groupTabPath = '/' + items[0].path.split('/')[1];
-      const lastPath = getTabPath(groupTabPath);
-      navigate(lastPath, { replace: true });
-      setShow(false);
-      otherSet(false);
-    } else {
-      setShow(o => !o);
-      otherSet(false);
-    }
-  }, [location.pathname, navigate, getTabPath]);
+  // Show at most 4 hubs in the bottom bar + profile; the rest are in "Más"
+  const MAX_TABS = 4;
+  const pinnedHubs = visibleHubs.slice(0, MAX_TABS);
 
   return (
     <>
       <AnimatePresence>
-        {showOperarios && (
-          <BottomSheet title="Equipos" items={operariosItems} onClose={() => setShowOperarios(false)} saveTabPath={saveTabPath} />
-        )}
-        {showPedidos && (
-          <BottomSheet title="Pedidos y Obras" items={pedidosItems} onClose={() => setShowPedidos(false)} saveTabPath={saveTabPath} />
-        )}
-        {showExtra && (
-          <BottomSheet title="Herramientas" items={extraItems} onClose={() => setShowExtra(false)} saveTabPath={saveTabPath} />
+        {openHub && (
+          <BottomSheet
+            key={openHub.id}
+            hub={openHub}
+            onClose={closeAll}
+            saveTabPath={saveTabPath}
+          />
         )}
       </AnimatePresence>
 
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-md border-t border-border"
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-md border-t border-border"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="flex justify-around items-center h-16 px-1">
-          {mainItems.map(item => {
-            const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+          {/* Dashboard tab */}
+          <button
+            onClick={() => { haptic(); closeAll(); navigate('/'); }}
+            className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all relative min-w-[44px]"
+          >
+            <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center">
+              {location.pathname === '/' && (
+                <motion.div layoutId="nav-pill-dash" className="absolute -inset-1.5 bg-primary/10 rounded-xl" transition={{ type: 'spring', damping: 26, stiffness: 350 }} />
+              )}
+              <LayoutDashboard className={cn('w-5 h-5 relative z-10', location.pathname === '/' ? 'text-primary stroke-[2.5]' : 'text-muted-foreground')} />
+            </motion.div>
+            <span className={cn('text-[9px] font-semibold', location.pathname === '/' ? 'text-primary' : 'text-muted-foreground')}>Panel</span>
+          </button>
+
+          {/* Hub tabs */}
+          {pinnedHubs.map(hub => {
+            const isActive = hub.items.some(i => location.pathname === i.path || (i.path !== '/' && location.pathname.startsWith(i.path)));
+            const isOpen = openHub?.id === hub.id;
             return (
-              <NavItem
-                key={item.path}
-                item={item}
+              <NavTab
+                key={hub.id}
+                icon={hub.icon}
+                label={hub.label}
                 isActive={isActive}
-                onReset={handleReset}
-                onNavigate={handleNavigate}
+                isOpen={isOpen}
+                color={hub.color}
+                onClick={() => setOpenHub(isOpen ? null : hub)}
               />
             );
           })}
 
-          {operariosItems.length > 0 && (
-            <GroupNavItem
-              icon={Users}
-              label="Equipos"
-              isActive={isOperariosActive}
-              isOpen={showOperarios}
-              onClick={() => handleGroupReset(operariosItems, setShowOperarios, setShowPedidos)}
-            />
-          )}
-
-          {pedidosItems.length > 0 && (
-            <GroupNavItem
-              icon={ShoppingCart}
-              label="Pedidos"
-              isActive={isPedidosActive}
-              isOpen={showPedidos}
-              onClick={() => handleGroupReset(pedidosItems, setShowPedidos, setShowOperarios)}
-            />
-          )}
-
-          {extraItems.length > 0 && (
-            <GroupNavItem
-              icon={MessageSquare}
-              label="Más"
-              isActive={isExtraActive}
-              isOpen={showExtra}
-              onClick={() => { haptic(); setShowExtra(o => !o); setShowOperarios(false); setShowPedidos(false); }}
-            />
-          )}
-
-          {/* Profile button */}
+          {/* Profile */}
           <button
             onClick={() => { haptic(); closeAll(); navigate('/profile'); }}
-            className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all relative min-w-[52px]"
+            className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all relative min-w-[44px]"
           >
             <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center">
               {location.pathname === '/profile' && (
-                <motion.div
-                  layoutId="nav-pill-profile"
-                  className="absolute -inset-1.5 bg-primary/12 rounded-xl"
-                  transition={{ type: 'spring', damping: 26, stiffness: 350 }}
-                />
+                <motion.div layoutId="nav-pill-profile" className="absolute -inset-1.5 bg-primary/10 rounded-xl" transition={{ type: 'spring', damping: 26, stiffness: 350 }} />
               )}
-              <UserCircle className={cn('w-5 h-5 relative z-10 transition-all', location.pathname === '/profile' ? 'text-primary stroke-[2.5]' : 'text-muted-foreground')} />
+              <UserCircle className={cn('w-5 h-5 relative z-10', location.pathname === '/profile' ? 'text-primary stroke-[2.5]' : 'text-muted-foreground')} />
             </motion.div>
-            <span className={cn('text-[9px] font-semibold transition-colors', location.pathname === '/profile' ? 'text-primary' : 'text-muted-foreground')}>
-              Perfil
-            </span>
+            <span className={cn('text-[9px] font-semibold', location.pathname === '/profile' ? 'text-primary' : 'text-muted-foreground')}>Perfil</span>
           </button>
         </div>
       </nav>

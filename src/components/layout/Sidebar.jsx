@@ -1,225 +1,247 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3,
-  UserCog, CircleUser, Package, FileImage, ShoppingCart, Clock, Receipt, Car,
-  Building2, BookOpen, CalendarDays, ChevronDown, ChevronRight, Sun, Factory, Settings, FlaskConical, BarChart2,
-  MessageSquare, Truck, Images, PenLine } from
-'lucide-react';
+  LayoutDashboard, HardHat, Users, Receipt, Car, Folder,
+  Settings, CircleUser, ChevronDown, ChevronRight,
+  Building2, Sun, ClipboardList, Package, BarChart2,
+  Clock, CalendarDays, FileImage, BookOpen, Factory,
+  ShoppingCart, Truck, Images, MessageSquare, Database,
+  Shield, PenLine, Wrench
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { useUserRole } from '@/lib/useUserRole';
 
-function NavItem({ item, isActive }) {
-  return (
-    <Link
-      to={item.path}
-      className={cn(
-        'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-        isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-      )}>
-      
-      <item.icon className="w-4 h-4 shrink-0" />
-      {item.label}
-    </Link>);
+// Hub definitions — color is a Tailwind text color class
+export const HUBS = [
+  {
+    id: 'obras',
+    label: 'Obras & Proyectos',
+    icon: Building2,
+    color: 'text-purple-600',
+    activeBg: 'bg-purple-50 dark:bg-purple-950/40',
+    borderColor: 'border-purple-400',
+    items: [
+      { label: 'Obras civiles', path: '/obras', icon: Building2, module: 'obras' },
+      { label: 'Clientes', path: '/clients', icon: Users, module: 'clients' },
+      { label: 'Solar', path: '/solar-pedidos', icon: Sun, module: 'orders' },
+      { label: 'Obras Solar', path: '/solar-obras', icon: Sun, module: 'obras' },
+      { label: 'Partes de trabajo', path: '/work-orders', icon: ClipboardList, module: 'work-orders' },
+      { label: 'Informe Obras', path: '/informe-obras', icon: BarChart2, module: 'informe-obras' },
+    ],
+  },
+  {
+    id: 'personas',
+    label: 'Personas & Equipos',
+    icon: Users,
+    color: 'text-teal-600',
+    activeBg: 'bg-teal-50 dark:bg-teal-950/40',
+    borderColor: 'border-teal-400',
+    items: [
+      { label: 'Operarios', path: '/operarios', icon: Users, module: 'operarios' },
+      { label: 'Control Horario', path: '/control-horario', icon: Clock, module: 'control-horario' },
+      { label: 'Vacaciones', path: '/calendario-vacaciones', icon: CalendarDays, module: 'calendario-vacaciones' },
+      { label: 'Apuntes Horario', path: '/apuntes-horario', icon: PenLine, module: 'apuntes-horario' },
+      { label: 'Documentación', path: '/documentacion-operarios', icon: FileImage, module: 'operarios' },
+    ],
+  },
+  {
+    id: 'economico',
+    label: 'Económico',
+    icon: Receipt,
+    color: 'text-amber-600',
+    activeBg: 'bg-amber-50 dark:bg-amber-950/40',
+    borderColor: 'border-amber-400',
+    items: [
+      { label: 'Notas de Gasto', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
+      { label: 'Pedidos', path: '/orders', icon: ShoppingCart, module: 'orders' },
+      { label: 'Datos Sensibles', path: '/datos-sensibles', icon: Shield, module: 'users' },
+    ],
+  },
+  {
+    id: 'flota',
+    label: 'Flota & Movilidad',
+    icon: Car,
+    color: 'text-blue-600',
+    activeBg: 'bg-blue-50 dark:bg-blue-950/40',
+    borderColor: 'border-blue-400',
+    items: [
+      { label: 'Vehículos', path: '/flota', icon: Truck, module: 'flota' },
+    ],
+  },
+  {
+    id: 'documental',
+    label: 'Documental',
+    icon: Folder,
+    color: 'text-orange-600',
+    activeBg: 'bg-orange-50 dark:bg-orange-950/40',
+    borderColor: 'border-orange-400',
+    items: [
+      { label: 'Planos', path: '/drawings', icon: FileImage, module: 'orders' },
+      { label: 'Manuales', path: '/manuales', icon: BookOpen, module: 'orders' },
+      { label: 'Galería Fotos', path: '/galeria-fotos', icon: Images, module: 'galeria-fotos' },
+      { label: 'Materiales', path: '/materials', icon: Package, module: 'orders' },
+      { label: 'Inventario', path: '/inventario', icon: Wrench, module: 'users' },
+      { label: 'Fabricantes', path: '/fabricantes', icon: Factory, module: 'users' },
+    ],
+  },
+  {
+    id: 'sistema',
+    label: 'Sistema',
+    icon: Settings,
+    color: 'text-slate-600',
+    activeBg: 'bg-slate-50 dark:bg-slate-950/40',
+    borderColor: 'border-slate-400',
+    adminOnly: true,
+    items: [
+      { label: 'Chat', path: '/chat', icon: MessageSquare, module: null },
+      { label: 'Usuarios', path: '/users', icon: Users, module: 'users' },
+      { label: 'Usuarios Demo', path: '/demo-users', icon: Users, module: 'users' },
+      { label: 'Backup', path: '/admin-backup', icon: Database, module: 'users' },
+      { label: 'Informe Mensual', path: '/reports', icon: BarChart2, module: 'reports' },
+    ],
+  },
+];
 
-}
+function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia }) {
+  const items = hub.items.filter(i => i.module === null || canAccess(i.module));
+  const isChildActive = items.some(i => currentPath === i.path || (i.path !== '/' && currentPath.startsWith(i.path)));
+  const [open, setOpen] = useState(isChildActive);
 
-function NavGroup({ icon: GroupIcon, label, children, defaultOpen = false, currentPath }) {
-  const isChildActive = children.some((c) => currentPath === c.path || c.path !== '/' && currentPath.startsWith(c.path));
-  const [open, setOpen] = useState(defaultOpen || isChildActive);
+  if (items.length === 0) return null;
+  if (hub.adminOnly && !isAdmin && !isGerencia) return null;
 
-  if (children.length === 0) return null;
+  const Icon = hub.icon;
 
   return (
     <div>
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen(o => !o)}
         className={cn(
-          'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-          isChildActive ? 'text-primary bg-accent' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-        )}>
-        
-        <GroupIcon className="w-4 h-4 shrink-0" />
-        <span className="flex-1 text-left">{label}</span>
-        {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+          'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all',
+          isChildActive
+            ? cn(hub.activeBg, hub.color)
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+        )}
+      >
+        <Icon className={cn('w-4 h-4 shrink-0', isChildActive ? hub.color : '')} />
+        <span className="flex-1 text-left text-xs">{hub.label}</span>
+        <span className="text-[10px] font-normal bg-muted text-muted-foreground rounded-full w-5 h-5 flex items-center justify-center shrink-0">
+          {items.length}
+        </span>
+        {open
+          ? <ChevronDown className="w-3 h-3 shrink-0" />
+          : <ChevronRight className="w-3 h-3 shrink-0" />}
       </button>
-      {open &&
-      <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-3">
-          {children.map((item) => {
-          const isActive = currentPath === item.path || item.path !== '/' && currentPath.startsWith(item.path);
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                'flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm font-medium transition-all',
-                isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              )}>
-              
+
+      {open && (
+        <div className={cn('ml-3 mt-0.5 mb-1 space-y-0.5 border-l-2 pl-3', hub.borderColor)}>
+          {items.map(item => {
+            const isActive = currentPath === item.path || (item.path !== '/' && currentPath.startsWith(item.path));
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  'flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-medium transition-all',
+                  isActive
+                    ? cn(hub.activeBg, hub.color, 'font-semibold')
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                )}
+              >
                 <item.icon className="w-3.5 h-3.5 shrink-0" />
                 {item.label}
-              </Link>);
-
-        })}
+              </Link>
+            );
+          })}
         </div>
-      }
-    </div>);
-
+      )}
+    </div>
+  );
 }
 
 export default function Sidebar() {
   const location = useLocation();
   const { t, lang, setLang } = useI18n();
-  const { canAccess } = useUserRole();
+  const { canAccess, isAdmin, role } = useUserRole();
   const path = location.pathname;
+  const isGerencia = role === 'gerencia';
 
-  // Top-level items with their required module key
-  const topItems = [
-  { label: t('nav_dashboard'), path: '/', icon: LayoutDashboard, module: null },
-  { label: 'Informe Operarios', path: '/informe-obras', icon: BarChart2, module: 'informe-obras' },
-  { label: t('nav_workorders'), path: '/work-orders', icon: ClipboardList, module: 'work-orders' },
-  { label: t('nav_new_order'), path: '/work-orders/new', icon: Plus, module: 'work-orders' },
-  { label: t('nav_clients'), path: '/clients', icon: UserCog, module: 'clients' }].
-  filter((i) => i.module === null || canAccess(i.module));
-
-  // Equipos group — each item has a module guard
-  const operariosItems = [
-  { label: 'Operarios', path: '/operarios', icon: Users, module: 'operarios' },
-  { label: 'Documentación', path: '/documentacion-operarios', icon: FileImage, module: 'operarios' },
-  { label: 'Registros de Gasto', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
-  { label: 'Vacaciones', path: '/calendario-vacaciones', icon: CalendarDays, module: 'calendario-vacaciones' },
-  { label: 'Control Horario', path: '/control-horario', icon: Clock, module: 'control-horario' }].
-  filter((i) => canAccess(i.module));
-
-  // Gestión group
-  const pedidosItems = [
-  { label: 'Obras', path: '/obras', icon: Building2, module: 'obras' },
-  { label: 'Planos', path: '/drawings', icon: FileImage, module: 'orders' },
-  { label: 'Manuales', path: '/manuales', icon: BookOpen, module: 'orders' },
-  { label: 'Fabricantes', path: '/fabricantes', icon: Factory, module: 'users' },
-  { label: 'Pedidos', path: '/orders', icon: ShoppingCart, module: 'orders' },
-  { label: 'Materiales', path: '/materials', icon: Package, module: 'orders' }].
-  filter((i) => canAccess(i.module));
-
-  const solarItems = [
-  { label: 'Pedidos Solar', path: '/solar-pedidos', icon: ShoppingCart, module: 'orders' },
-  { label: 'Obras Solar', path: '/solar-obras', icon: Building2, module: 'obras' }].
-  filter((i) => canAccess(i.module));
-
-  const adminItems = [
-  { label: 'Usuarios', path: '/users', icon: Users, module: 'users' },
-  { label: 'Usuarios Demo', path: '/demo-users', icon: FlaskConical, module: 'users' },
-  { label: 'Datos Sensibles', path: '/datos-sensibles', icon: Settings, module: 'users' },
-  { label: 'Inventario', path: '/inventario', icon: Package, module: 'users' },
-  { label: 'Flota', path: '/flota', icon: Car, module: 'flota' },
-  { label: 'Informe Mensual', path: '/reports', icon: BarChart3, module: 'reports' }].
-  filter((i) => canAccess(i.module));
+  const isDashboard = path === '/';
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card h-screen sticky top-0">
-      <div className="p-6 border-b border-border">
+    <aside className="hidden lg:flex flex-col w-60 border-r border-border bg-card h-screen sticky top-0">
+      {/* Logo */}
+      <div className="px-5 py-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <HardHat className="w-5 h-5 text-primary-foreground bg-[hsl(var(--primary))]" />
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+            <HardHat className="w-4 h-4 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="tracking-tight leading-tight text-lg font-extrabold text-justify uppercase bg-[hsl(var(--background))] text-emerald-600 px-3 px-2">SIMANTEC</h1>
-            <p className="text-xs text-muted-foreground leading-tight">Gestión Empresarial</p>
+            <h1 className="text-sm font-extrabold uppercase tracking-tight text-emerald-600">SIMANTEC</h1>
+            <p className="text-[10px] text-muted-foreground leading-tight">Gestión Empresarial</p>
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {topItems.map((item) => {
-          const isActive = path === item.path || item.path !== '/' && path.startsWith(item.path);
-          return <NavItem key={item.path} item={item} isActive={isActive} />;
-        })}
+      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+        {/* Dashboard */}
+        <Link
+          to="/"
+          className={cn(
+            'flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all mb-2',
+            isDashboard ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          )}
+        >
+          <LayoutDashboard className="w-4 h-4 shrink-0" />
+          Panel General
+        </Link>
 
-        {operariosItems.length > 0 &&
-        <div className="pt-2">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Equipos</p>
-            <NavGroup icon={Users} label="Operarios" currentPath={path} defaultOpen={operariosItems.some((i) => path.startsWith(i.path))}>
-              {operariosItems}
-            </NavGroup>
-          </div>
-        }
+        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest px-1 pb-1">Módulos</p>
 
-        {pedidosItems.length > 0 &&
-        <div className="pt-2">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Gestión</p>
-            <NavGroup icon={ShoppingCart} label="Pedidos y Obras" currentPath={path} defaultOpen={pedidosItems.some((i) => path.startsWith(i.path))}>
-              {pedidosItems}
-            </NavGroup>
-          </div>
-        }
-
-        {solarItems.length > 0 &&
-        <div className="pt-2">
-            <NavGroup icon={Sun} label="Solar" currentPath={path} defaultOpen={solarItems.some((i) => path.startsWith(i.path))}>
-              {solarItems}
-            </NavGroup>
-          </div>
-        }
-
-        {adminItems.length > 0 &&
-        <div className="pt-2">
-            <NavGroup icon={Settings} label="Administración" currentPath={path} defaultOpen={adminItems.some((i) => path.startsWith(i.path))}>
-              {adminItems}
-            </NavGroup>
-          </div>
-        }
-
-        {/* Herramientas group */}
-        {(() => {
-          const herramientasItems = [
-            { label: 'Chat', path: '/chat', icon: MessageSquare, module: null },
-            { label: 'Galería Fotos', path: '/galeria-fotos', icon: Images, module: 'galeria-fotos' },
-            { label: 'Apuntes Horario', path: '/apuntes-horario', icon: PenLine, module: 'apuntes-horario' },
-          ].filter(i => i.module === null || canAccess(i.module));
-          if (herramientasItems.length === 0) return null;
-          return (
-            <div className="pt-2">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1">Herramientas</p>
-              <NavGroup icon={MessageSquare} label="Herramientas" currentPath={path} defaultOpen={herramientasItems.some(i => path.startsWith(i.path))}>
-                {herramientasItems}
-              </NavGroup>
-            </div>
-          );
-        })()}
+        {HUBS.map(hub => (
+          <HubGroup
+            key={hub.id}
+            hub={hub}
+            currentPath={path}
+            canAccess={canAccess}
+            isAdmin={isAdmin}
+            isGerencia={isGerencia}
+          />
+        ))}
       </nav>
 
       {/* Language selector */}
-      <div className="px-4 pb-2">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">Idioma</p>
+      <div className="px-3 pb-2">
         <div className="flex gap-1">
-          {[['es', '🇪🇸 ES'], ['en', '🇬🇧 EN'], ['fr', '🇫🇷 FR']].map(([code, label]) =>
-          <button
-            key={code}
-            onClick={() => setLang(code)}
-            className={cn(
-              'flex-1 text-xs py-1.5 rounded-lg font-medium transition-colors',
-              lang === code ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            )}>
-            
-              {label}
+          {[['es', '🇪🇸'], ['en', '🇬🇧'], ['fr', '🇫🇷']].map(([code, flag]) => (
+            <button
+              key={code}
+              onClick={() => setLang(code)}
+              className={cn(
+                'flex-1 text-xs py-1 rounded-md font-medium transition-colors',
+                lang === code ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              )}
+            >
+              {flag}
             </button>
-          )}
+          ))}
         </div>
       </div>
 
-      <div className="p-4 border-t border-border">
+      {/* Profile */}
+      <div className="px-3 pb-4 border-t border-border pt-3">
         <Link
           to="/profile"
           className={cn(
-            'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-            path === '/profile' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-          )}>
-          
+            'flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all',
+            path === '/profile' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          )}
+        >
           <CircleUser className="w-4 h-4" />
           {t('nav_profile')}
         </Link>
       </div>
-    </aside>);
-
+    </aside>
+  );
 }
