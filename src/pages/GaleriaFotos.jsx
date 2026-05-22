@@ -30,6 +30,7 @@ export default function GaleriaFotos() {
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [filterOperario, setFilterOperario] = useState('');
+  const [filterObra, setFilterObra] = useState('');
   const [selectedFoto, setSelectedFoto] = useState(null);
 
   const { data: fotos = [], isLoading } = useQuery({
@@ -40,6 +41,8 @@ export default function GaleriaFotos() {
   const operarios = [...new Set(fotos.map(f => f.operario_name).filter(Boolean))];
   const proyectos = [...new Set(fotos.map(f => f.proyecto_name).filter(Boolean))];
 
+  const obras = [...new Set(fotos.map(f => f.proyecto_name).filter(Boolean))].sort();
+
   const filtradas = fotos.filter(f => {
     const matchSearch = !search || 
       f.titulo?.toLowerCase().includes(search.toLowerCase()) ||
@@ -47,7 +50,8 @@ export default function GaleriaFotos() {
       f.operario_name?.toLowerCase().includes(search.toLowerCase());
     const matchCat = !filterCat || f.categoria === filterCat;
     const matchOp = !filterOperario || f.operario_name === filterOperario;
-    return matchSearch && matchCat && matchOp;
+    const matchObra = !filterObra || f.proyecto_name === filterObra;
+    return matchSearch && matchCat && matchOp && matchObra;
   });
 
   return (
@@ -89,8 +93,14 @@ export default function GaleriaFotos() {
             {operarios.map(op => <MobileSelectItem key={op} value={op}>{op}</MobileSelectItem>)}
           </MobileSelect>
         )}
-        {(filterCat || filterOperario || search) && (
-          <Button variant="ghost" size="sm" onClick={() => { setFilterCat(''); setFilterOperario(''); setSearch(''); }}>
+        {obras.length > 0 && (
+          <MobileSelect value={filterObra} onValueChange={setFilterObra} placeholder="Todas las obras" triggerClassName="min-w-[140px]">
+            <MobileSelectItem value="">Todas las obras</MobileSelectItem>
+            {obras.map(ob => <MobileSelectItem key={ob} value={ob}>{ob}</MobileSelectItem>)}
+          </MobileSelect>
+        )}
+        {(filterCat || filterOperario || filterObra || search) && (
+          <Button variant="ghost" size="sm" onClick={() => { setFilterCat(''); setFilterOperario(''); setFilterObra(''); setSearch(''); }}>
             <X className="w-3.5 h-3.5 mr-1" /> Limpiar
           </Button>
         )}

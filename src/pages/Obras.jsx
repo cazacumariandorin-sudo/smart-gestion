@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Pencil, Trash2, Building2, Save, Loader2, Calendar, Euro, Package, X } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Building2, Save, Loader2, Calendar, Euro, Package, X, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import ObraMaterialesPanel from '@/components/obras/ObraMaterialesPanel';
+import ObraFotosPanel from '@/components/obras/ObraFotosPanel';
 
 const STATUS_CFG = {
   activa: { label: 'Activa', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -191,10 +192,11 @@ export default function Obras() {
             </div>
           </DialogHeader>
           {detailObra && (
-            <Tabs defaultValue="materiales">
+            <Tabs defaultValue="fotos">
               <TabsList className="mb-4">
                 <TabsTrigger value="info" className="gap-1.5 text-xs"><Building2 className="w-3.5 h-3.5" /> Info</TabsTrigger>
                 <TabsTrigger value="materiales" className="gap-1.5 text-xs"><Package className="w-3.5 h-3.5" /> Materiales</TabsTrigger>
+                <TabsTrigger value="fotos" className="gap-1.5 text-xs"><Camera className="w-3.5 h-3.5" /> Fotos</TabsTrigger>
               </TabsList>
               <TabsContent value="info">
                 <div className="space-y-2 text-sm">
@@ -209,6 +211,9 @@ export default function Obras() {
               </TabsContent>
               <TabsContent value="materiales">
                 <ObraMaterialesPanel obra={detailObra} />
+              </TabsContent>
+              <TabsContent value="fotos">
+                <ObraFotosPanel obra={detailObra} />
               </TabsContent>
             </Tabs>
           )}
