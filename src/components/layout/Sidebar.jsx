@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3, Camera,
+  LayoutDashboard, ClipboardList, Plus, HardHat, Users, BarChart3,
   UserCog, CircleUser, Package, FileImage, ShoppingCart, Clock, Receipt, Car,
   Building2, BookOpen, CalendarDays, ChevronDown, ChevronRight, Sun, Factory, Settings, FlaskConical, BarChart2,
   MessageSquare, Truck, Images, PenLine } from
@@ -80,7 +80,6 @@ export default function Sidebar() {
   { label: 'Informe Operarios', path: '/informe-obras', icon: BarChart2, module: 'informe-obras' },
   { label: t('nav_workorders'), path: '/work-orders', icon: ClipboardList, module: 'work-orders' },
   { label: t('nav_new_order'), path: '/work-orders/new', icon: Plus, module: 'work-orders' },
-  { label: t('nav_photos'), path: '/photos', icon: Camera, module: 'photos' },
   { label: t('nav_clients'), path: '/clients', icon: UserCog, module: 'clients' }].
   filter((i) => i.module === null || canAccess(i.module));
 

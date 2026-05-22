@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Package, BarChart2, UserCircle, Camera, UserCog, Factory, Sun, Receipt, MessageSquare, Truck, Images, PenLine } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Users, ShoppingCart, Clock, X, CalendarDays, Building2, BookOpen, FileImage, Package, BarChart2, UserCircle, UserCog, Factory, Sun, Receipt, MessageSquare, Truck, Images, PenLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserRole } from '@/lib/useUserRole';
@@ -31,7 +31,6 @@ const ALL_EXTRA_ITEMS = [
 const ALL_PEDIDOS_ITEMS = [
   { path: '/obras',         icon: Building2,   label: 'Obras',      module: 'obras' },
   { path: '/clients',       icon: UserCog,     label: 'Clientes',   module: 'clients' },
-  { path: '/photos',        icon: Camera,      label: 'Fotos',      module: 'photos' },
   { path: '/orders',        icon: ShoppingCart,label: 'Pedidos',    module: 'orders' },
   { path: '/materials',     icon: Package,     label: 'Materiales', module: 'orders' },
   { path: '/manuales',      icon: BookOpen,    label: 'Manuales',   module: 'orders' },
