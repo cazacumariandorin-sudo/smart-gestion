@@ -1,0 +1,197 @@
+{
+  "name": "ViajeVehiculo",
+  "type": "object",
+  "properties": {
+    "coste_combustible_estimado": {
+      "description": "Coste estimado en combustible (\u20ac)",
+      "type": "number"
+    },
+    "distancia_km": {
+      "description": "Distancia recorrida en km",
+      "type": "number"
+    },
+    "duracion_minutos": {
+      "description": "Duraci\u00f3n total del viaje en minutos",
+      "type": "number"
+    },
+    "fecha": {
+      "description": "Fecha del viaje",
+      "format": "date",
+      "type": "string"
+    },
+    "fin_direccion": {
+      "description": "Direcci\u00f3n de destino",
+      "type": "string"
+    },
+    "fin_lat": {
+      "description": "Latitud de destino",
+      "type": "number"
+    },
+    "fin_lng": {
+      "description": "Longitud de destino",
+      "type": "number"
+    },
+    "hora_fin": {
+      "description": "Hora de llegada (HH:MM)",
+      "type": "string"
+    },
+    "hora_inicio": {
+      "description": "Hora de salida (HH:MM)",
+      "type": "string"
+    },
+    "inicio_direccion": {
+      "description": "Direcci\u00f3n de origen",
+      "type": "string"
+    },
+    "inicio_lat": {
+      "description": "Latitud de origen",
+      "type": "number"
+    },
+    "inicio_lng": {
+      "description": "Longitud de origen",
+      "type": "number"
+    },
+    "km_fin": {
+      "description": "Km del veh\u00edculo al finalizar",
+      "type": "number"
+    },
+    "km_inicio": {
+      "description": "Km del veh\u00edculo al iniciar",
+      "type": "number"
+    },
+    "notas": {
+      "description": "Observaciones del conductor",
+      "type": "string"
+    },
+    "operario_id": {
+      "description": "ID del conductor",
+      "type": "string"
+    },
+    "operario_name": {
+      "description": "Nombre del conductor",
+      "type": "string"
+    },
+    "proyecto_id": {
+      "description": "ID del proyecto al que se vincula este viaje",
+      "type": "string"
+    },
+    "proyecto_nombre": {
+      "description": "Nombre del proyecto",
+      "type": "string"
+    },
+    "tipo_viaje": {
+      "default": "proyecto",
+      "description": "Tipo de viaje",
+      "enum": [
+        "proyecto",
+        "compras",
+        "oficina",
+        "traslado",
+        "otro"
+      ],
+      "type": "string"
+    },
+    "validado": {
+      "default": false,
+      "description": "Si el admin ha validado el viaje",
+      "type": "boolean"
+    },
+    "validado_por": {
+      "description": "Email del usuario que valid\u00f3",
+      "type": "string"
+    },
+    "vehiculo_id": {
+      "description": "ID del veh\u00edculo",
+      "type": "string"
+    },
+    "vehiculo_matricula": {
+      "description": "Matr\u00edcula del veh\u00edculo",
+      "type": "string"
+    },
+    "velocidad_maxima": {
+      "description": "Velocidad m\u00e1xima registrada en el viaje (km/h)",
+      "type": "number"
+    },
+    "velocidad_media": {
+      "description": "Velocidad media del viaje (km/h)",
+      "type": "number"
+    }
+  },
+  "required": [
+    "vehiculo_id",
+    "vehiculo_matricula",
+    "fecha",
+    "hora_inicio"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "control_horario"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    }
+  }
+}

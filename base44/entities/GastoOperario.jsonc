@@ -30,7 +30,7 @@
         "peaje",
         "parking"
       ],
-      "description": "Categor\u00eda del gasto \u2014 los adelantos se gestionan en entidad separada"
+      "description": "Categor\u00eda del gasto"
     },
     "importe": {
       "type": "number",
@@ -48,7 +48,7 @@
     },
     "ticket_url": {
       "type": "string",
-      "description": "URL foto ticket/factura \u2014 obligatorio para combustible, comida, material, peaje, parking"
+      "description": "URL foto ticket/factura"
     },
     "ticket_requerido": {
       "type": "boolean",
@@ -86,7 +86,7 @@
         "rechazado"
       ],
       "default": "pendiente",
-      "description": "Estado de aprobaci\u00f3n del gasto por el responsable"
+      "description": "Estado de aprobaci\u00f3n del gasto"
     },
     "aprobado_por": {
       "type": "string",
@@ -124,6 +124,11 @@
         },
         {
           "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         },
@@ -137,6 +142,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
           }
         },
         {

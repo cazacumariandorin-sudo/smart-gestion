@@ -21,7 +21,7 @@
         "sin_salida",
         "sin_fichaje"
       ],
-      "description": "Tipo de alerta: sin_salida = entrada sin salida, sin_fichaje = no fich\u00f3 en d\u00eda laboral"
+      "description": "Tipo de alerta"
     },
     "descripcion": {
       "type": "string",
@@ -35,7 +35,7 @@
     "resuelto": {
       "type": "boolean",
       "default": false,
-      "description": "Si se resolvi\u00f3 manualmente (fichaje registrado)"
+      "description": "Si se resolvi\u00f3 manualmente"
     }
   },
   "required": [
@@ -48,14 +48,32 @@
       "data.operario_id": "{{user.id}}"
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
     },
     "delete": {
       "user_condition": {

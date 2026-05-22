@@ -1,5 +1,6 @@
 {
   "name": "WorkPhoto",
+  "type": "object",
   "properties": {
     "caption": {
       "type": "string"
@@ -38,6 +39,11 @@
         },
         {
           "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         },
@@ -53,6 +59,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
           }
         },
         {
@@ -76,6 +87,11 @@
         },
         {
           "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         }
@@ -86,6 +102,5 @@
         "role": "admin"
       }
     }
-  },
-  "type": "object"
+  }
 }

@@ -1,5 +1,6 @@
 {
   "name": "Vacacion",
+  "type": "object",
   "properties": {
     "aprobado": {
       "default": false,
@@ -50,6 +51,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
           "created_by": "{{user.email}}"
         }
       ]
@@ -62,6 +68,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
           "created_by": "{{user.email}}"
         }
       ]
@@ -71,6 +82,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
           }
         },
         {
@@ -97,6 +113,5 @@
         }
       ]
     }
-  },
-  "type": "object"
+  }
 }

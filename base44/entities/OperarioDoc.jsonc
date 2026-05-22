@@ -26,7 +26,7 @@
         "doc_empresa"
       ],
       "default": "doc_operario",
-      "description": "Tipo: doc_operario=propio operario, doc_obra=documentaci\u00f3n de obra, doc_empresa=documento empresa para firmar"
+      "description": "Tipo de documento"
     },
     "categoria": {
       "type": "string",
@@ -84,6 +84,11 @@
         },
         {
           "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         }
@@ -94,6 +99,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
           }
         },
         {
@@ -111,6 +121,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
           }
         },
         {

@@ -1,0 +1,132 @@
+{
+  "name": "CosteFletaProyecto",
+  "type": "object",
+  "properties": {
+    "coste_combustible_total": {
+      "description": "Coste total en combustible (\u20ac)",
+      "type": "number"
+    },
+    "coste_por_km": {
+      "description": "Coste por km usado para el c\u00e1lculo (\u20ac/km)",
+      "type": "number"
+    },
+    "coste_total_estimado": {
+      "description": "Coste total estimado de desplazamientos (\u20ac)",
+      "type": "number"
+    },
+    "fecha_calculo": {
+      "description": "Fecha del \u00faltimo c\u00e1lculo",
+      "format": "date",
+      "type": "string"
+    },
+    "km_totales": {
+      "description": "Km totales acumulados en el proyecto",
+      "type": "number"
+    },
+    "mes": {
+      "description": "Mes del c\u00e1lculo (YYYY-MM)",
+      "type": "string"
+    },
+    "num_viajes": {
+      "description": "N\u00famero de viajes al proyecto",
+      "type": "number"
+    },
+    "proyecto_id": {
+      "description": "ID del proyecto",
+      "type": "string"
+    },
+    "proyecto_nombre": {
+      "description": "Nombre del proyecto",
+      "type": "string"
+    },
+    "vehiculos_implicados": {
+      "description": "Matr\u00edculas de veh\u00edculos que han ido a este proyecto",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "proyecto_id",
+    "mes"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    }
+  }
+}

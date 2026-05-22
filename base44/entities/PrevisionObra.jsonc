@@ -83,6 +83,11 @@
         },
         {
           "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         }
@@ -97,24 +102,13 @@
         },
         {
           "user_condition": {
-            "role": "jefe_obra"
+            "role": "director_comercial"
           }
         },
         {
-          "$and": [
-            {
-              "user_condition": {
-                "role": "operario"
-              }
-            },
-            {
-              "data.operarios_asignados": {
-                "$elemMatch": {
-                  "operario_name": "{{user.full_name}}"
-                }
-              }
-            }
-          ]
+          "user_condition": {
+            "role": "jefe_obra"
+          }
         }
       ]
     },
@@ -123,6 +117,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
           }
         },
         {

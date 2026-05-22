@@ -39,7 +39,7 @@
     },
     "referencia_id": {
       "type": "string",
-      "description": "ID del registro relacionado (WorkOrder, NotaGasto, Presupuesto, etc.)"
+      "description": "ID del registro relacionado"
     },
     "referencia_tipo": {
       "type": "string",
@@ -150,6 +150,11 @@
         },
         {
           "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -173,6 +178,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
           }
         },
         {

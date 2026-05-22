@@ -86,7 +86,7 @@
     },
     "telematica_id": {
       "type": "string",
-      "description": "ID del veh\u00edculo en sistema telem\u00e1tico (Geotab/Verizon)"
+      "description": "ID del veh\u00edculo en sistema telem\u00e1tico"
     },
     "telematica_proveedor": {
       "type": "string",
@@ -141,7 +141,7 @@
     },
     "velocidad_actual": {
       "type": "number",
-      "description": "Velocidad actual km/h (en tiempo real si hay telem\u00e1tica)"
+      "description": "Velocidad actual km/h"
     },
     "proyecto_actual_id": {
       "type": "string",
@@ -158,7 +158,42 @@
   ],
   "rls": {
     "create": {
-      "created_by": "{{user.email}}"
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
     },
     "update": {
       "$or": [
@@ -169,7 +204,7 @@
         },
         {
           "user_condition": {
-            "role": "admin"
+            "role": "director_comercial"
           }
         }
       ]

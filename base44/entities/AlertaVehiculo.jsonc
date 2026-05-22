@@ -1,0 +1,164 @@
+{
+  "name": "AlertaVehiculo",
+  "type": "object",
+  "properties": {
+    "descripcion": {
+      "description": "Descripci\u00f3n detallada de la alerta",
+      "type": "string"
+    },
+    "fecha": {
+      "description": "Fecha de la alerta",
+      "format": "date",
+      "type": "string"
+    },
+    "fecha_resolucion": {
+      "description": "Fecha en que se resolvi\u00f3",
+      "format": "date",
+      "type": "string"
+    },
+    "km_actuales": {
+      "description": "Km del veh\u00edculo cuando se gener\u00f3 la alerta",
+      "type": "number"
+    },
+    "km_limite": {
+      "description": "Km l\u00edmite que activ\u00f3 la alerta",
+      "type": "number"
+    },
+    "notas_resolucion": {
+      "description": "Notas al resolver",
+      "type": "string"
+    },
+    "resuelta": {
+      "default": false,
+      "description": "Si la alerta ha sido atendida",
+      "type": "boolean"
+    },
+    "resuelta_por": {
+      "description": "Email del usuario que resolvi\u00f3",
+      "type": "string"
+    },
+    "tipo": {
+      "description": "Tipo de alerta",
+      "enum": [
+        "itv_proxima",
+        "itv_caducada",
+        "aceite_km",
+        "aceite_fecha",
+        "neumaticos_km",
+        "filtros_km",
+        "filtros_fecha",
+        "ac_revision",
+        "velocidad_exceso",
+        "mantenimiento_general"
+      ],
+      "type": "string"
+    },
+    "urgencia": {
+      "default": "media",
+      "description": "Nivel de urgencia",
+      "enum": [
+        "baja",
+        "media",
+        "alta",
+        "critica"
+      ],
+      "type": "string"
+    },
+    "vehiculo_id": {
+      "description": "ID del veh\u00edculo",
+      "type": "string"
+    },
+    "vehiculo_matricula": {
+      "description": "Matr\u00edcula del veh\u00edculo",
+      "type": "string"
+    },
+    "vehiculo_modelo": {
+      "description": "Modelo del veh\u00edculo",
+      "type": "string"
+    }
+  },
+  "required": [
+    "vehiculo_id",
+    "vehiculo_matricula",
+    "tipo",
+    "fecha"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    }
+  }
+}
