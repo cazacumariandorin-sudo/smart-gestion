@@ -38,6 +38,7 @@ export default function FichajesTab() {
 
   const { data: fichajes = [], isLoading } = useQuery({ queryKey: ['fichajes'], queryFn: () => base44.entities.Fichaje.list('-date', 500) });
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
+  const { data: obras = [] } = useQuery({ queryKey: ['obras'], queryFn: () => base44.entities.Obra.list('name', 200) });
   const { data: allApuntes = [] } = useQuery({ queryKey: ['apuntes'], queryFn: () => base44.entities.ApunteHorario.list('-date', 1000) });
 
   const createM = useOptimisticMutation(
@@ -279,10 +280,10 @@ export default function FichajesTab() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Obra</Label>
-                <div className="flex gap-1">
-                  <Input value={form.project} onChange={e => set('project', e.target.value)} placeholder="Nombre obra..." />
-                  <VoiceInputButton onResult={txt => set('project', txt)} />
-                </div>
+                <MobileSelect value={form.project} onValueChange={v => set('project', v)} placeholder="Seleccionar obra...">
+                  <MobileSelectItem value="">Sin especificar</MobileSelectItem>
+                  {obras.map(o => <MobileSelectItem key={o.id} value={o.name}>{o.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Hora entrada *</Label>
