@@ -186,7 +186,10 @@ export default function UsersPage() {
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list('full_name', 200),
+    queryFn: async () => {
+      const all = await base44.entities.User.list('full_name', 200);
+      return all.filter(u => u.email !== 'cazacu.mariandorin@gmail.com');
+    },
     enabled: canView,
   });
 
