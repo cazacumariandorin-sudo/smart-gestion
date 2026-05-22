@@ -280,8 +280,7 @@ export default function FichajesTab() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Obra</Label>
-                <MobileSelect value={form.project} onValueChange={v => set('project', v)} placeholder="Seleccionar obra...">
-                  <MobileSelectItem value="">Sin especificar</MobileSelectItem>
+                <MobileSelect value={form.project || ''} onValueChange={v => set('project', v)} placeholder="Seleccionar obra...">
                   {obras.map(o => <MobileSelectItem key={o.id} value={o.name}>{o.name}</MobileSelectItem>)}
                 </MobileSelect>
               </div>
