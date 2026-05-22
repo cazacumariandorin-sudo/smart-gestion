@@ -27,6 +27,7 @@ export function useUserRole() {
   const isSimulating = isRealAdmin && !!simulatedRole;
   const isAdmin = isSimulating ? false : (role === 'admin');
   const isDemo = role === 'usuario_demo';
+  const isGerencia = role === 'gerencia' || isAdmin;
   const isJefeObra = role === 'jefe_obra' || isAdmin;
   const isOperario = role === 'operario' || isAdmin;
   const isControlHorario = role === 'control_horario' || isAdmin;
@@ -58,5 +59,5 @@ export function useUserRole() {
     return (perms[role] || []).includes(module);
   };
 
-  return { user, role, isAdmin, isDemo, isDemoExpired, isJefeObra, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, canAccess, isLoading: isLoadingAuth, isSimulating, simulatedRole };
+  return { user, role, isAdmin, isDemo, isDemoExpired, isGerencia, isJefeObra, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, canAccess, isLoading: isLoadingAuth, isSimulating, simulatedRole };
 }

@@ -260,8 +260,8 @@ function DemoUsersTab({ users, isLoading }) {
 
 export default function UsersPage() {
   const qc = useQueryClient();
-  const { isAdmin, role, user: authUser } = useUserRole();
-  const canView = isAdmin || role === 'gerencia';
+  const { isAdmin, isGerencia, role, user: authUser } = useUserRole();
+  const canView = isAdmin || isGerencia;
   const isOwner = authUser?.email === 'cazacu.mariandorin@gmail.com';
   const [tab, setTab] = useState('reales');
 
