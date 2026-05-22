@@ -3,20 +3,16 @@
   "type": "object",
   "properties": {
     "operario_id": {
-      "type": "string",
-      "description": "ID del operario"
+      "type": "string"
     },
     "operario_name": {
-      "type": "string",
-      "description": "Nombre del operario"
+      "type": "string"
     },
     "obra_id": {
-      "type": "string",
-      "description": "ID de la obra (si aplica)"
+      "type": "string"
     },
     "obra_name": {
-      "type": "string",
-      "description": "Nombre de la obra"
+      "type": "string"
     },
     "tipo": {
       "type": "string",
@@ -25,48 +21,38 @@
         "doc_obra",
         "doc_empresa"
       ],
-      "default": "doc_operario",
-      "description": "Tipo de documento"
+      "default": "doc_operario"
     },
     "categoria": {
-      "type": "string",
-      "description": "Categor\u00eda del documento"
+      "type": "string"
     },
     "title": {
-      "type": "string",
-      "description": "T\u00edtulo del documento"
+      "type": "string"
     },
     "date": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha del documento"
+      "format": "date"
     },
     "expiry_date": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha de caducidad"
+      "format": "date"
     },
     "file_url": {
-      "type": "string",
-      "description": "URL del archivo"
+      "type": "string"
     },
     "firma_url": {
-      "type": "string",
-      "description": "URL imagen firma del operario"
+      "type": "string"
     },
     "fecha_firma": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha en que fue firmado"
+      "format": "date"
     },
     "firmado": {
       "type": "boolean",
-      "default": false,
-      "description": "Si el operario ha firmado el documento"
+      "default": false
     },
     "notes": {
-      "type": "string",
-      "description": "Observaciones"
+      "type": "string"
     }
   },
   "required": [
@@ -90,6 +76,11 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "usuario_demo"
           }
         }
       ]

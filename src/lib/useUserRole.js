@@ -26,14 +26,23 @@ export function useUserRole() {
   // When simulating, treat the simulated role as-is (no admin override)
   const isSimulating = isRealAdmin && !!simulatedRole;
   const isAdmin = isSimulating ? false : (role === 'admin');
+  const isDemo = role === 'usuario_demo';
   const isJefeObra = role === 'jefe_obra' || isAdmin;
   const isOperario = role === 'operario' || isAdmin;
   const isControlHorario = role === 'control_horario' || isAdmin;
   const isControlHorarioOnly = role === 'control_horario' && !isAdmin;
   const isClienteObra = role === 'cliente_obra';
 
+  // Check if demo account is expired
+  const isDemoExpired = isDemo && user?.demo_expires_at
+    ? new Date(user.demo_expires_at) < new Date()
+    : false;
+
+  const DEMO_MODULES = ['dashboard', 'work-orders', 'clients', 'obras', 'orders', 'drawings', 'manuales', 'notas-gastos', 'flota', 'galeria-fotos'];
+
   const canAccess = (module) => {
     if (isAdmin) return true;
+    if (isDemo) return DEMO_MODULES.includes(module);
 
     const ALL_MODULES = ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'users', 'materials', 'drawings', 'orders', 'operarios', 'control-horario', 'obras', 'calendario-vacaciones', 'manuales', 'informe-obras', 'fabricantes', 'admin-backup', 'datos-sensibles', 'demo-users', 'solar-pedidos', 'inventario', 'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos', 'apuntes-horario'];
 
@@ -49,5 +58,5 @@ export function useUserRole() {
     return (perms[role] || []).includes(module);
   };
 
-  return { user, role, isAdmin, isJefeObra, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, canAccess, isLoading: isLoadingAuth, isSimulating, simulatedRole };
+  return { user, role, isAdmin, isDemo, isDemoExpired, isJefeObra, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, canAccess, isLoading: isLoadingAuth, isSimulating, simulatedRole };
 }

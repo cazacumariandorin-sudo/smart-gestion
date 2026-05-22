@@ -124,6 +124,11 @@
           "user_condition": {
             "role": "operario"
           }
+        },
+        {
+          "user_condition": {
+            "role": "usuario_demo"
+          }
         }
       ]
     },
@@ -148,6 +153,18 @@
           "user_condition": {
             "role": "operario"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         }
       ]
     },

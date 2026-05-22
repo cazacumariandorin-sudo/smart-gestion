@@ -36,57 +36,45 @@
       "description": "Fecha caducidad ITV"
     },
     "neumaticos_km": {
-      "type": "number",
-      "description": "Km en \u00faltimo cambio neum\u00e1ticos"
+      "type": "number"
     },
     "neumaticos_km_cambio": {
-      "type": "number",
-      "description": "Km previstos pr\u00f3ximo cambio"
+      "type": "number"
     },
     "neumaticos_fecha_ultimo": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha \u00faltimo cambio neum\u00e1ticos"
+      "format": "date"
     },
     "aceite_fecha": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha pr\u00f3ximo cambio aceite"
+      "format": "date"
     },
     "aceite_km": {
-      "type": "number",
-      "description": "Km pr\u00f3ximo cambio aceite"
+      "type": "number"
     },
     "filtros_fecha": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha pr\u00f3ximo cambio filtros"
+      "format": "date"
     },
     "filtros_km": {
-      "type": "number",
-      "description": "Km pr\u00f3ximo cambio filtros"
+      "type": "number"
     },
     "ac_fecha": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha revisi\u00f3n aire acondicionado"
+      "format": "date"
     },
     "km_actuales": {
-      "type": "number",
-      "description": "Km actuales del veh\u00edculo"
+      "type": "number"
     },
     "alertas_email": {
-      "type": "string",
-      "description": "Emails para alertas (separados por coma)"
+      "type": "string"
     },
     "alertas_activas": {
       "type": "boolean",
-      "default": true,
-      "description": "Activar alertas por email"
+      "default": true
     },
     "telematica_id": {
-      "type": "string",
-      "description": "ID del veh\u00edculo en sistema telem\u00e1tico"
+      "type": "string"
     },
     "telematica_proveedor": {
       "type": "string",
@@ -96,38 +84,30 @@
         "manual",
         "otro"
       ],
-      "default": "manual",
-      "description": "Proveedor de telem\u00e1tica"
+      "default": "manual"
     },
     "telematica_activa": {
       "type": "boolean",
-      "default": false,
-      "description": "Si tiene telem\u00e1tica conectada"
+      "default": false
     },
     "ultima_posicion_lat": {
-      "type": "number",
-      "description": "\u00daltima latitud conocida"
+      "type": "number"
     },
     "ultima_posicion_lng": {
-      "type": "number",
-      "description": "\u00daltima longitud conocida"
+      "type": "number"
     },
     "ultima_posicion_fecha": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha/hora \u00faltima posici\u00f3n"
+      "format": "date-time"
     },
     "ultima_posicion_direccion": {
-      "type": "string",
-      "description": "Direcci\u00f3n aproximada \u00faltima posici\u00f3n"
+      "type": "string"
     },
     "km_mes_actual": {
-      "type": "number",
-      "description": "Km acumulados en el mes en curso"
+      "type": "number"
     },
     "consumo_medio_l100": {
-      "type": "number",
-      "description": "Consumo medio L/100km"
+      "type": "number"
     },
     "estado_motor": {
       "type": "string",
@@ -136,20 +116,16 @@
         "parado",
         "desconocido"
       ],
-      "default": "desconocido",
-      "description": "Estado actual del motor"
+      "default": "desconocido"
     },
     "velocidad_actual": {
-      "type": "number",
-      "description": "Velocidad actual km/h"
+      "type": "number"
     },
     "proyecto_actual_id": {
-      "type": "string",
-      "description": "ID del proyecto al que est\u00e1 asignado hoy"
+      "type": "string"
     },
     "proyecto_actual_nombre": {
-      "type": "string",
-      "description": "Nombre del proyecto actual"
+      "type": "string"
     }
   },
   "required": [
@@ -167,6 +143,11 @@
         {
           "user_condition": {
             "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "usuario_demo"
           }
         }
       ]
@@ -192,6 +173,18 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         }
       ]
     },
@@ -206,13 +199,41 @@
           "user_condition": {
             "role": "director_comercial"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
+        }
+      ]
     }
   }
 }

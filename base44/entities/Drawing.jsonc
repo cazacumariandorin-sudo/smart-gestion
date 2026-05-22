@@ -3,46 +3,33 @@
   "type": "object",
   "properties": {
     "title": {
-      "type": "string",
-      "description": "T\u00edtulo del plano"
+      "type": "string"
     },
-    "reference": {
-      "type": "string",
-      "description": "Referencia / n\u00famero"
+    "obra_id": {
+      "type": "string"
     },
-    "client_id": {
-      "type": "string",
-      "description": "ID del cliente"
+    "obra_name": {
+      "type": "string"
     },
-    "client_name": {
-      "type": "string",
-      "description": "Nombre del cliente"
+    "category": {
+      "type": "string"
     },
-    "project": {
-      "type": "string",
-      "description": "Obra"
+    "file_url": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
     },
     "date": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha del plano"
-    },
-    "version": {
-      "type": "string",
-      "description": "Versi\u00f3n"
-    },
-    "file_url": {
-      "type": "string",
-      "description": "URL del archivo (PDF/imagen)"
+      "format": "date"
     },
     "notes": {
-      "type": "string",
-      "description": "Observaciones"
+      "type": "string"
     }
   },
   "required": [
-    "title",
-    "client_id"
+    "title"
   ],
   "rls": {
     "create": {
@@ -60,6 +47,11 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "usuario_demo"
           }
         }
       ]
@@ -85,6 +77,18 @@
           "user_condition": {
             "role": "operario"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         }
       ]
     },
@@ -104,13 +108,41 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
+        }
+      ]
     }
   }
 }

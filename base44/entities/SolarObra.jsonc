@@ -120,6 +120,11 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "user_condition": {
+            "role": "usuario_demo"
+          }
         }
       ]
     },
@@ -144,6 +149,18 @@
           "user_condition": {
             "role": "operario"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         }
       ]
     },
@@ -163,13 +180,41 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
+        }
+      ]
     }
   }
 }

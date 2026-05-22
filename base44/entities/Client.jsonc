@@ -29,7 +29,7 @@
     },
     "client_id_code": {
       "type": "string",
-      "description": "ID \u00fanico generado: Client Id-PPYYXXX (2 primeros d\u00edgitos CP + 2 \u00faltimos a\u00f1o + 3 \u00faltimos d\u00edgitos NIF)"
+      "description": "ID \u00fanico generado"
     },
     "contacto_admin": {
       "type": "object",
@@ -103,6 +103,11 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "user_condition": {
+            "role": "usuario_demo"
+          }
         }
       ]
     },
@@ -122,6 +127,18 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         }
       ]
     },
@@ -141,13 +158,41 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
+        }
+      ]
     }
   }
 }
