@@ -271,20 +271,50 @@ export default function CalendarioVacaciones() {
                 const events = getEventsForDay(day);
                 const weekend = isWeekend(day);
                 const hasEvents = events.length > 0;
+                const dayStr = format(day, 'yyyy-MM-dd');
+                const festivo = festivosMadrid.find(f => f.fecha === dayStr);
+                const isHoliday = !!festivo;
+                const isToday = format(day, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+                
                 return (
                   <div 
                     key={day.toISOString()} 
                     className={cn(
-                      'min-h-[60px] rounded-lg p-1 border cursor-pointer transition-all hover:shadow-md',
-                      weekend ? 'bg-muted/30' : 'bg-background',
-                      'border-border',
-                      hasEvents && 'ring-2 ring-primary/50'
+                      'min-h-[70px] rounded-lg p-1.5 border cursor-pointer transition-all hover:shadow-md relative',
+                      weekend && !isHoliday ? 'bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800' : 'bg-background',
+                      isHoliday && !weekend ? 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800' : 'border-border',
+                      isHoliday && weekend ? 'bg-orange-100 dark:bg-orange-900/30 border-orange-300 dark:border-orange-700' : '',
+                      hasEvents && !isHoliday && !weekend && 'ring-2 ring-primary/50',
+                      isToday && 'ring-2 ring-emerald-500'
                     )}
                     onClick={() => handleDayClick(day)}
                   >
-                    <p className={cn('text-xs font-medium mb-1', weekend ? 'text-muted-foreground' : '')}>
-                      {format(day, 'd')}
-                    </p>
+                    {/* Indicador de hoy */}
+                    {isToday && (
+                      <div className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                    )}
+                    
+                    {/* Cabecera del día */}
+                    <div className="flex items-center justify-between mb-1">
+                      <p className={cn(
+                        'text-xs font-bold',
+                        isHoliday ? 'text-yellow-700 dark:text-yellow-500' :
+                        weekend ? 'text-orange-600 dark:text-orange-400' :
+                        'text-foreground'
+                      )}>
+                        {format(day, 'd')}
+                      </p>
+                      {isHoliday && (
+                        <Badge variant="outline" className="h-4 px-1 text-[8px] bg-yellow-200 text-yellow-800 border-yellow-300">
+                          {festivo.nombre.length > 10 ? 'Festivo' : festivo.nombre}
+                        </Badge>
+                      )}
+                      {weekend && !isHoliday && (
+                        <span className="text-[9px] text-orange-500 font-medium">FIN</span>
+                      )}
+                    </div>
+                    
+                    {/* Eventos */}
                     <div className="space-y-0.5">
                       {events.slice(0, 2).map((ev, idx) => {
                         const cfg = tipoCfg[ev.tipo];
