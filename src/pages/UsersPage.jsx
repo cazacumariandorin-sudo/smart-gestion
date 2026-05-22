@@ -24,6 +24,8 @@ import { Label } from '@/components/ui/label';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import RealUsersModal from './RealUsersModal';
 import DemoInvitationsModal from './DemoInvitationsModal';
+import EditUserRoleDialog from '@/components/EditUserRoleDialog';
+import { Edit2 } from 'lucide-react';
 
 const ROLES = {
   admin: { label: 'ADMIN', color: 'bg-red-500/10 text-red-600 border-red-200' },
@@ -45,8 +47,11 @@ function RoleBadge({ role }) {
 }
 
 function RealUsersTab({ users, isLoading, onRefresh }) {
+  const { isAdmin, isGerencia } = useUserRole();
+  const canEditRoles = isAdmin || isGerencia;
   const realUsers = users.filter(u => u.tipo_cuenta !== 'demo' && u.role !== 'usuario_demo');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
 
   return (
     <div className="space-y-4">
@@ -79,6 +84,7 @@ function RealUsersTab({ users, isLoading, onRefresh }) {
                 <th className="text-left py-3 px-4 font-medium">Cargo</th>
                 <th className="text-left py-3 px-4 font-medium">Acceso hasta</th>
                 <th className="text-left py-3 px-4 font-medium">Estado</th>
+                {canEditRoles && <th className="text-left py-3 px-4 font-medium">Acciones</th>}
               </tr>
             </thead>
             <tbody>
@@ -109,6 +115,19 @@ function RealUsersTab({ users, isLoading, onRefresh }) {
                         {isExpired ? 'Expirado' : 'Activo'}
                       </Badge>
                     </td>
+                    {canEditRoles && (
+                      <td className="py-3 px-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingUser(u)}
+                          className="gap-1 h-8"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          <span className="text-xs">Editar</span>
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -125,6 +144,13 @@ function RealUsersTab({ users, isLoading, onRefresh }) {
           setIsModalOpen(false);
           onRefresh();
         }}
+      />
+
+      <EditUserRoleDialog
+        open={!!editingUser}
+        onOpenChange={(open) => !open && setEditingUser(null)}
+        user={editingUser}
+        onSuccess={onRefresh}
       />
     </div>
   );
