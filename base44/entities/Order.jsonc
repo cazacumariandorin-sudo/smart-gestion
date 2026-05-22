@@ -2,92 +2,79 @@
   "name": "Order",
   "type": "object",
   "properties": {
-    "client_id": {
+    "title": {
       "type": "string",
-      "description": "ID del cliente"
+      "description": "T\u00edtulo del pedido"
     },
-    "client_name": {
+    "obra_id": {
       "type": "string",
-      "description": "Nombre del cliente"
+      "description": "ID de la obra"
     },
-    "date": {
-      "format": "date",
+    "obra_name": {
       "type": "string",
-      "description": "Fecha del pedido"
+      "description": "Nombre de la obra"
     },
-    "expected_delivery": {
-      "format": "date",
-      "type": "string",
-      "description": "Fecha de entrega prevista"
-    },
-    "items": {
-      "items": {
-        "properties": {
-          "material_id": {
-            "type": "string"
-          },
-          "material_name": {
-            "type": "string"
-          },
-          "quantity": {
-            "type": "number"
-          },
-          "total_price": {
-            "type": "number"
-          },
-          "unit": {
-            "type": "string"
-          },
-          "unit_price": {
-            "type": "number"
-          }
-        },
-        "type": "object"
-      },
-      "type": "array",
-      "description": "L\u00edneas del pedido"
-    },
-    "notes": {
-      "type": "string",
-      "description": "Observaciones"
-    },
-    "order_number": {
-      "type": "string",
-      "description": "N\u00famero de pedido"
-    },
-    "proyecto": {
-      "type": "string",
-      "description": "Proyecto (antes: Obra)"
-    },
-    "status": {
-      "default": "pendiente",
-      "enum": [
-        "pendiente",
-        "confirmado",
-        "en_transito",
-        "entregado",
-        "cancelado"
-      ],
-      "type": "string",
-      "description": "Estado del pedido"
-    },
-    "supplier": {
+    "proveedor": {
       "type": "string",
       "description": "Proveedor"
     },
-    "total_amount": {
+    "fecha_pedido": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del pedido"
+    },
+    "fecha_entrega": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de entrega prevista"
+    },
+    "importe": {
       "type": "number",
       "description": "Importe total (\u20ac)"
     },
-    "tracking_number": {
+    "estado": {
       "type": "string",
-      "description": "N\u00famero de seguimiento"
+      "enum": [
+        "pendiente",
+        "en_curso",
+        "entregado",
+        "cancelado"
+      ],
+      "default": "pendiente",
+      "description": "Estado del pedido"
+    },
+    "items": {
+      "type": "array",
+      "description": "L\u00edneas del pedido",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "cantidad": {
+            "type": "number"
+          },
+          "unidad": {
+            "type": "string"
+          },
+          "precio": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "Adjunto (albar\u00e1n, factura...)"
     }
   },
   "required": [
-    "client_id",
-    "proyecto",
-    "date"
+    "title"
   ],
   "rls": {
     "create": {
@@ -105,6 +92,16 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "usuario_demo"
           }
         }
       ]
@@ -130,6 +127,18 @@
           "user_condition": {
             "role": "operario"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         }
       ]
     },
@@ -149,13 +158,41 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
+        }
+      ]
     }
   }
 }

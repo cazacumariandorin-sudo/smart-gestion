@@ -6,7 +6,7 @@ import {
   Building2, Sun, ClipboardList, Package, BarChart2,
   Clock, CalendarDays, FileImage, BookOpen, Factory,
   ShoppingCart, Truck, Images, MessageSquare, Database,
-  Shield, PenLine, Wrench
+  Shield, PenLine, Wrench, FlaskConical
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -97,19 +97,22 @@ export const HUBS = [
       { label: 'Chat', path: '/chat', icon: MessageSquare, module: null },
       { label: 'Usuarios', path: '/users', icon: Users, module: 'users' },
       { label: 'Usuarios Demo', path: '/demo-users', icon: Users, module: 'users' },
+      { label: 'Invitaciones Demo', path: '/invitaciones-demo', icon: FlaskConical, module: 'users' },
       { label: 'Backup', path: '/admin-backup', icon: Database, module: 'users' },
       { label: 'Informe Mensual', path: '/reports', icon: BarChart2, module: 'reports' },
     ],
   },
 ];
 
-function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia }) {
+function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo }) {
   const items = hub.items.filter(i => i.module === null || canAccess(i.module));
   const isChildActive = items.some(i => currentPath === i.path || (i.path !== '/' && currentPath.startsWith(i.path)));
   const [open, setOpen] = useState(isChildActive);
 
   if (items.length === 0) return null;
   if (hub.adminOnly && !isAdmin && !isGerencia) return null;
+  // Demo users cannot see personas & sistema hubs
+  if (isDemo && (hub.id === 'personas' || hub.id === 'sistema')) return null;
 
   const Icon = hub.icon;
 
@@ -163,7 +166,7 @@ function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia }) {
 export default function Sidebar() {
   const location = useLocation();
   const { t, lang, setLang } = useI18n();
-  const { canAccess, isAdmin, role } = useUserRole();
+  const { canAccess, isAdmin, isDemo, role } = useUserRole();
   const path = location.pathname;
   const isGerencia = role === 'gerencia';
 
@@ -207,6 +210,7 @@ export default function Sidebar() {
             canAccess={canAccess}
             isAdmin={isAdmin}
             isGerencia={isGerencia}
+            isDemo={isDemo}
           />
         ))}
       </nav>

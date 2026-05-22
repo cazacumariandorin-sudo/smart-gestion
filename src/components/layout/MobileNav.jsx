@@ -199,8 +199,10 @@ export default function MobileNav() {
 
   const closeAll = useCallback(() => setOpenHub(null), []);
 
+  const isDemo = role === 'usuario_demo';
   const visibleHubs = HUB_GROUPS.filter(hub => {
     if (hub.adminOnly && !isAdmin && !isGerencia) return false;
+    if (isDemo && (hub.id === 'personas' || hub.id === 'sistema')) return false;
     return hub.items.some(i => i.module === null || canAccess(i.module));
   });
 

@@ -36,6 +36,8 @@ const SolarPedidos = lazy(() => import('./pages/SolarPedidos'));
 const DatosSensibles = lazy(() => import('./pages/DatosSensibles'));
 const Inventario = lazy(() => import('./pages/Inventario'));
 const DemoUsers = lazy(() => import('./pages/DemoUsers'));
+const InvitacionesDemo = lazy(() => import('./pages/InvitacionesDemo'));
+const DemoJoin = lazy(() => import('./pages/DemoJoin'));
 const InformeObras = lazy(() => import('./pages/InformeObras'));
 const NotasGastos = lazy(() => import('./pages/NotasGastos'));
 const Chat = lazy(() => import('./pages/Chat'));
@@ -131,7 +133,9 @@ function AnimatedRoutes() {
             <Route path="/flota" element={<ProtectedRoute module="flota"><Suspense fallback={<PageLoader />}><Flota /></Suspense></ProtectedRoute>} />
             <Route path="/galeria-fotos" element={<ProtectedRoute module="galeria-fotos"><Suspense fallback={<PageLoader />}><GaleriaFotos /></Suspense></ProtectedRoute>} />
             <Route path="/apuntes-horario" element={<ProtectedRoute module="apuntes-horario"><Suspense fallback={<PageLoader />}><ApuntesHorario /></Suspense></ProtectedRoute>} />
+            <Route path="/invitaciones-demo" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><InvitacionesDemo /></Suspense></ProtectedRoute>} />
           </Route>
+          <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
           <Route path="*" element={<PageNotFound />} />
         </Routes>
       </motion.div>
