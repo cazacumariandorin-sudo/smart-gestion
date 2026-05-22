@@ -4,9 +4,9 @@ import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
-import { format, parseISO, differenceInDays, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWeekend } from 'date-fns';
+import { format, parseISO, differenceInDays, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWeekend, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Plus, ChevronLeft, ChevronRight, CalendarDays, Loader2, Save, Trash2, Check, X } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, CalendarDays, Loader2, Save, Trash2, Check, X, Info, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +18,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import OperarioDetalleDialog from '@/components/vacaciones/OperarioDetalleDialog';
+import AusenciaCard from '@/components/vacaciones/AusenciaCard';
 
 const TIPOS = [
   { key: 'vacaciones', label: 'Vacaciones', color: 'bg-blue-500', light: 'bg-blue-100 text-blue-700 border-blue-200' },
@@ -40,6 +42,9 @@ export default function CalendarioVacaciones() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [filterOp, setFilterOp] = useState('all');
+  const [selectedDayEvents, setSelectedDayEvents] = useState(null);
+  const [detalleOpen, setDetalleOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('calendario');
 
   const onRefresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['vacaciones'] });
@@ -112,6 +117,51 @@ export default function CalendarioVacaciones() {
     });
   };
 
+  // Festivos Comunidad de Madrid 2025-2026
+  const festivosMadrid = useMemo(() => {
+    const festivos = [
+      { fecha: '2025-01-01', nombre: 'Año Nuevo' },
+      { fecha: '2025-01-06', nombre: 'Reyes Magos' },
+      { fecha: '2025-04-18', nombre: 'Viernes Santo' },
+      { fecha: '2025-05-01', nombre: 'Día del Trabajo' },
+      { fecha: '2025-05-15', nombre: 'San Isidro Labrador' },
+      { fecha: '2025-08-15', nombre: 'Asunción de la Virgen' },
+      { fecha: '2025-10-12', nombre: 'Fiesta Nacional de España' },
+      { fecha: '2025-11-01', nombre: 'Todos los Santos' },
+      { fecha: '2025-12-06', nombre: 'Día de la Constitución' },
+      { fecha: '2025-12-25', nombre: 'Natividad del Señor' },
+      { fecha: '2026-01-01', nombre: 'Año Nuevo' },
+      { fecha: '2026-01-06', nombre: 'Reyes Magos' },
+      { fecha: '2026-04-03', nombre: 'Viernes Santo' },
+      { fecha: '2026-05-01', nombre: 'Día del Trabajo' },
+      { fecha: '2026-05-15', nombre: 'San Isidro Labrador' },
+      { fecha: '2026-08-15', nombre: 'Asunción de la Virgen' },
+      { fecha: '2026-10-12', nombre: 'Fiesta Nacional de España' },
+      { fecha: '2026-11-01', nombre: 'Todos los Santos' },
+      { fecha: '2026-12-06', nombre: 'Día de la Constitución' },
+      { fecha: '2026-12-25', nombre: 'Natividad del Señor' },
+    ];
+    return festivos;
+  }, []);
+
+  // Días de vacaciones convenio por trabajador (30 días según convenio del metal)
+  const diasConvenioPorOperario = useMemo(() => {
+    const map = {};
+    operarios.forEach(op => {
+      const diasGozados = vacaciones
+        .filter(v => v.operario_id === op.id && v.tipo === 'vacaciones_convenio')
+        .reduce((sum, v) => sum + (v.dias || 1), 0);
+      map[op.id] = {
+        operario_id: op.id,
+        operario_name: op.name,
+        total_derecho: 30,
+        dias_gozados: diasGozados,
+        dias_pendientes: Math.max(0, 30 - diasGozados),
+      };
+    });
+    return Object.values(map);
+  }, [operarios, vacaciones]);
+
   // Summary by operario
   const summaryByOp = useMemo(() => {
     const map = {};
@@ -127,6 +177,14 @@ export default function CalendarioVacaciones() {
   const nextMonth = () => setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1));
 
   const firstDayOfWeek = (monthDays[0]?.getDay() + 6) % 7; // Monday-based
+
+  const handleDayClick = (day) => {
+    const events = getEventsForDay(day);
+    if (events.length > 0) {
+      setSelectedDayEvents(events);
+      setDetalleOpen(true);
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
@@ -163,6 +221,8 @@ export default function CalendarioVacaciones() {
           <TabsTrigger value="calendario">Calendario</TabsTrigger>
           <TabsTrigger value="lista">Lista</TabsTrigger>
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
+          <TabsTrigger value="festivos">Festivos</TabsTrigger>
+          <TabsTrigger value="convenio">Vacaciones Convenio</TabsTrigger>
         </TabsList>
 
         {/* CALENDAR VIEW */}
@@ -187,8 +247,18 @@ export default function CalendarioVacaciones() {
               {monthDays.map(day => {
                 const events = getEventsForDay(day);
                 const weekend = isWeekend(day);
+                const hasEvents = events.length > 0;
                 return (
-                  <div key={day.toISOString()} className={cn('min-h-[60px] rounded-lg p-1 border', weekend ? 'bg-muted/30' : 'bg-background', 'border-border')}>
+                  <div 
+                    key={day.toISOString()} 
+                    className={cn(
+                      'min-h-[60px] rounded-lg p-1 border cursor-pointer transition-all hover:shadow-md',
+                      weekend ? 'bg-muted/30' : 'bg-background',
+                      'border-border',
+                      hasEvents && 'ring-2 ring-primary/50'
+                    )}
+                    onClick={() => handleDayClick(day)}
+                  >
                     <p className={cn('text-xs font-medium mb-1', weekend ? 'text-muted-foreground' : '')}>
                       {format(day, 'd')}
                     </p>
@@ -221,42 +291,15 @@ export default function CalendarioVacaciones() {
             </div>
           ) : (
             <div className="space-y-2">
-              {filtered.sort((a, b) => b.fecha_inicio.localeCompare(a.fecha_inicio)).map(v => {
-                const cfg = tipoCfg[v.tipo];
-                return (
-                  <Card key={v.id} className="p-4 flex items-center gap-4">
-                    <div className={cn('w-3 h-3 rounded-full shrink-0', cfg?.color || 'bg-primary')} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm">{v.operario_name}</span>
-                        <Badge variant="outline" className={cn('text-[10px]', cfg?.light)}>{cfg?.label || v.tipo}</Badge>
-                        {v.aprobado && <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border-emerald-200">Aprobado</Badge>}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {v.fecha_inicio} {v.fecha_fin && v.fecha_fin !== v.fecha_inicio ? `→ ${v.fecha_fin}` : ''} · {v.dias || 1} día(s)
-                      </p>
-                      {v.notas && <p className="text-xs text-muted-foreground truncate">{v.notas}</p>}
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" onClick={() => updateM.mutate({ id: v.id, d: { aprobado: !v.aprobado } })}>
-                        {v.aprobado ? <X className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader><AlertDialogTitle>¿Eliminar registro?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription></AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteM.mutate(v.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </Card>
-                );
-              })}
+              {filtered.sort((a, b) => b.fecha_inicio.localeCompare(a.fecha_inicio)).map(v => (
+                <AusenciaCard
+                  key={v.id}
+                  v={v}
+                  onApprove={(id, aprobado) => updateM.mutate({ id, d: { aprobado } })}
+                  onDelete={(id) => deleteM.mutate(id)}
+                  onEdit={(id, data) => updateM.mutate({ id, d: data })}
+                />
+              ))}
             </div>
           )}
         </TabsContent>
@@ -268,28 +311,125 @@ export default function CalendarioVacaciones() {
               <div className="text-center py-16 border border-dashed rounded-xl">
                 <p className="text-sm text-muted-foreground">Sin datos</p>
               </div>
-            ) : summaryByOp.map(op => (
-              <Card key={op.name} className="p-4">
-                <h3 className="font-semibold mb-3">{op.name}</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                  {TIPOS.map(t => {
-                    const dias = op.tipos[t.key] || 0;
-                    return (
-                      <div key={t.key} className={cn('rounded-lg p-3 text-center border', t.light)}>
-                        <p className="text-[10px] font-medium mb-1">{t.label}</p>
-                        <p className="text-xl font-bold">{dias}</p>
-                        <p className="text-[10px]">días</p>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-3 pt-3 border-t flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total días disfrutados</span>
-                  <span className="font-bold text-primary">{Object.values(op.tipos).reduce((s, v) => s + v, 0)} días</span>
-                </div>
-              </Card>
-            ))}
+            ) : (
+              summaryByOp.map(op => (
+                <Card key={op.name} className="p-4">
+                  <h3 className="font-semibold mb-3">{op.name}</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    {TIPOS.map(t => {
+                      const dias = op.tipos[t.key] || 0;
+                      return (
+                        <div key={t.key} className={cn('rounded-lg p-3 text-center border', t.light)}>
+                          <p className="text-[10px] font-medium mb-1">{t.label}</p>
+                          <p className="text-xl font-bold">{dias}</p>
+                          <p className="text-[10px]">días</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 pt-3 border-t flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total días disfrutados</span>
+                    <span className="font-bold text-primary">{Object.values(op.tipos).reduce((s, v) => s + v, 0)} días</span>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
+        </TabsContent>
+
+        {/* FESTIVOS TAB */}
+        <TabsContent value="festivos">
+          <Card className="p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <CalendarDays className="w-5 h-5 text-primary" />
+                Festivos Comunidad de Madrid
+              </h3>
+              <p className="text-sm text-muted-foreground">Calendario oficial de festivos</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {festivosMadrid.map((festivo, idx) => {
+                const fecha = parseISO(festivo.fecha);
+                const mesActual = currentDate.getMonth();
+                const yearActual = currentDate.getFullYear();
+                const festivoMes = fecha.getMonth();
+                const festivoYear = fecha.getFullYear();
+                
+                // Solo mostrar festivos del mes actual o todos si se quiere
+                const esDelMesActual = festivoMes === mesActual && festivoYear === yearActual;
+                
+                return (
+                  <Card key={idx} className={cn('p-4 border-l-4 border-primary', !esDelMesActual && 'opacity-50')}>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold text-sm">{festivo.nombre}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {format(fecha, 'EEEE d MMMM yyyy', { locale: es })}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">
+                        Festivo
+                      </Badge>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+              <p className="text-xs text-muted-foreground">
+                <Info className="w-3 h-3 inline mr-1" />
+                Mostrando festivos de {format(currentDate, 'MMMM yyyy', { locale: es })}. Navega entre meses para ver otros festivos.
+              </p>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* VACACIONES CONVENIO TAB */}
+        <TabsContent value="convenio">
+          <Card className="p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                Vacaciones Convenio del Metal
+              </h3>
+              <p className="text-sm text-muted-foreground">30 días de derecho anual por trabajador</p>
+            </div>
+            <div className="space-y-3">
+              {diasConvenioPorOperario.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <p>No hay operarios registrados</p>
+                </div>
+              ) : (
+                diasConvenioPorOperario.map(op => {
+                  const porcentaje = (op.dias_gozados / op.total_derecho) * 100;
+                  return (
+                    <Card key={op.operario_id} className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <h4 className="font-semibold">{op.operario_name}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {op.dias_gozados} días disfrutados · {op.dias_pendientes} días pendientes
+                          </p>
+                        </div>
+                        <Badge className={cn('text-sm', op.dias_pendientes === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700')}>
+                          {op.dias_pendientes === 0 ? 'Completado' : `${op.dias_pendientes} restantes`}
+                        </Badge>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-emerald-500 h-full transition-all duration-500"
+                          style={{ width: `${Math.min(100, porcentaje)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 text-right">
+                        {porcentaje.toFixed(0)}% utilizado
+                      </p>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </Card>
         </TabsContent>
       </Tabs>
 
@@ -344,6 +484,13 @@ export default function CalendarioVacaciones() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog detalle operario */}
+      <OperarioDetalleDialog 
+        open={detalleOpen} 
+        onOpenChange={setDetalleOpen} 
+        events={selectedDayEvents} 
+      />
     </div>
   );
 }
