@@ -73,7 +73,7 @@ export default function NotasGastos() {
   return (
     <div className="max-w-5xl mx-auto">
       <PageHeader
-        title="Notas de Gastos"
+        title="Registros de Gasto"
         subtitle={isAdmin && pendientes > 0 ? `${pendientes} pendiente${pendientes > 1 ? 's' : ''} de validar` : undefined}
         hideBack={true}
         actions={
@@ -88,7 +88,7 @@ export default function NotasGastos() {
               <span className="hidden sm:inline">Informe</span>
             </Button>
             <Button onClick={() => setShowForm(true)} size="sm" className="gap-1.5">
-              <Plus className="w-4 h-4" /> Nueva nota
+              <Plus className="w-4 h-4" /> Nuevo Registro
             </Button>
           </div>
         }
@@ -133,7 +133,7 @@ export default function NotasGastos() {
       {/* Resumen rápido */}
       {notas.length > 0 && (
         <div className="flex items-center gap-3 mb-4 px-1 flex-wrap">
-          <span className="text-sm text-muted-foreground">{notas.length} nota{notas.length !== 1 ? 's' : ''}</span>
+          <span className="text-sm text-muted-foreground">{notas.length} registro{notas.length !== 1 ? 's' : ''}</span>
           <span className="font-semibold text-sm">Total: {totalFiltrado.toFixed(2)} €</span>
         </div>
       )}
@@ -148,11 +148,11 @@ export default function NotasGastos() {
           <Receipt className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground mb-3">
             {busqueda || filtroEstado !== 'todos' || filtroCategoria !== 'todas' || filtroOperario !== 'todos'
-              ? 'No hay notas con estos filtros'
-              : 'No hay notas de gastos aún'}
+              ? 'No hay registros con estos filtros'
+              : 'No hay registros de gasto aún'}
           </p>
           <Button size="sm" onClick={() => setShowForm(true)} className="gap-1.5">
-            <Plus className="w-4 h-4" /> Crear primera nota
+            <Plus className="w-4 h-4" /> Crear primer registro
           </Button>
         </div>
       ) : (

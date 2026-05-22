@@ -37,7 +37,7 @@ export default function NotaGastoCard({ nota, onVer }) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="font-mono text-xs font-bold text-primary">{nota.numero_nota || '—'}</span>
+            <span className="font-mono text-xs font-bold text-primary">{nota.numero_nota ? nota.numero_nota.replace(/^NOT-/, 'Reg-') : '—'}</span>
             <Badge className={cn('text-[10px] border', cfg.color)}>
               <Icon className="w-3 h-3 mr-1" />{cfg.label}
             </Badge>

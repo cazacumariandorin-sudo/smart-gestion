@@ -35,7 +35,7 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
         ? { validado_por: (await base44.auth.me()).email, fecha_validacion: new Date().toISOString().split('T')[0] }
         : {};
       await base44.entities.NotaGasto.update(nota.id, { estado, ...extra });
-      toast.success(`Nota ${estado}`);
+      toast.success(`Registro ${estado}`);
       invalidar();
       onClose();
     } catch (e) {
@@ -58,7 +58,7 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
         }
       }
       await base44.entities.NotaGasto.update(nota.id, datos);
-      toast.success('Nota actualizada');
+      toast.success('Registro actualizado');
       invalidar();
       setEditando(false);
       onClose();
@@ -72,7 +72,7 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
   const handleEliminar = async () => {
     try {
       await base44.entities.NotaGasto.delete(nota.id);
-      toast.success('Nota eliminada');
+      toast.success('Registro eliminado');
       invalidar();
       onClose();
     } catch (e) {
@@ -258,7 +258,7 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>¿Eliminar nota?</AlertDialogTitle>
+                      <AlertDialogTitle>¿Eliminar registro?</AlertDialogTitle>
                       <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
