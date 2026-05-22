@@ -177,18 +177,18 @@ function AddUserTab({ users, onInvited, isOwner }) {
     setLoading(true);
     try {
       await base44.users.inviteUser(email, role);
-      // Actualizar cargo, acceso_hasta y estado tras invitar
-      setTimeout(async () => {
-        const all = await base44.entities.User.list('full_name', 200);
-        const newUser = all.find(u => u.email === email);
-        if (newUser) {
-          const updates = {};
-          if (cargo) updates.cargo = cargo;
-          if (acceso_hasta) updates.acceso_hasta = acceso_hasta;
-          if (estado === 'pendiente') updates.acceso_hasta = ''; // sin fecha = pendiente
-          if (Object.keys(updates).length) await base44.entities.User.update(newUser.id, updates);
-        }
-      }, 2000);
+      // Actualizar cargo y acceso_hasta tras invitar (con delay para que el usuario exista)
+      const updates = {};
+      if (cargo) updates.cargo = cargo;
+      // Solo guardar fecha si la pusieron explícitamente; sin fecha = acceso ilimitado
+      if (acceso_hasta) updates.acceso_hasta = acceso_hasta;
+      if (Object.keys(updates).length) {
+        setTimeout(async () => {
+          const all = await base44.entities.User.list('full_name', 200);
+          const newUser = all.find(u => u.email === email);
+          if (newUser) await base44.entities.User.update(newUser.id, updates);
+        }, 3000);
+      }
       toast.success(
         estado === 'activo'
           ? `Invitación enviada a ${email} — acceso activo al aceptar`
@@ -310,26 +310,21 @@ export default function UsersPage() {
   }, [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
-  const { data: currentUser } = useQuery({
-    queryKey: ['me'],
-    queryFn: () => base44.auth.me(),
-  });
-
-  const isOwner = currentUser?.email === 'cazacu.mariandorin@gmail.com';
+  // Obtener usuario actual para la regla de visibilidad del director_comercial
+  const { user: authUser } = useUserRole();
+  const isOwner = authUser?.email === 'cazacu.mariandorin@gmail.com';
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
-    queryKey: ['users', isOwner],
+    queryKey: ['users'],
     queryFn: async () => {
       const all = await base44.entities.User.list('full_name', 200);
       return all.filter(u => {
-        // Ocultar siempre la cuenta del propietario de la lista
         if (u.email === 'cazacu.mariandorin@gmail.com') return false;
-        // director_comercial solo visible para el propietario
         if (u.role === 'director_comercial' && !isOwner) return false;
         return true;
       });
     },
-    enabled: canView && currentUser !== undefined,
+    enabled: canView,
   });
 
   const { data: operarios = [] } = useQuery({
