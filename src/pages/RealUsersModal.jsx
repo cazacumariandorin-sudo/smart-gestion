@@ -28,8 +28,8 @@ export default function RealUsersModal({ open, onOpenChange, users, onSuccess })
   const inviteMutation = useMutation({
     mutationFn: async () => {
       // Validación 1: Campos requeridos
-      if (!email || !nombre) {
-        throw new Error('Completa todos los campos obligatorios');
+      if (!email || !nombre || !cargo) {
+        throw new Error('Completa todos los campos obligatorios (email, nombre, cargo)');
       }
 
       // Validación 2: Email ya existe

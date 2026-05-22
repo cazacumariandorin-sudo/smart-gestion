@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
@@ -49,7 +49,7 @@ function RoleBadge({ role }) {
 function RealUsersTab({ users, isLoading, onRefresh }) {
   const { isAdmin, isGerencia } = useUserRole();
   const canEditRoles = isAdmin || isGerencia;
-  const realUsers = users.filter(u => u.tipo_cuenta !== 'demo' && u.role !== 'usuario_demo');
+  const realUsers = users.filter(u => (u.tipo_cuenta === 'real' || !u.tipo_cuenta) && u.role !== 'usuario_demo');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
@@ -292,8 +292,8 @@ export default function UsersPage() {
   const [tab, setTab] = useState('reales');
 
   const onRefresh = useCallback(() => {
-    qc.invalidateQueries({ queryKey: ['users'] });
-    qc.invalidateQueries({ queryKey: ['operarios'] });
+    qc.invalidateQueries({ queryKey: ['users'], refetchType: 'all' });
+    qc.invalidateQueries({ queryKey: ['operarios'], refetchType: 'all' });
   }, [qc]);
 
   const { data: users = [], isLoading: usersLoading } = useQuery({
@@ -308,6 +308,15 @@ export default function UsersPage() {
     },
     enabled: canView && authUser !== undefined,
   });
+
+  // Background: mark users without tipo_cuenta as "real"
+  useEffect(() => {
+    if (!users.length) return;
+    const toFix = users.filter(u => !u.tipo_cuenta && u.role !== 'usuario_demo');
+    toFix.forEach(u => {
+      base44.entities.User.update(u.id, { tipo_cuenta: 'real' }).catch(() => {});
+    });
+  }, [users]);
 
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
