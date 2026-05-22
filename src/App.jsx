@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster"
+import { Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
@@ -136,6 +137,32 @@ function AnimatedRoutes() {
             <Route path="/invitaciones-demo" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><InvitacionesDemo /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
+
+          {/* Legacy PascalCase redirects */}
+          <Route path="/AdminBackup" element={<Navigate to="/admin-backup" replace />} />
+          <Route path="/CalendarioVacaciones" element={<Navigate to="/calendario-vacaciones" replace />} />
+          <Route path="/Clients" element={<Navigate to="/clients" replace />} />
+          <Route path="/ControlHorario" element={<Navigate to="/control-horario" replace />} />
+          <Route path="/CreateWorkOrder" element={<Navigate to="/work-orders/new" replace />} />
+          <Route path="/DatosSensibles" element={<Navigate to="/datos-sensibles" replace />} />
+          <Route path="/DemoUsers" element={<Navigate to="/demo-users" replace />} />
+          <Route path="/Drawings" element={<Navigate to="/drawings" replace />} />
+          <Route path="/Fabricantes" element={<Navigate to="/fabricantes" replace />} />
+          <Route path="/GastosOperarios" element={<Navigate to="/notas-gastos" replace />} />
+          <Route path="/InformeObras" element={<Navigate to="/informe-obras" replace />} />
+          <Route path="/Inventario" element={<Navigate to="/inventario" replace />} />
+          <Route path="/Manuales" element={<Navigate to="/manuales" replace />} />
+          <Route path="/MaterialCatalog" element={<Navigate to="/materials" replace />} />
+          <Route path="/MonthlyReport" element={<Navigate to="/reports" replace />} />
+          <Route path="/Obras" element={<Navigate to="/obras" replace />} />
+          <Route path="/Operarios" element={<Navigate to="/operarios" replace />} />
+          <Route path="/Orders" element={<Navigate to="/orders" replace />} />
+          <Route path="/PhotoGallery" element={<Navigate to="/photos" replace />} />
+          <Route path="/Profile" element={<Navigate to="/profile" replace />} />
+          <Route path="/SolarPedidos" element={<Navigate to="/solar-pedidos" replace />} />
+          <Route path="/WorkOrders" element={<Navigate to="/work-orders" replace />} />
+          <Route path="/NotasGastos" element={<Navigate to="/notas-gastos" replace />} />
+
           <Route path="*" element={<PageNotFound />} />
         </Routes>
       </motion.div>
