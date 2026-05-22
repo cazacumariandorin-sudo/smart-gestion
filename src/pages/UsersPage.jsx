@@ -8,153 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Users, FlaskConical, Plus } from 'lucide-react';
+import { FlaskConical, Plus } from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
-import { toast } from 'sonner';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
-import RealUsersModal from './RealUsersModal';
 import DemoInvitationsModal from './DemoInvitationsModal';
-import EditUserRoleDialog from '@/components/EditUserRoleDialog';
-import { Edit2 } from 'lucide-react';
+import RealUsersTabNew from '@/components/users/RealUsersTab';
 
-const ROLES = {
-  admin: { label: 'ADMIN', color: 'bg-red-500/10 text-red-600 border-red-200' },
-  gerencia: { label: 'GERENCIA', color: 'bg-purple-500/10 text-purple-600 border-purple-200' },
-  director_comercial: { label: 'DIRECTOR', color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
-  jefe_obra: { label: 'JEFE OBRA', color: 'bg-green-500/10 text-green-600 border-green-200' },
-  operario: { label: 'OPERARIO', color: 'bg-gray-500/10 text-gray-600 border-gray-200' },
-  control_horario: { label: 'CONTROL', color: 'bg-orange-500/10 text-orange-600 border-orange-200' },
-  cliente_obra: { label: 'CLIENTE', color: 'bg-pink-500/10 text-pink-600 border-pink-200' },
-};
 
-function RoleBadge({ role }) {
-  const config = ROLES[role] || ROLES.operario;
-  return (
-    <Badge variant="outline" className={`text-xs font-medium ${config.color}`}>
-      {config.label}
-    </Badge>
-  );
-}
-
-function RealUsersTab({ users, isLoading, onRefresh }) {
-  const { isAdmin, isGerencia } = useUserRole();
-  const canEditRoles = isAdmin || isGerencia;
-  const realUsers = users.filter(u => (u.tipo_cuenta === 'real' || !u.tipo_cuenta) && u.role !== 'usuario_demo');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setIsModalOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Añadir usuario real
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
-          ))}
-        </div>
-      ) : realUsers.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground border border-dashed rounded-xl">
-          <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p className="text-sm">No hay usuarios reales registrados</p>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-muted/50 text-xs text-muted-foreground">
-                <th className="text-left py-3 px-4 font-medium">Nombre</th>
-                <th className="text-left py-3 px-4 font-medium">Email</th>
-                <th className="text-left py-3 px-4 font-medium">Rol</th>
-                <th className="text-left py-3 px-4 font-medium">Cargo</th>
-                <th className="text-left py-3 px-4 font-medium">Acceso hasta</th>
-                <th className="text-left py-3 px-4 font-medium">Estado</th>
-                {canEditRoles && <th className="text-left py-3 px-4 font-medium">Acciones</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {realUsers.map(u => {
-                const hasAccessLimit = u.acceso_hasta && !isPast(new Date(u.acceso_hasta));
-                const isExpired = u.acceso_hasta && isPast(new Date(u.acceso_hasta));
-                return (
-                  <tr key={u.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="font-medium">{u.full_name || '—'}</div>
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">{u.email}</td>
-                    <td className="py-3 px-4">
-                      <RoleBadge role={u.role} />
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">{u.cargo || '—'}</td>
-                    <td className="py-3 px-4">
-                      {u.acceso_hasta ? (
-                        <Badge variant={isExpired ? 'destructive' : 'outline'} className="text-xs">
-                          {format(new Date(u.acceso_hasta), 'd MMM yyyy', { locale: es })}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Ilimitado</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge variant={isExpired ? 'destructive' : 'default'} className="text-xs">
-                        {isExpired ? 'Expirado' : 'Activo'}
-                      </Badge>
-                    </td>
-                    {canEditRoles && (
-                      <td className="py-3 px-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingUser(u)}
-                          className="gap-1 h-8"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                          <span className="text-xs">Editar</span>
-                        </Button>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <RealUsersModal 
-        open={isModalOpen} 
-        onOpenChange={setIsModalOpen} 
-        users={users}
-        onSuccess={() => {
-          setIsModalOpen(false);
-          onRefresh();
-        }}
-      />
-
-      <EditUserRoleDialog
-        open={!!editingUser}
-        onOpenChange={(open) => !open && setEditingUser(null)}
-        user={editingUser}
-        onSuccess={onRefresh}
-      />
-    </div>
-  );
-}
 
 function DemoUsersTab({ users, isLoading }) {
   const demoUsers = users.filter(u => u.tipo_cuenta === 'demo' || u.role === 'usuario_demo');
@@ -346,7 +206,7 @@ export default function UsersPage() {
           </TabsList>
 
           <TabsContent value="reales">
-            <RealUsersTab users={users} isLoading={usersLoading} onRefresh={onRefresh} />
+            <RealUsersTabNew />
           </TabsContent>
 
           <TabsContent value="demo">
