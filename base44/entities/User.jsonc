@@ -11,7 +11,8 @@
         "jefe_obra",
         "operario",
         "control_horario",
-        "cliente_obra"
+        "cliente_obra",
+        "usuario_demo"
       ],
       "default": "operario",
       "description": "Rol del usuario en la aplicaci\u00f3n"
@@ -24,10 +25,25 @@
       "type": "string",
       "format": "date",
       "description": "Fecha l\u00edmite de acceso del usuario"
+    },
+    "tipo_cuenta": {
+      "type": "string",
+      "enum": [
+        "real",
+        "demo"
+      ],
+      "default": "real",
+      "description": "Clase de cuenta: real (usuario de empresa) o demo"
+    },
+    "demo_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha/hora de expiraci\u00f3n del acceso demo"
+    },
+    "invitado_por": {
+      "type": "string",
+      "description": "Email del usuario que gener\u00f3 la invitaci\u00f3n demo"
     }
   },
-  "required": [
-    "cargo",
-    "acceso_hasta"
-  ]
+  "required": []
 }

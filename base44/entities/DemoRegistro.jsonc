@@ -1,0 +1,64 @@
+{
+  "name": "DemoRegistro",
+  "type": "object",
+  "properties": {
+    "demo_user_id": {
+      "type": "string",
+      "description": "ID del usuario demo"
+    },
+    "demo_user_email": {
+      "type": "string",
+      "description": "Email del usuario demo"
+    },
+    "entidad_tipo": {
+      "type": "string",
+      "description": "Nombre de la entidad creada (Obra, WorkOrder, etc.)"
+    },
+    "entidad_id": {
+      "type": "string",
+      "description": "ID del registro creado"
+    },
+    "entidad_nombre": {
+      "type": "string",
+      "description": "Nombre descriptivo del registro"
+    },
+    "expira_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cuando expira la cuenta demo"
+    }
+  },
+  "required": [
+    "demo_user_id",
+    "demo_user_email",
+    "entidad_tipo",
+    "entidad_id"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.demo_user_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

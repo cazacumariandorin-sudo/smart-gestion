@@ -17,7 +17,7 @@
     "date": {
       "type": "string",
       "format": "date",
-      "description": "Fecha del gasto (no puede ser anterior a 2024-01-01)",
+      "description": "Fecha del gasto",
       "minimum": "2024-01-01"
     },
     "categoria": {

@@ -1,0 +1,98 @@
+{
+  "name": "InvitacionDemo",
+  "type": "object",
+  "properties": {
+    "codigo": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico UUID del link de invitaci\u00f3n"
+    },
+    "generada_por_email": {
+      "type": "string",
+      "description": "Email del usuario que gener\u00f3 la invitaci\u00f3n"
+    },
+    "generada_por_nombre": {
+      "type": "string",
+      "description": "Nombre del usuario que gener\u00f3 la invitaci\u00f3n"
+    },
+    "email_destino": {
+      "type": "string",
+      "description": "Email destino (opcional)"
+    },
+    "duracion_dias": {
+      "type": "number",
+      "description": "Duraci\u00f3n en d\u00edas: 7, 15, 30 o 60"
+    },
+    "fecha_generacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha/hora de generaci\u00f3n"
+    },
+    "fecha_expiracion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha/hora de expiraci\u00f3n del link"
+    },
+    "usada": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si el link ya fue usado"
+    },
+    "fecha_uso": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se us\u00f3"
+    },
+    "demo_user_id": {
+      "type": "string",
+      "description": "ID del usuario demo creado"
+    },
+    "demo_user_email": {
+      "type": "string",
+      "description": "Email del usuario demo creado"
+    },
+    "activa": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si la invitaci\u00f3n est\u00e1 activa (no revocada)"
+    }
+  },
+  "required": [
+    "codigo",
+    "generada_por_email",
+    "duracion_dias"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
