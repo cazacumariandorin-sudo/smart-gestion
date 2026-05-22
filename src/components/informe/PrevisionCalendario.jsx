@@ -90,7 +90,7 @@ export default function PrevisionCalendario({ previsiones, month, onDayClick }) 
                    {format(day, 'd')}
                  </div>
                  {dow === 1 && (
-                   <span className="text-[9px] font-medium text-muted-foreground bg-muted/50 px-1 rounded">
+                   <span className="text-[10px] font-bold text-primary bg-primary/10 border-2 border-primary/30 px-1.5 py-0.5 rounded">
                      S{weekNum}
                    </span>
                  )}

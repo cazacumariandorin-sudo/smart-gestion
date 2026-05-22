@@ -244,7 +244,7 @@ export default function PrevisionObras() {
                                 <span className="flex items-center gap-1">
                                   <Calendar className="w-3 h-3" />
                                   {format(parseISO(p.fecha_inicio), 'd MMM yyyy', { locale: es })}
-                                  <Badge variant="outline" className="text-[9px] ml-1 h-5">
+                                  <Badge variant="outline" className="text-[10px] font-bold ml-1 h-6 border-2 border-primary/30 bg-primary/10 text-primary">
                                     S{getWeek(parseISO(p.fecha_inicio), { weekStartsOn: 1 })}
                                   </Badge>
                                 </span>
