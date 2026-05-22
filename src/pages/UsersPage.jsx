@@ -154,7 +154,7 @@ function EditUserDialog({ user, operarios, onSave, onClose }) {
 }
 
 // ── Add user tab ───────────────────────────────────────────────────────────────
-function AddUserTab({ users, onInvited, isOwner }) {
+function AddUserTab({ users, usersLoaded, onInvited, isOwner }) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('operario');
   const [cargo, setCargo] = useState('');
@@ -167,11 +167,13 @@ function AddUserTab({ users, onInvited, isOwner }) {
     setErrorMsg('');
     if (!email) return;
 
-    // Verificar duplicado
-    const exists = users.find(u => u.email === email);
-    if (exists) {
-      setErrorMsg('Este email ya tiene una cuenta activa en la plataforma.');
-      return;
+    // Verificar duplicado solo si la lista ya cargó
+    if (usersLoaded) {
+      const exists = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+      if (exists) {
+        setErrorMsg('Este email ya tiene una cuenta activa en la plataforma.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -200,8 +202,9 @@ function AddUserTab({ users, onInvited, isOwner }) {
       setAccesoHasta('');
       setEstado('activo');
       onInvited();
-    } catch {
-      toast.error('Error al invitar usuario');
+    } catch (err) {
+      console.error('Error invitando usuario:', err);
+      toast.error('Error al invitar usuario: ' + (err?.message || 'inténtalo de nuevo'));
     } finally {
       setLoading(false);
     }
@@ -297,8 +300,9 @@ function AddUserTab({ users, onInvited, isOwner }) {
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function UsersPage() {
   const qc = useQueryClient();
-  const { isAdmin, role } = useUserRole();
+  const { isAdmin, role, user: authUser } = useUserRole();
   const canView = isAdmin || role === 'gerencia';
+  const isOwner = authUser?.email === 'cazacu.mariandorin@gmail.com';
 
   const [editingUser, setEditingUser] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -310,12 +314,8 @@ export default function UsersPage() {
   }, [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
-  // Obtener usuario actual para la regla de visibilidad del director_comercial
-  const { user: authUser } = useUserRole();
-  const isOwner = authUser?.email === 'cazacu.mariandorin@gmail.com';
-
   const { data: users = [], isLoading: usersLoading } = useQuery({
-    queryKey: ['users'],
+    queryKey: ['users', isOwner],
     queryFn: async () => {
       const all = await base44.entities.User.list('full_name', 200);
       return all.filter(u => {
@@ -324,7 +324,7 @@ export default function UsersPage() {
         return true;
       });
     },
-    enabled: canView,
+    enabled: canView && authUser !== undefined,
   });
 
   const { data: operarios = [] } = useQuery({
@@ -509,6 +509,7 @@ export default function UsersPage() {
           <TabsContent value="añadir">
             <AddUserTab
               users={users}
+              usersLoaded={!usersLoading}
               isOwner={isOwner}
               onInvited={() => {
                 qc.invalidateQueries({ queryKey: ['users'] });
