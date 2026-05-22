@@ -7,6 +7,7 @@
       "enum": [
         "admin",
         "gerencia",
+        "director_comercial",
         "jefe_obra",
         "operario",
         "control_horario",
@@ -24,5 +25,9 @@
       "format": "date",
       "description": "Fecha l\u00edmite de acceso del usuario"
     }
-  }
+  },
+  "required": [
+    "cargo",
+    "acceso_hasta"
+  ]
 }
