@@ -144,30 +144,53 @@ export default function CalendarioVacaciones() {
     return festivos;
   }, []);
 
+  const today = new Date();
+
   // Días de vacaciones convenio por trabajador (30 días según convenio del metal)
   const diasConvenioPorOperario = useMemo(() => {
     const map = {};
     operarios.forEach(op => {
-      const diasGozados = vacaciones
+      // Vacaciones convenio: todos los registros de tipo 'vacaciones_convenio'
+      const diasConvenioGozados = vacaciones
         .filter(v => v.operario_id === op.id && v.tipo === 'vacaciones_convenio')
         .reduce((sum, v) => sum + (v.dias || 1), 0);
+      
+      // Vacaciones normales: solo las que ya han pasado (fecha_fin < hoy)
+      const diasVacacionesGozados = vacaciones
+        .filter(v => v.operario_id === op.id && v.tipo === 'vacaciones' && parseISO(v.fecha_fin) < today)
+        .reduce((sum, v) => sum + (v.dias || 1), 0);
+      
+      // Baja médica: todos los registros
+      const diasBajaMedica = vacaciones
+        .filter(v => v.operario_id === op.id && v.tipo === 'baja_medica')
+        .reduce((sum, v) => sum + (v.dias || 1), 0);
+      
       map[op.id] = {
         operario_id: op.id,
         operario_name: op.name,
         total_derecho: 30,
-        dias_gozados: diasGozados,
-        dias_pendientes: Math.max(0, 30 - diasGozados),
+        dias_convenio_gozados: diasConvenioGozados,
+        dias_convenio_pendientes: Math.max(0, 30 - diasConvenioGozados),
+        dias_vacaciones_gozados: diasVacacionesGozados,
+        dias_baja_medica: diasBajaMedica,
       };
     });
     return Object.values(map);
   }, [operarios, vacaciones]);
 
-  // Summary by operario
+  // Summary by operario con cálculo dinámico
   const summaryByOp = useMemo(() => {
     const map = {};
     vacaciones.filter(v => filterOp === 'all' || v.operario_id === filterOp).forEach(v => {
       if (!map[v.operario_id]) map[v.operario_id] = { name: v.operario_name, tipos: {} };
       const tipo = v.tipo;
+      
+      // Para vacaciones normales: solo contar si la fecha_fin es inferior a hoy
+      if (tipo === 'vacaciones' && parseISO(v.fecha_fin) >= today) {
+        // No contar vacaciones futuras en el resumen
+        return;
+      }
+      
       map[v.operario_id].tipos[tipo] = (map[v.operario_id].tipos[tipo] || 0) + (v.dias || 1);
     });
     return Object.values(map);
@@ -401,29 +424,43 @@ export default function CalendarioVacaciones() {
                 </div>
               ) : (
                 diasConvenioPorOperario.map(op => {
-                  const porcentaje = (op.dias_gozados / op.total_derecho) * 100;
+                  const porcentaje = (op.dias_convenio_gozados / op.total_derecho) * 100;
                   return (
                     <Card key={op.operario_id} className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
                           <h4 className="font-semibold">{op.operario_name}</h4>
-                          <p className="text-xs text-muted-foreground">
-                            {op.dias_gozados} días disfrutados · {op.dias_pendientes} días pendientes
-                          </p>
+                          <Badge className={cn('text-sm', op.dias_convenio_pendientes === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700')}>
+                            {op.dias_convenio_pendientes === 0 ? 'Completado' : `${op.dias_convenio_pendientes} restantes`}
+                          </Badge>
                         </div>
-                        <Badge className={cn('text-sm', op.dias_pendientes === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700')}>
-                          {op.dias_pendientes === 0 ? 'Completado' : `${op.dias_pendientes} restantes`}
-                        </Badge>
+                        
+                        {/* Vacaciones Convenio */}
+                        <div>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-muted-foreground">Vacaciones Convenio</span>
+                            <span className="font-medium">{op.dias_convenio_gozados} / {op.total_derecho} días</span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                            <div 
+                              className="bg-emerald-500 h-full transition-all duration-500"
+                              style={{ width: `${Math.min(100, porcentaje)}%` }}
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Vacaciones Normales (disfrutadas) */}
+                        <div className="flex justify-between text-xs pt-2 border-t">
+                          <span className="text-muted-foreground">Vacaciones (disfrutadas)</span>
+                          <span className="font-semibold text-blue-600">{op.dias_vacaciones_gozados} días</span>
+                        </div>
+                        
+                        {/* Baja Médica */}
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Baja médica</span>
+                          <span className="font-semibold text-red-600">{op.dias_baja_medica} días</span>
+                        </div>
                       </div>
-                      <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-                        <div 
-                          className="bg-gradient-to-r from-blue-500 to-emerald-500 h-full transition-all duration-500"
-                          style={{ width: `${Math.min(100, porcentaje)}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1 text-right">
-                        {porcentaje.toFixed(0)}% utilizado
-                      </p>
                     </Card>
                   );
                 })
