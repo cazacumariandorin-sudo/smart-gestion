@@ -51,7 +51,7 @@ export default function ObrasCiviles() {
 
   const { data: obras = [], isLoading } = useQuery({
     queryKey: ['obras-civiles'],
-    queryFn: () => base44.entities.ObraCivil.list('-start_date', 300),
+    queryFn: () => base44.entities.Obra.list('-start_date', 300),
   });
 
   const { data: clients = [] } = useQuery({
@@ -59,9 +59,9 @@ export default function ObrasCiviles() {
     queryFn: () => base44.entities.Client.list('name', 200),
   });
 
-  const createM = useMutation({ mutationFn: d => base44.entities.ObraCivil.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['obras-civiles'] }); close_(); } });
-  const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.ObraCivil.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['obras-civiles'] }); close_(); } });
-  const deleteM = useMutation({ mutationFn: id => base44.entities.ObraCivil.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['obras-civiles'] }) });
+  const createM = useMutation({ mutationFn: d => base44.entities.Obra.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['obras-civiles'] }); close_(); } });
+  const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Obra.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['obras-civiles'] }); close_(); } });
+  const deleteM = useMutation({ mutationFn: id => base44.entities.Obra.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['obras-civiles'] }) });
 
   const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, budget: o.budget || '' } : empty); setDialogOpen(true); };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(empty); };
