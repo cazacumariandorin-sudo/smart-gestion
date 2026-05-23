@@ -23,13 +23,11 @@ export const HUBS = [
     activeBg: 'bg-purple-50 dark:bg-purple-950/40',
     borderColor: 'border-purple-400',
     items: [
-      { label: 'Obras civiles', path: '/obras', icon: Building2, module: 'obras' },
+      { label: 'Obras civiles', path: '/obras-civiles', icon: Building2, module: 'obras-civiles' },
       { label: 'Clientes', path: '/clients', icon: Users, module: 'clients' },
-      { label: 'Solar', path: '/solar-pedidos', icon: Sun, module: 'orders' },
-      { label: 'Obras Solar', path: '/solar-obras', icon: Sun, module: 'obras' },
+      { label: 'Solar', path: '/solar', icon: Sun, module: 'solar' },
       { label: 'Partes de trabajo', path: '/work-orders', icon: ClipboardList, module: 'work-orders' },
       { label: 'Informe Obras', path: '/informe-obras', icon: BarChart2, module: 'informe-obras' },
-      { label: 'Previsión Gantt', path: '/prevision-obras', icon: BarChart2, module: 'informe-obras' },
     ],
   },
   {

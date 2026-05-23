@@ -20,9 +20,9 @@ const HUB_GROUPS = [
     activeBg: 'bg-purple-100 dark:bg-purple-900/40',
     module: 'obras',
     items: [
-      { label: 'Obras', path: '/obras', icon: Building2, module: 'obras' },
+      { label: 'Obras', path: '/obras-civiles', icon: Building2, module: 'obras-civiles' },
       { label: 'Clientes', path: '/clients', icon: Users, module: 'clients' },
-      { label: 'Solar', path: '/solar-pedidos', icon: Sun, module: 'orders' },
+      { label: 'Solar', path: '/solar', icon: Sun, module: 'solar' },
       { label: 'Partes', path: '/work-orders', icon: ClipboardList, module: 'work-orders' },
       { label: 'Informe', path: '/informe-obras', icon: BarChart2, module: 'informe-obras' },
     ],
