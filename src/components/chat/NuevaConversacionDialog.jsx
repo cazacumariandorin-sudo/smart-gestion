@@ -230,7 +230,7 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
               <SelectContent>
                 {operarios.map(op => (
                   <SelectItem key={op.id} value={op.id}>
-                    {op.data.name} ({op.data.email})
+                    {op.data.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -264,7 +264,6 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">{op.data.name}</p>
-                      <p className="text-xs text-muted-foreground">{op.data.email}</p>
                     </div>
                   </button>
                 );
