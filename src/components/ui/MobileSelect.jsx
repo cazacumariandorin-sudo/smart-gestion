@@ -37,9 +37,9 @@ export function MobileSelect({
 }) {
   const [open, setOpen] = useState(false);
 
-  // Collect items from children
+  // Collect items from children - filter out items with empty/undefined values
   const items = Children.toArray(children)
-    .filter(c => isValidElement(c))
+    .filter(c => isValidElement(c) && c.props.value && c.props.value !== '')
     .map(c => ({ value: c.props.value, label: c.props.children, className: c.props.className }));
 
   const selectedLabel = items.find(i => i.value === value)?.label ?? placeholder;
@@ -47,8 +47,23 @@ export function MobileSelect({
 
   if (!isMobile()) {
     // Desktop: standard Radix select
-    // Radix requires value to be a non-empty string, default to first item if undefined/null
-    const safeValue = (value !== undefined && value !== null && value !== '') ? value : (items.length > 0 ? items[0].value : '');
+    // Radix requires value to be a non-empty string, default to first valid item if undefined/null
+    const safeValue = (value && items.find(i => i.value === value)) 
+      ? value 
+      : (items.length > 0 ? items[0].value : '');
+    
+    // Don't render Select if no valid items exist
+    if (!items.length) {
+      return (
+        <div className={cn(
+          'flex min-h-[44px] w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground',
+          triggerClassName
+        )}>
+          <span>Sin opciones disponibles</span>
+        </div>
+      );
+    }
+    
     return (
       <Select value={safeValue} onValueChange={onValueChange} disabled={disabled}>
         <SelectTrigger className={triggerClassName}>
