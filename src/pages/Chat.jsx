@@ -30,6 +30,7 @@ export default function Chat() {
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
+  const [notificacionesActivas, setNotificacionesActivas] = useState(false);
   
   // Cargar usuario actual
   useEffect(() => {
@@ -43,6 +44,77 @@ export default function Chat() {
     };
     loadUser();
   }, []);
+
+  // Solicitar permiso para notificaciones push
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const initNotificaciones = async () => {
+      // Verificar si el navegador soporta notificaciones
+      if (!('Notification' in window)) {
+        console.log('Notificaciones no soportadas');
+        return;
+      }
+
+      // Solicitar permiso
+      if (Notification.permission === 'granted') {
+        setNotificacionesActivas(true);
+      } else if (Notification.permission !== 'denied') {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          setNotificacionesActivas(true);
+        }
+      }
+    };
+
+    initNotificaciones();
+  }, [currentUser]);
+
+  // Escuchar cambios en tiempo real de mensajes
+  useEffect(() => {
+    if (!selectedConvId) return;
+
+    const unsubscribe = base44.entities.ChatMensaje.subscribe((event) => {
+      if (event.type === 'create' && event.data?.conversacion_id === selectedConvId) {
+        // Nuevo mensaje en la conversación actual
+        queryClient.invalidateQueries({ queryKey: ['chat-messages', selectedConvId] });
+        
+        // Si no estamos enfocados en la ventana, mostrar notificación
+        if (document.hidden && notificacionesActivas && event.data.autor_email !== currentUser?.email) {
+          new Notification('Nuevo mensaje', {
+            body: event.data.tipo_mensaje === 'cifrado' ? '🔒 Mensaje cifrado recibido' : 'Tienes un nuevo mensaje',
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+          });
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [selectedConvId, notificacionesActivas, currentUser, queryClient]);
+
+  // Escuchar cambios en conversaciones (para notificaciones cuando no estamos en el chat)
+  useEffect(() => {
+    const unsubscribe = base44.entities.ChatConversacion.subscribe((event) => {
+      if (event.type === 'update' && notificacionesActivas) {
+        const conv = event.data;
+        // Verificar si hay un nuevo mensaje y no somos el autor
+        if (conv.ultimo_mensaje_fecha && 
+            conv.participantes?.some(p => p.user_email === currentUser?.email)) {
+          // Mostrar notificación solo si no estamos en esta conversación
+          if (selectedConvId !== conv.id && document.hidden) {
+            new Notification('Nuevo mensaje en ' + (conv.nombre || 'Chat'), {
+              body: conv.ultimo_mensaje_texto || 'Abre para ver el mensaje',
+              icon: '/favicon.ico',
+              badge: '/favicon.ico',
+            });
+          }
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [notificacionesActivas, currentUser, selectedConvId]);
   
   // Estado para cifrado E2E
   const [clavesE2E, setClavesE2E] = useState(null); // { publicKeyBase64, privateKey }
@@ -173,16 +245,26 @@ export default function Chat() {
       const claveAESCifrada = await cifrarClaveAESConRSA(claveAES, claveDest.clave_publica);
       
       // 4. Enviar mensaje cifrado
-      return await base44.functions.invoke('enviarMensajeCifrado', {
+      const resultado = await base44.functions.invoke('enviarMensajeCifrado', {
         conversacion_id: selectedConvId,
         clave_aes_cifrada: claveAESCifrada,
         iv_base64: mensajeCifrado, // IV + ciphertext combinados
       });
+      
+      // 5. Enviar notificaciones a otros participantes
+      if (resultado?.data?.id) {
+        await base44.functions.invoke('notificarNuevoMensaje', {
+          conversacion_id: selectedConvId,
+          mensaje_id: resultado.data.id,
+        });
+      }
+      
+      return resultado;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chat-messages', selectedConvId] });
       setNewMessage('');
-      toast.success('Mensaje cifrado enviado');
+      toast.success('Mensaje enviado');
     },
     onError: (error) => {
       toast.error('Error al enviar: ' + error.message);
@@ -191,15 +273,27 @@ export default function Chat() {
 
   // Enviar mensaje en texto plano (fallback)
   const sendMutation = useMutation({
-    mutationFn: (text) => base44.entities.ChatMensaje.create({
-      conversacion_id: selectedConvId,
-      autor_email: currentUser?.email || '',
-      autor_nombre: currentUser?.full_name || currentUser?.email || '',
-      mensaje_cifrado: text,
-      iv: 'plain',
-      fecha_envio: new Date().toISOString(),
-      tipo_mensaje: 'texto',
-    }),
+    mutationFn: async (text) => {
+      const mensaje = await base44.entities.ChatMensaje.create({
+        conversacion_id: selectedConvId,
+        autor_email: currentUser?.email || '',
+        autor_nombre: currentUser?.full_name || currentUser?.email || '',
+        mensaje_cifrado: text,
+        iv: 'plain',
+        fecha_envio: new Date().toISOString(),
+        tipo_mensaje: 'texto',
+      });
+      
+      // Enviar notificaciones a otros participantes
+      if (mensaje?.id) {
+        await base44.functions.invoke('notificarNuevoMensaje', {
+          conversacion_id: selectedConvId,
+          mensaje_id: mensaje.id,
+        });
+      }
+      
+      return mensaje;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chat-messages', selectedConvId] });
       setNewMessage('');
@@ -283,6 +377,12 @@ export default function Chat() {
           <div className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-primary" />
             <h2 className="font-semibold text-sm">Mensajes</h2>
+            {notificacionesActivas && (
+              <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                Notificaciones ON
+              </Badge>
+            )}
           </div>
           <Button 
             size="icon" 
