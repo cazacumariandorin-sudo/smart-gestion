@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Loader2, UserCheck, Search } from 'lucide-react';
+import { Loader2, UserCheck, Search, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -145,32 +145,31 @@ export default function VincularOperarioDialog({ open, onOpenChange, user, onSuc
           </div>
         </div>
 
-        {/* Buscador de operarios */}
+        {/* Selector de operarios */}
         <div className="space-y-3 flex-1 min-h-0 flex flex-col">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Buscar operario</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Nombre, email o DNI..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+          <Label className="text-sm font-medium">Operarios disponibles</Label>
+          
+          <div className="relative">
+            <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Filtrar por nombre, email o DNI..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
           </div>
 
           {operariosLoading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-8 flex-1">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : filteredOperarios.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm border border-dashed rounded-lg">
-              {searchTerm ? 'No se encontraron operarios' : 'No hay operarios en la base de datos'}
+            <div className="text-center py-8 text-muted-foreground text-sm border border-dashed rounded-lg flex-1 flex items-center justify-center">
+              {operarios.length === 0 ? 'No hay operarios en la base de datos' : 'No se encontraron operarios'}
             </div>
           ) : (
-            <ScrollArea className="flex-1 max-h-64">
-              <div className="space-y-2">
+            <ScrollArea className="flex-1">
+              <div className="space-y-2 pr-4">
                 {filteredOperarios.map((op) => {
                   const isSelected = selectedOperario?.id === op.id;
                   const isAlreadyLinked = !!op.user_id;
@@ -182,42 +181,47 @@ export default function VincularOperarioDialog({ open, onOpenChange, user, onSuc
                       disabled={isAlreadyLinked}
                       className={`w-full p-3 rounded-lg border text-left transition-all ${
                         isSelected
-                          ? 'bg-primary/10 border-primary ring-2 ring-primary'
+                          ? 'bg-primary/15 border-primary/60 ring-2 ring-primary/40'
                           : isAlreadyLinked
-                          ? 'bg-muted/30 border-muted opacity-60 cursor-not-allowed'
-                          : 'bg-background hover:bg-muted/50 hover:border-primary/50'
+                          ? 'bg-muted/40 border-muted opacity-50 cursor-not-allowed'
+                          : 'bg-background hover:bg-muted/40 border-border'
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <Avatar className={`w-10 h-10 ${getAvatarColor(op.name)}`}>
-                          <AvatarFallback className="text-white text-sm font-semibold">
+                        <Avatar className={`w-9 h-9 ${getAvatarColor(op.name)} shrink-0`}>
+                          <AvatarFallback className="text-white text-xs font-semibold">
                             {getInitials(op.name)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm truncate">{op.name}</p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium text-sm">{op.name}</p>
                             {isAlreadyLinked && (
-                              <Badge variant="secondary" className="text-xs">
-                                Ya vinculado
+                              <Badge variant="secondary" className="text-xs shrink-0">
+                                Vinculado
+                              </Badge>
+                            )}
+                            {isSelected && (
+                              <Badge className="text-xs shrink-0 bg-primary">
+                                ✓ Seleccionado
                               </Badge>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground truncate">
                             {op.email || 'Sin email'}
                           </p>
-                          <div className="flex items-center gap-3 mt-1">
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                             <Badge variant="outline" className="text-xs">
                               {op.role || 'Sin rol'}
                             </Badge>
                             {op.dni && (
                               <span className="text-xs text-muted-foreground">
-                                DNI: {op.dni}
+                                {op.dni}
                               </span>
                             )}
                             {op.phone && (
                               <span className="text-xs text-muted-foreground">
-                                📞 {op.phone}
+                                {op.phone}
                               </span>
                             )}
                           </div>
