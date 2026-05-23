@@ -21,11 +21,13 @@ export default function VinculacionModal({ open, onClose, usuario, onSuccess }) 
   const [clienteSeleccionado, setClienteSeleccionado] = useState('');
 
   // Cargar operarios disponibles
-  const { data: operarios = [] } = useQuery({
+  const { data: operarios = [], isLoading: loadingOperarios } = useQuery({
     queryKey: ['operarios-sin-vincular'],
     queryFn: async () => {
       const all = await base44.entities.Operario.list('-name', 500);
-      return all.filter(op => !op.user_id || op.user_id === '');
+      const disponibles = all.filter(op => !op.user_id || op.user_id === '');
+      console.log('Operarios totales:', all.length, '| Disponibles:', disponibles.length);
+      return disponibles;
     },
     enabled: open,
   });
@@ -177,26 +179,48 @@ export default function VinculacionModal({ open, onClose, usuario, onSuccess }) 
                   </div>
                 </div>
               )}
-              <Select value={operarioSeleccionado} onValueChange={setOperarioSeleccionado}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Buscar operario..." />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {operarios.map(op => (
-                    <SelectItem key={op.id} value={op.id}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{op.name}</span>
-                        {op.dni && <span className="text-xs text-muted-foreground">DNI: {op.dni}</span>}
-                        {op.email && <span className="text-xs text-muted-foreground">{op.email}</span>}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {sugerenciaEmail && (
-                <Badge variant="outline" className="text-xs mt-1">
-                  Email exacto ✓
-                </Badge>
+              {loadingOperarios ? (
+                <div className="p-3 text-center text-sm text-muted-foreground">
+                  Cargando operarios...
+                </div>
+              ) : operarios.length === 0 ? (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-start gap-2 text-amber-800 dark:text-amber-200">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-semibold">No hay operarios disponibles</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                        Todos los operarios ya están vinculados o no existen. 
+                        <br />
+                        <strong>Ve a <a href="/operarios" className="underline font-medium">Operarios</a> para crear uno nuevo.</strong>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Select value={operarioSeleccionado} onValueChange={setOperarioSeleccionado}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Buscar operario..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {operarios.map(op => (
+                        <SelectItem key={op.id} value={op.id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{op.name}</span>
+                            {op.dni && <span className="text-xs text-muted-foreground">DNI: {op.dni}</span>}
+                            {op.email && <span className="text-xs text-muted-foreground">{op.email}</span>}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {sugerenciaEmail && (
+                    <Badge variant="outline" className="text-xs mt-1">
+                      Email exacto ✓
+                    </Badge>
+                  )}
+                </>
               )}
             </div>
           )}
