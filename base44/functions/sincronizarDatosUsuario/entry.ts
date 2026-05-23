@@ -20,10 +20,8 @@ Deno.serve(async (req) => {
 
     for (const usuario of usuarios) {
       try {
-        // Verificar si el usuario tiene datos personales actualizados
+        // 1. Sincronizar datos personales
         if (usuario.phone || usuario.position || usuario.department || usuario.avatar_initials) {
-          // Los datos ya están en la base de datos de usuarios
-          // Esta función asegura que los datos se mantengan sincronizados
           resultados.sincronizados++;
           resultados.detalles.push({
             email: usuario.email,
@@ -33,6 +31,28 @@ Deno.serve(async (req) => {
             department: usuario.department || '—',
             avatar_initials: usuario.avatar_initials || '—',
           });
+        }
+
+        // 2. Sincronizar rol con Operario vinculado
+        const operarios = await base44.asServiceRole.entities.Operario.filter({
+          user_id: usuario.id
+        });
+
+        for (const operario of operarios) {
+          // Si el rol difiere, actualizar operario
+          if (operario.role !== usuario.role) {
+            await base44.asServiceRole.entities.Operario.update(operario.id, {
+              role: usuario.role
+            });
+            resultados.detalles.push({
+              operario_id: operario.id,
+              operario_nombre: operario.name,
+              usuario_email: usuario.email,
+              rol_anterior: operario.role,
+              rol_nuevo: usuario.role,
+              sincronizacion: 'rol_actualizado'
+            });
+          }
         }
       } catch (error) {
         resultados.errores.push({

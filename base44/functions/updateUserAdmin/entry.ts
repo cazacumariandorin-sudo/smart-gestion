@@ -15,10 +15,27 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Faltan parámetros: userId y updates' }, { status: 400 });
     }
 
-    // Usar service role para bypass de RLS
+    // 1. Actualizar entidad User
     await base44.asServiceRole.entities.User.update(userId, updates);
 
-    return Response.json({ success: true, message: 'Usuario actualizado correctamente' });
+    // 2. Si se actualiza el rol, sincronizar con Operario vinculado
+    if (updates.role) {
+      const operarios = await base44.asServiceRole.entities.Operario.filter({
+        user_id: userId
+      });
+
+      // Actualizar todos los operarios vinculados a este usuario
+      for (const operario of operarios) {
+        await base44.asServiceRole.entities.Operario.update(operario.id, {
+          role: updates.role
+        });
+      }
+    }
+
+    return Response.json({ 
+      success: true, 
+      message: 'Usuario actualizado correctamente' 
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

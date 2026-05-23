@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { FlaskConical, Plus } from 'lucide-react';
+import { FlaskConical, Plus, UserCheck, AlertTriangle, X, Loader2 } from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import DemoInvitationsModal from './DemoInvitationsModal';
@@ -19,7 +19,22 @@ import RealUsersTabNew from '@/components/users/RealUsersTab';
 function DemoUsersTab({ users, isLoading }) {
   const demoUsers = users.filter(u => u.tipo_cuenta === 'demo' || u.role === 'usuario_demo');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [verificandoRoles, setVerificandoRoles] = useState(false);
+  const [resultadoRoles, setResultadoRoles] = useState(null);
   const qc = useQueryClient();
+
+  const handleVerificarRoles = async () => {
+    setVerificandoRoles(true);
+    try {
+      const res = await base44.functions.invoke('verificarSincronizacionRoles', {});
+      setResultadoRoles(res.data);
+      qc.invalidateQueries({ queryKey: ['users'] });
+    } catch (error) {
+      console.error('Error verificando roles:', error);
+    } finally {
+      setVerificandoRoles(false);
+    }
+  };
 
   const { data: invitaciones = [] } = useQuery({
     queryKey: ['invitaciones-demo'],
@@ -28,12 +43,77 @@ function DemoUsersTab({ users, isLoading }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleVerificarRoles} 
+            variant="outline" 
+            className="gap-2"
+            disabled={verificandoRoles}
+          >
+            {verificandoRoles ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <UserCheck className="w-4 h-4" />
+            )}
+            Verificar roles
+          </Button>
+        </div>
         <Button onClick={() => setIsModalOpen(true)} variant="secondary" className="gap-2">
           <Plus className="w-4 h-4" />
           Generar invitación demo
         </Button>
       </div>
+
+      {resultadoRoles && (
+        <div className="mb-6 p-4 rounded-xl border bg-muted/50">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
+            <div className="space-y-2 flex-1">
+              <h4 className="font-semibold text-sm">Resultado de verificación de roles</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <p className="text-muted-foreground">Total usuarios</p>
+                  <p className="font-bold">{resultadoRoles.resumen?.total_usuarios || 0}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Operarios vinculados</p>
+                  <p className="font-bold">{resultadoRoles.resumen?.total_operarios || 0}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Roles sincronizados</p>
+                  <p className="font-bold text-green-600">{resultadoRoles.resumen?.roles_sincronizados || 0}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Roles reparados</p>
+                  <p className="font-bold text-blue-600">{resultadoRoles.resumen?.roles_reparados || 0}</p>
+                </div>
+              </div>
+              {resultadoRoles.discrepancias?.length > 0 && (
+                <div className="mt-3 pt-3 border-t text-xs space-y-1">
+                  <p className="font-semibold text-amber-600">Discrepancias encontradas:</p>
+                  {resultadoRoles.discrepancias.slice(0, 5).map((d, i) => (
+                    <div key={i} className="text-muted-foreground">
+                      <span className="font-medium">{d.usuario_email}</span>: {d.rol_operario} → {d.rol_usuario}
+                    </div>
+                  ))}
+                  {resultadoRoles.discrepancias.length > 5 && (
+                    <p className="text-muted-foreground italic">... y {resultadoRoles.discrepancias.length - 5} más</p>
+                  )}
+                </div>
+              )}
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setResultadoRoles(null)}
+              className="h-6 w-6"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="space-y-2">
