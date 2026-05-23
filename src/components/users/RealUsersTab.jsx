@@ -119,19 +119,19 @@ export default function RealUsersTab() {
       ) : (
         /* Table — scrollable on mobile */
         <div className="rounded-xl border border-border overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
+          <table className="w-full text-xs min-w-[1000px]">
             <thead>
-              <tr className="bg-muted/50 text-xs text-muted-foreground">
-                <th className="text-left py-3 px-4 font-medium w-10"></th>
-                <th className="text-left py-3 px-4 font-medium">ID Personalizado</th>
-                <th className="text-left py-3 px-4 font-medium">Nombre</th>
-                <th className="text-left py-3 px-4 font-medium">Email</th>
-                <th className="text-left py-3 px-4 font-medium">Rol</th>
-                <th className="text-left py-3 px-4 font-medium">Cargo</th>
-                <th className="text-left py-3 px-4 font-medium">Tipo cuenta</th>
-                <th className="text-left py-3 px-4 font-medium">Vinculación</th>
-                <th className="text-left py-3 px-4 font-medium">Estado</th>
-                <th className="text-left py-3 px-4 font-medium">Acciones</th>
+              <tr className="bg-muted/50 text-xs text-muted-foreground border-b">
+                <th className="text-left py-2.5 px-3 font-medium w-8"></th>
+                <th className="text-left py-2.5 px-3 font-medium whitespace-nowrap">ID Personalizado</th>
+                <th className="text-left py-2.5 px-3 font-medium whitespace-nowrap">Nombre</th>
+                <th className="text-left py-2.5 px-3 font-medium whitespace-nowrap">Email</th>
+                <th className="text-left py-2.5 px-3 font-medium whitespace-nowrap">Rol</th>
+                <th className="text-left py-2.5 px-3 font-medium whitespace-nowrap">Cargo</th>
+                <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap">Tipo</th>
+                <th className="text-left py-2.5 px-3 font-medium whitespace-nowrap">Vinculación</th>
+                <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap">Estado</th>
+                <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -143,18 +143,18 @@ export default function RealUsersTab() {
                 const avatarColor = getAvatarColor(u.full_name || u.email || '');
 
                 return (
-                  <tr key={u.id} className="border-t border-border hover:bg-muted/30 transition-colors">
+                  <tr key={u.id} className="border-t border-border hover:bg-muted/40 transition-colors">
                     {/* Avatar */}
-                    <td className="py-3 px-4">
-                      <div className={`w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center text-white text-xs font-semibold shrink-0`}>
+                    <td className="py-2.5 px-3">
+                      <div className={`w-7 h-7 rounded-full ${avatarColor} flex items-center justify-center text-white text-[10px] font-bold shrink-0`}>
                         {initials || '?'}
                       </div>
                     </td>
 
                     {/* ID Personalizado */}
-                    <td className="py-3 px-4">
+                    <td className="py-2.5 px-3 whitespace-nowrap">
                       {u.user_id_personalizado ? (
-                        <Badge variant="outline" className="text-xs font-mono bg-blue-50 text-blue-700 border-blue-200">
+                        <Badge variant="outline" className="text-[10px] font-mono bg-blue-50 text-blue-700 border-blue-200 px-2 py-0.5">
                           {u.user_id_personalizado}
                         </Badge>
                       ) : (
@@ -163,91 +163,89 @@ export default function RealUsersTab() {
                     </td>
 
                     {/* Nombre */}
-                    <td className="py-3 px-4 font-medium">{u.full_name || '—'}</td>
+                    <td className="py-2.5 px-3 font-medium truncate max-w-[120px]">{u.full_name || '—'}</td>
 
                     {/* Email */}
-                    <td className="py-3 px-4 text-muted-foreground text-xs">{u.email}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground text-xs truncate max-w-[140px]">{u.email}</td>
 
                     {/* Rol */}
-                    <td className="py-3 px-4">
-                      <Badge variant="outline" className={`text-xs font-medium ${roleConf.color}`}>
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      <Badge variant="outline" className={`text-[10px] font-medium px-2 py-0.5 ${roleConf.color}`}>
                         {roleConf.label}
                       </Badge>
                     </td>
 
                     {/* Cargo */}
-                    <td className="py-3 px-4 text-muted-foreground text-xs">{u.cargo || '—'}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground text-xs truncate max-w-[90px]">{u.cargo || '—'}</td>
 
                     {/* Tipo cuenta */}
-                    <td className="py-3 px-4">
+                    <td className="py-2.5 px-2 text-center whitespace-nowrap">
                       {isDemo ? (
-                        <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">Demo</Badge>
+                        <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 px-1.5 py-0">Demo</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Real</Badge>
+                        <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200 px-1.5 py-0">Real</Badge>
                       )}
                     </td>
 
                     {/* Vinculación */}
-                    <td className="py-3 px-4">
+                    <td className="py-2.5 px-3">
                       {u.vinculo_estado === 'pendiente' ? (
-                        <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />
+                        <Badge variant="outline" className="text-[10px] bg-yellow-50 text-yellow-700 border-yellow-200 px-2 py-0.5">
+                          <span className="w-1 h-1 rounded-full bg-yellow-500 animate-pulse inline-block mr-1" />
                           Pendiente
                         </Badge>
                       ) : u.vinculo_estado === 'auto_vinculado' ? (
-                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                        <Badge variant="outline" className="text-[10px] bg-orange-50 text-orange-700 border-orange-200 px-2 py-0.5">
                           Auto 7d
                         </Badge>
                       ) : u.vinculo_estado === 'demo' ? (
-                        <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                        <Badge variant="outline" className="text-[10px] bg-gray-50 text-gray-700 border-gray-200 px-2 py-0.5">
                           Demo
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                          {u.vinculo_tipo === 'operario_temporal' ? '⚠ Temporal' : '✓'}
+                        <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200 px-2 py-0.5">
+                          {u.vinculo_tipo === 'operario_temporal' ? '⚠ Temp' : '✓'}
                         </Badge>
                       )}
                       {u.vinculo_nombre && (
-                        <div className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[120px]">
+                        <div className="text-[9px] text-muted-foreground mt-0.5 truncate max-w-[110px]">
                           {u.vinculo_nombre}
                         </div>
                       )}
                     </td>
 
                     {/* Estado */}
-                    <td className="py-3 px-4">
+                    <td className="py-2.5 px-2 text-center whitespace-nowrap">
                       <Badge
                         variant={isExpired ? 'destructive' : 'default'}
-                        className="text-xs"
+                        className="text-[10px] px-2 py-0.5"
                       >
-                        {isExpired ? 'Expirado' : 'Activo'}
+                        {isExpired ? '✗' : '✓'}
                       </Badge>
                     </td>
 
                     {/* Acciones */}
-                    <td className="py-3 px-4">
-                      <div className="flex gap-1">
+                    <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                      <div className="flex gap-0.5 justify-center">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setEditingUser(u)}
-                          className="gap-1 h-8 text-xs"
-                          title="Editar rol y cargo"
+                          className="h-6 w-6 p-0"
+                          title="Editar rol"
                         >
                           <Edit2 className="w-3 h-3" />
-                          <span className="hidden sm:inline">Editar</span>
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setVinculandoUser(u)}
-                          className={`gap-1 h-8 text-xs ${
-                            u.vinculo_estado === 'vinculado' ? 'text-green-600 hover:text-green-700' : 'text-primary hover:text-primary/90'
+                          className={`h-6 w-6 p-0 ${
+                            u.vinculo_estado === 'vinculado' ? 'text-green-600' : ''
                           }`}
-                          title={u.vinculo_estado === 'vinculado' ? 'Ya vinculado' : 'Vincular con operario'}
+                          title={u.vinculo_estado === 'vinculado' ? 'Vinculado' : 'Vincular'}
                         >
                           <UserCheck className="w-3 h-3" />
-                          <span className="hidden sm:inline">{u.vinculo_estado === 'vinculado' ? 'Vinculado' : 'Vincular'}</span>
                         </Button>
                       </div>
                     </td>
