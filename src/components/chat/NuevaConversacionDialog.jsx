@@ -71,14 +71,20 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
   };
 
   const handleCrear = async () => {
-    if (selectedOperarios.length === 0) {
-      toast.error('Selecciona al menos un operario');
-      return;
-    }
-
-    if (modo === 'directo' && selectedOperarios.length > 1) {
-      toast.error('Para chat directo, selecciona solo un operario');
-      return;
+    if (modo === 'directo') {
+      if (selectedOperarios.length === 0) {
+        toast.error('Selecciona un operario');
+        return;
+      }
+      if (selectedOperarios.length > 1) {
+        toast.error('Para chat directo, selecciona solo un operario');
+        return;
+      }
+    } else {
+      if (!nombreGrupo.trim()) {
+        toast.error('Introduce un nombre para el grupo');
+        return;
+      }
     }
 
     try {
@@ -132,30 +138,30 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
           return;
         }
 
-        if (!nombreGrupo.trim()) {
-          toast.error('Introduce un nombre para el grupo');
-          return;
+        const participantes = [
+          { 
+            user_email: user.email, 
+            user_id: user.id,
+            nombre_display: user.full_name || user.email,
+            rol: user.role,
+            fecha_union: new Date().toISOString()
+          }
+        ];
+
+        if (selectedOperarios.length > 0) {
+          participantes.push(...selectedOperarios.map(op => ({
+            user_email: op.data.email,
+            user_id: op.data.user_id || null,
+            nombre_display: op.data.name,
+            rol: op.data.role || 'operario',
+            fecha_union: new Date().toISOString()
+          })));
         }
 
         const nuevaConv = await base44.entities.ChatConversacion.create({
           nombre: nombreGrupo.trim(),
           tipo: 'grupo',
-          participantes: [
-            { 
-              user_email: user.email, 
-              user_id: user.id,
-              nombre_display: user.full_name || user.email,
-              rol: user.role,
-              fecha_union: new Date().toISOString()
-            },
-            ...selectedOperarios.map(op => ({
-              user_email: op.data.email,
-              user_id: op.data.user_id || null,
-              nombre_display: op.data.name,
-              rol: op.data.role || 'operario',
-              fecha_union: new Date().toISOString()
-            }))
-          ],
+          participantes,
           cifrado_activo: false,
         });
 
@@ -247,7 +253,7 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
         {/* Selector múltiple para grupo */}
         {modo === 'grupo' && (
           <div className="mb-4">
-            <label className="text-sm font-medium mb-2 block">Seleccionar operarios (múltiple):</label>
+            <label className="text-sm font-medium mb-2 block">Operarios (opcional - puedes añadirlos después):</label>
             <div className="space-y-2 max-h-[300px] overflow-y-auto border rounded-md p-2">
               {operarios.map(op => {
                 const isSelected = selectedOperarios.some(o => o.id === op.id);
