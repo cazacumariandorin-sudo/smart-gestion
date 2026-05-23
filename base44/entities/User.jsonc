@@ -43,6 +43,10 @@
     "invitado_por": {
       "type": "string",
       "description": "Email del usuario que gener\u00f3 la invitaci\u00f3n demo"
+    },
+    "vinculo_id": {
+      "type": "string",
+      "description": "ID del cliente vinculado a este usuario para rol cliente_obra"
     }
   },
   "required": []

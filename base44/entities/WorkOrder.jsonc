@@ -2,72 +2,84 @@
   "name": "WorkOrder",
   "type": "object",
   "properties": {
-    "order_number": {
-      "type": "string",
-      "description": "N\u00famero de orden de trabajo"
-    },
-    "date": {
-      "type": "string",
-      "format": "date",
-      "description": "Fecha del parte de trabajo"
-    },
     "client_id": {
-      "type": "string",
-      "description": "ID del cliente"
+      "description": "ID del cliente (obligatorio para RLS de cliente_obra)",
+      "type": "string"
     },
     "client_name": {
-      "type": "string",
-      "description": "Nombre del cliente (copia)"
+      "type": "string"
     },
-    "project": {
-      "type": "string",
-      "description": "Nombre de la obra"
+    "date": {
+      "format": "date",
+      "type": "string"
     },
     "description": {
-      "type": "string",
-      "description": "Descripci\u00f3n del trabajo realizado"
+      "type": "string"
     },
-    "status": {
-      "type": "string",
+    "firma_cliente": {
+      "description": "Firma del cliente en base64 o URL",
+      "type": "string"
+    },
+    "firma_cliente_fecha": {
+      "description": "Fecha y hora de firma del cliente",
+      "format": "date-time",
+      "type": "string"
+    },
+    "firma_cliente_ip": {
+      "description": "IP desde la que firm\u00f3 el cliente",
+      "type": "string"
+    },
+    "firma_cliente_nif": {
+      "description": "NIF del firmante cliente",
+      "type": "string"
+    },
+    "firma_cliente_nombre": {
+      "description": "Nombre completo del firmante cliente",
+      "type": "string"
+    },
+    "firma_operario": {
+      "description": "Firma del operario en base64 o URL",
+      "type": "string"
+    },
+    "firma_operario_fecha": {
+      "description": "Fecha y hora de firma del operario",
+      "format": "date-time",
+      "type": "string"
+    },
+    "firma_pdf_url": {
+      "description": "URL del PDF firmado generado",
+      "type": "string"
+    },
+    "firma_status": {
+      "default": "sin_firmar",
+      "description": "Estado del proceso de firma",
       "enum": [
-        "pendiente",
-        "en_curso",
-        "completado"
+        "sin_firmar",
+        "pendiente_cliente",
+        "pendiente_operario",
+        "firmado_operario",
+        "firmado_ambos",
+        "rechazado"
       ],
-      "default": "pendiente",
-      "description": "Estado del parte"
+      "type": "string"
     },
-    "hora_inicio": {
-      "type": "string",
-      "description": "Hora de inicio del trabajo (HH:MM)"
+    "firma_token": {
+      "description": "Token \u00fanico para enlace de firma remota del cliente",
+      "type": "string"
+    },
+    "firma_token_expiry": {
+      "description": "Fecha de expiraci\u00f3n del token de firma",
+      "format": "date-time",
+      "type": "string"
     },
     "hora_fin": {
-      "type": "string",
-      "description": "Hora de fin del trabajo (HH:MM)"
+      "type": "string"
     },
-    "workers": {
-      "type": "array",
-      "description": "Operarios asignados",
-      "items": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "hours": {
-            "type": "number"
-          },
-          "role": {
-            "type": "string"
-          }
-        }
-      }
+    "hora_inicio": {
+      "type": "string"
     },
     "materials": {
-      "type": "array",
-      "description": "Materiales utilizados",
       "items": {
-        "type": "object",
         "properties": {
           "name": {
             "type": "string"
@@ -78,24 +90,61 @@
           "unit": {
             "type": "string"
           }
-        }
-      }
-    },
-    "total_hours": {
-      "type": "number",
-      "description": "Total de horas trabajadas"
-    },
-    "firma_operario": {
-      "type": "string",
-      "description": "URL imagen firma del operario"
-    },
-    "firma_cliente": {
-      "type": "string",
-      "description": "URL imagen firma del cliente"
+        },
+        "type": "object"
+      },
+      "type": "array"
     },
     "notes": {
-      "type": "string",
-      "description": "Observaciones adicionales"
+      "type": "string"
+    },
+    "obra_id": {
+      "description": "ID de la obra vinculada",
+      "type": "string"
+    },
+    "order_number": {
+      "description": "N\u00famero de parte generado autom\u00e1ticamente",
+      "type": "string"
+    },
+    "project": {
+      "type": "string"
+    },
+    "signaturit_document_id": {
+      "description": "ID del documento en Signaturit",
+      "type": "string"
+    },
+    "signaturit_status": {
+      "description": "Estado en la plataforma Signaturit",
+      "type": "string"
+    },
+    "status": {
+      "default": "pendiente",
+      "enum": [
+        "pendiente",
+        "en_curso",
+        "completado"
+      ],
+      "type": "string"
+    },
+    "total_hours": {
+      "type": "number"
+    },
+    "workers": {
+      "items": {
+        "properties": {
+          "hours": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
     }
   },
   "required": [
@@ -108,6 +157,40 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
           }
         },
         {
@@ -127,16 +210,45 @@
         },
         {
           "user_condition": {
-            "role": "usuario_demo"
+            "role": "control_horario"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "cliente_obra"
+              }
+            },
+            {
+              "data.client_id": "{{user.vinculo_id}}"
+            }
+          ]
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "usuario_demo"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         }
       ]
     },
-    "read": {
+    "update": {
       "$or": [
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
           }
         },
         {
@@ -168,28 +280,6 @@
         }
       ]
     },
-    "update": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "director_comercial"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "jefe_obra"
-          }
-        },
-        {
-          "created_by": "{{user.email}}"
-        }
-      ]
-    },
     "delete": {
       "$or": [
         {
@@ -198,7 +288,9 @@
           }
         },
         {
-          "created_by": "{{user.email}}"
+          "user_condition": {
+            "role": "gerencia"
+          }
         }
       ]
     }
