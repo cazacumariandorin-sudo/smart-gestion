@@ -22,10 +22,10 @@ const HUB_CONFIG = [
     label: 'Obras & Proyectos',
     icon: Building2,
     path: '/obras',
-    color: 'text-purple-600',
+    color: 'text-purple-700',
     bg: 'bg-purple-50 dark:bg-purple-950/30',
     border: 'border-purple-200 dark:border-purple-800',
-    dot: 'bg-purple-500',
+    watermark: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&q=60&fit=crop',
     module: 'obras',
     links: [
       { label: 'Obras civiles', path: '/obras', icon: Building2 },
@@ -39,10 +39,10 @@ const HUB_CONFIG = [
     label: 'Personas & Equipos',
     icon: Users,
     path: '/operarios',
-    color: 'text-teal-600',
+    color: 'text-teal-700',
     bg: 'bg-teal-50 dark:bg-teal-950/30',
     border: 'border-teal-200 dark:border-teal-800',
-    dot: 'bg-teal-500',
+    watermark: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&q=60&fit=crop',
     module: 'operarios',
     links: [
       { label: 'Operarios', path: '/operarios', icon: Users },
@@ -54,10 +54,10 @@ const HUB_CONFIG = [
     label: 'Económico',
     icon: Receipt,
     path: '/notas-gastos',
-    color: 'text-amber-600',
+    color: 'text-amber-700',
     bg: 'bg-amber-50 dark:bg-amber-950/30',
     border: 'border-amber-200 dark:border-amber-800',
-    dot: 'bg-amber-500',
+    watermark: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&q=60&fit=crop',
     module: 'notas-gastos',
     links: [
       { label: 'Gastos', path: '/notas-gastos', icon: Receipt },
@@ -68,10 +68,10 @@ const HUB_CONFIG = [
     label: 'Flota & Movilidad',
     icon: Car,
     path: '/flota',
-    color: 'text-blue-600',
+    color: 'text-blue-700',
     bg: 'bg-blue-50 dark:bg-blue-950/30',
     border: 'border-blue-200 dark:border-blue-800',
-    dot: 'bg-blue-500',
+    watermark: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400&q=60&fit=crop',
     module: 'flota',
     links: [
       { label: 'Vehículos', path: '/flota', icon: Truck },
@@ -82,10 +82,10 @@ const HUB_CONFIG = [
     label: 'Documental',
     icon: Folder,
     path: '/drawings',
-    color: 'text-orange-600',
+    color: 'text-orange-700',
     bg: 'bg-orange-50 dark:bg-orange-950/30',
     border: 'border-orange-200 dark:border-orange-800',
-    dot: 'bg-orange-500',
+    watermark: 'https://images.unsplash.com/photo-1568219656418-15c329312bf1?w=400&q=60&fit=crop',
     module: 'orders',
     links: [
       { label: 'Planos', path: '/drawings', icon: Folder },
@@ -97,10 +97,10 @@ const HUB_CONFIG = [
     label: 'Sistema',
     icon: Settings,
     path: '/users',
-    color: 'text-slate-600',
+    color: 'text-slate-700',
     bg: 'bg-slate-50 dark:bg-slate-950/30',
     border: 'border-slate-200 dark:border-slate-800',
-    dot: 'bg-slate-500',
+    watermark: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&q=60&fit=crop',
     module: 'users',
     adminOnly: true,
     links: [
@@ -122,41 +122,61 @@ function HubCard({ hub, kpi }) {
   const Icon = hub.icon;
   return (
     <Link to={hub.path} className="block group">
-      <div className={cn('rounded-xl border p-4 transition-all hover:shadow-sm hover:-translate-y-0.5', hub.bg, hub.border)}>
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className={cn('p-2 rounded-lg', hub.bg)}>
-            <Icon className={cn('w-5 h-5', hub.color)} />
-          </div>
-          {kpi?.alert && (
-            <div className="flex items-center gap-1">
-              <AlertCircle className="w-3.5 h-3.5 text-destructive" />
-              <span className="text-xs font-semibold text-destructive">{kpi.alert}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Label & KPI */}
-        <p className="text-xs font-bold text-foreground leading-tight mb-1">{hub.label}</p>
-        {kpi?.main !== undefined && (
-          <p className={cn('text-2xl font-bold leading-none', hub.color)}>{kpi.main}</p>
+      <div className={cn(
+        'relative rounded-xl border overflow-hidden transition-all duration-200',
+        'hover:shadow-lg hover:-translate-y-0.5 hover:border-opacity-60',
+        hub.bg, hub.border
+      )}>
+        {/* Watermark image */}
+        {hub.watermark && (
+          <img
+            src={hub.watermark}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover opacity-[0.07] dark:opacity-[0.05] pointer-events-none select-none transition-opacity duration-300 group-hover:opacity-[0.12] dark:group-hover:opacity-[0.09]"
+          />
         )}
-        {kpi?.sub && <p className="text-[10px] text-muted-foreground mt-0.5">{kpi.sub}</p>}
 
-        {/* Quick links */}
-        <div className="flex flex-wrap gap-1 mt-3">
-          {hub.links.map(l => {
-            const LIcon = l.icon;
-            return (
-              <span
-                key={l.path}
-                className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border', hub.bg, hub.border, hub.color)}
-              >
-                <LIcon className="w-2.5 h-2.5 shrink-0" />
-                {l.label}
-              </span>
-            );
-          })}
+        {/* Content */}
+        <div className="relative z-10 p-4">
+          {/* Header */}
+          <div className="flex items-start justify-between mb-3">
+            <div className={cn('p-2 rounded-lg shadow-sm border', hub.bg, hub.border)}>
+              <Icon className={cn('w-5 h-5', hub.color)} />
+            </div>
+            {kpi?.alert && (
+              <div className="flex items-center gap-1 bg-destructive/10 border border-destructive/20 rounded-full px-2 py-0.5">
+                <AlertCircle className="w-3 h-3 text-destructive" />
+                <span className="text-[10px] font-bold text-destructive">{kpi.alert}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Label & KPI */}
+          <p className="text-xs font-bold text-foreground leading-tight mb-1">{hub.label}</p>
+          {kpi?.main !== undefined && (
+            <p className={cn('text-3xl font-extrabold leading-none tracking-tight', hub.color)}>{kpi.main}</p>
+          )}
+          {kpi?.sub && <p className="text-[10px] text-muted-foreground mt-1">{kpi.sub}</p>}
+
+          {/* Quick links */}
+          <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-current/10">
+            {hub.links.map(l => {
+              const LIcon = l.icon;
+              return (
+                <span
+                  key={l.path}
+                  className={cn(
+                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border',
+                    hub.bg, hub.border, hub.color
+                  )}
+                >
+                  <LIcon className="w-2.5 h-2.5 shrink-0" />
+                  {l.label}
+                </span>
+              );
+            })}
+          </div>
         </div>
       </div>
     </Link>
@@ -243,17 +263,19 @@ export default function Dashboard() {
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <HardHat className="w-5 h-5 text-emerald-600" />
-            <h1 className="text-xl font-bold tracking-tight">Panel General</h1>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+              <HardHat className="w-4 h-4 text-emerald-600" />
+            </div>
+            <h1 className="text-lg font-extrabold tracking-tight">Panel General</h1>
           </div>
-          <p className="text-xs text-muted-foreground capitalize">
+          <p className="text-xs text-muted-foreground capitalize pl-0.5">
             {format(new Date(), "EEEE, d 'de' MMMM yyyy", { locale: es })}
           </p>
         </div>
-        <Badge variant="outline" className={cn('text-xs font-semibold', roleCfg.color)}>{roleCfg.label}</Badge>
+        <Badge variant="outline" className={cn('text-xs font-semibold px-2.5 py-1', roleCfg.color)}>{roleCfg.label}</Badge>
       </div>
 
       {/* Alertas de fichaje */}
