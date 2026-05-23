@@ -4,6 +4,7 @@ import MobileNav from './MobileNav';
 import RoleSimulatorBanner from '@/components/RoleSimulatorBanner';
 import DemoBanner from '@/components/demo/DemoBanner';
 import DemoWatermark from '@/components/demo/DemoWatermark';
+import ConnectivityBanner from './ConnectivityBanner';
 import { useScrollRestoration } from '@/hooks/useScrollRestoration';
 import { useUserRole } from '@/lib/useUserRole';
 
@@ -18,6 +19,7 @@ export default function AppLayout() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <ScrollRestorer />
+      <ConnectivityBanner />
       <RoleSimulatorBanner />
       <DemoBanner />
       <div className="flex flex-1">

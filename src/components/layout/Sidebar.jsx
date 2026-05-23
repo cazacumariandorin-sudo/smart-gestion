@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, HardHat, Users, Receipt, Car, Folder,
@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { useUserRole } from '@/lib/useUserRole';
+import { getQueueCountByHub } from '@/utils/offlineQueue';
 
 // Hub definitions — color is a Tailwind text color class
 export const HUBS = [
@@ -104,7 +105,7 @@ export const HUBS = [
   },
 ];
 
-function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo }) {
+function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo, pendingCount = 0 }) {
   const items = hub.items.filter(i => i.module === null || canAccess(i.module));
   const isChildActive = items.some(i => currentPath === i.path || (i.path !== '/' && currentPath.startsWith(i.path)));
   const [open, setOpen] = useState(isChildActive);
@@ -129,6 +130,11 @@ function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo }) 
       >
         <Icon className={cn('w-4 h-4 shrink-0', isChildActive ? hub.color : '')} />
         <span className="flex-1 text-left text-xs">{hub.label}</span>
+        {pendingCount > 0 && (
+          <span className="text-[10px] font-bold bg-orange-500 text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shrink-0">
+            {pendingCount}
+          </span>
+        )}
         <span className="text-[10px] font-normal bg-muted text-muted-foreground rounded-full w-5 h-5 flex items-center justify-center shrink-0">
           {items.length}
         </span>
@@ -169,8 +175,23 @@ export default function Sidebar() {
   const { canAccess, isAdmin, isDemo, role } = useUserRole();
   const path = location.pathname;
   const isGerencia = role === 'gerencia';
-
   const isDashboard = path === '/';
+
+  const [queueCounts, setQueueCounts] = useState({ obras: 0, personas: 0, economico: 0 });
+
+  useEffect(() => {
+    const update = () => setQueueCounts(getQueueCountByHub());
+    update();
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    // Poll cada 10s para reflejar cambios
+    const interval = setInterval(update, 10000);
+    return () => {
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <aside className="hidden lg:flex flex-col w-60 border-r border-border bg-card h-screen sticky top-0">
@@ -211,6 +232,11 @@ export default function Sidebar() {
             isAdmin={isAdmin}
             isGerencia={isGerencia}
             isDemo={isDemo}
+            pendingCount={
+              hub.id === 'obras' ? queueCounts.obras :
+              hub.id === 'personas' ? queueCounts.personas :
+              hub.id === 'economico' ? queueCounts.economico : 0
+            }
           />
         ))}
       </nav>

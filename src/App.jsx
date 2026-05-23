@@ -6,6 +6,8 @@ import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-route
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavDirection } from '@/hooks/useNavDirection';
+import { processOfflineQueue } from '@/utils/offlineQueue';
+import { base44 } from '@/api/base44Client';
 import { I18nProvider } from './lib/i18n';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -61,6 +63,27 @@ function ThemeDetector() {
     apply(mq);
     mq.addEventListener('change', apply);
     return () => mq.removeEventListener('change', apply);
+  }, []);
+  return null;
+}
+
+// Procesa la cola offline cuando se recupera la conexión
+function OfflineQueueProcessor() {
+  useEffect(() => {
+    const handleOnline = async () => {
+      const queue = JSON.parse(localStorage.getItem('sg_offline_queue') || '[]');
+      if (queue.length === 0) return;
+      const entityApis = {
+        Fichaje: base44.entities.Fichaje,
+        WorkOrder: base44.entities.WorkOrder,
+        GastoOperario: base44.entities.GastoOperario,
+        ApunteHorario: base44.entities.ApunteHorario,
+        ObraMaterial: base44.entities.ObraMaterial,
+      };
+      await processOfflineQueue(entityApis);
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
   }, []);
   return null;
 }
@@ -203,6 +226,7 @@ function App() {
         <QueryClientProvider client={queryClientInstance}>
           <Router>
             <ThemeDetector />
+            <OfflineQueueProcessor />
             <AuthenticatedApp />
           </Router>
           <Toaster />
