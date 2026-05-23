@@ -3,11 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Users, Edit2, UserX } from 'lucide-react';
+import { Loader2, Users, Edit2, UserX, UserCheck } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
 import EditUserRoleDialog from '@/components/EditUserRoleDialog';
 import RealUsersModal from '@/pages/RealUsersModal';
+import VincularOperarioDialog from '@/components/users/VincularOperarioDialog';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 
@@ -46,6 +47,7 @@ export default function RealUsersTab() {
   const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [vinculandoUser, setVinculandoUser] = useState(null);
 
   // ── LOAD ALL USERS — no filters, no conditions ──────────────────────────
   const { data: users = [], isLoading, refetch } = useQuery({
@@ -224,15 +226,30 @@ export default function RealUsersTab() {
 
                     {/* Acciones */}
                     <td className="py-3 px-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditingUser(u)}
-                        className="gap-1 h-8 text-xs"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                        Editar
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingUser(u)}
+                          className="gap-1 h-8 text-xs"
+                          title="Editar rol y cargo"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          <span className="hidden sm:inline">Editar</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setVinculandoUser(u)}
+                          className={`gap-1 h-8 text-xs ${
+                            u.vinculo_estado === 'vinculado' ? 'text-green-600 hover:text-green-700' : 'text-primary hover:text-primary/90'
+                          }`}
+                          title={u.vinculo_estado === 'vinculado' ? 'Ya vinculado' : 'Vincular con operario'}
+                        >
+                          <UserCheck className="w-3 h-3" />
+                          <span className="hidden sm:inline">{u.vinculo_estado === 'vinculado' ? 'Vinculado' : 'Vincular'}</span>
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -258,6 +275,14 @@ export default function RealUsersTab() {
         open={!!editingUser}
         onOpenChange={(open) => !open && setEditingUser(null)}
         user={editingUser}
+        onSuccess={handleRefresh}
+      />
+
+      {/* Vincular operario dialog */}
+      <VincularOperarioDialog
+        open={!!vinculandoUser}
+        onOpenChange={(open) => !open && setVinculandoUser(null)}
+        user={vinculandoUser}
         onSuccess={handleRefresh}
       />
     </div>
