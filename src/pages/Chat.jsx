@@ -11,6 +11,8 @@ import { es } from 'date-fns/locale';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import CifradoInfo from '@/components/chat/CifradoInfo';
+import NuevaConversacionDialog from '@/components/chat/NuevaConversacionDialog';
+import GestionarGrupoDialog from '@/components/chat/GestionarGrupoDialog';
 import {
   generarClavesRSA,
   cifrarAES,
@@ -25,8 +27,6 @@ import { toast } from 'sonner';
 export default function Chat() {
   const [selectedConvId, setSelectedConvId] = useState(null);
   const [newMessage, setNewMessage] = useState('');
-  const [showNewConv, setShowNewConv] = useState(false);
-  const [newConvName, setNewConvName] = useState('');
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
@@ -37,6 +37,8 @@ export default function Chat() {
   const [cargandoClaves, setCargandoClaves] = useState(false);
   const [mensajesDescifrados, setMensajesDescifrados] = useState({});
   const [showCifradoInfo, setShowCifradoInfo] = useState(false);
+  const [showNuevaConv, setShowNuevaConv] = useState(false);
+  const [showGestionarGrupo, setShowGestionarGrupo] = useState(false);
 
   // Inicializar claves E2E al cargar
   useEffect(() => {
@@ -191,20 +193,7 @@ export default function Chat() {
     },
   });
 
-  const createConvMutation = useMutation({
-    mutationFn: (name) => base44.entities.ChatConversacion.create({
-      nombre: name,
-      tipo: 'grupo',
-      participantes: [{ user_email: currentUser?.email, nombre_display: currentUser?.full_name || currentUser?.email }],
-      cifrado_activo: false,
-    }),
-    onSuccess: (conv) => {
-      queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
-      setSelectedConvId(conv.id);
-      setShowNewConv(false);
-      setNewConvName('');
-    },
-  });
+  // Eliminado - ahora se usa NuevaConversacionDialog
 
   const selectedConv = conversations.find(c => c.id === selectedConvId);
 
@@ -245,26 +234,16 @@ export default function Chat() {
             <MessageSquare className="w-5 h-5 text-primary" />
             <h2 className="font-semibold text-sm">Mensajes</h2>
           </div>
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowNewConv(true)}>
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className="h-8 w-8" 
+            onClick={() => setShowNuevaConv(true)}
+            title="Nueva conversación"
+          >
             <Plus className="w-4 h-4" />
           </Button>
         </div>
-
-        {showNewConv && (
-          <div className="p-3 border-b border-border bg-muted/40">
-            <Input
-              placeholder="Nombre de la conversación..."
-              value={newConvName}
-              onChange={e => setNewConvName(e.target.value)}
-              className="mb-2 h-8 text-sm"
-              onKeyDown={e => e.key === 'Enter' && newConvName.trim() && createConvMutation.mutate(newConvName.trim())}
-            />
-            <div className="flex gap-2">
-              <Button size="sm" className="flex-1 h-7 text-xs" onClick={() => newConvName.trim() && createConvMutation.mutate(newConvName.trim())}>Crear</Button>
-              <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => setShowNewConv(false)}>Cancelar</Button>
-            </div>
-          </div>
-        )}
 
         <div className="flex-1 overflow-y-auto">
           {conversations.length === 0 && (
@@ -338,6 +317,17 @@ export default function Chat() {
                 {cargandoClaves && (
                   <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />
                 )}
+                {selectedConv?.tipo === 'grupo' && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => setShowGestionarGrupo(true)}
+                    title="Gestionar grupo"
+                  >
+                    <Users className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -402,6 +392,29 @@ export default function Chat() {
 
       {/* Dialog info cifrado */}
       <CifradoInfo open={showCifradoInfo} onClose={() => setShowCifradoInfo(false)} />
+      
+      {/* Dialog nueva conversación */}
+      <NuevaConversacionDialog 
+        open={showNuevaConv}
+        onClose={() => setShowNuevaConv(false)}
+        user={currentUser}
+        onSuccess={(convId) => {
+          setSelectedConvId(convId);
+          queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
+        }}
+      />
+      
+      {/* Dialog gestionar grupo */}
+      <GestionarGrupoDialog
+        open={showGestionarGrupo}
+        onClose={() => setShowGestionarGrupo(false)}
+        conversacion={selectedConv}
+        user={currentUser}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
+          if (selectedConvId) queryClient.invalidateQueries({ queryKey: ['chat-messages', selectedConvId] });
+        }}
+      />
     </div>
   );
 }
