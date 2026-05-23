@@ -83,8 +83,11 @@ export default function Clients() {
   const [form, setForm] = useState(emptyClient);
   const [expandedCard, setExpandedCard] = useState(null);
   const queryClient = useQueryClient();
-  const { isAdmin, isGerencia } = useUserRole();
+  const { isAdmin, isGerencia, role } = useUserRole();
   const canAdmin = isAdmin || isGerencia;
+  // jefe_obra y director_comercial pueden crear/editar; solo admin puede eliminar
+  const canCreate = isAdmin || isGerencia || role === 'jefe_obra' || role === 'director_comercial';
+  const canDelete = isAdmin || isGerencia;
 
   // Detección de duplicados
   const [dupWarning, setDupWarning] = useState([]);
@@ -169,7 +172,7 @@ export default function Clients() {
                 <ScanSearch className="w-4 h-4" /><span className="hidden sm:inline">Duplicados</span>
               </Button>
             )}
-            <Button onClick={openCreate} className="gap-2 shadow-sm" size="sm"><Plus className="w-4 h-4" /><span className="hidden sm:inline">Nuevo Cliente</span></Button>
+            {canCreate && <Button onClick={openCreate} className="gap-2 shadow-sm" size="sm"><Plus className="w-4 h-4" /><span className="hidden sm:inline">Nuevo Cliente</span></Button>}
           </div>
         }
       />
@@ -187,7 +190,7 @@ export default function Clients() {
         <div className="text-center py-16 border border-dashed rounded-xl">
           <User className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground mb-3">No hay clientes</p>
-          <Button variant="outline" size="sm" onClick={openCreate} className="gap-2"><Plus className="w-3.5 h-3.5" />Añadir cliente</Button>
+          {canCreate && <Button variant="outline" size="sm" onClick={openCreate} className="gap-2"><Plus className="w-3.5 h-3.5" />Añadir cliente</Button>}
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -234,19 +237,21 @@ export default function Clients() {
                 <div className="flex items-center justify-between pt-3 border-t border-border mt-2">
                   <Link to={`/work-orders?client=${client.id}`} className="text-xs text-primary hover:underline font-medium">Ver partes →</Link>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(client)}><Pencil className="w-3 h-3" /></Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle><AlertDialogDescription>Se eliminará "{client.name}".</AlertDialogDescription></AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => deleteMutation.mutate(client.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    {canCreate && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(client)}><Pencil className="w-3 h-3" /></Button>}
+                    {canDelete && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle><AlertDialogDescription>Se eliminará "{client.name}".</AlertDialogDescription></AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteMutation.mutate(client.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </div>
               </Card>

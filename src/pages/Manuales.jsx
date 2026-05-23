@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
+import { useUserRole } from '@/lib/useUserRole';
 import { Plus, Search, Trash2, BookOpen, Save, Loader2, Upload, ExternalLink, FileText, Table, File, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,10 @@ function fileIcon(fileType) {
 
 export default function Manuales() {
   const qc = useQueryClient();
+  const { isAdmin, isJefeObra, role } = useUserRole();
+  // Solo admin, jefe_obra y director_comercial pueden crear/eliminar manuales
+  const canCreate = isAdmin || isJefeObra || role === 'director_comercial';
+  const canDelete = isAdmin || isJefeObra;
   const [search, setSearch] = useState('');
   const [clientFilter, setClientFilter] = useState('all');
   const [obraFilter, setObraFilter] = useState('all');
@@ -123,9 +128,11 @@ export default function Manuales() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{filtered.length} documentos</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nuevo Manual</span>
-        </Button>
+        {canCreate && (
+          <Button onClick={() => setDialogOpen(true)} className="gap-2 shadow-sm">
+            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nuevo Manual</span>
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -153,7 +160,7 @@ export default function Manuales() {
         <div className="text-center py-16 border border-dashed rounded-xl">
           <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground mb-3">No hay manuales registrados</p>
-          <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)} className="gap-2"><Plus className="w-3.5 h-3.5" /> Añadir manual</Button>
+          {canCreate && <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)} className="gap-2"><Plus className="w-3.5 h-3.5" /> Añadir manual</Button>}
         </div>
       ) : (
         <div className="space-y-6">
@@ -189,7 +196,7 @@ export default function Manuales() {
                                 </Button>
                               </>
                             )}
-                            <AlertDialog>
+                            {canDelete && <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
                               </AlertDialogTrigger>
@@ -200,7 +207,7 @@ export default function Manuales() {
                                   <AlertDialogAction onClick={() => deleteM.mutate(m.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
-                            </AlertDialog>
+                            </AlertDialog>}
                           </div>
                         </Card>
                       ))}

@@ -77,8 +77,8 @@ export const HUBS = [
     activeBg: 'bg-orange-50 dark:bg-orange-950/40',
     borderColor: 'border-orange-400',
     items: [
-      { label: 'Planos', path: '/drawings', icon: FileImage, module: 'orders' },
-      { label: 'Manuales', path: '/manuales', icon: BookOpen, module: 'orders' },
+      { label: 'Planos', path: '/drawings', icon: FileImage, module: 'drawings' },
+      { label: 'Manuales', path: '/manuales', icon: BookOpen, module: 'manuales' },
       { label: 'Galería Fotos', path: '/galeria-fotos', icon: Images, module: 'galeria-fotos' },
       { label: 'Materiales', path: '/materials', icon: Package, module: 'orders' },
       { label: 'Inventario', path: '/inventario', icon: Wrench, module: 'users' },

@@ -55,14 +55,14 @@ export default function WorkOrders() {
         title="Partes de Trabajo"
         subtitle={`${filtered.length} partes encontrados`}
         hideBack={true}
-        actions={
+        actions={!isClienteObra && (
           <Link to="/work-orders/new">
             <Button className="gap-2 shadow-sm" size="sm">
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Nuevo Parte</span>
             </Button>
           </Link>
-        }
+        )}
       />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="p-4 sm:p-6 lg:p-8">

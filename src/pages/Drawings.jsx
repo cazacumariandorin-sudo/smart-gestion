@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
+import { useUserRole } from '@/lib/useUserRole';
 import { useI18n } from '@/lib/i18n';
 import { Plus, Search, Pencil, Trash2, FileImage, Upload, Loader2, Save, ExternalLink, ChevronRight, ChevronDown, File, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,10 @@ function FileViewer({ url, title }) {
 export default function Drawings() {
   const { t } = useI18n();
   const qc = useQueryClient();
+  const { isAdmin, isJefeObra, isGerencia, role } = useUserRole();
+  // Solo admin, jefe_obra, gerencia y director_comercial pueden crear/editar/eliminar planos
+  const canCreate = isAdmin || isJefeObra || isGerencia || role === 'director_comercial';
+  const canDelete = isAdmin || isJefeObra;
 
   const onRefresh = useCallback(() => qc.invalidateQueries({ queryKey: ['drawings'] }), [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
@@ -141,9 +146,11 @@ export default function Drawings() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{filtered.length} documentos</p>
         </div>
-        <Button onClick={() => open_()} className="gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nuevo Documento</span>
-        </Button>
+        {canCreate && (
+          <Button onClick={() => open_()} className="gap-2 shadow-sm">
+            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nuevo Documento</span>
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -163,7 +170,7 @@ export default function Drawings() {
         <div className="text-center py-16 border border-dashed rounded-xl">
           <FileImage className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground mb-3">No hay documentos</p>
-          <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2"><Plus className="w-3.5 h-3.5" /> Nuevo Documento</Button>
+          {canCreate && <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2"><Plus className="w-3.5 h-3.5" /> Nuevo Documento</Button>}
         </div>
       ) : (
         <div className="space-y-4">
@@ -209,16 +216,18 @@ export default function Drawings() {
                                       <ExternalLink className="w-3 h-3" /> Ver
                                     </Button>
                                   )}
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(d)}><Pencil className="w-3 h-3" /></Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader><AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle><AlertDialogDescription>"{d.title}" será eliminado.</AlertDialogDescription></AlertDialogHeader>
-                                      <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteM.mutate(d.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction></AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
+                                  {canCreate && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(d)}><Pencil className="w-3 h-3" /></Button>}
+                                  {canDelete && (
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader><AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle><AlertDialogDescription>"{d.title}" será eliminado.</AlertDialogDescription></AlertDialogHeader>
+                                        <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteM.mutate(d.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction></AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  )}
                                 </div>
                               </div>
                             );

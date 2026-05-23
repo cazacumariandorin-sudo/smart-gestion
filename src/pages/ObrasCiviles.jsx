@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
+import { useUserRole } from '@/lib/useUserRole';
 import { Plus, Search, Pencil, Trash2, Building2, Save, Loader2, Calendar, Euro, Package, X, Camera, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,11 @@ const empty = {
 
 export default function ObrasCiviles() {
   const qc = useQueryClient();
+  const { isAdmin, isGerencia, isJefeObra, role } = useUserRole();
+  // Crear/editar: admin, gerencia, jefe_obra, director_comercial
+  const canCreate = isAdmin || isGerencia || isJefeObra || role === 'director_comercial';
+  // Solo admin puede eliminar
+  const canDelete = isAdmin;
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -92,7 +98,7 @@ export default function ObrasCiviles() {
         title="Obras Civiles"
         subtitle={`${filtered.length} obras civiles`}
         hideBack={true}
-        actions={<Button onClick={() => open_()} className="gap-2 shadow-sm" size="sm"><Plus className="w-4 h-4" /><span className="hidden sm:inline">Nueva Obra</span></Button>}
+        actions={canCreate && <Button onClick={() => open_()} className="gap-2 shadow-sm" size="sm"><Plus className="w-4 h-4" /><span className="hidden sm:inline">Nueva Obra</span></Button>}
       />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="p-4 sm:p-6 lg:p-8">
@@ -116,7 +122,7 @@ export default function ObrasCiviles() {
         <div className="text-center py-16 border border-dashed rounded-xl">
           <Building2 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground mb-3">No hay obras civiles registradas</p>
-          <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2"><Plus className="w-3.5 h-3.5" /> Nueva Obra</Button>
+          {canCreate && <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2"><Plus className="w-3.5 h-3.5" /> Nueva Obra</Button>}
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -133,8 +139,8 @@ export default function ObrasCiviles() {
                     <Badge variant="outline" className={`text-[10px] ${sc.className}`}>{sc.label}</Badge>
                   </div>
                   <div className="flex gap-1 ml-2" onClick={e => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(o)}><Pencil className="w-3 h-3" /></Button>
-                    <AlertDialog>
+                    {canCreate && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(o)}><Pencil className="w-3 h-3" /></Button>}
+                    {canDelete && <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button>
                       </AlertDialogTrigger>
@@ -145,7 +151,7 @@ export default function ObrasCiviles() {
                           <AlertDialogAction onClick={() => deleteM.mutate(o.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
-                    </AlertDialog>
+                    </AlertDialog>}
                   </div>
                 </div>
 
@@ -185,11 +191,13 @@ export default function ObrasCiviles() {
                 </DialogTitle>
                 {detailObra?.client_name && <p className="text-xs text-muted-foreground mt-0.5">{detailObra.client_name}</p>}
               </div>
-              <div className="flex gap-1">
-                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => { setDetailObra(null); open_(detailObra); }}>
-                  <Pencil className="w-3 h-3" /> Editar
-                </Button>
-              </div>
+              {canCreate && (
+                <div className="flex gap-1">
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => { setDetailObra(null); open_(detailObra); }}>
+                    <Pencil className="w-3 h-3" /> Editar
+                  </Button>
+                </div>
+              )}
             </div>
           </DialogHeader>
           {detailObra && (

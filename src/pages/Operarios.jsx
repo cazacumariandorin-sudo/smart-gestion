@@ -20,8 +20,10 @@ const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true,
 
 export default function Operarios() {
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra } = useUserRole();
+  const { isAdmin, isJefeObra, role } = useUserRole();
   const showUserCol = isAdmin || isJefeObra;
+  const canCreate = isAdmin || isJefeObra || role === 'director_comercial';
+  const canDelete = isAdmin;
   const defaultTab = typeof window !== 'undefined' && typeof window.location !== 'undefined' && window.location.pathname.includes('documentacion') ? 'documentacion' : 'operarios';
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [search, setSearch] = useState('');
@@ -93,12 +95,12 @@ export default function Operarios() {
         title="Operarios"
         subtitle={`${operarios.length} operarios registrados`}
         hideBack={true}
-        actions={
+        actions={canCreate && (
           <Button onClick={() => open_()} className="gap-2 shadow-sm" size="sm">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Nuevo Operario</span>
           </Button>
-        }
+        )}
       />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="p-4 sm:p-6 lg:p-8">
@@ -147,9 +149,11 @@ export default function Operarios() {
               <div className="text-center py-16 border border-dashed rounded-xl">
                 <User className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground mb-3">No hay operarios registrados</p>
-                <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2">
-                  <Plus className="w-3.5 h-3.5" /> Anadir operario
-                </Button>
+                {canCreate && (
+                  <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2">
+                    <Plus className="w-3.5 h-3.5" /> Añadir operario
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -161,31 +165,32 @@ export default function Operarios() {
                         {op.role && <p className="text-xs text-muted-foreground mt-0.5">{op.role}</p>}
                       </div>
                       <div className="flex gap-1 ml-2">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(op)}>
-                          <Pencil className="w-3 h-3" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Eliminar operario?</AlertDialogTitle>
-                              <AlertDialogDescription>"{op.name}" sera eliminado permanentemente.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteM.mutate(op.id)}
-                                className="bg-destructive text-destructive-foreground"
-                              >
-                                Eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        {canCreate && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(op)}>
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar operario?</AlertDialogTitle>
+                                <AlertDialogDescription>"{op.name}" será eliminado permanentemente.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteM.mutate(op.id)} className="bg-destructive text-destructive-foreground">
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-1.5">
