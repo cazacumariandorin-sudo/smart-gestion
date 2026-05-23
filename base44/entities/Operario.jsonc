@@ -1,39 +1,63 @@
 {
   "name": "Operario",
-  "type": "object",
   "properties": {
-    "name": {
-      "type": "string",
-      "description": "Nombre completo"
+    "active": {
+      "default": true,
+      "description": "Activo",
+      "type": "boolean"
     },
     "dni": {
-      "type": "string",
-      "description": "DNI / NIE"
+      "description": "DNI / NIE",
+      "type": "string"
     },
     "email": {
-      "type": "string",
-      "description": "Correo electr\u00f3nico personal"
+      "description": "Correo electr\u00f3nico personal",
+      "type": "string"
+    },
+    "es_temporal": {
+      "default": false,
+      "description": "True si fue creado autom\u00e1ticamente por el sistema tras 7 d\u00edas sin vinculaci\u00f3n manual",
+      "type": "boolean"
+    },
+    "name": {
+      "description": "Nombre completo",
+      "type": "string"
     },
     "phone": {
-      "type": "string",
-      "description": "Tel\u00e9fono"
+      "description": "Tel\u00e9fono",
+      "type": "string"
     },
     "role": {
-      "type": "string",
-      "description": "Puesto / categor\u00eda profesional"
-    },
-    "active": {
-      "type": "boolean",
-      "default": true,
-      "description": "Activo"
+      "description": "Puesto / categor\u00eda profesional",
+      "type": "string"
     },
     "user_email": {
-      "type": "string",
-      "description": "Email del usuario de la app vinculado a este operario (para login)"
+      "description": "Email del usuario de la app vinculado a este operario",
+      "type": "string"
     },
     "user_id": {
-      "type": "string",
-      "description": "ID del usuario de la app vinculado"
+      "description": "ID del usuario de la app vinculado",
+      "type": "string"
+    },
+    "user_vinculado_nombre": {
+      "description": "Nombre display del usuario vinculado",
+      "type": "string"
+    },
+    "vinculacion_fecha": {
+      "description": "Fecha en que se realiz\u00f3 el v\u00ednculo con el usuario de la app",
+      "format": "date-time",
+      "type": "string"
+    },
+    "vinculacion_tipo": {
+      "default": "sin_vincular",
+      "description": "C\u00f3mo se realiz\u00f3 el v\u00ednculo",
+      "enum": [
+        "manual",
+        "automatico_7dias",
+        "demo",
+        "sin_vincular"
+      ],
+      "type": "string"
     }
   },
   "required": [
@@ -51,8 +75,18 @@
           "user_condition": {
             "role": "director_comercial"
           }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
         }
       ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "read": {
       "$or": [
@@ -64,6 +98,11 @@
         {
           "user_condition": {
             "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
           }
         },
         {
@@ -90,6 +129,11 @@
         },
         {
           "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         },
@@ -97,11 +141,7 @@
           "data.user_email": "{{user.email}}"
         }
       ]
-    },
-    "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
     }
-  }
+  },
+  "type": "object"
 }
