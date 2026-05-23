@@ -51,6 +51,7 @@ const PrevisionObras = lazy(() => import('./pages/PrevisionObras'));
 const SimuladorRoles = lazy(() => import('./pages/SimuladorRoles'));
 const DiagnosticoOperario = lazy(() => import('./pages/DiagnosticoOperario'));
 const VinculacionPage = lazy(() => import('./pages/Vinculacion'));
+const AnalisisSeguridad = lazy(() => import('./pages/AnalisysSeguridad'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -207,6 +208,7 @@ function AnimatedRoutes() {
             <Route path="/simulador-roles" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><SimuladorRoles /></Suspense></ProtectedRoute>} />
             <Route path="/diagnostico-operario" element={<Suspense fallback={<PageLoader />}><DiagnosticoOperario /></Suspense>} />
             <Route path="/vinculacion" element={<Suspense fallback={<PageLoader />}><VinculacionPage /></Suspense>} />
+            <Route path="/analisis-seguridad" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><AnalisisSeguridad /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
 
