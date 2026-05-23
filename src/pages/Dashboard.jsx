@@ -166,20 +166,26 @@ function HubCard({ hub, kpi }) {
           {kpi?.sub && <p className="text-xs text-muted-foreground mt-1.5 font-medium">{kpi.sub}</p>}
 
           {/* Quick links */}
-          <div className="flex flex-wrap gap-1.5 mt-4 pt-3 border-t-2 border-current/10">
+          <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t-2 border-current/10">
             {hub.links.map(l => {
               const LIcon = l.icon;
               return (
-                <span
+                <Link
                   key={l.path}
+                  to={l.path}
+                  onClick={e => e.stopPropagation()}
                   className={cn(
-                    'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border-2 shadow-sm',
-                    hub.bg, hub.border, hub.color
+                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border-2 shadow-md',
+                    'transition-all duration-150 cursor-pointer select-none',
+                    'hover:scale-105 hover:shadow-lg active:scale-95',
+                    hub.iconBg.replace('bg-', 'hover:bg-') + '/20',
+                    hub.border, hub.color,
+                    'bg-white/60 dark:bg-black/20 hover:bg-white/90 dark:hover:bg-white/10'
                   )}
                 >
-                  <LIcon className="w-3 h-3 shrink-0" />
+                  <LIcon className="w-3.5 h-3.5 shrink-0" />
                   {l.label}
-                </span>
+                </Link>
               );
             })}
           </div>
