@@ -31,6 +31,19 @@ export default function Chat() {
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   
+  // Cargar usuario actual
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const user = await base44.auth.me();
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error cargando usuario:', error);
+      }
+    };
+    loadUser();
+  }, []);
+  
   // Estado para cifrado E2E
   const [clavesE2E, setClavesE2E] = useState(null); // { publicKeyBase64, privateKey }
   const [claveAES, setClaveAES] = useState(null); // Clave AES para la conversación actual
