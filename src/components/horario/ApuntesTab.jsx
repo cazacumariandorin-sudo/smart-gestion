@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
 import { Plus, Download, Trash2, Pencil, Save, Loader2, ClipboardList, TrendingUp } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
@@ -74,6 +75,7 @@ export default function ApuntesTab() {
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
   const [yearFilter, setYearFilter] = useState(String(new Date().getFullYear()));
   const [opFilter, setOpFilter] = useState('all');
+  const { user } = useAuth();
 
   const { data: apuntes = [], isLoading } = useQuery({
     queryKey: ['apuntes'],
@@ -108,6 +110,28 @@ export default function ApuntesTab() {
   const handleObraChange = ({ obra_id, obra_name }) => {
     setForm(p => ({ ...p, obra_id: obra_id || '', obra_name: obra_name || '' }));
   };
+
+  // Autoload operario for operario/control_horario roles
+  useEffect(() => {
+    if (!user?.email) return;
+    if (user.role !== 'operario' && user.role !== 'control_horario') return;
+    
+    base44.entities.Operario
+      .filter({ user_email: user.email })
+      .then(operarios => {
+        if (operarios.length > 0) {
+          const op = operarios[0];
+          setForm(p => ({
+            ...p,
+            operario_id: op.id,
+            operario_name: op.name,
+          }));
+        } else {
+          console.warn('No Operario record linked to user:', user.email);
+        }
+      })
+      .catch(() => {});
+  }, [user?.email, user?.role]);
 
   const handleSave = () => {
     const qty = parseFloat(form.cantidad) || 0;

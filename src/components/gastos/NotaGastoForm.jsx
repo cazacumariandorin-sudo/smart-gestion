@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
+import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,6 +52,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [operarioSeleccionado, setOperarioSeleccionado] = useState(null);
   const [showObraModal, setShowObraModal] = useState(false);
   const [pendingSave, setPendingSave] = useState(false);
+  const { user } = useAuth();
 
   // Reset al abrir/cerrar
   useEffect(() => {
@@ -66,6 +68,27 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       setPendingSave(false);
     }
   }, [open]);
+
+  // Autoload operario for operario/control_horario roles
+  useEffect(() => {
+    if (!user?.email) return;
+    if (user.role !== 'operario' && user.role !== 'control_horario') return;
+    
+    base44.entities.Operario
+      .filter({ user_email: user.email })
+      .then(operarios => {
+        if (operarios.length > 0) {
+          const op = operarios[0];
+          if (!operario) {
+            // Si no hay operario prop (modo admin), usar el encontrado
+            // Esto es solo para usuarios con rol operario que están creando gastos personales
+          }
+        } else {
+          console.warn('No Operario record linked to user:', user.email);
+        }
+      })
+      .catch(() => {});
+  }, [user?.email, user?.role]);
 
   const operarioEfectivo = (isAdmin && operarioSeleccionado)
     ? operarios.find(op => op.id === operarioSeleccionado) || operario

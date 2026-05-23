@@ -46,6 +46,13 @@ export default function EditUserRoleDialog({ open, onOpenChange, user, onSuccess
     },
     onSuccess: () => {
       toast.success(`Rol actualizado a ${ROLE_LABELS[newRole]}`);
+      // Informar al admin que el usuario debe reconectarse
+      setTimeout(() => {
+        toast.info(
+          `Notifica a ${user?.full_name || user?.email} que debe cerrar sesión y volver a entrar para que el cambio sea visible en su app.`,
+          { duration: 8000 }
+        );
+      }, 500);
       qc.invalidateQueries({ queryKey: ['users'] });
       onOpenChange(false);
       if (onSuccess) onSuccess();

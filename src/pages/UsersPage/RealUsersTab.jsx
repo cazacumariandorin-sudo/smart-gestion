@@ -2,7 +2,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const ROLE_COLORS = {
   admin: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100',
@@ -15,6 +18,13 @@ const ROLE_COLORS = {
 };
 
 export default function RealUsersTab({ users, isLoading }) {
+  // Cargar todos los operarios para verificar vinculación
+  const { data: operarios = [] } = useQuery({
+    queryKey: ['operarios-all'],
+    queryFn: () => base44.entities.Operario.list(),
+    enabled: !isLoading,
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -34,35 +44,54 @@ export default function RealUsersTab({ users, isLoading }) {
   }
 
   return (
-    <div className="space-y-3">
-      {users.map((user) => (
-        <Card key={user.id}>
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium">{user.full_name || 'Sin nombre'}</p>
-                  <Badge variant="outline" className={ROLE_COLORS[user.role] || ROLE_COLORS.operario}>
-                    {user.role?.replace('_', ' ').toUpperCase()}
-                  </Badge>
+    <TooltipProvider>
+      <div className="space-y-3">
+        {users.map((user) => {
+          // Verificar si tiene operario vinculado (solo para operario/control_horario)
+          const necesitaOperario = user.role === 'operario' || user.role === 'control_horario';
+          const tieneOperarioVinculado = necesitaOperario && operarios.some(op => op.user_email === user.email);
+          const mostrarAviso = necesitaOperario && !tieneOperarioVinculado;
+
+          return (
+            <Card key={user.id}>
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{user.full_name || 'Sin nombre'}</p>
+                      <Badge variant="outline" className={ROLE_COLORS[user.role] || ROLE_COLORS.operario}>
+                        {user.role?.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                      {mostrarAviso && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs max-w-xs">Este usuario no tiene un operario vinculado — no podrá autorellenar sus fichajes</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                    {user.cargo && (
+                      <p className="text-xs text-muted-foreground">Cargo: {user.cargo}</p>
+                    )}
+                  </div>
+                  <div className="text-right text-xs text-muted-foreground">
+                    {user.acceso_hasta && (
+                      <p>Acceso hasta: {format(new Date(user.acceso_hasta), 'dd/MM/yyyy', { locale: es })}</p>
+                    )}
+                    <p className="text-xs">
+                      {user.tipo_cuenta === 'real' || !user.tipo_cuenta ? 'Cuenta real' : 'Cuenta demo'}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
-                {user.cargo && (
-                  <p className="text-xs text-muted-foreground">Cargo: {user.cargo}</p>
-                )}
-              </div>
-              <div className="text-right text-xs text-muted-foreground">
-                {user.acceso_hasta && (
-                  <p>Acceso hasta: {format(new Date(user.acceso_hasta), 'dd/MM/yyyy', { locale: es })}</p>
-                )}
-                <p className="text-xs">
-                  {user.tipo_cuenta === 'real' || !user.tipo_cuenta ? 'Cuenta real' : 'Cuenta demo'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </TooltipProvider>
   );
 }

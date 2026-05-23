@@ -40,6 +40,30 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await base44.auth.me();
       userLoadedRef.current = true;
       clearTimeout(timeoutId);
+
+      // PATCH: leer el rol actualizado de la entidad User
+      // base44.auth.me() devuelve el token JWT original que puede tener el rol viejo.
+      // Al consultar la entidad User por email obtenemos el rol real y actualizado.
+      try {
+        const userRecords = await base44.entities.User.filter({ email: currentUser.email });
+        if (userRecords && userRecords.length > 0) {
+          const entityUser = userRecords[0];
+          // Sobreescribir campos que pueden haber cambiado desde el registro inicial
+          currentUser.role = entityUser.role || currentUser.role || 'operario';
+          currentUser.cargo = entityUser.cargo || currentUser.cargo || '';
+          currentUser.tipo_cuenta = entityUser.tipo_cuenta || 'real';
+          currentUser.demo_expires_at = entityUser.demo_expires_at || null;
+          currentUser.invitado_por = entityUser.invitado_por || null;
+          currentUser.acceso_hasta = entityUser.acceso_hasta || null;
+          currentUser.vinculo_id = entityUser.vinculo_id || null;
+          // Guardar el id de la entidad User para referencias posteriores
+          currentUser.user_entity_id = entityUser.id;
+        }
+      } catch (roleErr) {
+        // Si falla la query de rol (sin permisos, red, etc.) usar el del token
+        console.warn('Role sync from entity failed, using token role:', roleErr);
+      }
+
       setUser(currentUser);
       setIsAuthenticated(true);
     } catch (error) {
