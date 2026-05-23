@@ -60,6 +60,18 @@ export default function RealUsersTab() {
     qc.invalidateQueries({ queryKey: ['users'], refetchType: 'all' });
   };
 
+  const handleAsignarIdsPendientes = async () => {
+    try {
+      const response = await base44.functions.invoke('asignarIdsPersonalizadosExistentes', {});
+      if (response.data.success) {
+        toast.success(`IDs asignados: ${response.data.resultados.actualizados} usuarios actualizados`);
+        handleRefresh();
+      }
+    } catch (error) {
+      toast.error('Error al asignar IDs: ' + error.message);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -75,10 +87,21 @@ export default function RealUsersTab() {
         <p className="text-sm text-muted-foreground">
           {users.length} usuario{users.length !== 1 ? 's' : ''} registrado{users.length !== 1 ? 's' : ''}
         </p>
-        <Button onClick={() => setAddOpen(true)} className="gap-2" size="sm">
-          <Plus className="w-4 h-4" />
-          Añadir usuario
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleAsignarIdsPendientes} 
+            variant="outline" 
+            size="sm"
+            className="gap-2"
+            title="Asignar ID personalizado a usuarios sin ID"
+          >
+            Asignar IDs pendientes
+          </Button>
+          <Button onClick={() => setAddOpen(true)} className="gap-2" size="sm">
+            <Plus className="w-4 h-4" />
+            Añadir usuario
+          </Button>
+        </div>
       </div>
 
       {/* Empty state */}
@@ -98,6 +121,7 @@ export default function RealUsersTab() {
             <thead>
               <tr className="bg-muted/50 text-xs text-muted-foreground">
                 <th className="text-left py-3 px-4 font-medium w-10"></th>
+                <th className="text-left py-3 px-4 font-medium">ID Personalizado</th>
                 <th className="text-left py-3 px-4 font-medium">Nombre</th>
                 <th className="text-left py-3 px-4 font-medium">Email</th>
                 <th className="text-left py-3 px-4 font-medium">Rol</th>
@@ -123,6 +147,17 @@ export default function RealUsersTab() {
                       <div className={`w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center text-white text-xs font-semibold shrink-0`}>
                         {initials || '?'}
                       </div>
+                    </td>
+
+                    {/* ID Personalizado */}
+                    <td className="py-3 px-4">
+                      {u.user_id_personalizado ? (
+                        <Badge variant="outline" className="text-xs font-mono bg-blue-50 text-blue-700 border-blue-200">
+                          {u.user_id_personalizado}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </td>
 
                     {/* Nombre */}

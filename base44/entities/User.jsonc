@@ -46,7 +46,71 @@
     },
     "vinculo_id": {
       "type": "string",
-      "description": "ID del cliente vinculado a este usuario para rol cliente_obra"
+      "description": "ID del Operario o Client vinculado"
+    },
+    "vinculo_tipo": {
+      "type": "string",
+      "enum": [
+        "operario",
+        "operario_temporal",
+        "demo_user",
+        "cliente_obra",
+        "sin_vincular"
+      ],
+      "default": "sin_vincular",
+      "description": "Tipo de v\u00ednculo con entidad de la app"
+    },
+    "vinculo_nombre": {
+      "type": "string",
+      "description": "Nombre del Operario o Client vinculado (copia para mostrar)"
+    },
+    "vinculo_email": {
+      "type": "string",
+      "description": "Email del registro vinculado"
+    },
+    "vinculo_estado": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "vinculado",
+        "auto_vinculado",
+        "demo"
+      ],
+      "default": "pendiente",
+      "description": "Estado del proceso de vinculaci\u00f3n: pendiente=esperando acci\u00f3n admin, vinculado=asignado manualmente, auto_vinculado=asignado autom\u00e1ticamente tras 7 d\u00edas, demo=usuario demo"
+    },
+    "vinculo_fecha": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora en que se realiz\u00f3 el v\u00ednculo (manual o autom\u00e1tico)"
+    },
+    "vinculo_asignado_por": {
+      "type": "string",
+      "description": "Email del admin/gerencia que realiz\u00f3 el v\u00ednculo manual"
+    },
+    "fecha_registro": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora en que el usuario se registr\u00f3 en la app por primera vez"
+    },
+    "fecha_limite_vinculacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha l\u00edmite para que admin/gerencia vincule al usuario (fecha_registro + 7 d\u00edas). Pasada esta fecha se auto-vincula como operario_temporal"
+    },
+    "vinculo_recordatorio_enviado": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si se ha enviado recordatorio al admin de que hay una vinculaci\u00f3n pendiente"
+    },
+    "vinculo_recordatorio_fecha": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cu\u00e1ndo se envi\u00f3 el \u00faltimo recordatorio"
+    },
+    "user_id_personalizado": {
+      "type": "string",
+      "description": "ID personalizado generado autom\u00e1ticamente: YYYY-NNNN (a\u00f1o-n\u00famero secuencial diario). Ej: 2026-0001 para el primer usuario de 2026"
     }
   },
   "required": []

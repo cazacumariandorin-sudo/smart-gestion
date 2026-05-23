@@ -38,26 +38,31 @@ export default function RealUsersModal({ open, onOpenChange, users, onSuccess })
         throw new Error('Este email ya tiene una cuenta registrada');
       }
 
-      // Invitar usuario con rol "user" o "admin" (son los únicos aceptados por Base44)
-      const inviteRole = rol === 'admin' ? 'admin' : 'user';
-      await base44.users.inviteUser(email, inviteRole);
+      // Usar función backend que genera ID personalizado automáticamente
+      const response = await base44.functions.invoke('inviteUserFunction', {
+        email,
+        role: rol
+      });
 
-      // Actualizar usuario con el rol específico y datos adicionales
+      // Actualizar usuario con datos adicionales
       const createdUsers = await base44.entities.User.filter({ email });
       if (createdUsers.length > 0) {
         await base44.entities.User.update(createdUsers[0].id, {
           full_name: nombre,
-          role: rol,
           cargo,
           acceso_hasta: accesoHasta || null,
           tipo_cuenta: 'real',
         });
       }
 
-      return { email, nombre };
+      return { email, nombre, user_id_personalizado: response.data.user_id_personalizado };
     },
     onSuccess: (data) => {
-      toast.success(`✓ Usuario ${data.nombre} añadido correctamente. Se ha enviado invitación a ${data.email}`);
+      let mensaje = `✓ Usuario ${data.nombre} añadido correctamente`;
+      if (data.user_id_personalizado) {
+        mensaje += ` (ID: ${data.user_id_personalizado})`;
+      }
+      toast.success(mensaje);
       onOpenChange(false);
       onSuccess();
       // Reset form
