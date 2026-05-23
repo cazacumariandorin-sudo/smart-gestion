@@ -123,7 +123,7 @@ export default function VinculacionModal({ open, onClose, usuario, onSuccess }) 
     }
   };
 
-  const diasRestantes = usuario.fecha_limite_vinculacion 
+  const diasRestantes = usuario?.fecha_limite_vinculacion 
     ? Math.ceil((new Date(usuario.fecha_limite_vinculacion).getTime() - Date.now()) / 86400000)
     : 7;
 
