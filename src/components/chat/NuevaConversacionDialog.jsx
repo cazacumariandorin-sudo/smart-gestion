@@ -28,17 +28,23 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
     setCargando(true);
     try {
       const todosUsuarios = await base44.entities.User.list();
+      const operariosData = await base44.entities.Operario.list();
+      const operariosMap = new Map(operariosData.map(op => [op.user_email, op]));
+      
       const filtrados = todosUsuarios
         .filter(u => u.email && u.email !== user.email && u.role !== 'usuario_demo')
-        .map(u => ({
-          id: u.id,
-          data: {
-            name: u.full_name || u.email,
-            email: u.email,
-            role: u.role,
-            user_id: u.id
-          }
-        }));
+        .map(u => {
+          const operario = operariosMap.get(u.email);
+          return {
+            id: u.id,
+            data: {
+              name: operario?.name || u.full_name || u.email,
+              email: u.email,
+              role: u.role,
+              user_id: u.id
+            }
+          };
+        });
       setOperarios(filtrados);
     } catch (error) {
       toast.error('Error al cargar usuarios: ' + error.message);
