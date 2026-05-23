@@ -7,6 +7,7 @@ import {
   AlertCircle, CheckCircle2, BarChart2, MessageSquare
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { useUserRole } from '@/lib/useUserRole';
@@ -16,6 +17,7 @@ import WidgetVinculaciones from '@/components/vinculacion/WidgetVinculaciones';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { RefreshCw } from 'lucide-react';
 
 const HUB_CONFIG = [
   {
@@ -288,7 +290,20 @@ export default function Dashboard() {
             {format(new Date(), "EEEE, d 'de' MMMM yyyy", { locale: es })}
           </p>
         </div>
-        <Badge variant="outline" className={cn('text-xs font-semibold px-2.5 py-1', roleCfg.color)}>{roleCfg.label}</Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="gap-2 h-8 px-3"
+            title="Actualizar datos"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Actualizar</span>
+          </Button>
+          <Badge variant="outline" className={cn('text-xs font-semibold px-2.5 py-1', roleCfg.color)}>{roleCfg.label}</Badge>
+        </div>
       </div>
 
       {/* Alertas de fichaje */}
