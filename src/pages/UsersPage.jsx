@@ -200,9 +200,28 @@ export default function UsersPage() {
 
       <div className="p-4 sm:p-6">
         <Tabs value={tab} onValueChange={setTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="reales">Usuarios Reales</TabsTrigger>
-            <TabsTrigger value="demo">Usuarios Demo</TabsTrigger>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {[
+              { value: 'reales', label: 'Usuarios Reales', color: 'bg-slate-600 hover:bg-slate-700 border-slate-700 shadow-slate-200' },
+              { value: 'demo',   label: 'Usuarios Demo',   color: 'bg-violet-500 hover:bg-violet-600 border-violet-600 shadow-violet-200' },
+            ].map(({ value, label, color }) => (
+              <button
+                key={value}
+                onClick={() => setTab(value)}
+                className={[
+                  'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 font-bold text-sm text-white shadow-md',
+                  'transition-all duration-150 hover:scale-105 hover:shadow-lg active:scale-95',
+                  color,
+                  tab === value ? 'ring-2 ring-offset-2 ring-current scale-105 shadow-lg' : 'opacity-80',
+                ].join(' ')}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <TabsList className="hidden">
+            <TabsTrigger value="reales" />
+            <TabsTrigger value="demo" />
           </TabsList>
 
           <TabsContent value="reales">

@@ -23,6 +23,7 @@ export default function Operarios() {
   const { isAdmin, isJefeObra } = useUserRole();
   const showUserCol = isAdmin || isJefeObra;
   const defaultTab = typeof window !== 'undefined' && typeof window.location !== 'undefined' && window.location.pathname.includes('documentacion') ? 'documentacion' : 'operarios';
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -101,14 +102,30 @@ export default function Operarios() {
       />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="p-4 sm:p-6 lg:p-8">
-        <Tabs defaultValue={defaultTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="operarios" className="gap-2">
-              <User className="w-4 h-4" /> Operarios
-            </TabsTrigger>
-            <TabsTrigger value="documentacion" className="gap-2">
-              <FileText className="w-4 h-4" /> Documentacion
-            </TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex flex-wrap gap-2 mb-6">
+            {[
+              { value: 'operarios',     label: 'Operarios',     icon: User,     color: 'bg-teal-500 hover:bg-teal-600 border-teal-600 shadow-teal-200' },
+              { value: 'documentacion', label: 'Documentación', icon: FileText, color: 'bg-indigo-500 hover:bg-indigo-600 border-indigo-600 shadow-indigo-200' },
+            ].map(({ value, label, icon: Icon, color }) => (
+              <button
+                key={value}
+                onClick={() => setActiveTab(value)}
+                className={[
+                  'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 font-bold text-sm text-white shadow-md',
+                  'transition-all duration-150 hover:scale-105 hover:shadow-lg active:scale-95',
+                  color,
+                  activeTab === value ? 'ring-2 ring-offset-2 ring-current scale-105 shadow-lg' : 'opacity-80',
+                ].join(' ')}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+          <TabsList className="hidden">
+            <TabsTrigger value="operarios" />
+            <TabsTrigger value="documentacion" />
           </TabsList>
 
           <TabsContent value="operarios">

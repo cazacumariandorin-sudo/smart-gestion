@@ -237,23 +237,25 @@ export default function InformeObras() {
       </div>
 
       {/* View toggle */}
-      <div className="flex gap-2 mb-5">
-        <Button
-          variant={view === 'obra' ? 'default' : 'outline'}
-          size="sm"
-          className="gap-2"
-          onClick={() => setView('obra')}
-        >
-          <FolderOpen className="w-4 h-4" /> Vista por Obra
-        </Button>
-        <Button
-          variant={view === 'mensual' ? 'default' : 'outline'}
-          size="sm"
-          className="gap-2"
-          onClick={() => setView('mensual')}
-        >
-          <CalendarDays className="w-4 h-4" /> Vista Mensual
-        </Button>
+      <div className="flex flex-wrap gap-2 mb-5">
+        {[
+          { value: 'obra',    label: 'Vista por Obra',  icon: FolderOpen,  color: 'bg-purple-500 hover:bg-purple-600 border-purple-600 shadow-purple-200' },
+          { value: 'mensual', label: 'Vista Mensual',   icon: CalendarDays,color: 'bg-blue-500 hover:bg-blue-600 border-blue-600 shadow-blue-200' },
+        ].map(({ value, label, icon: Icon, color }) => (
+          <button
+            key={value}
+            onClick={() => setView(value)}
+            className={[
+              'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 font-bold text-sm text-white shadow-md',
+              'transition-all duration-150 hover:scale-105 hover:shadow-lg active:scale-95',
+              color,
+              view === value ? 'ring-2 ring-offset-2 ring-current scale-105 shadow-lg' : 'opacity-80',
+            ].join(' ')}
+          >
+            <Icon className="w-4 h-4" />
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Status summary badges */}

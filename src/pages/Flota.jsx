@@ -179,6 +179,7 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin }) {
 export default function Flota() {
   const qc = useQueryClient();
   const { isAdmin } = useUserRole();
+  const [flotaTab, setFlotaTab] = useState('vehiculos');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -283,20 +284,32 @@ export default function Flota() {
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
 
       <div className="p-4 sm:p-6 lg:p-8">
-        <Tabs defaultValue="vehiculos">
-          <TabsList className="mb-4">
-            <TabsTrigger value="vehiculos">
-              <Car className="w-4 h-4 mr-1.5" /> Vehículos ({vehiculos.length})
-            </TabsTrigger>
-            <TabsTrigger value="viajes">
-              <Route className="w-4 h-4 mr-1.5" /> Viajes ({viajes.length})
-            </TabsTrigger>
-            <TabsTrigger value="alertas">
-              <Bell className="w-4 h-4 mr-1.5" /> Alertas
-              {alertasPendientes.length > 0 && (
-                <span className="ml-1 bg-red-500 text-white text-[10px] rounded-full px-1.5">{alertasPendientes.length}</span>
-              )}
-            </TabsTrigger>
+        <Tabs value={flotaTab} onValueChange={setFlotaTab}>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {[
+              { value: 'vehiculos', label: `Vehículos (${vehiculos.length})`, icon: Car,   color: 'bg-blue-500 hover:bg-blue-600 border-blue-600 shadow-blue-200' },
+              { value: 'viajes',    label: `Viajes (${viajes.length})`,       icon: Route, color: 'bg-teal-500 hover:bg-teal-600 border-teal-600 shadow-teal-200' },
+              { value: 'alertas',   label: alertasPendientes.length > 0 ? `Alertas (${alertasPendientes.length})` : 'Alertas', icon: Bell,  color: alertasPendientes.length > 0 ? 'bg-red-500 hover:bg-red-600 border-red-600 shadow-red-200' : 'bg-slate-500 hover:bg-slate-600 border-slate-600 shadow-slate-200' },
+            ].map(({ value, label, icon: Icon, color }) => (
+              <button
+                key={value}
+                onClick={() => setFlotaTab(value)}
+                className={[
+                  'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 font-bold text-sm text-white shadow-md',
+                  'transition-all duration-150 hover:scale-105 hover:shadow-lg active:scale-95',
+                  color,
+                  flotaTab === value ? 'ring-2 ring-offset-2 ring-current scale-105 shadow-lg' : 'opacity-80',
+                ].join(' ')}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+          <TabsList className="hidden">
+            <TabsTrigger value="vehiculos" />
+            <TabsTrigger value="viajes" />
+            <TabsTrigger value="alertas" />
           </TabsList>
 
           {/* TAB VEHÍCULOS */}
