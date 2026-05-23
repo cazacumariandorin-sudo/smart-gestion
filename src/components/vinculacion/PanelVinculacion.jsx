@@ -311,8 +311,11 @@ export default function PanelVinculacion() {
                 <thead>
                   <tr className="bg-muted/50 text-xs text-muted-foreground">
                     <th className="text-left py-3 px-4 font-medium">Usuario</th>
+                    <th className="text-left py-3 px-4 font-medium hidden md:table-cell">Cargo</th>
+                    <th className="text-left py-3 px-4 font-medium hidden md:table-cell">Tipo</th>
+                    <th className="text-left py-3 px-4 font-medium hidden lg:table-cell">Acceso hasta</th>
                     <th className="text-left py-3 px-4 font-medium">Días restantes</th>
-                    <th className="text-left py-3 px-4 font-medium">Operario sugerido</th>
+                    <th className="text-left py-3 px-4 font-medium hidden lg:table-cell">Operario sugerido</th>
                     <th className="text-left py-3 px-4 font-medium">Acción</th>
                   </tr>
                 </thead>
@@ -337,10 +340,31 @@ export default function PanelVinculacion() {
                             </div>
                           )}
                         </td>
+                        <td className="py-3 px-4 hidden md:table-cell">
+                          {u.cargo ? (
+                            <Badge variant="outline" className="text-xs">{u.cargo}</Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 hidden md:table-cell">
+                          <Badge variant={u.tipo_cuenta === 'demo' ? 'secondary' : 'outline'} className="text-xs capitalize">
+                            {u.tipo_cuenta || 'real'}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 hidden lg:table-cell">
+                          {u.acceso_hasta ? (
+                            <div className="text-xs">
+                              {format(new Date(u.acceso_hasta), 'd MMM yyyy', { locale: es })}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
                         <td className="py-3 px-4">
                           {getDiasRestantesBadge(u)}
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 hidden lg:table-cell">
                           {getSugerenciaOperario(u)}
                         </td>
                         <td className="py-3 px-4">
