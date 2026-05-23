@@ -16,6 +16,11 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
   const [nombreGrupo, setNombreGrupo] = useState('');
   const [modo, setModo] = useState('directo'); // 'directo' o 'grupo'
 
+  // Si user es null/undefined, no renderizar
+  if (!user) {
+    return null;
+  }
+
   const buscarOperarios = async () => {
     if (!searchTerm.trim()) return;
     
