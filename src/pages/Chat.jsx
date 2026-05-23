@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Send, Plus, MessageSquare, Users, Lock, Key, RefreshCw } from 'lucide-react';
+import { Send, Plus, MessageSquare, Users, Lock, Key, RefreshCw, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -237,6 +237,43 @@ export default function Chat() {
     }
   };
 
+  const deleteConvMutation = useMutation({
+    mutationFn: async (convId) => {
+      const conv = conversations.find(c => c.id === convId);
+      if (!conv) throw new Error('Conversación no encontrada');
+      
+      // Verificar si es el creador
+      if (conv.creado_por_email !== currentUser?.email) {
+        throw new Error('Solo el creador puede eliminar esta conversación');
+      }
+      
+      return await base44.entities.ChatConversacion.delete(convId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
+      setSelectedConvId(null);
+      toast.success('Conversación eliminada');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Error al eliminar');
+    },
+  });
+
+  const handleEliminarConversacion = () => {
+    if (!selectedConvId) return;
+    const conv = conversations.find(c => c.id === selectedConvId);
+    if (!conv) return;
+    
+    if (conv.creado_por_email !== currentUser?.email) {
+      toast.error('Solo el creador puede eliminar esta conversación');
+      return;
+    }
+    
+    if (confirm(`¿Eliminar "${conv.nombre}"? Esta acción no se puede deshacer.`)) {
+      deleteConvMutation.mutate(selectedConvId);
+    }
+  };
+
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-background relative">
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
@@ -339,6 +376,17 @@ export default function Chat() {
                     title="Gestionar grupo"
                   >
                     <Users className="w-4 h-4" />
+                  </Button>
+                )}
+                {selectedConv?.creado_por_email === currentUser?.email && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={handleEliminarConversacion}
+                    title="Eliminar conversación"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
               </div>
