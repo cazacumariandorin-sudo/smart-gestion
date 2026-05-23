@@ -26,20 +26,39 @@ export default function PhotoUploader({ workOrderId, clientId, clientName, proje
   const handleFiles = async (files) => {
     setUploading(true);
     for (const file of Array.from(files)) {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      // Convert file to base64
+      const base64 = await fileToBase64(file);
+      
+      // Upload to Google Drive (if connected) or local storage
+      const res = await base44.functions.invoke('uploadFileToGdrive', { 
+        file: base64, 
+        folder_path: 'Partes_Trabajo/Fotos' 
+      });
+      
       await base44.entities.WorkPhoto.create({
         work_order_id: workOrderId,
         client_id: clientId,
         client_name: clientName,
         project,
         date,
-        photo_url: file_url,
+        photo_url: res.data.file_url,
         caption: '',
+        storage: res.data.storage,
+        drive_file_id: res.data.drive_file_id,
       });
     }
     queryClient.invalidateQueries({ queryKey: ['photos', workOrderId] });
     queryClient.invalidateQueries({ queryKey: ['all_photos'] });
     setUploading(false);
+  };
+
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
   };
 
   return (

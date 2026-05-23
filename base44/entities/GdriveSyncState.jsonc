@@ -1,0 +1,75 @@
+{
+  "name": "GdriveSyncState",
+  "type": "object",
+  "properties": {
+    "recurso_tipo": {
+      "type": "string",
+      "description": "Tipo de recurso: folder, file, webhook"
+    },
+    "recurso_id": {
+      "type": "string",
+      "description": "ID del recurso en Google Drive"
+    },
+    "recurso_nombre": {
+      "type": "string",
+      "description": "Nombre del recurso"
+    },
+    "ruta_completa": {
+      "type": "string",
+      "description": "Ruta completa en Google Drive (ej: /Obras/Materiales)"
+    },
+    "parent_id": {
+      "type": "string",
+      "description": "ID del padre en Google Drive"
+    },
+    "page_token": {
+      "type": "string",
+      "description": "\u00daltimo page token para webhooks de cambios"
+    },
+    "ultima_sync": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de \u00faltima sincronizaci\u00f3n"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "activo",
+        "error",
+        "pendiente"
+      ],
+      "default": "activo",
+      "description": "Estado de la sincronizaci\u00f3n"
+    },
+    "errores": {
+      "type": "string",
+      "description": "Descripci\u00f3n de errores si los hay"
+    }
+  },
+  "required": [
+    "recurso_tipo",
+    "recurso_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

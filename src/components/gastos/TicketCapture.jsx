@@ -27,8 +27,24 @@ export default function TicketCapture({ onDone, onSkip }) {
     setMensaje('Subiendo ticket...');
     setPreview(URL.createObjectURL(file));
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const archivo = { url: file_url, nombre: file.name, tipo: file.type, fecha_subida: new Date().toISOString() };
+      // Convert file to base64
+      const base64 = await fileToBase64(file);
+      
+      // Upload to Google Drive (if connected) or local storage
+      const res = await base44.functions.invoke('uploadFileToGdrive', { 
+        file: base64, 
+        folder_path: 'Notas_Gastos' 
+      });
+      
+      const file_url = res.data.file_url;
+      const archivo = { 
+        url: file_url, 
+        nombre: file.name, 
+        tipo: file.type, 
+        fecha_subida: new Date().toISOString(),
+        storage: res.data.storage,
+        drive_file_id: res.data.drive_file_id,
+      };
 
       setEstado('ocr');
       setMensaje('Extrayendo datos con IA...');
@@ -46,6 +62,15 @@ export default function TicketCapture({ onDone, onSkip }) {
       setMensaje('Error al subir: ' + e.message);
     }
   }, [onDone]);
+
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  };
 
   // ── WEBCAM ──
   const startWebcam = async () => {

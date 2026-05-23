@@ -71,7 +71,27 @@ export default function GaleriaFotos() {
 
   const uploadMutation = useMutation({
     mutationFn: async (data) => {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: data.file });
+      let file_url;
+      let drive_file_id;
+      let storage = 'local';
+      
+      if (data.file) {
+        // Convert file to base64
+        const base64 = await fileToBase64(data.file);
+        
+        // Upload to Google Drive (if connected) or local storage
+        const res = await base44.functions.invoke('uploadFileToGdrive', { 
+          file: base64, 
+          folder_path: 'Obras' 
+        });
+        
+        file_url = res.data.file_url;
+        storage = res.data.storage;
+        drive_file_id = res.data.drive_file_id;
+      } else {
+        file_url = data.foto_url;
+      }
+      
       return base44.entities.FotoProyecto.create({
         titulo: data.titulo,
         descripcion: data.descripcion,
@@ -79,6 +99,8 @@ export default function GaleriaFotos() {
         proyecto_name: data.proyecto_name,
         foto_url: file_url,
         fecha_foto: new Date().toISOString().split('T')[0],
+        storage,
+        drive_file_id,
       });
     },
     onSuccess: () => {
@@ -91,11 +113,24 @@ export default function GaleriaFotos() {
   const handleFileUpload = async (file) => {
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setUploadForm(p => ({ ...p, foto_url: file_url }));
+      const base64 = await fileToBase64(file);
+      const res = await base44.functions.invoke('uploadFileToGdrive', { 
+        file: base64, 
+        folder_path: 'Obras' 
+      });
+      setUploadForm(p => ({ ...p, foto_url: res.data.file_url }));
     } finally {
       setUploading(false);
     }
+  };
+
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
   };
 
   const handleSave = () => {
