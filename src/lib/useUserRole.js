@@ -39,7 +39,7 @@ export function useUserRole() {
     ? new Date(user.demo_expires_at) < new Date()
     : false;
 
-  const DEMO_MODULES = ['dashboard', 'work-orders', 'clients', 'obras', 'orders', 'drawings', 'manuales', 'notas-gastos', 'flota', 'galeria-fotos'];
+  const DEMO_MODULES = ['dashboard', 'work-orders', 'clients', 'obras', 'orders', 'drawings', 'manuales', 'notas-gastos', 'flota', 'galeria-fotos', 'control-horario', 'calendario-vacaciones', 'apuntes-horario', 'photos'];
 
   const canAccess = (module) => {
     if (isAdmin) return true;
@@ -50,7 +50,7 @@ export function useUserRole() {
     const perms = {
       director_comercial: ALL_MODULES.filter(m => !['datos-sensibles', 'admin-backup'].includes(m)),
       jefe_obra:        ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'obras-civiles', 'solar', 'materials', 'drawings', 'manuales', 'informe-obras', 'operarios', 'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos', 'apuntes-horario', 'calendario-vacaciones'],
-      operario:         ['dashboard', 'work-orders', 'control-horario', 'orders', 'obras', 'obras-civiles', 'materials', 'drawings', 'manuales', 'calendario-vacaciones', 'photos', 'notas-gastos', 'vehiculos', 'chat', 'galeria-fotos', 'apuntes-horario'],
+      operario:         ['dashboard', 'work-orders', 'clients', 'control-horario', 'orders', 'obras', 'obras-civiles', 'materials', 'drawings', 'manuales', 'calendario-vacaciones', 'photos', 'notas-gastos', 'vehiculos', 'chat', 'galeria-fotos', 'apuntes-horario', 'reports', 'flota'],
       gerencia:         ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'obras-civiles', 'solar', 'materials', 'drawings', 'manuales', 'informe-obras', 'operarios', 'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos', 'apuntes-horario', 'calendario-vacaciones'],
       control_horario:  ['dashboard', 'control-horario', 'work-orders', 'chat'],
       cliente_obra:     ['dashboard', 'informe-obras', 'chat'],
