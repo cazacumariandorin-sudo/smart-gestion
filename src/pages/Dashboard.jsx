@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
   Building2, Users, Receipt, Car, Folder, Settings,
   HardHat, Sun, ClipboardList, Clock, Truck, Images,
-  AlertCircle, CheckCircle2, BarChart2
+  AlertCircle, CheckCircle2, BarChart2, MessageSquare
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -300,6 +300,34 @@ export default function Dashboard() {
           <WidgetVinculaciones />
         </div>
       )}
+
+      {/* Acceso directo al Chat (todos los roles) */}
+      <Link
+        to="/chat"
+        className="block group mb-6"
+      >
+        <div className="relative rounded-2xl border-2 border-emerald-300 dark:border-emerald-700 overflow-hidden bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/50 dark:to-emerald-950/40 hover:shadow-2xl hover:-translate-y-1 active:scale-[0.98] transition-all duration-200">
+          <div className="relative z-10 p-5 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl shadow-md bg-emerald-600">
+                <MessageSquare className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold leading-tight text-emerald-800 dark:text-emerald-200 uppercase tracking-wide">
+                  Chat
+                </p>
+                <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 font-medium">
+                  Mensajería segura · Comunicación en tiempo real
+                </p>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-black/20 border border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+              <span>Abrir</span>
+              <MessageSquare className="w-3.5 h-3.5" />
+            </div>
+          </div>
+        </div>
+      </Link>
 
       {/* Hub grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
