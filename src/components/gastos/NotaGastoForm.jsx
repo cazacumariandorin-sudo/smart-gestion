@@ -175,6 +175,13 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     setForm(f => ({ ...f, obra_id, obra_name, obra_tipo }));
     setShowObraModal(false);
     setPendingSave(false);
+    
+    // Validar que tenemos operario_id
+    if (!operarioEfectivo?.id) {
+      toast.error('No hay operario vinculado a tu usuario. Contacta con administración.');
+      return;
+    }
+    
     // Guardar con la obra asignada directamente
     const dup = checkDuplicado();
     const { numero_nota, numero_secuencia } = generarNumeroNota();

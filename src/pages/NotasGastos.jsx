@@ -66,7 +66,7 @@ function OperarioGroup({ operario, notas, onVerNota, isOpen, onToggle }) {
 
 export default function NotasGastos() {
   const { user } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isOperario } = useUserRole();
   const { getOperarioName, operarios } = useOperarioName();
   const qc = useQueryClient();
 
@@ -75,8 +75,12 @@ export default function NotasGastos() {
   }, [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
+  // Buscar operario por email o usar el usuario actual si es operario
   const miOperario = operarios.find(op => op.user_email === user?.email);
   const miNombre = miOperario?.name || user?.full_name || user?.email || '';
+  
+  // Para operarios, usar su ID de usuario si no tienen registro en Operario
+  const operarioId = miOperario?.id || (isOperario ? user?.id : null);
 
   const [showForm, setShowForm] = useState(false);
   const [notaSeleccionada, setNotaSeleccionada] = useState(null);
@@ -100,10 +104,13 @@ export default function NotasGastos() {
   });
 
   const operarioActual = {
-    id: miOperario?.id || user?.id,
+    id: operarioId,
     name: miNombre,
     email: user?.email,
   };
+  
+  // Verificar si puede crear: operarios siempre pueden, admins también
+  const puedeCrearRegistro = isOperario || isAdmin || !!miOperario?.id;
 
   const notas = notasRaw.filter(n => {
     const txt = busqueda.toLowerCase();
@@ -149,7 +156,12 @@ export default function NotasGastos() {
               <FileBarChart2 className="w-4 h-4" />
               <span className="hidden sm:inline">Informe</span>
             </Button>
-            <Button onClick={() => setShowForm(true)} size="sm" className="gap-1.5">
+            <Button 
+              onClick={() => setShowForm(true)} 
+              size="sm" 
+              className="gap-1.5"
+              disabled={!puedeCrearRegistro}
+            >
               <Plus className="w-4 h-4" /> Nuevo Registro
             </Button>
           </div>
@@ -229,7 +241,12 @@ export default function NotasGastos() {
               ? 'No hay registros con estos filtros'
               : 'No hay registros de gasto aún'}
           </p>
-          <Button size="sm" onClick={() => setShowForm(true)} className="gap-1.5">
+          <Button 
+            size="sm" 
+            onClick={() => setShowForm(true)} 
+            className="gap-1.5"
+            disabled={!puedeCrearRegistro}
+          >
             <Plus className="w-4 h-4" /> Crear primer registro
           </Button>
         </div>
