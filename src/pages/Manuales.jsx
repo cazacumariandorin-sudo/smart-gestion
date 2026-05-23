@@ -29,9 +29,9 @@ function fileIcon(fileType) {
 
 export default function Manuales() {
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra, role } = useUserRole();
-  // Solo admin, jefe_obra y director_comercial pueden crear/eliminar manuales
-  const canCreate = isAdmin || isJefeObra || role === 'director_comercial';
+  const { isAdmin, isJefeObra, isOperario, role } = useUserRole();
+  // Admin, jefe_obra, director_comercial y operario pueden crear manuales
+  const canCreate = isAdmin || isJefeObra || role === 'director_comercial' || isOperario;
   const canDelete = isAdmin || isJefeObra;
   const [search, setSearch] = useState('');
   const [clientFilter, setClientFilter] = useState('all');

@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Image, Search, X, ZoomIn, Filter } from 'lucide-react';
+import { Image, Search, X, ZoomIn, Filter, Plus, Upload, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useUserRole } from '@/lib/useUserRole';
 
 const CATEGORIAS = ['parte_trabajo', 'obra', 'nota_gastos', 'presupuesto', 'averia'];
 const CAT_LABELS = {
@@ -27,11 +31,22 @@ const CAT_COLORS = {
 };
 
 export default function GaleriaFotos() {
+  const qc = useQueryClient();
+  const { isOperario } = useUserRole();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [filterOperario, setFilterOperario] = useState('');
   const [filterObra, setFilterObra] = useState('');
   const [selectedFoto, setSelectedFoto] = useState(null);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    titulo: '',
+    descripcion: '',
+    categoria: 'obra',
+    proyecto_name: '',
+    foto_url: '',
+  });
 
   const { data: fotos = [], isLoading } = useQuery({
     queryKey: ['fotos-proyecto'],
@@ -54,12 +69,51 @@ export default function GaleriaFotos() {
     return matchSearch && matchCat && matchOp && matchObra;
   });
 
+  const uploadMutation = useMutation({
+    mutationFn: async (data) => {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: data.file });
+      return base44.entities.FotoProyecto.create({
+        titulo: data.titulo,
+        descripcion: data.descripcion,
+        categoria: data.categoria,
+        proyecto_name: data.proyecto_name,
+        foto_url: file_url,
+        fecha_foto: new Date().toISOString().split('T')[0],
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['fotos-proyecto'] });
+      setUploadDialogOpen(false);
+      setUploadForm({ titulo: '', descripcion: '', categoria: 'obra', proyecto_name: '', foto_url: '' });
+    },
+  });
+
+  const handleFileUpload = async (file) => {
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setUploadForm(p => ({ ...p, foto_url: file_url }));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = () => {
+    if (!uploadForm.titulo || !uploadForm.foto_url) return;
+    uploadMutation.mutate({ ...uploadForm, file: null });
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
-      <div className="flex items-center gap-3 flex-wrap">
-        <Image className="w-6 h-6 text-primary" />
-        <h1 className="text-2xl font-bold">Galería de Fotos</h1>
-        <Badge variant="outline" className="text-xs">{filtradas.length} fotos</Badge>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Image className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-bold">Galería de Fotos</h1>
+          <Badge variant="outline" className="text-xs">{filtradas.length} fotos</Badge>
+        </div>
+        <Button onClick={() => setUploadDialogOpen(true)} className="gap-2 shadow-sm">
+          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Subir Foto</span>
+        </Button>
       </div>
 
       {/* Filtros */}
@@ -166,6 +220,96 @@ export default function GaleriaFotos() {
           </div>
         </div>
       )}
+
+      {/* Upload Dialog */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Subir Nueva Foto</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Título *</Label>
+              <Input 
+                value={uploadForm.titulo} 
+                onChange={e => setUploadForm(p => ({ ...p, titulo: e.target.value }))} 
+                placeholder="Nombre descriptivo..." 
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Categoría</Label>
+              <MobileSelect 
+                value={uploadForm.categoria} 
+                onValueChange={v => setUploadForm(p => ({ ...p, categoria: v }))}
+              >
+                {CATEGORIAS.map(cat => (
+                  <MobileSelectItem key={cat} value={cat}>{CAT_LABELS[cat]}</MobileSelectItem>
+                ))}
+              </MobileSelect>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Proyecto / Obra</Label>
+              <Input 
+                value={uploadForm.proyecto_name} 
+                onChange={e => setUploadForm(p => ({ ...p, proyecto_name: e.target.value }))} 
+                placeholder="Nombre de la obra..." 
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Descripción</Label>
+              <Textarea 
+                value={uploadForm.descripcion} 
+                onChange={e => setUploadForm(p => ({ ...p, descripcion: e.target.value }))} 
+                rows={2} 
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Archivo *</Label>
+              {uploadForm.foto_url ? (
+                <div className="flex items-center gap-2 p-2 border rounded-lg bg-muted/30">
+                  <img src={uploadForm.foto_url} alt="Preview" className="w-16 h-16 object-cover rounded" />
+                  <span className="text-xs flex-1 truncate">Foto subida</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6" 
+                    onClick={() => setUploadForm(p => ({ ...p, foto_url: '' }))}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="block border-2 border-dashed rounded-lg h-24 flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-muted/30 transition-colors">
+                  {uploading ? (
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  ) : (
+                    <Upload className="w-6 h-6 text-muted-foreground" />
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {uploading ? 'Subiendo...' : 'Seleccionar foto (JPG, PNG)'}
+                  </p>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={e => e.target.files[0] && handleFileUpload(e.target.files[0])} 
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>Cancelar</Button>
+            <Button 
+              onClick={handleSave} 
+              disabled={!uploadForm.titulo || !uploadForm.foto_url || uploadMutation.isPending} 
+              className="gap-2 min-w-28"
+            >
+              {uploadMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

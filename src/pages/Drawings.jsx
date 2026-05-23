@@ -67,9 +67,9 @@ function FileViewer({ url, title }) {
 export default function Drawings() {
   const { t } = useI18n();
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra, isGerencia, role } = useUserRole();
-  // Solo admin, jefe_obra, gerencia y director_comercial pueden crear/editar/eliminar planos
-  const canCreate = isAdmin || isJefeObra || isGerencia || role === 'director_comercial';
+  const { isAdmin, isJefeObra, isGerencia, isOperario, role } = useUserRole();
+  // Admin, jefe_obra, gerencia, director_comercial y operario pueden crear/editar planos
+  const canCreate = isAdmin || isJefeObra || isGerencia || role === 'director_comercial' || isOperario;
   const canDelete = isAdmin || isJefeObra;
 
   const onRefresh = useCallback(() => qc.invalidateQueries({ queryKey: ['drawings'] }), [qc]);
