@@ -32,7 +32,7 @@ export default function AddUserTab({ users, usersLoaded, isOwner, onInvited }) {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
   const [demoEmail, setDemoEmail] = useState('');
-  const [demoDuration, setDemoDuration] = useState(7);
+  const [demoDuration, setDemoDuration] = useState('7');
   const [generatedLink, setGeneratedLink] = useState(null);
   const [isDemoDialogOpen, setIsDemoDialogOpen] = useState(false);
 
@@ -130,7 +130,7 @@ export default function AddUserTab({ users, usersLoaded, isOwner, onInvited }) {
 
     generateDemoLinkMutation.mutate({
       email_destino: demoEmail || null,
-      duracion_dias: demoDuration,
+      duracion_dias: parseInt(demoDuration),
     });
   };
 
@@ -241,7 +241,7 @@ export default function AddUserTab({ users, usersLoaded, isOwner, onInvited }) {
                   </div>
                   <div>
                     <Label>Duración</Label>
-                    <Select value={demoDuration.toString()} onValueChange={(v) => setDemoDuration(parseInt(v))}>
+                    <Select value={demoDuration} onValueChange={setDemoDuration}>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar duración" />
                       </SelectTrigger>
