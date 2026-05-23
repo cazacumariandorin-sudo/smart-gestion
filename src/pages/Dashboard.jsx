@@ -133,7 +133,7 @@ function HubCard({ hub, kpi }) {
             src={hub.watermark}
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover opacity-[0.07] dark:opacity-[0.05] pointer-events-none select-none transition-opacity duration-300 group-hover:opacity-[0.12] dark:group-hover:opacity-[0.09]"
+            className="absolute inset-0 w-full h-full object-cover opacity-[0.12] dark:opacity-[0.10] pointer-events-none select-none transition-opacity duration-300 group-hover:opacity-[0.17] dark:group-hover:opacity-[0.14]"
           />
         )}
 
