@@ -47,8 +47,10 @@ export function MobileSelect({
 
   if (!isMobile()) {
     // Desktop: standard Radix select
+    // Radix requires value to be a non-empty string, default to first item if undefined/null
+    const safeValue = (value !== undefined && value !== null && value !== '') ? value : (items.length > 0 ? items[0].value : '');
     return (
-      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <Select value={safeValue} onValueChange={onValueChange} disabled={disabled}>
         <SelectTrigger className={triggerClassName}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
