@@ -158,7 +158,6 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
       }
 
       onClose();
-      setSearchTerm('');
       setOperarios([]);
       setSelectedOperarios([]);
       setNombreGrupo('');
@@ -270,28 +269,6 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
                   </button>
                 );
               })}
-            </div>
-          </div>
-        )}
-
-        {/* Operarios seleccionados */}
-        {selectedOperarios.length > 0 && (
-          <div className="border-t pt-3 mt-3">
-            <p className="text-xs font-medium mb-2">
-              Seleccionados ({selectedOperarios.length}):
-            </p>
-            <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto">
-              {selectedOperarios.map(op => (
-                <Badge key={op.id} variant="secondary" className="gap-1">
-                  {op.data.name}
-                  <button
-                    onClick={() => toggleOperario(op)}
-                    className="hover:bg-muted rounded-full p-0.5"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </Badge>
-              ))}
             </div>
           </div>
         )}
