@@ -1,35 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, User, Users, X, Check, Shield } from 'lucide-react';
+import { User, Users, X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function NuevaConversacionDialog({ open, onClose, user, onSuccess }) {
-  const [searchTerm, setSearchTerm] = useState('');
   const [operarios, setOperarios] = useState([]);
   const [selectedOperarios, setSelectedOperarios] = useState([]);
-  const [buscando, setBuscando] = useState(false);
+  const [cargando, setCargando] = useState(false);
   const [nombreGrupo, setNombreGrupo] = useState('');
   const [modo, setModo] = useState('directo'); // 'directo' o 'grupo'
 
-  // Si user es null/undefined, no renderizar
-  if (!user) {
-    return null;
-  }
+  // Cargar operarios al abrir el dialog
+  useEffect(() => {
+    if (open && user) {
+      cargarOperarios();
+    }
+  }, [open, user]);
 
-  const buscarOperarios = async () => {
-    if (!searchTerm.trim()) return;
-    
-    setBuscando(true);
+  const cargarOperarios = async () => {
+    if (!user) return;
+    setCargando(true);
     try {
-      // Buscar en usuarios en lugar de operarios para mejor acceso a datos
       const todosUsuarios = await base44.entities.User.list();
       const filtrados = todosUsuarios
-        .filter(u => u.email && u.email !== user.email && u.role !== 'usuario_demo') // Excluir demo users
+        .filter(u => u.email && u.email !== user.email && u.role !== 'usuario_demo')
         .map(u => ({
           id: u.id,
           data: {
@@ -38,19 +38,19 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
             role: u.role,
             user_id: u.id
           }
-        }))
-        .filter(u => {
-          const match = u.data.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       u.data.email?.toLowerCase().includes(searchTerm.toLowerCase());
-          return match;
-        });
+        }));
       setOperarios(filtrados);
     } catch (error) {
-      toast.error('Error al buscar usuarios: ' + error.message);
+      toast.error('Error al cargar usuarios: ' + error.message);
     } finally {
-      setBuscando(false);
+      setCargando(false);
     }
   };
+
+  // Si user es null/undefined, no renderizar
+  if (!user) {
+    return null;
+  }
 
   const toggleOperario = (operario) => {
     if (modo === 'directo') {
@@ -214,68 +214,87 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
           />
         )}
 
-        {/* Búsqueda */}
-        <div className="flex gap-2 mb-4">
-          <Input
-            placeholder="Buscar por nombre, email o DNI..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && buscarOperarios()}
-          />
-          <Button onClick={buscarOperarios} disabled={buscando}>
-            <Search className="w-4 h-4" />
-          </Button>
-        </div>
+        {/* Selector desplegable para chat directo */}
+        {modo === 'directo' && (
+          <div className="mb-4">
+            <label className="text-sm font-medium mb-2 block">Seleccionar operario:</label>
+            <Select
+              value={selectedOperarios[0]?.id || ''}
+              onValueChange={(value) => {
+                const operario = operarios.find(op => op.id === value);
+                if (operario) toggleOperario(operario);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Elige un operario..." />
+              </SelectTrigger>
+              <SelectContent>
+                {operarios.map(op => (
+                  <SelectItem key={op.id} value={op.id}>
+                    {op.data.name} ({op.data.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-        {/* Resultados */}
-        <div className="flex-1 overflow-y-auto space-y-2 min-h-[200px]">
-          {operarios.length === 0 && buscando && (
-            <p className="text-sm text-muted-foreground text-center py-4">Buscando...</p>
-          )}
-          {operarios.length === 0 && !buscando && (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Introduce un término de búsqueda
-            </p>
-          )}
-          {operarios.map(op => {
-            const isSelected = selectedOperarios.some(o => o.id === op.id);
-            return (
-              <button
-                key={op.id}
-                onClick={() => toggleOperario(op)}
-                className={cn(
-                  'w-full flex items-center gap-3 p-3 rounded-lg border transition-all',
-                  isSelected 
-                    ? 'bg-primary/10 border-primary' 
-                    : 'bg-card hover:bg-muted'
-                )}
-              >
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                  <User className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-sm">{op.data.name}</p>
-                  <p className="text-xs text-muted-foreground">{op.data.email}</p>
-                  <div className="flex gap-2 mt-1">
-                    <Badge variant="outline" className="text-xs">
-                      {op.data.role || 'Operario'}
-                    </Badge>
-                    {op.data.phone && (
-                      <Badge variant="secondary" className="text-xs">
-                        {op.data.phone}
-                      </Badge>
+        {/* Selector múltiple para grupo */}
+        {modo === 'grupo' && (
+          <div className="mb-4">
+            <label className="text-sm font-medium mb-2 block">Seleccionar operarios (múltiple):</label>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto border rounded-md p-2">
+              {operarios.map(op => {
+                const isSelected = selectedOperarios.some(o => o.id === op.id);
+                return (
+                  <button
+                    key={op.id}
+                    onClick={() => toggleOperario(op)}
+                    className={cn(
+                      'w-full flex items-center gap-3 p-2 rounded-md transition-all text-left',
+                      isSelected 
+                        ? 'bg-primary/10 border-primary border' 
+                        : 'hover:bg-muted'
                     )}
-                  </div>
-                </div>
-                {isSelected ? (
-                  <Check className="w-5 h-5 text-primary shrink-0" />
-                ) : (
-                  <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
-                )}
-              </button>
-            );
-          })}
-        </div>
+                  >
+                    <div className={cn(
+                      'w-4 h-4 rounded border-2 shrink-0',
+                      isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/30'
+                    )}>
+                      {isSelected && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{op.data.name}</p>
+                      <p className="text-xs text-muted-foreground">{op.data.email}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Operarios seleccionados */}
+        {selectedOperarios.length > 0 && (
+          <div className="border-t pt-3 mt-3">
+            <p className="text-xs font-medium mb-2">
+              Seleccionados ({selectedOperarios.length}):
+            </p>
+            <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto">
+              {selectedOperarios.map(op => (
+                <Badge key={op.id} variant="secondary" className="gap-1">
+                  {op.data.name}
+                  <button
+                    onClick={() => toggleOperario(op)}
+                    className="hover:bg-muted rounded-full p-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Operarios seleccionados */}
         {selectedOperarios.length > 0 && (
