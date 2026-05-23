@@ -111,9 +111,10 @@ const HUB_CONFIG = [
     border: 'border-slate-300 dark:border-slate-700',
     watermark: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&q=60&fit=crop',
     module: 'users',
-    adminOnly: true,
+    adminOrGerencia: true,
     links: [
       { label: 'Usuarios', path: '/users', icon: Users },
+      { label: 'Backup', path: '/admin-backup', icon: Settings },
     ],
   },
 ];
@@ -268,6 +269,7 @@ export default function Dashboard() {
 
   const visibleHubs = HUB_CONFIG.filter(hub => {
     if (hub.adminOnly && !isAdmin && !isGerencia) return false;
+    if (hub.adminOrGerencia && !isAdmin && !isGerencia) return false;
     return hub.module === null || canAccess(hub.module);
   });
 
