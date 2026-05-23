@@ -219,7 +219,7 @@ export default function Dashboard() {
   });
   const { data: gastos = [] } = useQuery({
     queryKey: ['gastos_dash'],
-    queryFn: () => base44.entities.NotaGasto.list('-created_date', 100),
+    queryFn: () => base44.entities.RegistroGasto.list('-created_date', 100),
     enabled: canAccess('notas-gastos'),
   });
   const { data: fichajesHoy = [] } = useQuery({

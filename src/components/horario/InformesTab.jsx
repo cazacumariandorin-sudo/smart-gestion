@@ -64,7 +64,10 @@ export default function InformesTab() {
 
   const { data: fichajes = [] } = useQuery({ queryKey: ['fichajes'], queryFn: () => base44.entities.Fichaje.list('-date', 1000) });
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
-  const myOperario = isControlHorarioOnly ? operarios.find(o => o.email === user?.email) : null;
+  // Try user_email first (new), fallback to email (old) — consistent with FichajesTab
+  const myOperario = isControlHorarioOnly
+    ? (operarios.find(o => o.user_email === user?.email) || operarios.find(o => o.email === user?.email))
+    : null;
 
   const filtered = useMemo(() => fichajes.filter(f => {
     // control_horario only sees their own records
@@ -206,32 +209,33 @@ export default function InformesTab() {
 
   return (
     <div>
-      {mode === 'tabla' ? (
-        <InformeTableView />
-      ) : (
-        <>
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-         <MobileSelect value={mode} onValueChange={setMode} placeholder="Vista" triggerClassName="w-full sm:w-44">
+      {/* Mode selector always visible */}
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-6">
+        <MobileSelect value={mode} onValueChange={setMode} placeholder="Vista" triggerClassName="w-full sm:w-44">
           <MobileSelectItem value="tabla">Vista Tabla</MobileSelectItem>
           <MobileSelectItem value="mes">Por Mes</MobileSelectItem>
           <MobileSelectItem value="semana">Por Semana</MobileSelectItem>
           <MobileSelectItem value="operario">Por Operario</MobileSelectItem>
-         </MobileSelect>
-        <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-full sm:w-40" />
-        {canSeeAll && (
-          <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
-            <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
-            {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
-          </MobileSelect>
-        )}
-        <Button onClick={generatePDF} className="gap-2 shrink-0">
-          <Download className="w-4 h-4" /> PDF
-        </Button>
-        <Button onClick={generateExcel} variant="outline" className="gap-2 shrink-0">
-          <Download className="w-4 h-4" /> Excel
-        </Button>
+        </MobileSelect>
+        {mode !== 'tabla' && <>
+          <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-full sm:w-40" />
+          {canSeeAll && (
+            <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
+              <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
+              {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+            </MobileSelect>
+          )}
+          <Button onClick={generatePDF} className="gap-2 shrink-0">
+            <Download className="w-4 h-4" /> PDF
+          </Button>
+          <Button onClick={generateExcel} variant="outline" className="gap-2 shrink-0">
+            <Download className="w-4 h-4" /> Excel
+          </Button>
+        </>}
       </div>
 
+      {mode === 'tabla' ? <InformeTableView /> : (
+        <>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <Card className="p-4 text-center">
           <p className="text-xs text-muted-foreground mb-1">Total Horas</p>
@@ -335,10 +339,10 @@ export default function InformesTab() {
               <p className="text-sm text-muted-foreground">No hay datos para el período seleccionado</p>
             </div>
           )}
-          </div>
-          )}
-          </>
-          )}
-          </div>
-          );
-          }
+        </div>
+      )}
+      </>
+      )}
+    </div>
+  );
+}

@@ -11,18 +11,17 @@ import { useTabState } from '@/hooks/useTabState';
 import { useUserRole } from '@/lib/useUserRole';
 
 export default function ControlHorario() {
-  const { isAdmin } = useUserRole();
-  
+  const { isAdmin, isJefeObra } = useUserRole();
+  const showAlarmas = isAdmin;
+  const showApuntes = isAdmin || isJefeObra;
+
   const { data: alarmas = [] } = useQuery({
     queryKey: ['alarmas'],
     queryFn: () => base44.entities.AlarmaHorario.list('hora', 100),
-    enabled: isAdmin, // Only admins can see alarms
+    enabled: isAdmin,
   });
 
-  // Activate alarm listener globally
   useAlarmas(alarmas);
-
-  // Persistent tab state
   const [tab, setTab] = useTabState('control-horario', 'fichajes');
 
   return (
@@ -37,11 +36,11 @@ export default function ControlHorario() {
       <Tabs value={tab} onValueChange={setTab}>
         <div className="flex flex-wrap gap-2 mb-6">
           {[
-            { value: 'fichajes', label: 'Fichajes',  icon: Clock,        color: 'bg-blue-500 hover:bg-blue-600 border-blue-600 shadow-blue-200' },
-            { value: 'informes', label: 'Informes',  icon: BarChart3,    color: 'bg-teal-500 hover:bg-teal-600 border-teal-600 shadow-teal-200' },
-            { value: 'apuntes',  label: 'Apuntes',   icon: ClipboardList,color: 'bg-indigo-500 hover:bg-indigo-600 border-indigo-600 shadow-indigo-200' },
-            { value: 'alarmas',  label: 'Alarmas',   icon: Bell,         color: 'bg-rose-500 hover:bg-rose-600 border-rose-600 shadow-rose-200' },
-          ].map(({ value, label, icon: Icon, color }) => (
+            { value: 'fichajes', label: 'Fichajes',  icon: Clock,        color: 'bg-blue-500 hover:bg-blue-600 border-blue-600 shadow-blue-200', show: true },
+            { value: 'informes', label: 'Informes',  icon: BarChart3,    color: 'bg-teal-500 hover:bg-teal-600 border-teal-600 shadow-teal-200', show: true },
+            { value: 'apuntes',  label: 'Apuntes',   icon: ClipboardList,color: 'bg-indigo-500 hover:bg-indigo-600 border-indigo-600 shadow-indigo-200', show: showApuntes },
+            { value: 'alarmas',  label: 'Alarmas',   icon: Bell,         color: 'bg-rose-500 hover:bg-rose-600 border-rose-600 shadow-rose-200', show: showAlarmas },
+          ].filter(t => t.show).map(({ value, label, icon: Icon, color }) => (
             <button
               key={value}
               onClick={() => setTab(value)}
