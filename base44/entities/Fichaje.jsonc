@@ -33,7 +33,27 @@
     },
     "project": {
       "type": "string",
-      "description": "Obra donde trabaja"
+      "description": "Obra donde trabaja (compatibilidad \u2014 igual a obra_name)"
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (FK a Obra o SolarObra)"
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra (desnormalizado)"
+    },
+    "obra_tipo": {
+      "type": "string",
+      "enum": [
+        "obra_civil",
+        "solar",
+        "oficina",
+        "almacen",
+        "otro"
+      ],
+      "default": "obra_civil",
+      "description": "Tipo de obra o lugar de trabajo"
     },
     "horas_trabajadas": {
       "type": "number",

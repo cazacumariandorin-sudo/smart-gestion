@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { calcularHoras } from '@/lib/horasUtils';
+import { recalcularPrevision } from '@/hooks/useRecalcularPrevision';
 import { Plus, Search, Trash2, Pencil, Save, Loader2, Clock, ChevronDown, ChevronUp, ClipboardList } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
+import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format, parseISO } from 'date-fns';
@@ -20,7 +22,7 @@ import { es } from 'date-fns/locale';
 
 const UNITS = ['m', 'm²', 'm³', 'ud', 'kg', 'l', 'h', 'ml', 'tn'];
 const emptyApunte = { concepto: '', unidad: 'ud', cantidad: '', precio_unitario: '', total: '' };
-const empty = { operario_id: '', operario_name: '', date: new Date().toISOString().split('T')[0], hora_entrada: '', hora_salida: '', pausa_inicio: '', pausa_fin: '', project: '', notas: '' };
+const empty = { operario_id: '', operario_name: '', date: new Date().toISOString().split('T')[0], hora_entrada: '', hora_salida: '', pausa_inicio: '', pausa_fin: '', project: '', obra_id: '', obra_name: '', obra_tipo: 'obra_civil', notas: '' };
 
 export default function FichajesTab() {
   const qc = useQueryClient();
@@ -38,7 +40,6 @@ export default function FichajesTab() {
 
   const { data: fichajes = [], isLoading } = useQuery({ queryKey: ['fichajes'], queryFn: () => base44.entities.Fichaje.list('-date', 500) });
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
-  const { data: obras = [] } = useQuery({ queryKey: ['obras'], queryFn: () => base44.entities.Obra.list('name', 200) });
   const { data: allApuntes = [] } = useQuery({ queryKey: ['apuntes'], queryFn: () => base44.entities.ApunteHorario.list('-date', 1000) });
 
   const createM = useOptimisticMutation(
@@ -47,12 +48,14 @@ export default function FichajesTab() {
       const validApuntes = apuntes.filter(a => a.concepto && a.cantidad);
       await Promise.all(validApuntes.map(a => base44.entities.ApunteHorario.create({
         operario_id: d.operario_id, operario_name: d.operario_name,
-        date: d.date, obra_name: d.project || '',
+        date: d.date, obra_id: d.obra_id || undefined, obra_name: d.obra_name || d.project || '',
         concepto: a.concepto, unidad: a.unidad,
         cantidad: parseFloat(a.cantidad) || 0,
         precio_unitario: parseFloat(a.precio_unitario) || undefined,
         total: a.total || undefined,
       })));
+      // Recálculo en background (no bloquea UI)
+      if (fichaje.obra_id) recalcularPrevision(fichaje.obra_id, fichaje.obra_name).catch(() => {});
       return fichaje;
     },
     'fichajes',
@@ -60,7 +63,11 @@ export default function FichajesTab() {
     () => { close_(); qc.invalidateQueries({ queryKey: ['apuntes'] }); }
   );
   const updateM = useOptimisticMutation(
-    ({ id, d }) => base44.entities.Fichaje.update(id, d),
+    async ({ id, d }) => {
+      const fichaje = await base44.entities.Fichaje.update(id, d);
+      if (d.obra_id) recalcularPrevision(d.obra_id, d.obra_name).catch(() => {});
+      return fichaje;
+    },
     'fichajes',
     (prev, { id, d }) => prev.map(f => f.id === id ? { ...f, ...d, horas_trabajadas: calcularHoras(d.hora_entrada, d.hora_salida, d.pausa_inicio, d.pausa_fin) } : f),
     () => close_()
@@ -102,9 +109,13 @@ export default function FichajesTab() {
     setForm(p => ({ ...p, operario_id: id, operario_name: op?.name || '' }));
   };
 
+  const handleObraChange = ({ obra_id, obra_name, obra_tipo, project }) => {
+    setForm(p => ({ ...p, obra_id: obra_id || '', obra_name: obra_name || '', obra_tipo: obra_tipo || 'otro', project: project || obra_name || '' }));
+  };
+
   const handleSave = () => {
     const horas = calcularHoras(form.hora_entrada, form.hora_salida, form.pausa_inicio, form.pausa_fin);
-    const data = { ...form, horas_trabajadas: horas };
+    const data = { ...form, horas_trabajadas: horas, project: form.obra_name || form.project };
     editing ? updateM.mutate({ id: editing.id, d: data }) : createM.mutate(data);
   };
 
@@ -279,10 +290,12 @@ export default function FichajesTab() {
                 <Input type="date" value={form.date} onChange={e => set('date', e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Obra</Label>
-                <MobileSelect value={form.project || ''} onValueChange={v => set('project', v)} placeholder="Seleccionar obra...">
-                  {obras.map(o => <MobileSelectItem key={o.id} value={o.name}>{o.name}</MobileSelectItem>)}
-                </MobileSelect>
+                <Label className="text-xs">Obra / Lugar</Label>
+                <ObraSelectorObras
+                  value={{ obra_id: form.obra_id, obra_name: form.obra_name, obra_tipo: form.obra_tipo }}
+                  onChange={handleObraChange}
+                  placeholder="Seleccionar obra..."
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Hora entrada *</Label>

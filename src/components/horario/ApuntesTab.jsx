@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
 import { Plus, Download, Trash2, Pencil, Save, Loader2, ClipboardList, TrendingUp } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ const PERIOD_OPTIONS = [
 
 const emptyForm = {
   operario_id: '', operario_name: '', date: new Date().toISOString().split('T')[0],
-  obra_name: '', concepto: '', unidad: 'ud', cantidad: '', precio_unitario: '', total: '', notas: '',
+  obra_id: '', obra_name: '', concepto: '', unidad: 'ud', cantidad: '', precio_unitario: '', total: '', notas: '',
 };
 
 function drawTable(doc, headers, rows, startY, margin = 14) {
@@ -102,6 +103,10 @@ export default function ApuntesTab() {
   const handleOpChange = id => {
     const op = operarios.find(o => o.id === id);
     setForm(p => ({ ...p, operario_id: id, operario_name: op?.name || '' }));
+  };
+
+  const handleObraChange = ({ obra_id, obra_name }) => {
+    setForm(p => ({ ...p, obra_id: obra_id || '', obra_name: obra_name || '' }));
   };
 
   const handleSave = () => {
@@ -339,11 +344,12 @@ export default function ApuntesTab() {
                 <Input type="date" value={form.date} onChange={e => set('date', e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Obra</Label>
-                <div className="flex gap-1">
-                  <Input value={form.obra_name} onChange={e => set('obra_name', e.target.value)} placeholder="Nombre obra..." />
-                  <VoiceInputButton onResult={txt => set('obra_name', txt)} />
-                </div>
+                <Label className="text-xs">Obra / Lugar *</Label>
+                <ObraSelectorObras
+                  value={{ obra_id: form.obra_id, obra_name: form.obra_name }}
+                  onChange={handleObraChange}
+                  placeholder="Seleccionar obra..."
+                />
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Concepto *</Label>
@@ -386,7 +392,7 @@ export default function ApuntesTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={close_}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.operario_id || !form.concepto || !form.cantidad || isPending} className="gap-2 min-w-28">
+            <Button onClick={handleSave} disabled={!form.operario_id || !form.concepto || !form.cantidad || !form.obra_id || isPending} className="gap-2 min-w-28">
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar
             </Button>
           </DialogFooter>

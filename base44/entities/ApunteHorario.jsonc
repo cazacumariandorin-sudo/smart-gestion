@@ -17,7 +17,7 @@
     },
     "obra_id": {
       "type": "string",
-      "description": "ID de la obra (opcional)"
+      "description": "ID de la obra (FK a Obra o SolarObra)"
     },
     "obra_name": {
       "type": "string",
@@ -43,6 +43,10 @@
       "type": "number",
       "description": "Total (\u20ac)"
     },
+    "horas_ejecutadas": {
+      "type": "number",
+      "description": "Horas reales en este apunte"
+    },
     "notas": {
       "type": "string",
       "description": "Observaciones"
@@ -52,7 +56,9 @@
     "operario_id",
     "date",
     "concepto",
-    "cantidad"
+    "cantidad",
+    "obra_id",
+    "obra_name"
   ],
   "rls": {
     "create": {

@@ -67,6 +67,44 @@
       ],
       "default": "planificada",
       "description": "Estado de la previsi\u00f3n"
+    },
+    "horas_reales_acumuladas": {
+      "type": "number",
+      "default": 0,
+      "description": "Suma horas_trabajadas de Fichajes vinculados"
+    },
+    "desviacion_horas": {
+      "type": "number",
+      "default": 0,
+      "description": "horas_totales_previstas - horas_reales_acumuladas"
+    },
+    "porcentaje_avance_horas": {
+      "type": "number",
+      "default": 0,
+      "description": "% de horas ejecutadas sobre previstas"
+    },
+    "ultimo_fichaje_fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del \u00faltimo Fichaje en esta obra"
+    },
+    "operarios_activos_hoy": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs operarios que ficharon hoy"
+    },
+    "status_semaforo": {
+      "type": "string",
+      "enum": [
+        "verde",
+        "amarillo",
+        "rojo",
+        "sin_datos"
+      ],
+      "default": "sin_datos",
+      "description": "Estado visual de avance"
     }
   },
   "required": [

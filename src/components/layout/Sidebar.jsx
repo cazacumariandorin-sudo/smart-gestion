@@ -29,6 +29,7 @@ export const HUBS = [
       { label: 'Obras Solar', path: '/solar-obras', icon: Sun, module: 'obras' },
       { label: 'Partes de trabajo', path: '/work-orders', icon: ClipboardList, module: 'work-orders' },
       { label: 'Informe Obras', path: '/informe-obras', icon: BarChart2, module: 'informe-obras' },
+      { label: 'Previsión Gantt', path: '/prevision-obras', icon: BarChart2, module: 'informe-obras' },
     ],
   },
   {

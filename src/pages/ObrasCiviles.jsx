@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Pencil, Trash2, Building2, Save, Loader2, Calendar, Euro, Package, X, Camera } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Building2, Save, Loader2, Calendar, Euro, Package, X, Camera, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import ObraMaterialesPanel from '@/components/obras/ObraMaterialesPanel';
 import ObraFotosPanel from '@/components/obras/ObraFotosPanel';
+import ObraSeguimientoPanel from '@/components/obras/ObraSeguimientoPanel';
 
 const STATUS_CFG = {
   activa: { label: 'Activa', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -193,8 +194,9 @@ export default function ObrasCiviles() {
           </DialogHeader>
           {detailObra && (
             <Tabs defaultValue="fotos">
-              <TabsList className="mb-4">
+              <TabsList className="mb-4 flex-wrap h-auto">
                 <TabsTrigger value="info" className="gap-1.5 text-xs"><Building2 className="w-3.5 h-3.5" /> Info</TabsTrigger>
+                <TabsTrigger value="seguimiento" className="gap-1.5 text-xs"><BarChart3 className="w-3.5 h-3.5" /> Seguimiento</TabsTrigger>
                 <TabsTrigger value="materiales" className="gap-1.5 text-xs"><Package className="w-3.5 h-3.5" /> Materiales</TabsTrigger>
                 <TabsTrigger value="fotos" className="gap-1.5 text-xs"><Camera className="w-3.5 h-3.5" /> Fotos</TabsTrigger>
               </TabsList>
@@ -208,6 +210,9 @@ export default function ObrasCiviles() {
                   {detailObra.description && <p className="text-muted-foreground italic">{detailObra.description}</p>}
                   {detailObra.notes && <p className="text-muted-foreground">{detailObra.notes}</p>}
                 </div>
+              </TabsContent>
+              <TabsContent value="seguimiento">
+                <ObraSeguimientoPanel obra={detailObra} obraTipo="civil" />
               </TabsContent>
               <TabsContent value="materiales">
                 <ObraMaterialesPanel obra={detailObra} />
