@@ -6,7 +6,7 @@ import {
   Building2, Sun, ClipboardList, Package, BarChart2,
   Clock, CalendarDays, FileImage, BookOpen, Factory,
   ShoppingCart, Truck, Images, MessageSquare, Database,
-  Shield, PenLine, Wrench, FlaskConical
+  Shield, PenLine, Wrench, FlaskConical, Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -100,6 +100,7 @@ export const HUBS = [
       { label: 'Invitaciones Demo', path: '/invitaciones-demo', icon: FlaskConical, module: 'users' },
       { label: 'Backup', path: '/admin-backup', icon: Database, module: 'users' },
       { label: 'Informe Mensual', path: '/reports', icon: BarChart2, module: 'reports' },
+      { label: 'Simulador de Roles', path: '/simulador-roles', icon: Eye, module: 'users' },
     ],
   },
 ];

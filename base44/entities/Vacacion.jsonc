@@ -2,24 +2,6 @@
   "name": "Vacacion",
   "type": "object",
   "properties": {
-    "aprobado": {
-      "default": false,
-      "type": "boolean"
-    },
-    "dias": {
-      "type": "number"
-    },
-    "fecha_fin": {
-      "format": "date",
-      "type": "string"
-    },
-    "fecha_inicio": {
-      "format": "date",
-      "type": "string"
-    },
-    "notas": {
-      "type": "string"
-    },
     "operario_id": {
       "type": "string"
     },
@@ -27,13 +9,39 @@
       "type": "string"
     },
     "tipo": {
+      "type": "string",
       "enum": [
         "vacaciones",
         "baja_medica",
         "dia_asunto_personal",
         "fiesta",
         "vacaciones_convenio"
-      ],
+      ]
+    },
+    "fecha_inicio": {
+      "type": "string",
+      "format": "date"
+    },
+    "fecha_fin": {
+      "type": "string",
+      "format": "date"
+    },
+    "dias": {
+      "type": "number"
+    },
+    "aprobado": {
+      "type": "boolean",
+      "default": false
+    },
+    "aprobado_por": {
+      "type": "string",
+      "description": "Email del usuario que aprob\u00f3"
+    },
+    "fecha_aprobacion": {
+      "type": "string",
+      "format": "date"
+    },
+    "notas": {
       "type": "string"
     }
   },
@@ -52,11 +60,28 @@
         },
         {
           "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
         {
-          "created_by": "{{user.email}}"
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "control_horario"
+          }
         }
       ]
     },
@@ -69,7 +94,17 @@
         },
         {
           "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
           }
         },
         {
@@ -86,11 +121,13 @@
         },
         {
           "user_condition": {
-            "role": "director_comercial"
+            "role": "gerencia"
           }
         },
         {
-          "created_by": "{{user.email}}"
+          "user_condition": {
+            "role": "director_comercial"
+          }
         }
       ]
     },
@@ -102,14 +139,14 @@
           }
         },
         {
-          "$and": [
-            {
-              "created_by": "{{user.email}}"
-            },
-            {
-              "data.aprobado": false
-            }
-          ]
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
         }
       ]
     }
