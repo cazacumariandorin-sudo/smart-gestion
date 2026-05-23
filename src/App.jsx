@@ -28,12 +28,12 @@ const Drawings = lazy(() => import('./pages/Drawings'));
 const Orders = lazy(() => import('./pages/Orders'));
 const Operarios = lazy(() => import('./pages/Operarios'));
 const ControlHorario = lazy(() => import('./pages/ControlHorario'));
-const Obras = lazy(() => import('./pages/Obras'));
+const ObrasCiviles = lazy(() => import('./pages/ObrasCiviles'));
 const CalendarioVacaciones = lazy(() => import('./pages/CalendarioVacaciones'));
 const Manuales = lazy(() => import('./pages/Manuales'));
 const Fabricantes = lazy(() => import('./pages/Fabricantes'));
 const AdminBackup = lazy(() => import('./pages/AdminBackup'));
-const SolarPedidos = lazy(() => import('./pages/SolarPedidos'));
+const Solar = lazy(() => import('./pages/Solar'));
 const DatosSensibles = lazy(() => import('./pages/DatosSensibles'));
 const Inventario = lazy(() => import('./pages/Inventario'));
 const DemoUsers = lazy(() => import('./pages/DemoUsers'));
@@ -114,7 +114,12 @@ function AnimatedRoutes() {
             <Route path="/drawings" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><Drawings /></Suspense></ProtectedRoute>} />
             <Route path="/manuales" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><Manuales /></Suspense></ProtectedRoute>} />
             <Route path="/orders" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><Orders /></Suspense></ProtectedRoute>} />
-            <Route path="/obras" element={<ProtectedRoute module="obras"><Suspense fallback={<PageLoader />}><Obras /></Suspense></ProtectedRoute>} />
+
+            {/* OBRAS CIVILES - Separate entity with own permissions */}
+            <Route path="/obras-civiles" element={<ProtectedRoute module="obras-civiles"><Suspense fallback={<PageLoader />}><ObrasCiviles /></Suspense></ProtectedRoute>} />
+
+            {/* SOLAR - Integrated solar project management with sub-modules */}
+            <Route path="/solar" element={<ProtectedRoute module="solar"><Suspense fallback={<PageLoader />}><Solar /></Suspense></ProtectedRoute>} />
 
             <Route path="/operarios" element={<ProtectedRoute module="operarios"><Suspense fallback={<PageLoader />}><Operarios /></Suspense></ProtectedRoute>} />
             <Route path="/documentacion-operarios" element={<ProtectedRoute module="operarios"><Suspense fallback={<PageLoader />}><Operarios /></Suspense></ProtectedRoute>} />
@@ -123,14 +128,12 @@ function AnimatedRoutes() {
 
             <Route path="/fabricantes" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><Fabricantes /></Suspense></ProtectedRoute>} />
             <Route path="/admin-backup" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><AdminBackup /></Suspense></ProtectedRoute>} />
-            <Route path="/solar-pedidos" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><SolarPedidos /></Suspense></ProtectedRoute>} />
-            <Route path="/solar-obras" element={<ProtectedRoute module="obras"><Suspense fallback={<PageLoader />}><SolarPedidos /></Suspense></ProtectedRoute>} />
             <Route path="/datos-sensibles" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DatosSensibles /></Suspense></ProtectedRoute>} />
             <Route path="/inventario" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><Inventario /></Suspense></ProtectedRoute>} />
             <Route path="/demo-users" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DemoUsers /></Suspense></ProtectedRoute>} />
             <Route path="/informe-obras" element={<ProtectedRoute module="informe-obras"><Suspense fallback={<PageLoader />}><InformeObras /></Suspense></ProtectedRoute>} />
             <Route path="/notas-gastos" element={<ProtectedRoute module="notas-gastos"><Suspense fallback={<PageLoader />}><NotasGastos /></Suspense></ProtectedRoute>} />
-            <Route path="/chat" element={<Suspense fallback={<PageLoader />}><Chat /></Suspense>} />
+            <Route path="/chat" element={<ProtectedRoute module="chat"><Suspense fallback={<PageLoader />}><Chat /></Suspense></ProtectedRoute>} />
             <Route path="/flota" element={<ProtectedRoute module="flota"><Suspense fallback={<PageLoader />}><Flota /></Suspense></ProtectedRoute>} />
             <Route path="/galeria-fotos" element={<ProtectedRoute module="galeria-fotos"><Suspense fallback={<PageLoader />}><GaleriaFotos /></Suspense></ProtectedRoute>} />
             <Route path="/apuntes-horario" element={<ProtectedRoute module="apuntes-horario"><Suspense fallback={<PageLoader />}><ApuntesHorario /></Suspense></ProtectedRoute>} />
@@ -154,12 +157,12 @@ function AnimatedRoutes() {
           <Route path="/Manuales" element={<Navigate to="/manuales" replace />} />
           <Route path="/MaterialCatalog" element={<Navigate to="/materials" replace />} />
           <Route path="/MonthlyReport" element={<Navigate to="/reports" replace />} />
-          <Route path="/Obras" element={<Navigate to="/obras" replace />} />
+          <Route path="/Obras" element={<Navigate to="/obras-civiles" replace />} />
           <Route path="/Operarios" element={<Navigate to="/operarios" replace />} />
           <Route path="/Orders" element={<Navigate to="/orders" replace />} />
           <Route path="/PhotoGallery" element={<Navigate to="/photos" replace />} />
           <Route path="/Profile" element={<Navigate to="/profile" replace />} />
-          <Route path="/SolarPedidos" element={<Navigate to="/solar-pedidos" replace />} />
+          <Route path="/SolarPedidos" element={<Navigate to="/solar" replace />} />
           <Route path="/WorkOrders" element={<Navigate to="/work-orders" replace />} />
           <Route path="/NotasGastos" element={<Navigate to="/notas-gastos" replace />} />
 
