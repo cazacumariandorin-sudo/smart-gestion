@@ -1,26 +1,28 @@
 import { Sun, Users, Zap, Package, FileCheck } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PageHeader from '@/components/layout/PageHeader';
+import { useTabState } from '@/hooks/useTabState';
 import SolarClientes from './solar/SolarClientes';
 import SolarObras from './solar/SolarObras';
 import SolarMateriales from './solar/SolarMateriales';
 import SolarLegalizacion from './solar/SolarLegalizacion';
 
 export default function Solar() {
+  const [tab, setTab] = useTabState('solar', 'obras');
+
   return (
     <div className="max-w-6xl mx-auto">
       <PageHeader
-        title="Proyectos Solar"
-        subtitle="Gestión integral de proyectos de energía solar"
+        title="Proyectos Solares"
+        subtitle="Gestión integrada de energía solar"
         hideBack={true}
       />
-      
+
       <div className="p-4 sm:p-6 lg:p-8">
-        {/* Tabs for Solar management */}
-        <Tabs defaultValue="obras" className="w-full">
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="mb-6 flex flex-wrap h-auto gap-1">
             <TabsTrigger value="obras" className="gap-1.5">
-              <Zap className="w-3.5 h-3.5" /> Obras
+              <Zap className="w-3.5 h-3.5" /> Obras Solar
             </TabsTrigger>
             <TabsTrigger value="clientes" className="gap-1.5">
               <Users className="w-3.5 h-3.5" /> Clientes
