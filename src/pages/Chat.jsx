@@ -4,12 +4,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Send, Plus, MessageSquare, Users, Lock } from 'lucide-react';
+import { Send, Plus, MessageSquare, Users, Lock, Key, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import CifradoInfo from '@/components/chat/CifradoInfo';
+import {
+  generarClavesRSA,
+  cifrarAES,
+  descifrarAES,
+  cifrarClaveAESConRSA,
+  descifrarClaveAESConRSA,
+  guardarClavesEnStorage,
+  obtenerDeStorage,
+} from '@/lib/chatCrypto';
+import { toast } from 'sonner';
 
 export default function Chat() {
   const [selectedConvId, setSelectedConvId] = useState(null);
@@ -19,10 +30,58 @@ export default function Chat() {
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
+  
+  // Estado para cifrado E2E
+  const [clavesE2E, setClavesE2E] = useState(null); // { publicKeyBase64, privateKey }
+  const [claveAES, setClaveAES] = useState(null); // Clave AES para la conversación actual
+  const [cargandoClaves, setCargandoClaves] = useState(false);
+  const [mensajesDescifrados, setMensajesDescifrados] = useState({});
+  const [showCifradoInfo, setShowCifradoInfo] = useState(false);
 
+  // Inicializar claves E2E al cargar
   useEffect(() => {
-    base44.auth.me().then(setCurrentUser).catch(() => {});
-  }, []);
+    const initClaves = async () => {
+      const stored = obtenerDeStorage();
+      if (stored) {
+        // Las claves privadas no se persisten, hay que regenerarlas
+        // En producción, se debería pedir al usuario que las guarde
+        const { publicKeyBase64, privateKey } = await generarClavesRSA();
+        setClavesE2E({ publicKeyBase64, privateKey });
+        guardarClavesEnStorage(publicKeyBase64);
+        
+        // Registrar en backend
+        try {
+          await base44.functions.invoke('gestionClavesChat', {
+            action: 'registrar',
+            publicKeyBase64,
+          });
+        } catch (error) {
+          console.error('Error registrando clave:', error);
+        }
+      } else {
+        // Generar nuevas claves
+        setCargandoClaves(true);
+        const { publicKeyBase64, privateKey } = await generarClavesRSA();
+        setClavesE2E({ publicKeyBase64, privateKey });
+        guardarClavesEnStorage(publicKeyBase64);
+        
+        try {
+          await base44.functions.invoke('gestionClavesChat', {
+            action: 'registrar',
+            publicKeyBase64,
+          });
+          toast.success('Claves de cifrado generadas');
+        } catch (error) {
+          toast.error('Error al registrar claves: ' + error.message);
+        }
+        setCargandoClaves(false);
+      }
+    };
+
+    if (currentUser) {
+      initClaves();
+    }
+  }, [currentUser]);
 
   const onRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
@@ -45,10 +104,77 @@ export default function Chat() {
     refetchInterval: 3000,
   });
 
+  // Descifrar mensajes al cargar
+  useEffect(() => {
+    const descifrarMensajes = async () => {
+      if (!clavesE2E?.privateKey || messages.length === 0) return;
+      
+      const descifrados = {};
+      
+      for (const msg of messages) {
+        if (msg.tipo_mensaje === 'cifrado' && msg.mensaje_cifrado) {
+          try {
+            // El mensaje cifrado contiene IV + ciphertext en base64
+            const textoDescifrado = await descifrarAES(msg.mensaje_cifrado, clavesE2E.privateKey);
+            descifrados[msg.id] = textoDescifrado || '[No se pudo descifrar]';
+          } catch (error) {
+            console.error('Error descifrando mensaje:', error);
+            descifrados[msg.id] = '[Error al descifrar]';
+          }
+        } else {
+          descifrados[msg.id] = msg.mensaje_cifrado; // Texto plano
+        }
+      }
+      
+      setMensajesDescifrados(descifrados);
+    };
+    
+    descifrarMensajes();
+  }, [messages, clavesE2E]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, mensajesDescifrados]);
 
+  // Enviar mensaje cifrado
+  const sendCifradoMutation = useMutation({
+    mutationFn: async ({ text, destinatario_email }) => {
+      if (!claveAES || !clavesE2E) throw new Error('Claves no inicializadas');
+      
+      // 1. Cifrar mensaje con AES
+      const mensajeCifrado = await cifrarAES(text, claveAES);
+      
+      // 2. Obtener clave pública del destinatario
+      const claveDest = await base44.functions.invoke('gestionClavesChat', {
+        action: 'obtener',
+        destinatario_email,
+      });
+      
+      if (!claveDest.clave_publica) {
+        throw new Error('El destinatario no tiene claves de cifrado');
+      }
+      
+      // 3. Cifrar clave AES con RSA del destinatario
+      const claveAESCifrada = await cifrarClaveAESConRSA(claveAES, claveDest.clave_publica);
+      
+      // 4. Enviar mensaje cifrado
+      return await base44.functions.invoke('enviarMensajeCifrado', {
+        conversacion_id: selectedConvId,
+        clave_aes_cifrada: claveAESCifrada,
+        iv_base64: mensajeCifrado, // IV + ciphertext combinados
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chat-messages', selectedConvId] });
+      setNewMessage('');
+      toast.success('Mensaje cifrado enviado');
+    },
+    onError: (error) => {
+      toast.error('Error al enviar: ' + error.message);
+    },
+  });
+
+  // Enviar mensaje en texto plano (fallback)
   const sendMutation = useMutation({
     mutationFn: (text) => base44.entities.ChatMensaje.create({
       conversacion_id: selectedConvId,
@@ -85,7 +211,28 @@ export default function Chat() {
   const handleSend = (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedConvId) return;
-    sendMutation.mutate(newMessage.trim());
+    
+    // Determinar si usar cifrado (por defecto sí si hay claves)
+    const usarCifrado = clavesE2E && claveAES;
+    
+    if (usarCifrado) {
+      // Obtener el otro participante
+      const otroParticipante = selectedConv?.participantes?.find(
+        p => p.user_email !== currentUser?.email
+      );
+      
+      if (otroParticipante?.user_email) {
+        sendCifradoMutation.mutate({
+          text: newMessage.trim(),
+          destinatario_email: otroParticipante.user_email,
+        });
+      } else {
+        // Conversación de grupo - enviar a todos
+        sendMutation.mutate(newMessage.trim());
+      }
+    } else {
+      sendMutation.mutate(newMessage.trim());
+    }
   };
 
   return (
@@ -165,25 +312,42 @@ export default function Chat() {
         ) : (
           <>
             {/* Header */}
-            <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                <Users className="w-4 h-4 text-primary" />
+            <div className="px-4 py-3 border-b border-border bg-card flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Users className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">{selectedConv?.nombre || 'Conversación'}</h3>
+                  <p className="text-xs text-muted-foreground capitalize">{selectedConv?.tipo}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-sm">{selectedConv?.nombre || 'Conversación'}</h3>
-                <p className="text-xs text-muted-foreground capitalize">{selectedConv?.tipo}</p>
+              <div className="flex items-center gap-2">
+                {selectedConv?.cifrado_activo ? (
+                  <Badge variant="outline" className="text-xs flex items-center gap-1">
+                    <Lock className="w-3 h-3" /> Cifrado
+                  </Badge>
+                ) : clavesE2E ? (
+                  <button
+                    onClick={() => setShowCifradoInfo(true)}
+                    className="text-xs flex items-center gap-1 hover:underline cursor-pointer"
+                  >
+                    <Key className="w-3 h-3" /> E2E activo
+                  </button>
+                ) : null}
+                {cargandoClaves && (
+                  <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />
+                )}
               </div>
-              {selectedConv?.cifrado_activo && (
-                <Badge variant="outline" className="ml-auto text-xs flex items-center gap-1">
-                  <Lock className="w-3 h-3" /> Cifrado
-                </Badge>
-              )}
             </div>
 
             {/* Mensajes */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.map(msg => {
                 const isOwn = msg.autor_email === currentUser?.email || msg.created_by === currentUser?.email;
+                const textoMostrar = mensajesDescifrados[msg.id] || msg.mensaje_cifrado || '...';
+                const esCifrado = msg.tipo_mensaje === 'cifrado';
+                
                 return (
                   <div key={msg.id} className={cn('flex gap-2', isOwn ? 'justify-end' : 'justify-start')}>
                     {!isOwn && (
@@ -194,10 +358,16 @@ export default function Chat() {
                     <div className={cn('max-w-[70%]', isOwn ? 'items-end' : 'items-start', 'flex flex-col gap-0.5')}>
                       {!isOwn && <span className="text-xs text-muted-foreground px-1">{msg.autor_nombre || msg.autor_email}</span>}
                       <div className={cn(
-                        'px-3 py-2 rounded-2xl text-sm',
-                        isOwn ? 'bg-primary text-primary-foreground rounded-tr-sm' : 'bg-muted rounded-tl-sm'
+                        'px-3 py-2 rounded-2xl text-sm relative',
+                        isOwn 
+                          ? 'bg-primary text-primary-foreground rounded-tr-sm' 
+                          : 'bg-muted rounded-tl-sm',
+                        esCifrado && 'border border-primary/20'
                       )}>
-                        {msg.mensaje_cifrado}
+                        {esCifrado && (
+                          <Lock className="w-2.5 h-2.5 absolute -top-1 -right-1 text-primary fill-primary-foreground rounded-full p-0.5" />
+                        )}
+                        {textoMostrar}
                       </div>
                       <span className="text-[10px] text-muted-foreground px-1">
                         {msg.fecha_envio ? format(new Date(msg.fecha_envio), 'HH:mm') : ''}
@@ -212,18 +382,26 @@ export default function Chat() {
             {/* Input */}
             <form onSubmit={handleSend} className="p-3 border-t border-border bg-card flex gap-2">
               <Input
-                placeholder="Escribe un mensaje..."
+                placeholder={clavesE2E ? "Escribe un mensaje (cifrado E2E)..." : "Escribe un mensaje..."}
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
                 className="flex-1"
+                disabled={cargandoClaves}
               />
-              <Button type="submit" size="icon" disabled={!newMessage.trim() || sendMutation.isPending}>
+              <Button 
+                type="submit" 
+                size="icon" 
+                disabled={!newMessage.trim() || sendMutation.isPending || sendCifradoMutation?.isPending || cargandoClaves}
+              >
                 <Send className="w-4 h-4" />
               </Button>
             </form>
           </>
         )}
       </div>
+
+      {/* Dialog info cifrado */}
+      <CifradoInfo open={showCifradoInfo} onClose={() => setShowCifradoInfo(false)} />
     </div>
   );
 }

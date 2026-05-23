@@ -1,5 +1,6 @@
 {
   "name": "ChatClavePublica",
+  "type": "object",
   "properties": {
     "activa": {
       "default": true,
@@ -14,8 +15,8 @@
       "description": "Clave privada RSA cifrada con la contrase\u00f1a del usuario (solo el propio usuario puede descifrarla)",
       "type": "string"
     },
-    "clave_publica_jwk": {
-      "description": "Clave p\u00fablica RSA en formato JWK (JSON Web Key) \u2014 visible por todos para cifrar mensajes dirigidos a este usuario",
+    "clave_publica": {
+      "description": "Clave p\u00fablica RSA en formato base64 (JWK stringified) \u2014 visible por todos para cifrar mensajes dirigidos a este usuario",
       "type": "string"
     },
     "fecha_creacion": {
@@ -30,6 +31,9 @@
       "description": "SHA-256 fingerprint de la clave p\u00fablica para verificaci\u00f3n de identidad",
       "type": "string"
     },
+    "nombre_display": {
+      "type": "string"
+    },
     "user_email": {
       "type": "string"
     },
@@ -41,9 +45,8 @@
     }
   },
   "required": [
-    "user_id",
     "user_email",
-    "clave_publica_jwk"
+    "clave_publica"
   ],
   "rls": {
     "create": {
@@ -56,6 +59,5 @@
     "delete": {
       "created_by": "{{user.email}}"
     }
-  },
-  "type": "object"
+  }
 }
