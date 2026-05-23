@@ -4,6 +4,103 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════
+   BLOQUE 1 — BREAKPOINTS Y VARIABLES RESPONSIVE SMARTGESTION
+   xs: <360px | sm: 360-480px | md: 480-768px | lg: 768-1024px | xl: 1024px+
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --sg-sidebar-width: 240px;
+  --sg-sidebar-collapsed: 56px;
+  --sg-header-height: 56px;
+  --sg-content-padding: 1rem;
+  --sg-grid-cols: 1;
+  --sg-touch-target: 44px;
+}
+@media (min-width: 480px) {
+  :root { --sg-grid-cols: 2; --sg-content-padding: 1.25rem; }
+}
+@media (min-width: 768px) {
+  :root { --sg-grid-cols: 3; --sg-content-padding: 1.5rem; }
+}
+@media (min-width: 1024px) {
+  :root { --sg-grid-cols: 3; --sg-content-padding: 2rem; --sg-sidebar-width: 260px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BLOQUE 2 — LAYOUT RESPONSIVO: TABLAS Y FORMULARIOS
+   ═══════════════════════════════════════════════════════════ */
+
+/* Grid de cards adaptativo (usado en Dashboard y hubs) */
+.hub-grid {
+  display: grid;
+  gap: 9px;
+  grid-template-columns: repeat(var(--sg-grid-cols), 1fr);
+}
+@media (max-width: 359px) {
+  .hub-grid { grid-template-columns: 1fr; }
+}
+
+/* Tablas responsivas */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 480px) {
+  .col-hide-mobile { display: none !important; }
+}
+@media (max-width: 768px) {
+  .col-hide-tablet { display: none !important; }
+}
+
+/* Formularios en grid responsivo */
+.form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+  .form-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 1024px) {
+  .form-grid.form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+}
+.form-grid .full-width { grid-column: 1 / -1; }
+
+/* Orientación landscape en tablet */
+@media (min-width: 768px) and (orientation: landscape) {
+  .hub-grid { grid-template-columns: repeat(3, 1fr); }
+  .obra-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+
+/* Fallback para navegadores sin CSS Grid */
+.no-grid .hub-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+.no-grid .hub-grid > * {
+  flex: 1 1 calc(50% - 9px);
+  min-width: 280px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BLOQUE 5 — TIPOGRAFÍA CON REM Y TARGETS TÁCTILES
+   ═══════════════════════════════════════════════════════════ */
+html { font-size: 15px; }
+@media (max-width: 360px) { html { font-size: 14px; } }
+@media (min-width: 1024px) { html { font-size: 15px; } }
+
+/* Área táctil mínima para elementos interactivos */
+button:not(.badge):not(.status-dot),
+a:not(.badge):not(.status-dot) {
+  min-height: var(--sg-touch-target);
+  min-width: var(--sg-touch-target);
+}
+
 @layer base {
   :root {
     --font-inter: 'Inter', sans-serif;
@@ -110,4 +207,14 @@
     font-size: 0.75rem; /* 12px floor */
     line-height: 1rem;
   }
+}
+
+/* ── Bloque 4: Padding inferior para bottom nav en móvil ─────────────────── */
+@media (max-width: 767px) {
+  .main-with-bottom-nav {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (min-width: 768px) {
+  .main-with-bottom-nav { padding-bottom: 0; }
 }

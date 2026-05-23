@@ -123,29 +123,29 @@ function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo, pe
       <button
         onClick={() => setOpen(o => !o)}
         className={cn(
-          'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all',
+          'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-semibold transition-all',
           isChildActive
             ? cn(hub.activeBg, hub.color)
             : 'text-muted-foreground hover:text-foreground hover:bg-muted'
         )}
       >
         <Icon className={cn('w-4 h-4 shrink-0', isChildActive ? hub.color : '')} />
-        <span className="flex-1 text-left text-xs">{hub.label}</span>
+        <span className="flex-1 text-left text-xs overflow-hidden whitespace-nowrap opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">{hub.label}</span>
         {pendingCount > 0 && (
-          <span className="text-[10px] font-bold bg-orange-500 text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shrink-0">
+          <span className="text-[10px] font-bold bg-orange-500 text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shrink-0 opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">
             {pendingCount}
           </span>
         )}
-        <span className="text-[10px] font-normal bg-muted text-muted-foreground rounded-full w-5 h-5 flex items-center justify-center shrink-0">
+        <span className="text-[10px] font-normal bg-muted text-muted-foreground rounded-full w-5 h-5 flex items-center justify-center shrink-0 opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">
           {items.length}
         </span>
         {open
-          ? <ChevronDown className="w-3 h-3 shrink-0" />
-          : <ChevronRight className="w-3 h-3 shrink-0" />}
+          ? <ChevronDown className="w-3 h-3 shrink-0 opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150" />
+          : <ChevronRight className="w-3 h-3 shrink-0 opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150" />}
       </button>
 
       {open && (
-        <div className={cn('ml-3 mt-0.5 mb-1 space-y-0.5 border-l-2 pl-3', hub.borderColor)}>
+        <div className={cn('ml-3 mt-0.5 mb-1 space-y-0.5 border-l-2 pl-3 opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150', hub.borderColor)}>
           {items.map(item => {
             const isActive = currentPath === item.path || (item.path !== '/' && currentPath.startsWith(item.path));
             return (
@@ -160,7 +160,7 @@ function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo, pe
                 )}
               >
                 <item.icon className="w-3.5 h-3.5 shrink-0" />
-                {item.label}
+                <span className="overflow-hidden whitespace-nowrap">{item.label}</span>
               </Link>
             );
           })}
@@ -195,34 +195,38 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <aside className="hidden lg:flex flex-col w-60 border-r border-border bg-card h-screen sticky top-0">
+    <aside className="hidden md:flex flex-col border-r border-border bg-card h-screen sticky top-0 shrink-0
+      w-14 lg:w-60 overflow-hidden
+      transition-all duration-200 ease-in-out
+      hover:w-60 hover:shadow-[2px_0_12px_rgba(0,0,0,0.08)]
+      group/sidebar">
       {/* Logo */}
-      <div className="px-5 py-4 border-b border-border">
+      <div className="px-3 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
             <HardHat className="w-4 h-4 text-primary-foreground" />
           </div>
-          <div>
+          <div className="overflow-hidden whitespace-nowrap opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">
             <h1 className="text-sm font-extrabold uppercase tracking-tight text-emerald-600">SIMANTEC</h1>
             <p className="text-[10px] text-muted-foreground leading-tight">Gestión Empresarial</p>
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {/* Dashboard */}
         <Link
           to="/"
           className={cn(
-            'flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all mb-2',
+            'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all mb-2',
             isDashboard ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
           )}
         >
           <LayoutDashboard className="w-4 h-4 shrink-0" />
-          Panel General
+          <span className="overflow-hidden whitespace-nowrap opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">Panel General</span>
         </Link>
 
-        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest px-1 pb-1">Módulos</p>
+        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest px-1 pb-1 overflow-hidden whitespace-nowrap opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">Módulos</p>
 
         {HUBS.map(hub => (
           <HubGroup
@@ -243,7 +247,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Language selector */}
-      <div className="px-3 pb-2">
+      <div className="px-2 pb-2 overflow-hidden opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">
         <div className="flex gap-1">
           {[['es', '🇪🇸'], ['en', '🇬🇧'], ['fr', '🇫🇷']].map(([code, flag]) => (
             <button
@@ -261,16 +265,16 @@ export default function Sidebar() {
       </div>
 
       {/* Profile */}
-      <div className="px-3 pb-4 border-t border-border pt-3">
+      <div className="px-2 pb-4 border-t border-border pt-3 shrink-0">
         <Link
           to="/profile"
           className={cn(
-            'flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all',
+            'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all',
             path === '/profile' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
           )}
         >
-          <CircleUser className="w-4 h-4" />
-          {t('nav_profile')}
+          <CircleUser className="w-4 h-4 shrink-0" />
+          <span className="overflow-hidden whitespace-nowrap opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">{t('nav_profile')}</span>
         </Link>
       </div>
     </aside>

@@ -22,10 +22,10 @@ export default function AppLayout() {
       <ConnectivityBanner />
       <RoleSimulatorBanner />
       <DemoBanner />
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-w-0">
         <Sidebar />
         <main
-          className="flex-1 overflow-x-hidden pb-20 lg:pb-0"
+          className="flex-1 overflow-x-hidden main-with-bottom-nav"
           style={{
             paddingTop: (!hasTopBanner) ? 'env(safe-area-inset-top, 0px)' : undefined,
           }}

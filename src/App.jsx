@@ -68,6 +68,44 @@ function ThemeDetector() {
   return null;
 }
 
+// BLOQUE 6 — Detección de capacidades del dispositivo y polyfills
+function DeviceCapabilityDetector() {
+  useEffect(() => {
+    const ua = navigator.userAgent;
+
+    // Detectar versión Android y aplicar polyfills si es antigua
+    const androidMatch = ua.match(/Android\s([0-9.]+)/);
+    const androidVersion = androidMatch ? parseFloat(androidMatch[1]) : null;
+    if (androidVersion && androidVersion < 5) {
+      document.documentElement.style.setProperty('--sg-touch-target', '44px');
+      document.documentElement.style.setProperty('--sg-content-padding', '12px');
+    }
+
+    // Fallback para navegadores sin CSS Grid
+    if (typeof CSS !== 'undefined' && CSS.supports && !CSS.supports('display', 'grid')) {
+      document.body.classList.add('no-grid');
+    }
+
+    // Orientación y tipo de dispositivo
+    const updateDevice = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      document.body.classList.toggle('landscape', w > h);
+      document.body.classList.toggle('portrait', w <= h);
+      document.body.classList.toggle('is-tablet', w >= 768);
+      document.body.classList.toggle('is-mobile', w < 768);
+    };
+    updateDevice();
+    window.addEventListener('resize', updateDevice);
+    window.addEventListener('orientationchange', updateDevice);
+    return () => {
+      window.removeEventListener('resize', updateDevice);
+      window.removeEventListener('orientationchange', updateDevice);
+    };
+  }, []);
+  return null;
+}
+
 // Procesa la cola offline cuando se recupera la conexión
 function OfflineQueueProcessor() {
   useEffect(() => {
@@ -228,6 +266,7 @@ function App() {
         <QueryClientProvider client={queryClientInstance}>
           <Router>
             <ThemeDetector />
+            <DeviceCapabilityDetector />
             <OfflineQueueProcessor />
             <AuthenticatedApp />
           </Router>
