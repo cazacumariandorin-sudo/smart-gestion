@@ -103,6 +103,7 @@ export default function RealUsersTab() {
                 <th className="text-left py-3 px-4 font-medium">Rol</th>
                 <th className="text-left py-3 px-4 font-medium">Cargo</th>
                 <th className="text-left py-3 px-4 font-medium">Tipo cuenta</th>
+                <th className="text-left py-3 px-4 font-medium">Vinculación</th>
                 <th className="text-left py-3 px-4 font-medium">Estado</th>
                 <th className="text-left py-3 px-4 font-medium">Acciones</th>
               </tr>
@@ -146,6 +147,33 @@ export default function RealUsersTab() {
                         <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">Demo</Badge>
                       ) : (
                         <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Real</Badge>
+                      )}
+                    </td>
+
+                    {/* Vinculación */}
+                    <td className="py-3 px-4">
+                      {u.vinculo_estado === 'pendiente' ? (
+                        <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />
+                          Pendiente
+                        </Badge>
+                      ) : u.vinculo_estado === 'auto_vinculado' ? (
+                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                          Auto 7d
+                        </Badge>
+                      ) : u.vinculo_estado === 'demo' ? (
+                        <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                          Demo
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                          {u.vinculo_tipo === 'operario_temporal' ? '⚠ Temporal' : '✓'}
+                        </Badge>
+                      )}
+                      {u.vinculo_nombre && (
+                        <div className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[120px]">
+                          {u.vinculo_nombre}
+                        </div>
                       )}
                     </td>
 

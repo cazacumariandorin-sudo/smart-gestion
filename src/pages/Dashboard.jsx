@@ -12,6 +12,7 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { useUserRole } from '@/lib/useUserRole';
 import NotificacionesFichaje from '@/components/dashboard/NotificacionesFichaje';
 import UserRoleDiagnostic from '@/components/debug/UserRoleDiagnostic';
+import WidgetVinculaciones from '@/components/vinculacion/WidgetVinculaciones';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -292,6 +293,13 @@ export default function Dashboard() {
 
       {/* Alertas de fichaje */}
       <NotificacionesFichaje />
+
+      {/* Widget de vinculaciones (solo admin/gerencia) */}
+      {(isAdmin || isGerencia) && (
+        <div className="mb-6">
+          <WidgetVinculaciones />
+        </div>
+      )}
 
       {/* Hub grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
