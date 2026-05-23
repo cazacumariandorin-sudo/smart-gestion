@@ -1,4 +1,4 @@
-import { Shield, Check, X, Eye, LayoutDashboard, ClipboardList, Users, Clock, Calendar, FileText, FolderOpen, Car, MessageSquare, Image as ImageIcon, DollarSign, BarChart3, Settings } from 'lucide-react';
+import { Shield, Check, X, Eye, LayoutDashboard, ClipboardList, Users, Clock, Calendar, FileText, FileImage, BookOpen, Building2, HardHat, Car, MessageSquare, ImageIcon, Images, ShoppingCart, Package, DollarSign, BarChart2, Settings } from 'lucide-react';
 import { useUserRole } from '@/lib/useUserRole';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,29 +13,28 @@ const MODULOS = [
   { id: 'calendario-vacaciones', label: 'Calendario Vacaciones', icon: Calendar, submodulos: [] },
   { id: 'apuntes-horario', label: 'Apuntes Horario', icon: FileText, submodulos: [] },
   { id: 'notas-gastos', label: 'Notas de Gastos', icon: DollarSign, submodulos: [] },
-  { id: 'orders', label: 'Pedidos / Materiales', icon: FolderOpen, submodulos: ['materials', 'drawings', 'manuales'] },
-  { id: 'drawings', label: 'Planos', icon: FileText, submodulos: [] },
-  { id: 'manuales', label: 'Manuales', icon: FileText, submodulos: [] },
-  { id: 'obras-civiles', label: 'Obras Civiles', icon: FolderOpen, submodulos: [] },
-  { id: 'solar', label: 'Solar', icon: FolderOpen, submodulos: [] },
+  { id: 'orders', label: 'Pedidos', icon: ShoppingCart, submodulos: [] },
+  { id: 'materials', label: 'Materiales', icon: Package, submodulos: [] },
+  { id: 'drawings', label: 'Planos', icon: FileImage, submodulos: [] },
+  { id: 'manuales', label: 'Manuales', icon: BookOpen, submodulos: [] },
+  { id: 'obras', label: 'Obras', icon: Building2, submodulos: [] },
+  { id: 'obras-civiles', label: 'Obras Civiles', icon: HardHat, submodulos: [] },
   { id: 'flota', label: 'Flota / Vehículos', icon: Car, submodulos: [] },
   { id: 'galeria-fotos', label: 'Galería de Fotos', icon: ImageIcon, submodulos: [] },
-  { id: 'photos', label: 'Fotos por Parte', icon: ImageIcon, submodulos: [] },
+  { id: 'photos', label: 'Fotos por Parte', icon: Images, submodulos: [] },
   { id: 'chat', label: 'Chat', icon: MessageSquare, submodulos: [] },
-  { id: 'reports', label: 'Informes', icon: BarChart3, submodulos: [] },
-  { id: 'operarios', label: 'Operarios', icon: Users, submodulos: ['documentacion-operarios'] },
-  { id: 'informe-obras', label: 'Informe de Obras', icon: BarChart3, submodulos: ['prevision-obras'] },
-  { id: 'users', label: 'Usuarios', icon: Users, submodulos: ['fabricantes', 'admin-backup', 'datos-sensibles', 'inventario', 'demo-users', 'invitaciones-demo'] },
+  { id: 'reports', label: 'Informes', icon: BarChart2, submodulos: [] },
 ];
 
 export default function DiagnosticoOperario() {
   const { role, isOperario, isSimulating, canAccess } = useUserRole();
 
+  // Lista EXACTA de módulos para operario según useUserRole.js
   const operarioModules = [
     'dashboard', 'work-orders', 'clients', 'control-horario', 'orders', 
-    'obras-civiles', 'materials', 'drawings', 'manuales', 'calendario-vacaciones',
-    'photos', 'notas-gastos', 'flota', 'chat', 'galeria-fotos', 'apuntes-horario',
-    'reports'
+    'obras', 'obras-civiles', 'materials', 'drawings', 'manuales', 
+    'calendario-vacaciones', 'photos', 'notas-gastos', 'vehiculos', 'chat', 
+    'galeria-fotos', 'apuntes-horario', 'reports', 'flota'
   ];
 
   return (
@@ -120,44 +119,64 @@ export default function DiagnosticoOperario() {
         <Card className="p-4 bg-blue-50 border-blue-200">
           <h3 className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2">
             <Shield className="w-4 h-4" />
-            Permisos Específicos del Rol Operario
+            Capacidades del Rol Operario
           </h3>
           <div className="space-y-2 text-xs">
             <div className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-green-600" />
-              <span><strong>Partes de trabajo:</strong> Crear y visualizar propios</span>
+              <span><strong>Partes de trabajo:</strong> Crear y visualizar partes propios</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-green-600" />
-              <span><strong>Fichajes:</strong> Registrar entrada/salida diaria</span>
+              <span><strong>Fichajes:</strong> Registrar entrada/salida y pausas</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-green-600" />
-              <span><strong>Vacaciones / Bajas:</strong> Solicitar ausencias</span>
+              <span><strong>Vacaciones / Bajas / DAP:</strong> Solicitar ausencias</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-green-600" />
-              <span><strong>Apuntes Horario:</strong> Registrar producción por obra</span>
+              <span><strong>Apuntes Horario:</strong> Registrar producción (m², ud, horas) por obra</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-green-600" />
-              <span><strong>Notas de Gastos:</strong> Crear registros de gastos</span>
+              <span><strong>Notas de Gastos:</strong> Crear registros de gastos con ticket</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-green-600" />
-              <span><strong>Manuales:</strong> Crear y visualizar manuales</span>
+              <span><strong>Manuales:</strong> Crear y visualizar manuales de obra</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-green-600" />
-              <span><strong>Planos:</strong> Crear y visualizar planos</span>
+              <span><strong>Planos:</strong> Crear y visualizar planos de obra</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-green-600" />
-              <span><strong>Galería de Fotos:</strong> Subir y visualizar fotos</span>
+              <span><strong>Galería de Fotos:</strong> Subir y visualizar fotos del proyecto</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="w-3.5 h-3.5 text-green-600" />
-              <span><strong>Flota:</strong> Registrar viajes de vehículos</span>
+              <span><strong>Flota:</strong> Registrar viajes de vehículos con km y ruta</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="w-3.5 h-3.5 text-green-600" />
+              <span><strong>Clientes:</strong> Visualizar cartera de clientes</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="w-3.5 h-3.5 text-green-600" />
+              <span><strong>Obras / Obras Civiles:</strong> Visualizar obras asignadas</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="w-3.5 h-3.5 text-green-600" />
+              <span><strong>Materiales / Pedidos:</strong> Visualizar pedidos y materiales</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="w-3.5 h-3.5 text-green-600" />
+              <span><strong>Chat:</strong> Comunicación interna</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="w-3.5 h-3.5 text-green-600" />
+              <span><strong>Informes:</strong> Ver informes de producción</span>
             </div>
           </div>
         </Card>
