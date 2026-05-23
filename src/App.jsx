@@ -206,7 +206,7 @@ function AnimatedRoutes() {
             <Route path="/invitaciones-demo" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><InvitacionesDemo /></Suspense></ProtectedRoute>} />
             <Route path="/simulador-roles" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><SimuladorRoles /></Suspense></ProtectedRoute>} />
             <Route path="/diagnostico-operario" element={<Suspense fallback={<PageLoader />}><DiagnosticoOperario /></Suspense>} />
-            <Route path="/vinculacion" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><VinculacionPage /></Suspense></ProtectedRoute>} />
+            <Route path="/vinculacion" element={<Suspense fallback={<PageLoader />}><VinculacionPage /></Suspense>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
 
