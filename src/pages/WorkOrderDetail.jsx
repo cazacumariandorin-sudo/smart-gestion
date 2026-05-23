@@ -23,6 +23,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useUserRole } from '@/lib/useUserRole';
 
 const statusConfig = {
   pendiente: { label: 'Pendiente', className: 'bg-amber-100 text-amber-700 border-amber-200' },
@@ -30,10 +31,21 @@ const statusConfig = {
   completado: { label: 'Completado', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
 };
 
+const firmaStatusConfig = {
+  sin_firmar: { label: 'Sin firmar', className: 'bg-slate-100 text-slate-600 border-slate-200' },
+  pendiente_cliente: { label: 'Pendiente cliente', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+  pendiente_operario: { label: 'Pendiente operario', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+  firmado_operario: { label: 'Firmado operario', className: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  firmado_ambos: { label: 'Firmado ✓', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  rechazado: { label: 'Rechazado', className: 'bg-red-100 text-red-700 border-red-200' },
+};
+
 export default function WorkOrderDetail() {
   const orderId = window.location.pathname.split('/').pop();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isAdmin, isGerencia } = useUserRole();
+  const canDelete = isAdmin || isGerencia;
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(null);
 
@@ -190,6 +202,7 @@ export default function WorkOrderDetail() {
   }
 
   const status = statusConfig[order.status] || statusConfig.pendiente;
+  const firmaStatus = firmaStatusConfig[order.firma_status] || firmaStatusConfig.sin_firmar;
 
   if (editing) {
     return (
@@ -291,25 +304,27 @@ export default function WorkOrderDetail() {
             <Button variant="ghost" size="icon" onClick={startEditing} className="h-10 w-10 rounded-full">
               <Pencil className="w-4 h-4" />
             </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Eliminar parte?</AlertDialogTitle>
-                  <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => deleteMutation.mutate()} className="bg-destructive text-destructive-foreground">
-                    Eliminar
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            {canDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Eliminar parte?</AlertDialogTitle>
+                    <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteMutation.mutate()} className="bg-destructive text-destructive-foreground">
+                      Eliminar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </>
         }
       />
@@ -319,6 +334,9 @@ export default function WorkOrderDetail() {
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <Badge variant="outline" className={`${status.className} font-medium`}>
             {status.label}
+          </Badge>
+          <Badge variant="outline" className={`${firmaStatus.className} font-medium`}>
+            ✍ {firmaStatus.label}
           </Badge>
           <span className="flex items-center gap-1.5 text-muted-foreground">
             <Calendar className="w-4 h-4" />

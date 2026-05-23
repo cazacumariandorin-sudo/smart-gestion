@@ -10,9 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import WorkOrderCard from '@/components/workorders/WorkOrderCard';
+import { useUserRole } from '@/lib/useUserRole';
 
 export default function WorkOrders() {
   const queryClient = useQueryClient();
+  const { role } = useUserRole();
+  const isClienteObra = role === 'cliente_obra';
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [clientFilter, setClientFilter] = useState('all');
@@ -89,7 +92,11 @@ export default function WorkOrders() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 border border-dashed rounded-xl">
-          <p className="text-sm text-muted-foreground">No se encontraron partes</p>
+          <p className="text-sm text-muted-foreground">
+            {isClienteObra
+              ? 'No tienes partes de trabajo asignados a tu empresa'
+              : 'No se encontraron partes'}
+          </p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

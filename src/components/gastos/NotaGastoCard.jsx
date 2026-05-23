@@ -54,6 +54,11 @@ export default function NotaGastoCard({ nota, onVer }) {
                 ⚠ Posible dup.
               </Badge>
             )}
+            {nota.sin_obra && (
+              <Badge className="text-[10px] bg-orange-100 text-orange-700 border-orange-200">
+                🏗 Sin obra
+              </Badge>
+            )}
           </div>
 
           <p className="text-sm font-semibold truncate">{nota.nombre_comercio || nota.concepto || 'Sin descripción'}</p>

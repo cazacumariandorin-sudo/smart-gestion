@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import ObraSelector from './ObraSelector';
 import TicketCapture from './TicketCapture';
+import ObraObligatoriaModal from './ObraObligatoriaModal';
 import { Loader2, AlertTriangle, FileCheck, UserCheck, Image, RefreshCw } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { toast } from 'sonner';
@@ -48,6 +49,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [showDupAlert, setShowDupAlert] = useState(false);
   const [posibleDup, setPosibleDup] = useState(null);
   const [operarioSeleccionado, setOperarioSeleccionado] = useState(null);
+  const [showObraModal, setShowObraModal] = useState(false);
+  const [pendingSave, setPendingSave] = useState(false);
 
   // Reset al abrir/cerrar
   useEffect(() => {
@@ -59,6 +62,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       setTicketPreview(null);
       setPosibleDup(null);
       setOperarioSeleccionado(null);
+      setShowObraModal(false);
+      setPendingSave(false);
     }
   }, [open]);
 
@@ -109,16 +114,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     ) || null;
   };
 
-  const handleSubmit = () => {
-    if (!operarioEfectivo?.id) {
-      toast.error('No se pudo identificar al operario. Asegúrate de tener un perfil vinculado.');
-      return;
-    }
-    if (!form.categoria || !form.importe) {
-      toast.error('Categoría e importe son obligatorios');
-      return;
-    }
-
+  const doGuardar = (extraFields = {}) => {
     const dup = checkDuplicado();
     if (dup && !posibleDup) {
       setPosibleDup(dup);
@@ -151,6 +147,72 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       es_gasto_tardio: false,
       es_posible_duplicado: !!dup,
       duplicado_confirmado: !!posibleDup,
+      ...extraFields,
+    });
+  };
+
+  const handleSubmit = () => {
+    if (!operarioEfectivo?.id) {
+      toast.error('No se pudo identificar al operario. Asegúrate de tener un perfil vinculado.');
+      return;
+    }
+    if (!form.categoria || !form.importe) {
+      toast.error('Categoría e importe son obligatorios');
+      return;
+    }
+
+    // Si no hay obra asignada, mostrar modal bloqueante
+    if (!form.obra_id) {
+      setPendingSave(true);
+      setShowObraModal(true);
+      return;
+    }
+
+    doGuardar();
+  };
+
+  const handleObraAsignada = ({ obra_id, obra_name, obra_tipo }) => {
+    setForm(f => ({ ...f, obra_id, obra_name, obra_tipo }));
+    setShowObraModal(false);
+    setPendingSave(false);
+    // Guardar con la obra asignada directamente
+    const dup = checkDuplicado();
+    const { numero_nota, numero_secuencia } = generarNumeroNota();
+    const hoy = format(new Date(), 'yyyy-MM-dd');
+    createMutation.mutate({
+      numero_nota,
+      numero_secuencia,
+      operario_id: operarioEfectivo.id,
+      operario_name: operarioEfectivo.name || operarioEfectivo.full_name,
+      categoria: form.categoria,
+      concepto: form.concepto,
+      importe: parseFloat(form.importe),
+      nif_comercio: form.nif_comercio,
+      nombre_comercio: form.nombre_comercio,
+      fecha_documento: form.fecha_documento || hoy,
+      fecha_creacion_real: hoy,
+      obra_id,
+      obra_name,
+      obra_tipo,
+      estado: 'pendiente',
+      archivos,
+      ocr_raw: ocrRaw,
+      ocr_status: ocrRaw ? 'procesado' : 'pendiente',
+      es_gasto_tardio: false,
+      es_posible_duplicado: !!dup,
+      duplicado_confirmado: false,
+      aviso_obra_mostrado: true,
+      sin_obra: false,
+    });
+  };
+
+  const handleContinuarSinObra = () => {
+    setShowObraModal(false);
+    setPendingSave(false);
+    doGuardar({
+      sin_obra: true,
+      sin_obra_timestamp: new Date().toISOString(),
+      aviso_obra_mostrado: true,
     });
   };
 
@@ -297,6 +359,12 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
           )}
         </DialogContent>
       </Dialog>
+
+      <ObraObligatoriaModal
+        open={showObraModal}
+        onAsignarObra={handleObraAsignada}
+        onContinuarSinObra={handleContinuarSinObra}
+      />
 
       {/* Alerta duplicado */}
       <AlertDialog open={showDupAlert} onOpenChange={setShowDupAlert}>

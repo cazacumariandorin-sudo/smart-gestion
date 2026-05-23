@@ -86,6 +86,7 @@ export default function NotasGastos() {
   const [filtroCategoria, setFiltroCategoria] = useState('todas');
   const [filtroOperario, setFiltroOperario] = useState('todos');
   const [filtroObra, setFiltroObra] = useState('todas');
+  const [filtroSinObra, setFiltroSinObra] = useState(false);
   const [operarioAbierto, setOperarioAbierto] = useState(null);
 
   const { data: notasRaw = [], isLoading } = useQuery({
@@ -114,7 +115,8 @@ export default function NotasGastos() {
     const matchCat = filtroCategoria === 'todas' || n.categoria === filtroCategoria;
     const matchOp = filtroOperario === 'todos' || n.operario_id === filtroOperario;
     const matchObra = filtroObra === 'todas' || n.obra_id === filtroObra;
-    return matchBusq && matchEstado && matchCat && matchOp && matchObra;
+    const matchSinObra = !filtroSinObra || n.sin_obra === true;
+    return matchBusq && matchEstado && matchCat && matchOp && matchObra && matchSinObra;
   });
 
   const totalFiltrado = notas.reduce((s, n) => s + (n.importe || 0), 0);
@@ -191,6 +193,20 @@ export default function NotasGastos() {
               <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
             ))}
           </MobileSelect>
+        )}
+        {isAdmin && (
+          <button
+            onClick={() => setFiltroSinObra(v => !v)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-colors',
+              filtroSinObra
+                ? 'bg-orange-500 text-white border-orange-500'
+                : 'bg-background border-border text-muted-foreground hover:border-orange-400 hover:text-orange-600'
+            )}
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            Sin obra
+          </button>
         )}
       </div>
 

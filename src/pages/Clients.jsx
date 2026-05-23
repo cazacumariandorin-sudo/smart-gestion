@@ -1,10 +1,15 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Phone, Mail, MapPin, Pencil, Trash2, User, Save, Loader2, ChevronDown, ChevronUp, Building, CreditCard, Wrench } from 'lucide-react';
+import { Plus, Search, Phone, Mail, MapPin, Pencil, Trash2, User, Save, Loader2, ChevronDown, ChevronUp, Building, CreditCard, Wrench, ScanSearch } from 'lucide-react';
+import { checkDuplicados } from '@/hooks/useDuplicadoCheck.js';
+import DuplicadoInlineWarning from '@/components/duplicados/DuplicadoInlineWarning';
+import DuplicadoConfirmModal from '@/components/duplicados/DuplicadoConfirmModal';
+import DuplicadosLoteModal from '@/components/duplicados/DuplicadosLoteModal';
+import { useUserRole } from '@/lib/useUserRole';
 import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,6 +83,15 @@ export default function Clients() {
   const [form, setForm] = useState(emptyClient);
   const [expandedCard, setExpandedCard] = useState(null);
   const queryClient = useQueryClient();
+  const { isAdmin, isGerencia } = useUserRole();
+  const canAdmin = isAdmin || isGerencia;
+
+  // Detección de duplicados
+  const [dupWarning, setDupWarning] = useState([]);
+  const [showDupModal, setShowDupModal] = useState(false);
+  const [showLoteModal, setShowLoteModal] = useState(false);
+  const [confirmedNew, setConfirmedNew] = useState(false);
+  const debounceRef = useRef(null);
 
   const onRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['clients'] });
@@ -88,13 +102,25 @@ export default function Clients() {
   const { data: clients = [], isLoading } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
   const { data: workOrders = [] } = useQuery({ queryKey: ['workorders'], queryFn: () => base44.entities.WorkOrder.list('-date', 500) });
 
+  // Debounce check duplicados al escribir nombre
+  useEffect(() => {
+    if (!form.name || !dialogOpen) { setDupWarning([]); return; }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const dups = checkDuplicados(clients, form.name, editing?.id || null);
+      setDupWarning(dups);
+    }, 600);
+    return () => clearTimeout(debounceRef.current);
+  }, [form.name, clients, editing, dialogOpen]);
+
   const createMutation = useMutation({ mutationFn: d => base44.entities.Client.create(d), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); closeDialog(); } });
   const updateMutation = useMutation({ mutationFn: ({ id, data }) => base44.entities.Client.update(id, data), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); closeDialog(); } });
   const deleteMutation = useMutation({ mutationFn: id => base44.entities.Client.delete(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }) });
 
-  const openCreate = () => { setEditing(null); setForm({ ...emptyClient, tecnicos: [{ ...emptyTecnico }, { ...emptyTecnico }, { ...emptyTecnico }, { ...emptyTecnico }] }); setDialogOpen(true); };
+  const openCreate = () => { setEditing(null); setForm({ ...emptyClient, tecnicos: [{ ...emptyTecnico }, { ...emptyTecnico }, { ...emptyTecnico }, { ...emptyTecnico }] }); setDupWarning([]); setConfirmedNew(false); setDialogOpen(true); };
   const openEdit = (client) => {
     setEditing(client);
+    setDupWarning([]); setConfirmedNew(false);
     setForm({
       ...emptyClient, ...client,
       contacto_admin: client.contacto_admin || { ...emptyContacto },
@@ -103,19 +129,27 @@ export default function Clients() {
     });
     setDialogOpen(true);
   };
-  const closeDialog = () => { setDialogOpen(false); setEditing(null); setForm(emptyClient); };
+  const closeDialog = () => { setDialogOpen(false); setEditing(null); setForm(emptyClient); setDupWarning([]); setConfirmedNew(false); };
 
   const setF = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const setTecnico = (idx, v) => setForm(p => { const t = [...p.tecnicos]; t[idx] = v; return { ...p, tecnicos: t }; });
 
-  const handleSave = () => {
-    const data = { ...form };
-    // Generate client_id_code only on creation (or if missing)
+  const doSave = (extraData = {}) => {
+    const data = { ...form, ...extraData };
     if (!editing && !data.client_id_code) {
       data.client_id_code = generateClientId(data.postal_code, data.nif, new Date());
     }
     if (editing) updateMutation.mutate({ id: editing.id, data });
     else createMutation.mutate(data);
+  };
+
+  const handleSave = () => {
+    // Si hay duplicados y no ha confirmado, mostrar modal
+    if (!confirmedNew && dupWarning.length > 0 && !editing) {
+      setShowDupModal(true);
+      return;
+    }
+    doSave(confirmedNew ? { es_nuevo_confirmado: true } : {});
   };
 
   const filtered = clients.filter(c => !search || c.name?.toLowerCase().includes(search.toLowerCase()));
@@ -128,7 +162,16 @@ export default function Clients() {
         title="Clientes"
         subtitle={`${clients.length} clientes`}
         hideBack={true}
-        actions={<Button onClick={openCreate} className="gap-2 shadow-sm" size="sm"><Plus className="w-4 h-4" /><span className="hidden sm:inline">Nuevo Cliente</span></Button>}
+        actions={
+          <div className="flex gap-2">
+            {canAdmin && (
+              <Button variant="outline" size="sm" onClick={() => setShowLoteModal(true)} className="gap-1.5">
+                <ScanSearch className="w-4 h-4" /><span className="hidden sm:inline">Duplicados</span>
+              </Button>
+            )}
+            <Button onClick={openCreate} className="gap-2 shadow-sm" size="sm"><Plus className="w-4 h-4" /><span className="hidden sm:inline">Nuevo Cliente</span></Button>
+          </div>
+        }
       />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="p-4 sm:p-6 lg:p-8">
@@ -213,6 +256,21 @@ export default function Clients() {
       )}
 
       </div>
+      <DuplicadoConfirmModal
+        open={showDupModal}
+        onClose={() => setShowDupModal(false)}
+        duplicado={dupWarning[0] || null}
+        onUsarExistente={() => { setShowDupModal(false); closeDialog(); }}
+        onCrearNuevo={() => { setShowDupModal(false); setConfirmedNew(true); doSave({ es_nuevo_confirmado: true }); }}
+      />
+
+      <DuplicadosLoteModal
+        open={showLoteModal}
+        onClose={() => setShowLoteModal(false)}
+        registros={clients}
+        tipoLabel="cliente"
+      />
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? 'Editar Cliente' : 'Nuevo Cliente'}</DialogTitle></DialogHeader>
@@ -228,6 +286,7 @@ export default function Clients() {
                 <div className="space-y-1.5">
                   <Label className="text-xs">Nombre *</Label>
                   <Input placeholder="Nombre del cliente" value={form.name} onChange={e => setF('name', e.target.value)} />
+                  <DuplicadoInlineWarning duplicados={dupWarning} />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">NIF / CIF</Label>
