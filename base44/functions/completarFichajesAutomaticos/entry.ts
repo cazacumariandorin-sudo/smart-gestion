@@ -93,12 +93,14 @@ Deno.serve(async (req) => {
     const hoy = new Date();
     const year = hoy.getFullYear();
     const festivos = getFestivosMadrid(year);
+    const esFinde = esFinDeSemana(hoy);
+    const esFestivoDia = esFestivo(hoy, festivos);
 
-    // No ejecutar fines de semana o festivos
-    if (esFinDeSemana(hoy) || esFestivo(hoy, festivos)) {
+    // No ejecutar festivos
+    if (esFestivoDia) {
       return Response.json({ 
         success: true, 
-        message: 'No es día laborable',
+        message: 'Es festivo',
         skipped: true 
       });
     }
@@ -122,6 +124,43 @@ Deno.serve(async (req) => {
         // Solo procesar si tiene hora_entrada pero no hora_salida
         if (!fichaje.hora_entrada || fichaje.hora_salida) {
           resultados.skipped++;
+          continue;
+        }
+
+        // FIN DE SEMANA: Solo generar apuntes, no tocar fichaje
+        if (esFinde) {
+          const entrada = parseTime(fichaje.hora_entrada);
+          const salida = parseTime(fichaje.hora_salida || '18:00');
+          const entradaMin = timeToMinutes(entrada);
+          const salidaMin = timeToMinutes(salida);
+          
+          // Calcular horas trabajadas (aproximado a 9 horas si es jornada completa)
+          const horasCalculadas = (salidaMin - entradaMin) / 60;
+          const horasApunte = horasCalculadas > 0 ? horasCalculadas : 9;
+
+          // Crear apunte horario (NO modificar fichaje)
+          await base44.entities.ApunteHorario.create({
+            operario_id: fichaje.operario_id,
+            operario_name: fichaje.operario_name,
+            date: fechaHoy,
+            obra_id: fichaje.obra_id || '',
+            obra_name: fichaje.obra_name || 'Sin asignar',
+            concepto: 'Trabajo fin de semana',
+            unidad: 'ud',
+            cantidad: parseFloat(horasApunte.toFixed(2)),
+            precio_unitario: 12,
+            total: parseFloat((horasApunte * 12).toFixed(2)),
+            horas_ejecutadas: horasApunte,
+            notas: 'Generado automáticamente - fin de semana (sin registro de fichaje)',
+          });
+
+          resultados.ajustados++;
+          resultados.detalles.push({
+            operario: fichaje.operario_name,
+            accion: 'apuntes_fin_de_semana',
+            horas_apunte: horasApunte.toFixed(2),
+            importe: (horasApunte * 12).toFixed(2),
+          });
           continue;
         }
 
