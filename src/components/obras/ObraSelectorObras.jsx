@@ -16,13 +16,19 @@ const FIXED = [
 
 export default function ObraSelectorObras({ value, onChange, placeholder = 'Seleccionar obra...', triggerClassName }) {
   const { data: obrasCiviles = [] } = useQuery({
-    queryKey: ['obras-activas'],
-    queryFn: () => base44.entities.Obra.filter({ status: 'activa' }),
+    queryKey: ['obras-selector'],
+    queryFn: async () => {
+      const all = await base44.entities.Obra.list('name', 300);
+      return all.filter(o => o.status !== 'finalizada');
+    },
     staleTime: 5 * 60 * 1000,
   });
   const { data: obrasSolar = [] } = useQuery({
-    queryKey: ['solar-obras-activas'],
-    queryFn: () => base44.entities.SolarObra.filter({ status: 'activa' }),
+    queryKey: ['solar-obras-selector'],
+    queryFn: async () => {
+      const all = await base44.entities.SolarObra.list('name', 300);
+      return all.filter(o => o.status !== 'finalizada');
+    },
     staleTime: 5 * 60 * 1000,
   });
 
@@ -45,15 +51,17 @@ export default function ObraSelectorObras({ value, onChange, placeholder = 'Sele
     <MobileSelect value={currentVal} onValueChange={handleChange} placeholder={placeholder} triggerClassName={triggerClassName}>
       {obrasCiviles.length > 0 && (
         <>
+          <MobileSelectItem value="__sep_civil" disabled className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 pointer-events-none">— Obras Civiles —</MobileSelectItem>
           {obrasCiviles.map(o => (
-            <MobileSelectItem key={o.id} value={o.id}>🏗 {o.name}</MobileSelectItem>
+            <MobileSelectItem key={o.id} value={o.id}>🏗 {o.name}{o.status === 'pausada' ? ' (pausada)' : ''}</MobileSelectItem>
           ))}
         </>
       )}
       {obrasSolar.length > 0 && (
         <>
+          <MobileSelectItem value="__sep_solar" disabled className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 pointer-events-none">— Obras Solares —</MobileSelectItem>
           {obrasSolar.map(o => (
-            <MobileSelectItem key={o.id} value={o.id}>☀ {o.name}</MobileSelectItem>
+            <MobileSelectItem key={o.id} value={o.id}>☀️ {o.name}{o.status === 'pausada' ? ' (pausada)' : ''}</MobileSelectItem>
           ))}
         </>
       )}
