@@ -50,6 +50,7 @@ const ApuntesHorario = lazy(() => import('./pages/ApuntesHorario'));
 const PrevisionObras = lazy(() => import('./pages/PrevisionObras'));
 const SimuladorRoles = lazy(() => import('./pages/SimuladorRoles'));
 const DiagnosticoOperario = lazy(() => import('./pages/DiagnosticoOperario'));
+const DiagnosticoDuplicacion = lazy(() => import('./pages/DiagnosticoDuplicacion'));
 const VinculacionPage = lazy(() => import('./pages/Vinculacion'));
 const AnalisisSeguridad = lazy(() => import('./pages/AnalisysSeguridad'));
 
@@ -207,6 +208,7 @@ function AnimatedRoutes() {
             <Route path="/invitaciones-demo" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><InvitacionesDemo /></Suspense></ProtectedRoute>} />
             <Route path="/simulador-roles" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><SimuladorRoles /></Suspense></ProtectedRoute>} />
             <Route path="/diagnostico-operario" element={<Suspense fallback={<PageLoader />}><DiagnosticoOperario /></Suspense>} />
+            <Route path="/diagnostico-duplicacion" element={<Suspense fallback={<PageLoader />}><DiagnosticoDuplicacion /></Suspense>} />
             <Route path="/vinculacion" element={<Suspense fallback={<PageLoader />}><VinculacionPage /></Suspense>} />
             <Route path="/analisis-seguridad" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><AnalisisSeguridad /></Suspense></ProtectedRoute>} />
           </Route>
