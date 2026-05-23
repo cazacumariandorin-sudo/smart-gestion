@@ -312,7 +312,7 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
           </Button>
           <Button 
             onClick={handleCrear}
-            disabled={selectedOperarios.length === 0}
+            disabled={modo === 'directo' ? selectedOperarios.length === 0 : nombreGrupo.trim() === ''}
           >
             {modo === 'directo' ? 'Iniciar Chat' : 'Crear Grupo'}
           </Button>
