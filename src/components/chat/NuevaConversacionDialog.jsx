@@ -26,17 +26,27 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
     
     setBuscando(true);
     try {
-      const todosOperarios = await base44.entities.Operario.list();
-      const filtrados = todosOperarios.filter(op => {
-        const match = op.data.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                     op.data.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                     op.data.dni?.toLowerCase().includes(searchTerm.toLowerCase());
-        // Excluir al usuario actual y operarios sin email
-        return match && op.data.email && op.data.email !== user.email;
-      });
+      // Buscar en usuarios en lugar de operarios para mejor acceso a datos
+      const todosUsuarios = await base44.entities.User.list();
+      const filtrados = todosUsuarios
+        .filter(u => u.email && u.email !== user.email && u.role !== 'usuario_demo') // Excluir demo users
+        .map(u => ({
+          id: u.id,
+          data: {
+            name: u.full_name || u.email,
+            email: u.email,
+            role: u.role,
+            user_id: u.id
+          }
+        }))
+        .filter(u => {
+          const match = u.data.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                       u.data.email?.toLowerCase().includes(searchTerm.toLowerCase());
+          return match;
+        });
       setOperarios(filtrados);
     } catch (error) {
-      toast.error('Error al buscar: ' + error.message);
+      toast.error('Error al buscar usuarios: ' + error.message);
     } finally {
       setBuscando(false);
     }
