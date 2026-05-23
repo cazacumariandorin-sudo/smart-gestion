@@ -111,6 +111,11 @@
     "user_id_personalizado": {
       "type": "string",
       "description": "ID personalizado generado autom\u00e1ticamente: YYYY-NNNN (a\u00f1o-n\u00famero secuencial diario). Ej: 2026-0001 para el primer usuario de 2026"
+    },
+    "visible_solo_admin": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si es true, el usuario solo es visible para roles admin. Invisible para otros roles."
     }
   },
   "required": []
