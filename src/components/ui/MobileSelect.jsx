@@ -37,9 +37,9 @@ export function MobileSelect({
 }) {
   const [open, setOpen] = useState(false);
 
-  // Collect items from children - filter out items with empty/undefined values
+  // Collect items from children - filter out empty/undefined values AND separator items (starting with __)
   const items = Children.toArray(children)
-    .filter(c => isValidElement(c) && c.props.value && c.props.value !== '')
+    .filter(c => isValidElement(c) && c.props.value && c.props.value !== '' && !c.props.value.startsWith('__sep'))
     .map(c => ({ value: c.props.value, label: c.props.children, className: c.props.className }));
 
   const selectedLabel = items.find(i => i.value === value)?.label ?? placeholder;
@@ -53,6 +53,7 @@ export function MobileSelect({
       : (items.length > 0 ? items[0].value : '');
     
     // Don't render Select if no valid items exist
+    // items already excludes __sep* separators
     if (!items.length) {
       return (
         <div className={cn(
