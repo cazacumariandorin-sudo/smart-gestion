@@ -27,6 +27,16 @@ export default function AppLayout() {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
+  // Auto-abrir el asistente 5 segundos tras el arranque (solo una vez por sesión)
+  useEffect(() => {
+    if (sessionStorage.getItem('asistente_autoopen')) return;
+    const t = setTimeout(() => {
+      setAsistenteOpen(true);
+      sessionStorage.setItem('asistente_autoopen', '1');
+    }, 5000);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <ScrollRestorer />
