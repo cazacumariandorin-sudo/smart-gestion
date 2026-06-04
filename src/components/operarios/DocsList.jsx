@@ -148,31 +148,14 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
   const handleFileUpload = async (file) => {
     setUploading(true);
     try {
-      // Convert file to base64
-      const base64 = await fileToBase64(file);
-      
-      // Upload to Google Drive (if connected) or local storage
-      const res = await base44.functions.invoke('uploadFileToGdrive', { 
-        file: base64, 
-        folder_path: 'Operarios/Documentos' 
-      });
-      
-      set('file_url', res.data.file_url);
-      toast.success(res.data.storage === 'googledrive' ? 'Archivo subido a Google Drive' : 'Archivo subido');
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      set('file_url', file_url);
+      toast.success('Archivo subido correctamente');
     } catch (e) {
       toast.error('Error al subir: ' + e.message);
     } finally {
       setUploading(false);
     }
-  };
-
-  const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
   };
 
   const handleSave = () => createM.mutate(form);
@@ -182,29 +165,16 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
     if (!signingDoc) return;
     setSavingSig(true);
     try {
-      // Convert dataUrl to blob
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const file = new File([blob], 'firma.png', { type: 'image/png' });
-      
-      // Convert to base64
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-      });
-      
-      // Upload to Google Drive (if connected) or local storage
-      const uploadRes = await base44.functions.invoke('uploadFileToGdrive', { 
-        file: base64, 
-        folder_path: 'Operarios/Documentos' 
-      });
-      
+
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
       await updateM.mutateAsync({
         id: signingDoc.id,
         d: {
-          firma_url: uploadRes.data.file_url,
+          firma_url: file_url,
           firmado: true,
           fecha_firma: new Date().toISOString().split('T')[0],
         }
