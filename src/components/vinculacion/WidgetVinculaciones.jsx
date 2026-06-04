@@ -77,7 +77,7 @@ export default function WidgetVinculaciones() {
         </div>
 
         <div className="pt-3 mt-3 border-t border-border">
-          <Button asChild size="sm" className="w-full">
+          <Button asChild variant="outline" size="sm" className="w-auto px-4">
             <Link to="/vinculacion">Gestionar</Link>
           </Button>
         </div>
