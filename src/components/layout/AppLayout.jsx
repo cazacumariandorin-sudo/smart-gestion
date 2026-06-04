@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
@@ -8,7 +8,7 @@ import DemoWatermark from '@/components/demo/DemoWatermark';
 import ConnectivityBanner from './ConnectivityBanner';
 import { useScrollRestoration } from '@/hooks/useScrollRestoration';
 import { useUserRole } from '@/lib/useUserRole';
-import { Bot } from 'lucide-react';
+import { Bot, Mic } from 'lucide-react';
 import AsistentePanel from '@/components/asistente/AsistentePanel';
 import { base44 } from '@/api/base44Client';
 
@@ -17,11 +17,15 @@ function ScrollRestorer() {
   return null;
 }
 
+const VOICE_COMMAND = 'hola compañero';
+
 export default function AppLayout() {
   const { isSimulating, isDemo } = useUserRole();
   const hasTopBanner = isSimulating || isDemo;
   const [asistenteOpen, setAsistenteOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [voiceActive, setVoiceActive] = useState(false);
+  const recognitionRef = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -35,6 +39,47 @@ export default function AppLayout() {
       sessionStorage.setItem('asistente_autoopen', '1');
     }, 5000);
     return () => clearTimeout(t);
+  }, []);
+
+  // Reconocimiento de voz continuo — escucha "hola compañero"
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognitionRef.current = recognition;
+
+    recognition.onresult = (e) => {
+      const transcript = Array.from(e.results)
+        .map(r => r[0].transcript.toLowerCase().trim())
+        .join(' ');
+      if (transcript.includes(VOICE_COMMAND)) {
+        setAsistenteOpen(true);
+        if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+      }
+    };
+
+    recognition.onerror = (e) => {
+      if (e.error !== 'no-speech') setVoiceActive(false);
+    };
+
+    recognition.onend = () => {
+      // Reiniciar automáticamente para escucha continua
+      try { recognition.start(); } catch (_) {}
+    };
+
+    try {
+      recognition.start();
+      setVoiceActive(true);
+    } catch (_) {}
+
+    return () => {
+      recognition.onend = null;
+      try { recognition.stop(); } catch (_) {}
+    };
   }, []);
 
   return (
@@ -61,9 +106,14 @@ export default function AppLayout() {
       <button
         onClick={() => setAsistenteOpen(true)}
         className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 rounded-full bg-gradient-to-br from-slate-800 to-blue-700 shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
-        title="Asistente SMART IA"
+        title={voiceActive ? 'Asistente SMART IA · Di "hola compañero" para activar' : 'Asistente SMART IA'}
       >
         <Bot className="w-5 h-5 text-white" />
+        {voiceActive && (
+          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-background flex items-center justify-center">
+            <Mic className="w-2 h-2 text-white" />
+          </span>
+        )}
       </button>
 
       <AsistentePanel
