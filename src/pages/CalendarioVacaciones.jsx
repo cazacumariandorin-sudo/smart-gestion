@@ -1,5 +1,6 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUserRole } from '@/lib/useUserRole';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
@@ -38,6 +39,8 @@ const emptyForm = {
 
 export default function CalendarioVacaciones() {
   const qc = useQueryClient();
+  const { role, user } = useUserRole();
+  const isOperarioRole = role === 'operario' || role === 'control_horario';
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -60,6 +63,20 @@ export default function CalendarioVacaciones() {
     queryKey: ['operarios'],
     queryFn: () => base44.entities.Operario.list('name', 200),
   });
+
+  // Autoload operario para rol operario/control_horario
+  const [myOperario, setMyOperario] = useState(null);
+  useEffect(() => {
+    if (!user?.email || !isOperarioRole) return;
+    base44.entities.Operario.filter({ user_email: user.email }).then(ops => {
+      if (ops.length > 0) {
+        const op = ops[0];
+        setMyOperario(op);
+        setForm(p => ({ ...p, operario_id: op.id, operario_name: op.name }));
+        setFilterOp(op.id); // Mostrar solo sus vacaciones
+      }
+    }).catch(() => {});
+  }, [user?.email, isOperarioRole]);
 
   const createM = useOptimisticMutation(
     d => base44.entities.Vacacion.create(d),
@@ -507,9 +524,15 @@ export default function CalendarioVacaciones() {
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs">Operario *</Label>
-              <MobileSelect value={form.operario_id} onValueChange={handleOpChange} placeholder="Seleccionar operario...">
-                {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
-              </MobileSelect>
+              {isOperarioRole ? (
+                <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                  {myOperario?.name || user?.full_name || 'Mi perfil'}
+                </div>
+              ) : (
+                <MobileSelect value={form.operario_id} onValueChange={handleOpChange} placeholder="Seleccionar operario...">
+                  {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+                </MobileSelect>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Tipo *</Label>

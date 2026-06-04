@@ -55,29 +55,31 @@ function drawTable(doc, headers, rows, startY, margin = 14) {
 }
 
 export default function InformesTab() {
-  const [mode, setMode] = useState('tabla');
+  const [mode, setMode] = useState('mes'); // 'mes' por defecto para que el operario vea datos útiles
   const [opFilter, setOpFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
 
-  const { isAdmin, isJefeObra, isControlHorarioOnly, user } = useUserRole();
+  const { isAdmin, isJefeObra, isControlHorarioOnly, user, role } = useUserRole();
   const canSeeAll = isAdmin || isJefeObra;
+  const isOperarioRole = role === 'operario';
 
   const { data: fichajes = [] } = useQuery({ queryKey: ['fichajes'], queryFn: () => base44.entities.Fichaje.list('-date', 1000) });
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
-  // Try user_email first (new), fallback to email (old) — consistent with FichajesTab
-  const myOperario = isControlHorarioOnly
+
+  // Buscar el operario propio para roles restringidos
+  const myOperario = (isControlHorarioOnly || isOperarioRole)
     ? (operarios.find(o => o.user_email === user?.email) || operarios.find(o => o.email === user?.email))
     : null;
 
   const filtered = useMemo(() => fichajes.filter(f => {
-    // control_horario only sees their own records
-    if (isControlHorarioOnly) {
+    // control_horario y operario solo ven sus propios registros
+    if (isControlHorarioOnly || isOperarioRole) {
       if (!myOperario || f.operario_id !== myOperario.id) return false;
     }
     const mOp = opFilter === 'all' || f.operario_id === opFilter;
     const mMonth = !monthFilter || f.date?.startsWith(monthFilter);
     return mOp && mMonth;
-  }), [fichajes, opFilter, monthFilter, isControlHorarioOnly, myOperario]);
+  }), [fichajes, opFilter, monthFilter, isControlHorarioOnly, isOperarioRole, myOperario]);
 
   const byOperario = useMemo(() => {
     const map = {};

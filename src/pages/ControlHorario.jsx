@@ -11,9 +11,10 @@ import { useTabState } from '@/hooks/useTabState';
 import { useUserRole } from '@/lib/useUserRole';
 
 export default function ControlHorario() {
-  const { isAdmin, isJefeObra } = useUserRole();
-  const showAlarmas = isAdmin;
-  const showApuntes = isAdmin || isJefeObra;
+  const { isAdmin, isJefeObra, role } = useUserRole();
+  const isOperario = role === 'operario';
+  const showAlarmas = isAdmin; // Alarmas solo para admin (RLS)
+  const showApuntes = isAdmin || isJefeObra || isOperario; // Operario puede ver sus apuntes
 
   const { data: alarmas = [] } = useQuery({
     queryKey: ['alarmas'],

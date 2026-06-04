@@ -28,7 +28,7 @@ export default function FichajesTab() {
   const qc = useQueryClient();
   const { isAdmin, isJefeObra, isControlHorarioOnly, user } = useUserRole();
   const canEditExitTime = isAdmin || isJefeObra;
-  const canSeeAll = isAdmin || isJefeObra; // control_horario only sees own records
+  const canSeeAll = isAdmin || isJefeObra; // control_horario y operario solo ven los suyos
   const [search, setSearch] = useState('');
   const [opFilter, setOpFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
@@ -79,7 +79,7 @@ export default function FichajesTab() {
     setEditing(f);
     if (f) {
       setForm({ ...f });
-    } else if (isControlHorarioOnly && myOperario) {
+    } else if ((isControlHorarioOnly || isOperarioRole) && myOperario) {
       setForm({ ...empty, operario_id: myOperario.id, operario_name: myOperario.name });
     } else {
       setForm(empty);
@@ -119,9 +119,9 @@ export default function FichajesTab() {
     editing ? updateM.mutate({ id: editing.id, d: data }) : createM.mutate(data);
   };
 
-  // For control_horario role, find their own operario record and restrict to it
-  // Try to match by user_email first (new way), fallback to email field (old way)
-  const myOperario = isControlHorarioOnly
+  // Para control_horario Y operario: buscar su propio Operario vinculado
+  const isOperarioRole = user?.role === 'operario';
+  const myOperario = (isControlHorarioOnly || isOperarioRole)
     ? (operarios.find(o => o.user_email === user?.email) || operarios.find(o => o.email === user?.email))
     : null;
 
@@ -148,8 +148,8 @@ export default function FichajesTab() {
   }, [user?.email, user?.role]);
 
   const filtered = fichajes.filter(f => {
-    // control_horario only sees their own fichajes
-    if (isControlHorarioOnly) {
+    // control_horario y operario solo ven sus propios fichajes
+    if (isControlHorarioOnly || isOperarioRole) {
       if (!myOperario || f.operario_id !== myOperario.id) return false;
     }
     const q = search.toLowerCase();
@@ -303,6 +303,7 @@ export default function FichajesTab() {
               ) : (
                 <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
                   {myOperario?.name || user?.full_name || 'Mi perfil'}
+                  {!myOperario && <span className="ml-2 text-xs text-amber-600">(sin operario vinculado)</span>}
                 </div>
               )}
             </div>

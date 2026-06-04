@@ -178,8 +178,8 @@ function AnimatedRoutes() {
             <Route path="/users" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><Users /></Suspense></ProtectedRoute>} />
 
             <Route path="/materials" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><MaterialCatalog /></Suspense></ProtectedRoute>} />
-            <Route path="/drawings" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><Drawings /></Suspense></ProtectedRoute>} />
-            <Route path="/manuales" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><Manuales /></Suspense></ProtectedRoute>} />
+            <Route path="/drawings" element={<ProtectedRoute module="drawings"><Suspense fallback={<PageLoader />}><Drawings /></Suspense></ProtectedRoute>} />
+            <Route path="/manuales" element={<ProtectedRoute module="manuales"><Suspense fallback={<PageLoader />}><Manuales /></Suspense></ProtectedRoute>} />
             <Route path="/orders" element={<ProtectedRoute module="orders"><Suspense fallback={<PageLoader />}><Orders /></Suspense></ProtectedRoute>} />
 
             {/* OBRAS CIVILES - Separate entity with own permissions */}
