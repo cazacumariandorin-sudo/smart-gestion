@@ -46,12 +46,6 @@ export function MobileSelect({
   const hasValue = value !== undefined && value !== null && value !== '';
 
   if (!isMobile()) {
-    // Desktop: standard Radix select
-    // Only pass a value when it's actually selected; otherwise leave undefined so placeholder shows
-    const safeValue = (value && items.find(i => i.value === value)) ? value : undefined;
-    
-    // Don't render Select if no valid items exist
-    // items already excludes __sep* separators
     if (!items.length) {
       return (
         <div className={cn(
@@ -62,13 +56,28 @@ export function MobileSelect({
         </div>
       );
     }
-    
+
+    // Use __none as sentinel for "no selection" so Radix Select stays fully controlled
+    const NONE = '__none__';
+    const selectedIsValid = value && items.find(i => i.value === value);
+    const radixValue = selectedIsValid ? value : NONE;
+
+    const handleChange = (v) => {
+      if (v === NONE) return;
+      onValueChange(v);
+    };
+
     return (
-      <Select value={safeValue} onValueChange={onValueChange} disabled={disabled}>
+      <Select value={radixValue} onValueChange={handleChange} disabled={disabled}>
         <SelectTrigger className={triggerClassName}>
-          <SelectValue placeholder={placeholder} />
+          <SelectValue placeholder={placeholder}>
+            {selectedIsValid ? null : <span className="text-muted-foreground">{placeholder}</span>}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value={NONE} className="text-muted-foreground italic">
+            {placeholder}
+          </SelectItem>
           {items.map(item => (
             <SelectItem key={item.value} value={item.value} className={item.className}>
               {item.label}
