@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Zap, Bot } from 'lucide-react';
+import { Send, Loader2, Zap, Bot, Mic, MicOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 
@@ -55,7 +55,35 @@ export default function AsistenteChat({ currentUser }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [toolUsing, setToolUsing] = useState(null);
+  const [recording, setRecording] = useState(false);
   const bottomRef = useRef(null);
+  const micRef = useRef(null);
+
+  const toggleMic = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (recording && micRef.current) {
+      micRef.current.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    micRef.current = recognition;
+
+    recognition.onstart = () => setRecording(true);
+    recognition.onend = () => setRecording(false);
+    recognition.onerror = () => setRecording(false);
+    recognition.onresult = (e) => {
+      const texto = e.results[0][0].transcript;
+      setInput(prev => (prev ? prev + ' ' + texto : texto));
+    };
+
+    recognition.start();
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -200,6 +228,16 @@ export default function AsistenteChat({ currentUser }) {
           disabled={loading}
           className="flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground disabled:opacity-50"
         />
+        <Button
+          size="icon"
+          variant="ghost"
+          className={cn('h-9 w-9 shrink-0 transition-colors', recording ? 'text-red-500 animate-pulse' : 'text-muted-foreground hover:text-foreground')}
+          onClick={toggleMic}
+          title={recording ? 'Detener grabación' : 'Dictar mensaje'}
+          disabled={loading}
+        >
+          {recording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+        </Button>
         <Button size="icon" className="h-9 w-9 shrink-0 bg-blue-600 hover:bg-blue-700" onClick={() => enviarMensaje(input)} disabled={!input.trim() || loading}>
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </Button>
