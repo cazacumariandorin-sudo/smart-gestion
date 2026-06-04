@@ -15,7 +15,7 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { useUserRole } from '@/lib/useUserRole';
 import NotificacionesFichaje from '@/components/dashboard/NotificacionesFichaje';
 import UserRoleDiagnostic from '@/components/debug/UserRoleDiagnostic';
-import WidgetVinculaciones from '@/components/vinculacion/WidgetVinculaciones';
+import { Images as ImagesIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -114,12 +114,13 @@ const HUB_CONFIG = [
     module: 'users',
     adminOrGerencia: true,
     links: [
-      { label: 'Usuarios',     path: '/users',              icon: Users },
-      { label: 'Chat',         path: '/chat',               icon: MessageSquare },
-      { label: 'Demos',        path: '/demo-users',         icon: FlaskConical },
-      { label: 'Invitaciones', path: '/invitaciones-demo',  icon: Link2 },
-      { label: 'Backup',       path: '/admin-backup',       icon: Database },
-      { label: 'Informes',     path: '/reports',            icon: BarChart2 },
+      { label: 'Usuarios',      path: '/users',              icon: Users },
+      { label: 'Chat',          path: '/chat',               icon: MessageSquare },
+      { label: 'Demos',         path: '/demo-users',         icon: FlaskConical },
+      { label: 'Invitaciones',  path: '/invitaciones-demo',  icon: Link2 },
+      { label: 'Backup',        path: '/admin-backup',       icon: Database },
+      { label: 'Informes',      path: '/reports',            icon: BarChart2 },
+      { label: 'Vinculaciones', path: '/vinculacion',        icon: Users },
     ],
   },
 ];
@@ -392,40 +393,35 @@ export default function Dashboard() {
       {/* Alertas de fichaje */}
       <NotificacionesFichaje />
 
-      {/* Widget de vinculaciones (solo admin/gerencia) */}
-      {(isAdmin || isGerencia) && (
-        <div className="mb-6">
-          <WidgetVinculaciones />
-        </div>
-      )}
-
-      {/* Acceso directo al Chat (todos los roles) */}
-      <Link
-        to="/chat"
-        className="block group mb-6"
-      >
-        <div className="relative rounded-2xl border-2 border-emerald-300 dark:border-emerald-700 overflow-hidden bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/50 dark:to-emerald-950/40 hover:shadow-2xl hover:-translate-y-1 active:scale-[0.98] transition-all duration-200">
-          <div className="relative z-10 p-5 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl shadow-md bg-emerald-600">
-                <MessageSquare className="w-6 h-6 text-white" />
+      {/* Accesos rápidos: Chat + Foto Obra */}
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <Link to="/chat" className="block group">
+          <div className="relative rounded-xl border border-emerald-300 dark:border-emerald-700 overflow-hidden bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/50 dark:to-emerald-950/40 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200">
+            <div className="relative z-10 p-3 flex items-center gap-3">
+              <div className="p-2 rounded-lg shadow-sm bg-emerald-600 shrink-0">
+                <MessageSquare className="w-4 h-4 text-white" />
               </div>
-              <div>
-                <p className="text-sm font-extrabold leading-tight text-emerald-800 dark:text-emerald-200 uppercase tracking-wide">
-                  Chat
-                </p>
-                <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 font-medium">
-                  Mensajería segura · Comunicación en tiempo real
-                </p>
+              <div className="min-w-0">
+                <p className="text-[11px] font-extrabold leading-tight text-emerald-800 dark:text-emerald-200 uppercase tracking-wide">Chat</p>
+                <p className="text-[10px] text-emerald-700 dark:text-emerald-300 mt-0.5 truncate">Mensajería segura</p>
               </div>
-            </div>
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/60 dark:bg-black/20 border border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
-              <span>Abrir</span>
-              <MessageSquare className="w-3.5 h-3.5" />
             </div>
           </div>
-        </div>
-      </Link>
+        </Link>
+        <Link to="/galeria-fotos" className="block group">
+          <div className="relative rounded-xl border border-violet-300 dark:border-violet-700 overflow-hidden bg-gradient-to-br from-violet-100 to-violet-50 dark:from-violet-900/50 dark:to-violet-950/40 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200">
+            <div className="relative z-10 p-3 flex items-center gap-3">
+              <div className="p-2 rounded-lg shadow-sm bg-violet-600 shrink-0">
+                <ImagesIcon className="w-4 h-4 text-white" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-extrabold leading-tight text-violet-800 dark:text-violet-200 uppercase tracking-wide">Foto Obra</p>
+                <p className="text-[10px] text-violet-700 dark:text-violet-300 mt-0.5 truncate">Subir · Capturar foto</p>
+              </div>
+            </div>
+          </div>
+        </Link>
+      </div>
 
       {/* Hub grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
