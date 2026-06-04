@@ -83,6 +83,21 @@ const TOOLS = [
   { name: 'get_materiales_obra', description: 'Materiales registrados de una obra', input_schema: { type: 'object', properties: { obra_id: { type: 'string' } }, required: ['obra_id'] } },
   { name: 'get_prevision_obras', description: 'Previsión y planificación de obras con semáforo de avance', input_schema: { type: 'object', properties: {} } },
   { name: 'get_documentos_operarios', description: 'Documentos de operarios y estado de firma', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, firma_status: { type: 'string' } } } },
+  {
+    name: 'create_nota_interna',
+    description: 'Crea una nota interna confidencial visible solo para admin y gerencia. Útil para registrar observaciones, alertas o decisiones internas.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string', description: 'Título breve de la nota' },
+        contenido: { type: 'string', description: 'Contenido completo de la nota' },
+        prioridad: { type: 'string', enum: ['baja', 'media', 'alta', 'urgente'], description: 'Prioridad de la nota' },
+        entidad_relacionada_tipo: { type: 'string', description: 'Entidad relacionada: Obra, Operario, Vehiculo...' },
+        entidad_relacionada_id: { type: 'string', description: 'ID de la entidad relacionada' },
+      },
+      required: ['titulo', 'contenido'],
+    },
+  },
 ];
 
 Deno.serve(async (req) => {
@@ -162,6 +177,7 @@ CAPACIDADES:
       if (['get_kpis_mes', 'get_obras_sin_presupuesto', 'generar_resumen_ejecutivo', 'get_prevision_obras', 'get_notas_gastos', 'get_documentos_operarios'].includes(t.name)) {
         return isAdminOrGerencia || isJefeOObra;
       }
+      if (t.name === 'create_nota_interna') return isAdminOrGerencia;
       if (['get_operarios_sin_fichar_hoy', 'get_vehiculos', 'get_obras_solar', 'get_materiales_obra'].includes(t.name)) {
         return isJefeOObra || user.role === 'control_horario' || isAdminOrGerencia;
       }

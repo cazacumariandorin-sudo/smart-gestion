@@ -245,6 +245,27 @@ Deno.serve(async (req) => {
       };
     }
 
+    // ── Nota interna (solo admin/gerencia) ────────────────────────────────────
+    else if (tool_name === 'create_nota_interna') {
+      if (!isAdminOrGerencia) return Response.json({ error: 'Sin permisos' }, { status: 403 });
+      const nota = await base44.asServiceRole.entities.AsistenteTarea.create({
+        titulo: tool_input.titulo,
+        descripcion: tool_input.contenido,
+        tipo: 'nota_interna',
+        prioridad: tool_input.prioridad || 'media',
+        estado: 'pendiente',
+        asignada_a_user_id: user.id,
+        asignada_a_nombre: user.full_name || user.email,
+        asignada_a_rol: user.role,
+        entidad_relacionada_tipo: tool_input.entidad_relacionada_tipo || null,
+        entidad_relacionada_id: tool_input.entidad_relacionada_id || null,
+        contexto_ia: 'Nota interna creada por el asistente IA',
+        creada_por: 'asistente_ia',
+        solo_gerencia: true,
+      });
+      result = { success: true, nota_id: nota.id, titulo: nota.titulo };
+    }
+
     else {
       return Response.json({ error: `Herramienta desconocida: ${tool_name}` }, { status: 400 });
     }
