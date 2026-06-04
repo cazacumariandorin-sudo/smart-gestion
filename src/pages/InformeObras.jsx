@@ -1,32 +1,34 @@
-import { useState, useMemo, useCallback } from 'react';
+/**
+ * InformeObras — módulo Calendario de Obras
+ * Versión 2.0 — según especificación del manual SMART-GESTION julio 2026
+ * Ruta: Obras & Proyectos → Informe obras → Calendario
+ */
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { format, addMonths, subMonths, parseISO, isWithinInterval } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { addMonths, subMonths } from 'date-fns';
 import {
-  Plus, ChevronLeft, ChevronRight, Building2, FolderOpen, CalendarDays,
-  Loader2, Save, X, Users, Clock,
+  Plus, Building2, CalendarDays, LayoutList, Loader2, Save, X, Users, ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import CalendarioObras from '@/components/informe/CalendarioObras';
+import GanttObras from '@/components/informe/GanttObras';
+import FiltrosEstadoObra from '@/components/informe/FiltrosEstadoObra';
 import PrevisionObraCard from '@/components/informe/PrevisionObraCard';
-import PrevisionCalendario from '@/components/informe/PrevisionCalendario';
 
-// ── Status config ────────────────────────────────────────────────────────────
 const STATUS_CFG = {
-  planificada: { label: 'Planificada', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-  en_curso:    { label: 'En curso',    className: 'bg-teal-50 text-teal-700 border-teal-200' },
-  completada:  { label: 'Completada',  className: 'bg-slate-100 text-slate-600 border-slate-200' },
-  cancelada:   { label: 'Cancelada',   className: 'bg-red-50 text-red-700 border-red-200' },
+  planificada: { label: 'Planificada' },
+  en_curso:    { label: 'En curso' },
+  completada:  { label: 'Completada' },
+  cancelada:   { label: 'Cancelada' },
 };
 
 const emptyForm = {
@@ -35,85 +37,22 @@ const emptyForm = {
   notas: '', status: 'planificada', operarios_asignados: [],
 };
 
-// ── Day detail panel (modal) ─────────────────────────────────────────────────
-function DayDetailModal({ day, items, onClose, onSwitchToObra }) {
-  if (!day) return null;
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div
-        className="bg-card w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[85vh] flex flex-col"
-        onClick={e => e.stopPropagation()}
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
-      >
-        <div className="w-10 h-1 bg-muted-foreground/20 rounded-full mx-auto mt-3 mb-1 sm:hidden" />
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div>
-            <h2 className="font-bold text-base capitalize">{format(day, "EEEE d 'de' MMMM yyyy", { locale: es })}</h2>
-            <p className="text-xs text-muted-foreground">{items.length} previsión{items.length !== 1 ? 'es' : ''} activas</p>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose}><X className="w-4 h-4" /></Button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-          {items.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-8">Sin previsiones este día</p>
-          ) : items.map(p => {
-            const cfg = STATUS_CFG[p.status] || STATUS_CFG.planificada;
-            const horas = p.horas_totales_previstas
-              || (p.operarios_asignados || []).reduce((s, op) => s + (op.horas_previstas || 0), 0);
-            return (
-              <Card key={p.id} className="p-4 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm">{p.obra_name}</p>
-                    {p.client_name && <p className="text-xs text-muted-foreground">{p.client_name}</p>}
-                  </div>
-                  <Badge variant="outline" className={`text-[10px] shrink-0 ${cfg.className}`}>{cfg.label}</Badge>
-                </div>
-                {horas > 0 && (
-                  <p className="text-xs flex items-center gap-1 text-muted-foreground">
-                    <Clock className="w-3 h-3" />{horas}h previstas
-                  </p>
-                )}
-                {p.notas && <p className="text-xs text-muted-foreground italic">{p.notas}</p>}
-                {p.operarios_asignados?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {p.operarios_asignados.map((op, i) => (
-                      <span key={i} className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[10px] font-medium">
-                        <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[9px] font-bold">
-                          {op.operario_name?.[0]?.toUpperCase()}
-                        </span>
-                        {op.operario_name}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-7 mt-1"
-                  onClick={() => { onSwitchToObra(p.obra_name); onClose(); }}
-                >
-                  <FolderOpen className="w-3 h-3 mr-1" /> Ver obra completa
-                </Button>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
+// Vistas disponibles según manual v2.0
+const VISTAS = [
+  { value: 'calendario', label: 'Vista calendario',    icon: CalendarDays },
+  { value: 'por_obra',   label: 'Vista por obra',       icon: LayoutList },
+  { value: 'gantt',      label: 'Vista mensual / gantt',icon: Building2 },
+];
 
-// ── Main page ────────────────────────────────────────────────────────────────
 export default function InformeObras() {
   const qc = useQueryClient();
-  const [view, setView] = useState('obra'); // 'obra' | 'mensual'
+  const [view, setView] = useState('calendario'); // vista calendario por defecto
   const [month, setMonth] = useState(new Date());
-  const [dayModal, setDayModal] = useState(null); // { day, items }
-  const [focusObra, setFocusObra] = useState(null); // highlight a obra in folder view
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [focusObra, setFocusObra] = useState(null);
 
   // ── Data ──
   const { data: previsiones = [], isLoading, refetch } = useQuery({
@@ -149,11 +88,11 @@ export default function InformeObras() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['previsiones_obra'] }); toast.success('Eliminado'); },
   });
 
-  // ── Pull to refresh ──
+  // Pull to refresh
   const onRefresh = useCallback(async () => { await refetch(); }, [refetch]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
-  // ── Dialog helpers ──
+  // Dialog helpers
   const open_ = (p = null) => {
     setEditing(p);
     setForm(p ? { ...p, horas_totales_previstas: p.horas_totales_previstas || '' } : emptyForm);
@@ -200,8 +139,21 @@ export default function InformeObras() {
     editing ? updateM.mutate({ id: editing.id, d: data }) : createM.mutate(data);
   };
 
-  // ── Group by obra ──
-  const grouped = useMemo(() => {
+  const handleMonthChange = (dir) => {
+    setMonth(m => dir > 0 ? addMonths(m, 1) : subMonths(m, 1));
+  };
+
+  const handleViewChange = (v) => {
+    setView(v);
+    setViewMenuOpen(false);
+  };
+
+  const isPending = createM.isPending || updateM.isPending;
+  const currentVista = VISTAS.find(v => v.value === view) || VISTAS[0];
+  const CurrentIcon = currentVista.icon;
+
+  // Agrupar previsiones por obra (para vista por obra)
+  const grouped = (() => {
     const map = {};
     previsiones.forEach(p => {
       const key = p.obra_name || 'Sin obra';
@@ -209,66 +161,71 @@ export default function InformeObras() {
       map[key].registros.push(p);
     });
     return Object.values(map).sort((a, b) => a.obraName.localeCompare(b.obraName));
-  }, [previsiones]);
-
-  const handleSwitchToObra = (obraName) => {
-    setView('obra');
-    setFocusObra(obraName);
-    setTimeout(() => setFocusObra(null), 3000);
-  };
-
-  const isPending = createM.isPending || updateM.isPending;
+  })();
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      {/* Cabecera */}
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-primary" /> Previsiones de Obra
+            <CalendarDays className="w-6 h-6 text-primary" /> Calendario de Obras
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{previsiones.length} previsiones registradas</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Obras & Proyectos → Informe obras</p>
         </div>
-        <Button onClick={() => open_()} size="sm" className="gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /><span className="hidden sm:inline">Nueva previsión</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Selector de vista — esquina superior derecha */}
+          <div className="relative">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-9" onClick={() => setViewMenuOpen(v => !v)}>
+              <CurrentIcon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{currentVista.label}</span>
+              <ChevronDown className="w-3 h-3 text-muted-foreground" />
+            </Button>
+            {viewMenuOpen && (
+              <div className="absolute right-0 top-10 z-30 bg-card border border-border rounded-xl shadow-lg overflow-hidden w-52">
+                {VISTAS.map(v => {
+                  const Icon = v.icon;
+                  return (
+                    <button
+                      key={v.value}
+                      onClick={() => handleViewChange(v.value)}
+                      className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left hover:bg-muted/50 transition-colors ${view === v.value ? 'bg-primary/10 text-primary font-semibold' : ''}`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {v.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <Button onClick={() => open_()} size="sm" className="gap-1.5 shadow-sm h-9 text-xs">
+            <Plus className="w-3.5 h-3.5" /><span className="hidden sm:inline">Nueva previsión</span>
+          </Button>
+        </div>
       </div>
 
-      {/* View toggle */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {[
-          { value: 'obra',    label: 'Vista por Obra',  icon: FolderOpen,  color: 'bg-purple-500 hover:bg-purple-600 border-purple-600 shadow-purple-200' },
-          { value: 'mensual', label: 'Vista Mensual',   icon: CalendarDays,color: 'bg-blue-500 hover:bg-blue-600 border-blue-600 shadow-blue-200' },
-        ].map(({ value, label, icon: Icon, color }) => (
-          <button
-            key={value}
-            onClick={() => setView(value)}
-            className={[
-              'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 font-bold text-sm text-white shadow-md',
-              'transition-all duration-150 hover:scale-105 hover:shadow-lg active:scale-95',
-              color,
-              view === value ? 'ring-2 ring-offset-2 ring-current scale-105 shadow-lg' : 'opacity-80',
-            ].join(' ')}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* Filtros desplegables — siempre visibles */}
+      <FiltrosEstadoObra obras={obras} />
 
-      {/* Status summary badges */}
-      <div className="flex gap-2 flex-wrap mb-5">
-        {Object.entries(STATUS_CFG).map(([k, v]) => {
-          const count = previsiones.filter(p => p.status === k).length;
-          if (!count) return null;
-          return <Badge key={k} variant="outline" className={`text-xs ${v.className}`}>{v.label}: {count}</Badge>;
-        })}
-      </div>
+      {/* ── VISTA CALENDARIO ── */}
+      {view === 'calendario' && (
+        isLoading ? (
+          <div className="h-96 rounded-xl bg-muted animate-pulse" />
+        ) : (
+          <CalendarioObras
+            previsiones={previsiones}
+            month={month}
+            onMonthChange={handleMonthChange}
+            obras={obras}
+          />
+        )
+      )}
 
       {/* ── VISTA POR OBRA ── */}
-      {view === 'obra' && (
+      {view === 'por_obra' && (
         isLoading ? (
           <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}</div>
         ) : grouped.length === 0 ? (
@@ -296,45 +253,21 @@ export default function InformeObras() {
         )
       )}
 
-      {/* ── VISTA MENSUAL ── */}
-      {view === 'mensual' && (
-        <div>
-          {/* Month navigator */}
-          <div className="flex items-center justify-between bg-muted/40 rounded-xl px-4 py-2.5 mb-4">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonth(m => subMonths(m, 1))}>
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <div className="text-center">
-              <p className="text-sm font-semibold capitalize">{format(month, 'MMMM yyyy', { locale: es })}</p>
-            </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonth(m => addMonths(m, 1))}>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-
-          {isLoading ? (
-            <div className="h-96 rounded-xl bg-muted animate-pulse" />
-          ) : (
-            <PrevisionCalendario
-              previsiones={previsiones}
-              month={month}
-              onDayClick={(day, items) => setDayModal({ day, items })}
-            />
-          )}
-        </div>
+      {/* ── VISTA GANTT ── */}
+      {view === 'gantt' && (
+        isLoading ? (
+          <div className="h-80 rounded-xl bg-muted animate-pulse" />
+        ) : (
+          <GanttObras
+            obras={obras}
+            previsiones={previsiones}
+            month={month}
+            onMonthChange={handleMonthChange}
+          />
+        )
       )}
 
-      {/* Day detail modal */}
-      {dayModal && (
-        <DayDetailModal
-          day={dayModal.day}
-          items={dayModal.items}
-          onClose={() => setDayModal(null)}
-          onSwitchToObra={handleSwitchToObra}
-        />
-      )}
-
-      {/* ── Form dialog ── */}
+      {/* ── Formulario nueva previsión ── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? 'Editar previsión' : 'Nueva previsión de obra'}</DialogTitle></DialogHeader>
@@ -391,9 +324,7 @@ export default function InformeObras() {
                 </Button>
               </div>
               {(form.operarios_asignados || []).length === 0 ? (
-                <div className="border border-dashed rounded-lg py-4 text-center text-xs text-muted-foreground">
-                  Sin operarios asignados
-                </div>
+                <div className="border border-dashed rounded-lg py-4 text-center text-xs text-muted-foreground">Sin operarios asignados</div>
               ) : (
                 <div className="space-y-2">
                   {(form.operarios_asignados || []).map((op, idx) => (
