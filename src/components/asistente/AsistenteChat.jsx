@@ -5,7 +5,7 @@ import { Send, Loader2, Zap, Bot, Mic, MicOff, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 
-const MAX_HISTORIAL = 40; // máx mensajes a recordar
+const MAX_HISTORIAL = 80; // máx mensajes a recordar
 
 function getStorageKey(userId) {
   return `asistente_chat_${userId || 'guest'}`;
