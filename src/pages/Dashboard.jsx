@@ -1,10 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
 import {
   Building2, Users, Receipt, Car, Folder, Settings,
   HardHat, Sun, ClipboardList, Clock, Truck, Images,
-  AlertCircle, CheckCircle2, BarChart2, MessageSquare
+  AlertCircle, BarChart2, MessageSquare, Database,
+  Link2, FlaskConical, RefreshCw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +19,6 @@ import WidgetVinculaciones from '@/components/vinculacion/WidgetVinculaciones';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { RefreshCw } from 'lucide-react';
 
 const HUB_CONFIG = [
   {
@@ -113,8 +114,12 @@ const HUB_CONFIG = [
     module: 'users',
     adminOrGerencia: true,
     links: [
-      { label: 'Usuarios', path: '/users', icon: Users },
-      { label: 'Backup', path: '/admin-backup', icon: Settings },
+      { label: 'Usuarios',     path: '/users',              icon: Users },
+      { label: 'Chat',         path: '/chat',               icon: MessageSquare },
+      { label: 'Demos',        path: '/demo-users',         icon: FlaskConical },
+      { label: 'Invitaciones', path: '/invitaciones-demo',  icon: Link2 },
+      { label: 'Backup',       path: '/admin-backup',       icon: Database },
+      { label: 'Informes',     path: '/reports',            icon: BarChart2 },
     ],
   },
 ];
@@ -128,49 +133,126 @@ const roleLabels = {
   gerencia:        { label: 'Gerencia',        color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
 };
 
+function SistemaCard({ hub, kpi }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const Icon = hub.icon;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <div className={cn(
+        'relative rounded-xl border overflow-hidden transition-all duration-200',
+        hub.bg, hub.border
+      )}>
+        {hub.watermark && (
+          <img src={hub.watermark} alt="" aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover opacity-[0.07] pointer-events-none select-none" />
+        )}
+        <div className="relative z-10 flex items-center gap-3 px-4 py-3">
+          <div className={cn('p-2 rounded-lg shadow-sm shrink-0', hub.iconBg)}>
+            <Icon className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={cn('text-xs font-extrabold uppercase tracking-wide leading-tight', hub.color)}>{hub.label}</p>
+            {kpi?.sub && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{kpi.sub}</p>}
+          </div>
+          <button
+            onClick={() => setOpen(o => !o)}
+            style={{ touchAction: 'manipulation' }}
+            className={cn(
+              'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg',
+              'text-xs font-bold border transition-all duration-150',
+              'bg-slate-800 dark:bg-slate-700 text-white border-slate-700',
+              'hover:bg-slate-700 active:scale-95 min-h-[36px]'
+            )}
+          >
+            Gestionar
+            <span className={cn('transition-transform duration-200', open ? 'rotate-180' : 'rotate-0')}>▾</span>
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div className={cn(
+          'absolute top-full left-0 right-0 z-50 mt-1',
+          'bg-card border border-border rounded-xl shadow-xl',
+          'p-2 grid grid-cols-3 gap-1.5'
+        )}>
+          {hub.links.map(l => {
+            const LIcon = l.icon;
+            return (
+              <Link
+                key={l.path}
+                to={l.path}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  'flex flex-col items-center gap-1.5 py-3 px-2',
+                  'rounded-lg bg-muted/60 hover:bg-muted',
+                  'text-[10px] font-semibold text-muted-foreground',
+                  'hover:text-foreground transition-all active:scale-95',
+                  'min-h-[56px] justify-center'
+                )}
+              >
+                <LIcon className="w-4 h-4 shrink-0" />
+                <span className="text-center leading-tight">{l.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HubCard({ hub, kpi }) {
+  if (hub.id === 'sistema') return <SistemaCard hub={hub} kpi={kpi} />;
+
   const Icon = hub.icon;
   return (
     <Link to={hub.path} className="block group">
       <div className={cn(
-        'relative rounded-2xl border-2 overflow-hidden transition-all duration-200',
-        'hover:shadow-2xl hover:-translate-y-1 active:scale-[0.98]',
+        'relative rounded-xl border overflow-hidden transition-all duration-200',
+        'hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99]',
         hub.bg, hub.border
       )}>
-        {/* Watermark image */}
         {hub.watermark && (
-          <img
-            src={hub.watermark}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover opacity-[0.12] dark:opacity-[0.10] pointer-events-none select-none transition-opacity duration-300 group-hover:opacity-[0.20] dark:group-hover:opacity-[0.16]"
-          />
+          <img src={hub.watermark} alt="" aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover opacity-[0.12] dark:opacity-[0.10] pointer-events-none select-none transition-opacity duration-300 group-hover:opacity-[0.20] dark:group-hover:opacity-[0.16]" />
         )}
 
-        {/* Content */}
-        <div className="relative z-10 p-5">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-4">
-            <div className={cn('p-3 rounded-xl shadow-md', hub.iconBg)}>
-              <Icon className="w-6 h-6 text-white" />
+        <div className="relative z-10 p-3.5">
+          <div className="flex items-start justify-between mb-2.5">
+            <div className={cn('p-2 rounded-lg shadow-sm', hub.iconBg)}>
+              <Icon className="w-4 h-4 text-white" />
             </div>
             {kpi?.alert && (
-              <div className="flex items-center gap-1 bg-destructive/10 border border-destructive/30 rounded-full px-2.5 py-1">
-                <AlertCircle className="w-3.5 h-3.5 text-destructive" />
-                <span className="text-xs font-bold text-destructive">{kpi.alert}</span>
+              <div className="flex items-center gap-1 bg-destructive/10 border border-destructive/30 rounded-full px-2 py-0.5">
+                <AlertCircle className="w-3 h-3 text-destructive" />
+                <span className="text-[10px] font-bold text-destructive">{kpi.alert}</span>
               </div>
             )}
           </div>
 
-          {/* Label & KPI */}
-          <p className={cn('text-sm font-extrabold leading-tight mb-1 tracking-wide uppercase', hub.color)}>{hub.label}</p>
+          <p className={cn('text-[11px] font-extrabold leading-tight mb-0.5 tracking-wide uppercase', hub.color)}>{hub.label}</p>
           {kpi?.main !== undefined && (
-            <p className={cn('text-4xl font-black leading-none tracking-tight', hub.color)}>{kpi.main}</p>
+            <p className={cn('text-3xl font-black leading-none tracking-tight', hub.color)}>{kpi.main}</p>
           )}
-          {kpi?.sub && <p className="text-xs text-muted-foreground mt-1.5 font-medium">{kpi.sub}</p>}
+          {kpi?.sub && <p className="text-[10px] text-muted-foreground mt-1 font-medium">{kpi.sub}</p>}
 
-          {/* Quick links */}
-          <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t-2 border-current/10">
+          <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-current/10">
             {hub.links.map(l => {
               const LIcon = l.icon;
               return (
@@ -179,15 +261,14 @@ function HubCard({ hub, kpi }) {
                   to={l.path}
                   onClick={e => e.stopPropagation()}
                   className={cn(
-                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border-2 shadow-md',
+                    'inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border shadow-sm',
                     'transition-all duration-150 cursor-pointer select-none',
-                    'hover:scale-105 hover:shadow-lg active:scale-95',
-                    hub.iconBg.replace('bg-', 'hover:bg-') + '/20',
+                    'hover:scale-105 hover:shadow-md active:scale-95',
                     hub.border, hub.color,
                     'bg-white/60 dark:bg-black/20 hover:bg-white/90 dark:hover:bg-white/10'
                   )}
                 >
-                  <LIcon className="w-3.5 h-3.5 shrink-0" />
+                  <LIcon className="w-3 h-3 shrink-0" />
                   {l.label}
                 </Link>
               );
@@ -276,11 +357,11 @@ export default function Dashboard() {
   const showDiagnostic = !roleLoading && visibleHubs.length === 0;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+    <div className="p-3 sm:p-4 lg:p-6 max-w-5xl mx-auto">
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
@@ -347,7 +428,7 @@ export default function Dashboard() {
       </Link>
 
       {/* Hub grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
         {visibleHubs.map(hub => (
           <HubCard key={hub.id} hub={hub} kpi={kpis[hub.id]} />
         ))}

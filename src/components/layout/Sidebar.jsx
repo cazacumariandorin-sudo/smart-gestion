@@ -112,8 +112,29 @@ function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo, pe
 
   if (items.length === 0) return null;
   if (hub.adminOnly && !isAdmin && !isGerencia) return null;
-  // Demo users cannot see personas & sistema hubs
   if (isDemo && (hub.id === 'personas' || hub.id === 'sistema')) return null;
+
+  // Sistema: solo link simple sin expandir (el botón Gestionar del Dashboard maneja los subitems)
+  if (hub.id === 'sistema') {
+    const SistIcon = hub.icon;
+    return (
+      <Link
+        to="/users"
+        className={cn(
+          'w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm font-semibold transition-all',
+          isChildActive
+            ? cn(hub.activeBg, hub.color)
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+        )}
+      >
+        <SistIcon className={cn('w-4 h-4 shrink-0', isChildActive ? hub.color : '')} />
+        <span className="flex-1 text-left text-xs overflow-hidden whitespace-nowrap opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">
+          Sistema
+        </span>
+        <span className="text-[9px] text-muted-foreground opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">→</span>
+      </Link>
+    );
+  }
 
   const Icon = hub.icon;
 
@@ -122,7 +143,7 @@ function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo, pe
       <button
         onClick={() => setOpen(o => !o)}
         className={cn(
-          'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-semibold transition-all',
+          'w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm font-semibold transition-all',
           isChildActive
             ? cn(hub.activeBg, hub.color)
             : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -152,7 +173,7 @@ function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo, pe
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  'flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-medium transition-all',
+                  'flex items-center gap-2 px-2 py-1 rounded-md text-xs font-medium transition-all',
                   isActive
                     ? cn(hub.activeBg, hub.color, 'font-semibold')
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -200,7 +221,7 @@ export default function Sidebar() {
       hover:w-60 hover:shadow-[2px_0_12px_rgba(0,0,0,0.08)]
       group/sidebar">
       {/* Logo */}
-      <div className="px-3 py-4 border-b border-border shrink-0">
+      <div className="px-3 py-3 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
             <HardHat className="w-4 h-4 text-primary-foreground" />
@@ -212,12 +233,12 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {/* Dashboard */}
         <Link
           to="/"
           className={cn(
-            'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all mb-2',
+            'flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold transition-all mb-1.5',
             isDashboard ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
           )}
         >

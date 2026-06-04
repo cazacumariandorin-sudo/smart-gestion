@@ -201,6 +201,7 @@ export default function MobileNav() {
 
   const isDemo = role === 'usuario_demo';
   const visibleHubs = HUB_GROUPS.filter(hub => {
+    if (hub.id === 'sistema') return false; // acceso via dashboard → botón Gestionar
     if (hub.adminOnly && !isAdmin && !isGerencia) return false;
     if (isDemo && (hub.id === 'personas' || hub.id === 'sistema')) return false;
     return hub.items.some(i => i.module === null || canAccess(i.module));

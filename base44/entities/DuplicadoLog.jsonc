@@ -1,0 +1,132 @@
+{
+  "name": "DuplicadoLog",
+  "type": "object",
+  "properties": {
+    "entidad_tipo": {
+      "type": "string",
+      "enum": [
+        "client",
+        "obra",
+        "registro_gasto",
+        "solar_cliente",
+        "solar_obra"
+      ],
+      "description": "Tipo de entidad donde se detect\u00f3 el duplicado"
+    },
+    "entidad_id_nuevo": {
+      "type": "string",
+      "description": "ID del registro que el usuario intent\u00f3 crear"
+    },
+    "entidad_id_existente": {
+      "type": "string",
+      "description": "ID del registro existente similar detectado"
+    },
+    "nombre_nuevo": {
+      "type": "string",
+      "description": "Nombre que introdujo el usuario"
+    },
+    "nombre_existente": {
+      "type": "string",
+      "description": "Nombre del registro existente similar"
+    },
+    "similitud_score": {
+      "type": "number",
+      "description": "Score de similitud calculado (0.0 a 1.0)"
+    },
+    "tipo_similitud": {
+      "type": "string",
+      "enum": [
+        "exacto_normalizado",
+        "levenshtein",
+        "prefijo",
+        "importe_fecha"
+      ],
+      "description": "Algoritmo que detect\u00f3 el duplicado"
+    },
+    "accion_usuario": {
+      "type": "string",
+      "enum": [
+        "uso_existente",
+        "creado_como_nuevo",
+        "cancelado",
+        "ignorado"
+      ],
+      "description": "Qu\u00e9 decidi\u00f3 el usuario al ver el aviso"
+    },
+    "es_nuevo_confirmado": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si el usuario confirm\u00f3 que es un registro distinto al existente"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email del usuario que activ\u00f3 la comprobaci\u00f3n"
+    },
+    "user_role": {
+      "type": "string",
+      "description": "Rol del usuario en el momento del evento"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp del evento"
+    },
+    "contexto": {
+      "type": "string",
+      "description": "Informaci\u00f3n adicional: importe, fecha_documento, etc. (para duplicados de gastos)"
+    },
+    "falso_positivo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marcado por admin si el sistema se equivoc\u00f3 al detectar el duplicado (para mejorar el algoritmo)"
+    },
+    "falso_positivo_motivo": {
+      "type": "string",
+      "description": "Por qu\u00e9 era un falso positivo"
+    }
+  },
+  "required": [
+    "entidad_tipo",
+    "nombre_nuevo",
+    "user_email",
+    "fecha"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

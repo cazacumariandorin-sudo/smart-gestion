@@ -1,0 +1,223 @@
+{
+  "name": "FirmaDigital",
+  "properties": {
+    "documento_id": {
+      "description": "ID del documento origen (WorkOrder, OperarioDoc, etc.)",
+      "type": "string"
+    },
+    "documento_tipo": {
+      "description": "Tipo de documento a firmar",
+      "enum": [
+        "parte_trabajo",
+        "contrato",
+        "epis",
+        "doc_obra",
+        "presupuesto",
+        "otro"
+      ],
+      "type": "string"
+    },
+    "documento_titulo": {
+      "description": "T\u00edtulo del documento",
+      "type": "string"
+    },
+    "email_firmante": {
+      "description": "Email del firmante externo (cliente)",
+      "type": "string"
+    },
+    "fecha_creacion": {
+      "description": "Fecha de creaci\u00f3n del proceso de firma",
+      "format": "date-time",
+      "type": "string"
+    },
+    "fecha_expiracion": {
+      "description": "Fecha de expiraci\u00f3n del enlace de firma",
+      "format": "date-time",
+      "type": "string"
+    },
+    "fecha_firma": {
+      "description": "Fecha y hora exacta en que se firm\u00f3",
+      "format": "date-time",
+      "type": "string"
+    },
+    "firma_base64": {
+      "description": "Firma trazada en base64 (canvas)",
+      "type": "string"
+    },
+    "firma_pdf_url": {
+      "description": "URL del PDF final con firma incrustada y sello legal",
+      "type": "string"
+    },
+    "firmante_nif": {
+      "description": "NIF/DNI del firmante",
+      "type": "string"
+    },
+    "firmante_nombre": {
+      "description": "Nombre completo del firmante",
+      "type": "string"
+    },
+    "firmante_tipo": {
+      "description": "Qui\u00e9n firma",
+      "enum": [
+        "operario",
+        "cliente",
+        "jefe_obra",
+        "admin"
+      ],
+      "type": "string"
+    },
+    "hash_documento": {
+      "description": "Hash SHA-256 del documento original (integridad)",
+      "type": "string"
+    },
+    "ip_firma": {
+      "description": "IP desde la que se realiz\u00f3 la firma",
+      "type": "string"
+    },
+    "notas": {
+      "description": "Observaciones o motivo de rechazo",
+      "type": "string"
+    },
+    "obra_id": {
+      "description": "ID de la obra vinculada",
+      "type": "string"
+    },
+    "obra_nombre": {
+      "description": "Nombre de la obra",
+      "type": "string"
+    },
+    "operario_id": {
+      "description": "ID del operario involucrado",
+      "type": "string"
+    },
+    "operario_nombre": {
+      "description": "Nombre del operario",
+      "type": "string"
+    },
+    "recordatorio_enviado": {
+      "description": "Si se ha enviado recordatorio al firmante",
+      "default": false,
+      "type": "boolean"
+    },
+    "signaturit_document_id": {
+      "description": "ID del documento en Signaturit (si se usa)",
+      "type": "string"
+    },
+    "signaturit_status": {
+      "description": "Estado devuelto por Signaturit",
+      "type": "string"
+    },
+    "status": {
+      "default": "pendiente",
+      "description": "Estado del proceso de firma",
+      "enum": [
+        "pendiente",
+        "enviado",
+        "visto",
+        "firmado",
+        "rechazado",
+        "caducado"
+      ],
+      "type": "string"
+    },
+    "token": {
+      "description": "Token \u00fanico para enlace de firma p\u00fablica",
+      "type": "string"
+    },
+    "user_agent": {
+      "description": "Dispositivo/navegador desde el que se firm\u00f3",
+      "type": "string"
+    }
+  },
+  "required": [
+    "documento_id",
+    "documento_tipo",
+    "firmante_tipo",
+    "fecha_creacion"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "control_horario"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  },
+  "type": "object"
+}

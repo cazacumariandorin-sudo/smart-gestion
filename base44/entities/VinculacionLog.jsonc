@@ -1,0 +1,123 @@
+{
+  "name": "VinculacionLog",
+  "properties": {
+    "accion": {
+      "description": "Qu\u00e9 ocurri\u00f3",
+      "enum": [
+        "usuario_registrado",
+        "vinculo_manual",
+        "vinculo_automatico",
+        "vinculo_cambiado",
+        "recordatorio_enviado",
+        "vinculo_demo"
+      ],
+      "type": "string"
+    },
+    "dias_transcurridos": {
+      "description": "D\u00edas desde el registro hasta la vinculaci\u00f3n",
+      "type": "number"
+    },
+    "motivo": {
+      "description": "Motivo del cambio o nota del admin",
+      "type": "string"
+    },
+    "operario_id_anterior": {
+      "description": "ID del operario que ten\u00eda antes (en caso de cambio)",
+      "type": "string"
+    },
+    "operario_id_nuevo": {
+      "description": "ID del operario asignado",
+      "type": "string"
+    },
+    "operario_nombre": {
+      "description": "Nombre del operario asignado",
+      "type": "string"
+    },
+    "realizado_por_email": {
+      "description": "Email del admin/gerencia que hizo el v\u00ednculo (null si fue autom\u00e1tico)",
+      "type": "string"
+    },
+    "realizado_por_rol": {
+      "description": "Rol del que realiz\u00f3 la acci\u00f3n",
+      "type": "string"
+    },
+    "timestamp": {
+      "description": "Fecha y hora exacta del evento",
+      "format": "date-time",
+      "type": "string"
+    },
+    "tipo_vinculo": {
+      "description": "Tipo de v\u00ednculo resultante",
+      "enum": [
+        "operario",
+        "operario_temporal",
+        "demo_user",
+        "cliente_obra",
+        "sin_vincular"
+      ],
+      "type": "string"
+    },
+    "usuario_email": {
+      "description": "Email del usuario que fue vinculado",
+      "type": "string"
+    },
+    "usuario_id": {
+      "description": "ID del usuario que fue vinculado",
+      "type": "string"
+    },
+    "usuario_nombre": {
+      "description": "Nombre del usuario",
+      "type": "string"
+    }
+  },
+  "required": [
+    "usuario_id",
+    "usuario_email",
+    "accion",
+    "timestamp"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "type": "object"
+}

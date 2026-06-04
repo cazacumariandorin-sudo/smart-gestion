@@ -1,0 +1,164 @@
+{
+  "name": "AsistenteTarea",
+  "properties": {
+    "asignada_a_nombre": {
+      "type": "string"
+    },
+    "asignada_a_rol": {
+      "type": "string"
+    },
+    "asignada_a_user_id": {
+      "description": "ID del usuario al que va la tarea",
+      "type": "string"
+    },
+    "contexto_ia": {
+      "description": "Razonamiento del asistente que gener\u00f3 la tarea",
+      "type": "string"
+    },
+    "creada_por": {
+      "default": "asistente_ia",
+      "enum": [
+        "asistente_ia",
+        "usuario",
+        "sistema"
+      ],
+      "type": "string"
+    },
+    "descripcion": {
+      "type": "string"
+    },
+    "entidad_relacionada_id": {
+      "type": "string"
+    },
+    "entidad_relacionada_tipo": {
+      "description": "Obra, WorkOrder, Fichaje, Vehiculo...",
+      "type": "string"
+    },
+    "estado": {
+      "default": "pendiente",
+      "enum": [
+        "pendiente",
+        "en_curso",
+        "completada",
+        "descartada"
+      ],
+      "type": "string"
+    },
+    "fecha_completada": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "fecha_limite": {
+      "format": "date",
+      "type": "string"
+    },
+    "feedback_usuario": {
+      "type": "string"
+    },
+    "prioridad": {
+      "default": "media",
+      "enum": [
+        "baja",
+        "media",
+        "alta",
+        "urgente"
+      ],
+      "type": "string"
+    },
+    "recordatorio_fecha": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "titulo": {
+      "type": "string"
+    },
+    "tipo": {
+      "enum": [
+        "recordatorio",
+        "comprobacion",
+        "alerta",
+        "tarea_manual",
+        "informe"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "titulo",
+    "tipo",
+    "asignada_a_user_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "data.asignada_a_user_id": "{{user.id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "data.asignada_a_user_id": "{{user.id}}"
+        }
+      ]
+    }
+  },
+  "type": "object"
+}
