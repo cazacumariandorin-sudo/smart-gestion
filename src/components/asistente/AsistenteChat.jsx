@@ -1,9 +1,30 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Zap, Bot, Mic, MicOff } from 'lucide-react';
+import { Send, Loader2, Zap, Bot, Mic, MicOff, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
+
+const MAX_HISTORIAL = 40; // máx mensajes a recordar
+
+function getStorageKey(userId) {
+  return `asistente_chat_${userId || 'guest'}`;
+}
+
+function cargarHistorial(userId) {
+  try {
+    const raw = localStorage.getItem(getStorageKey(userId));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function guardarHistorial(userId, messages) {
+  try {
+    // Guardar solo los últimos MAX_HISTORIAL mensajes
+    const toSave = messages.slice(-MAX_HISTORIAL);
+    localStorage.setItem(getStorageKey(userId), JSON.stringify(toSave));
+  } catch {}
+}
 
 const SUGERENCIAS = {
   operario: ['¿Qué obra tengo hoy?', '¿Cuántas horas llevo este mes?', '¿Tengo gastos pendientes?'],
@@ -45,13 +66,16 @@ function extractarPeriodo(texto) {
   return 'mes';
 }
 
+const MSG_BIENVENIDA = (nombre) =>
+  `¡Hola${nombre ? ', ' + nombre.split(' ')[0] : ''}! 👋 Soy tu Asistente SMART. Puedo consultar datos de obras, operarios, fichajes, gastos y más. ¿En qué te ayudo?`;
+
 export default function AsistenteChat({ currentUser }) {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: `¡Hola${currentUser?.full_name ? ', ' + currentUser.full_name.split(' ')[0] : ''}! 👋 Soy tu Asistente SMART. Puedo consultar datos de obras, operarios, fichajes, gastos y más. ¿En qué te ayudo?`,
-    },
-  ]);
+  const [messages, setMessages] = useState(() => {
+    const historial = cargarHistorial(currentUser?.id);
+    return historial && historial.length > 0
+      ? historial
+      : [{ role: 'assistant', content: MSG_BIENVENIDA(currentUser?.full_name) }];
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [toolUsing, setToolUsing] = useState(null);
@@ -85,9 +109,22 @@ export default function AsistenteChat({ currentUser }) {
     recognition.start();
   };
 
+  // Persistir historial al cambiar mensajes
+  useEffect(() => {
+    if (currentUser?.id && messages.length > 1) {
+      guardarHistorial(currentUser.id, messages);
+    }
+  }, [messages, currentUser?.id]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  const limpiarHistorial = () => {
+    const inicial = [{ role: 'assistant', content: MSG_BIENVENIDA(currentUser?.full_name) }];
+    setMessages(inicial);
+    try { localStorage.removeItem(getStorageKey(currentUser?.id)); } catch {}
+  };
 
   const sugerencias = SUGERENCIAS[currentUser?.role] || SUGERENCIAS.default;
 
@@ -219,7 +256,7 @@ export default function AsistenteChat({ currentUser }) {
       )}
 
       {/* Input */}
-      <div className="p-3 border-t border-border flex gap-2 bg-card">
+      <div className="p-3 border-t border-border flex gap-2 bg-card items-center">
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -240,6 +277,16 @@ export default function AsistenteChat({ currentUser }) {
         </Button>
         <Button size="icon" className="h-9 w-9 shrink-0 bg-blue-600 hover:bg-blue-700" onClick={() => enviarMensaje(input)} disabled={!input.trim() || loading}>
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+          onClick={limpiarHistorial}
+          title="Limpiar conversación"
+          disabled={loading}
+        >
+          <Trash2 className="w-4 h-4" />
         </Button>
       </div>
     </div>
