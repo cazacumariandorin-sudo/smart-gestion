@@ -57,25 +57,26 @@ export function MobileSelect({
       );
     }
 
-    const selectedIsValid = value && items.find(i => i.value === value);
-
+    // Use native <select> — always works, no Radix empty-value bugs
     return (
-      <Select
-        value={selectedIsValid ? value : ''}
-        onValueChange={onValueChange}
-        disabled={disabled}
-      >
-        <SelectTrigger className={triggerClassName}>
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
+      <div className={cn('relative w-full', triggerClassName)}>
+        <select
+          value={value || ''}
+          onChange={e => { if (e.target.value) onValueChange(e.target.value); }}
+          disabled={disabled}
+          className={cn(
+            'w-full appearance-none min-h-[44px] rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm shadow-sm',
+            'focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+            !value && 'text-muted-foreground'
+          )}
+        >
+          <option value="" disabled>{placeholder}</option>
           {items.map(item => (
-            <SelectItem key={item.value} value={item.value} className={item.className}>
-              {item.label}
-            </SelectItem>
+            <option key={item.value} value={item.value}>{item.label}</option>
           ))}
-        </SelectContent>
-      </Select>
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" />
+      </div>
     );
   }
 
