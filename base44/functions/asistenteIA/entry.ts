@@ -72,14 +72,17 @@ const TOOLS = [
   {
     name: 'generar_resumen_ejecutivo',
     description: 'Genera un resumen ejecutivo combinando obras, fichajes, gastos y partes',
-    input_schema: {
-      type: 'object',
-      properties: {
-        periodo: { type: 'string', enum: ['hoy', 'semana', 'mes'] },
-      },
-      required: ['periodo'],
-    },
+    input_schema: { type: 'object', properties: { periodo: { type: 'string', enum: ['hoy', 'semana', 'mes'] } }, required: ['periodo'] },
   },
+  { name: 'get_manuales', description: 'Obtiene los manuales disponibles', input_schema: { type: 'object', properties: { categoria: { type: 'string' } } } },
+  { name: 'get_apuntes_produccion', description: 'Apuntes de producción por operario, obra o fecha', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, fecha_desde: { type: 'string' }, obra_id: { type: 'string' } } } },
+  { name: 'get_vehiculos', description: 'Estado de la flota de vehículos con alertas de mantenimiento', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_vacaciones', description: 'Vacaciones y ausencias de operarios', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, pendientes_aprobacion: { type: 'boolean' } } } },
+  { name: 'get_notas_gastos', description: 'Notas de gastos de operarios con su estado', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, estado: { type: 'string' } } } },
+  { name: 'get_obras_solar', description: 'Proyectos de instalaciones solares', input_schema: { type: 'object', properties: { status: { type: 'string' } } } },
+  { name: 'get_materiales_obra', description: 'Materiales registrados de una obra', input_schema: { type: 'object', properties: { obra_id: { type: 'string' } }, required: ['obra_id'] } },
+  { name: 'get_prevision_obras', description: 'Previsión y planificación de obras con semáforo de avance', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_documentos_operarios', description: 'Documentos de operarios y estado de firma', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, firma_status: { type: 'string' } } } },
 ];
 
 Deno.serve(async (req) => {
@@ -156,11 +159,11 @@ CAPACIDADES:
 
     // Filtrar herramientas según rol
     const toolsDisponibles = TOOLS.filter(t => {
-      if (['get_kpis_mes', 'get_obras_sin_presupuesto', 'generar_resumen_ejecutivo'].includes(t.name)) {
-        return isAdminOrGerencia;
+      if (['get_kpis_mes', 'get_obras_sin_presupuesto', 'generar_resumen_ejecutivo', 'get_prevision_obras', 'get_notas_gastos', 'get_documentos_operarios'].includes(t.name)) {
+        return isAdminOrGerencia || isJefeOObra;
       }
-      if (['get_operarios_sin_fichar_hoy'].includes(t.name)) {
-        return isJefeOObra || user.role === 'control_horario';
+      if (['get_operarios_sin_fichar_hoy', 'get_vehiculos', 'get_obras_solar', 'get_materiales_obra'].includes(t.name)) {
+        return isJefeOObra || user.role === 'control_horario' || isAdminOrGerencia;
       }
       return true;
     });
