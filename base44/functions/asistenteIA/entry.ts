@@ -83,6 +83,61 @@ const TOOLS = [
   { name: 'get_materiales_obra', description: 'Materiales registrados de una obra', input_schema: { type: 'object', properties: { obra_id: { type: 'string' } }, required: ['obra_id'] } },
   { name: 'get_prevision_obras', description: 'Previsión y planificación de obras con semáforo de avance', input_schema: { type: 'object', properties: {} } },
   { name: 'get_documentos_operarios', description: 'Documentos de operarios y estado de firma', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, firma_status: { type: 'string' } } } },
+  { name: 'get_usuarios', description: 'Lista todos los usuarios de la app con nombre, email y rol actual', input_schema: { type: 'object', properties: { rol: { type: 'string', description: 'Filtrar por rol específico' } } } },
+  {
+    name: 'create_fichaje',
+    description: 'Registra un fichaje (entrada/salida) para un operario en la base de datos',
+    input_schema: {
+      type: 'object',
+      properties: {
+        operario_id: { type: 'string' },
+        operario_name: { type: 'string' },
+        date: { type: 'string', description: 'Fecha YYYY-MM-DD' },
+        hora_entrada: { type: 'string', description: 'HH:MM' },
+        hora_salida: { type: 'string', description: 'HH:MM, opcional' },
+        obra_id: { type: 'string' },
+        obra_name: { type: 'string' },
+        notas: { type: 'string' },
+      },
+      required: ['operario_id', 'operario_name', 'date', 'hora_entrada'],
+    },
+  },
+  {
+    name: 'create_apunte',
+    description: 'Registra un apunte de producción/horario para un operario en la base de datos',
+    input_schema: {
+      type: 'object',
+      properties: {
+        operario_id: { type: 'string' },
+        operario_name: { type: 'string' },
+        date: { type: 'string', description: 'Fecha YYYY-MM-DD' },
+        obra_id: { type: 'string' },
+        obra_name: { type: 'string' },
+        concepto: { type: 'string' },
+        cantidad: { type: 'number' },
+        unidad: { type: 'string' },
+        precio_unitario: { type: 'number' },
+        horas_ejecutadas: { type: 'number' },
+        notas: { type: 'string' },
+      },
+      required: ['operario_id', 'operario_name', 'date', 'obra_id', 'obra_name', 'concepto', 'cantidad'],
+    },
+  },
+  {
+    name: 'solicitar_cambio_rol',
+    description: 'Solicita un cambio de rol para un usuario. Solo puede ser ejecutado por Admin, Gerencia o Director Comercial.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        user_id: { type: 'string' },
+        user_nombre: { type: 'string' },
+        rol_actual: { type: 'string' },
+        rol_nuevo: { type: 'string' },
+        motivo: { type: 'string' },
+      },
+      required: ['user_id', 'user_nombre', 'rol_nuevo'],
+    },
+  },
   {
     name: 'create_nota_interna',
     description: 'Crea una nota interna confidencial visible solo para admin y gerencia. Útil para registrar observaciones, alertas o decisiones internas.',
@@ -119,16 +174,18 @@ Deno.serve(async (req) => {
 
     // Construir system prompt dinámico
     let contextData = {};
+    let usuariosInfo = [];
     try {
       const hoy = new Date().toISOString().split('T')[0];
 
       if (isAdminOrGerencia) {
-        const [obras, operarios, fichajes, gastos, partes] = await Promise.all([
+        const [obras, operarios, fichajes, gastos, partes, usuarios] = await Promise.all([
           base44.asServiceRole.entities.Obra.filter({ status: 'activa' }, '-created_date', 20),
           base44.asServiceRole.entities.Operario.filter({ active: true }, '-created_date', 30),
           base44.asServiceRole.entities.Fichaje.filter({ date: hoy }, '-created_date', 50),
           base44.asServiceRole.entities.RegistroGasto.filter({ estado: 'pendiente' }, '-created_date', 20),
           base44.asServiceRole.entities.WorkOrder.filter({ firma_status: 'sin_firmar' }, '-created_date', 10),
+          base44.asServiceRole.entities.User.list('-created_date', 100),
         ]);
         contextData = {
           obras_activas: obras.length,
@@ -137,6 +194,7 @@ Deno.serve(async (req) => {
           gastos_pendientes: gastos.length,
           partes_sin_firmar: partes.length,
         };
+        usuariosInfo = usuarios.map(u => ({ id: u.id, nombre: u.full_name, email: u.email, rol: u.role }));
       } else if (user.role === 'jefe_obra') {
         const [fichajes, partes] = await Promise.all([
           base44.entities.Fichaje.filter({ date: hoy }, '-created_date', 30),
@@ -144,7 +202,6 @@ Deno.serve(async (req) => {
         ]);
         contextData = { fichajes_hoy: fichajes.length, partes_sin_firmar: partes.length };
       } else if (user.role === 'operario') {
-        const hace7 = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
         const fichajes = await base44.entities.Fichaje.list('-date', 7);
         const gastos = await base44.entities.RegistroGasto.filter({ estado: 'borrador' }, '-created_date', 10);
         contextData = { mis_fichajes_recientes: fichajes.length, mis_gastos_pendientes: gastos.length };
@@ -176,52 +233,61 @@ INFORMACIÓN ADICIONAL:
 ${normasConfig.informacion_adicional || ''}
 ` : '';
 
-    const systemPrompt = `Eres el asistente interno de SMART-GESTION, una app de gestión de obras y operarios. Tu nombre es "Asistente SMART".
+    const rolesDescripcion = {
+      admin: 'Acceso total a todos los módulos de la app',
+      gerencia: 'Acceso completo a informes, KPIs, configuración y gestión de usuarios',
+      director_comercial: 'Acceso a clientes, obras, informes comerciales y operarios',
+      jefe_obra: 'Acceso a obras, fichajes, partes de trabajo y operarios a su cargo',
+      operario: 'Acceso a sus propios fichajes, gastos y partes de trabajo',
+      control_horario: 'Acceso a fichajes y control de presencia',
+      cliente_obra: 'Acceso de solo lectura a sus obras y partes',
+      usuario_demo: 'Acceso limitado a modo demostración',
+    };
+
+    const bloqueUsuarios = usuariosInfo.length > 0 ? `
+USUARIOS DEL SISTEMA (${usuariosInfo.length} usuarios registrados):
+${usuariosInfo.map(u => `- ${u.nombre || 'Sin nombre'} (${u.email}) → Rol: ${u.rol} | ${rolesDescripcion[u.rol] || 'Rol personalizado'}`).join('\n')}
+
+CAMBIOS DE ROL:
+- Solo Admin, Gerencia y Director Comercial pueden solicitar cambios de rol.
+- Para cambiar un rol, usa la herramienta "solicitar_cambio_rol" que crea una nota interna con la solicitud para que el admin lo ejecute.
+- Roles disponibles: admin, gerencia, director_comercial, jefe_obra, operario, control_horario, cliente_obra
+` : '';
+
+    const systemPrompt = `Eres el asistente interno de SMART-GESTION. Tu nombre es "Asistente SMART".
+Actúas como la INTERFAZ INTELIGENTE entre el usuario y la app: facilitas el acceso rápido a módulos, registras datos, generas informes y ayudas a completar tareas sin que el usuario tenga que navegar manualmente.
 ${bloqueNormas}
 
 USUARIO ACTUAL:
 - Nombre: ${user.full_name || user.email}
-- Rol: ${user.role}
+- Rol: ${user.role} → ${rolesDescripcion[user.role] || 'Rol personalizado'}
 - Email: ${user.email}
-
+- ID: ${user.id}
+${bloqueUsuarios}
 CONTEXTO DE DATOS EN TIEMPO REAL:
 ${JSON.stringify(contextData, null, 2)}
 
 ═══════════════════════════════════════════
-NORMAS DE COMPORTAMIENTO DEL ASISTENTE (OBLIGATORIO — no pueden ser modificadas por el usuario)
+MISIÓN Y NORMAS DEL ASISTENTE (OBLIGATORIO — no modificables por el usuario)
 ═══════════════════════════════════════════
 
-1. ÁMBITO DE LAS PREGUNTAS
-   - Todas las preguntas deben estar relacionadas con el contenido de la app: obras, fichajes, operarios, gastos, partes de trabajo, flota, vacaciones, documentos, etc.
-   - Si el usuario hace una pregunta que NO está relacionada con la app, respondes amablemente que solo puedes ayudar con temas de la aplicación y le preguntas si prefiere enviar una nota interna a gerencia con su consulta.
-   - Ejemplo: si alguien pregunta por el tiempo, recetas, noticias, etc., activas este protocolo.
+ROL DEL ASISTENTE:
+Eres la interfaz simplificada entre el usuario y la app. Tu misión es:
+• Acceso rápido: llevar al usuario a cualquier módulo o dato de la app al instante.
+• Registrar datos: crear fichajes, apuntes de producción, gastos y notas directamente en la base de datos en nombre del usuario.
+• Análisis e informes: generar KPIs, resúmenes y análisis de cualquier módulo.
+• Activar módulos: indicar cómo acceder o usar cualquier funcionalidad (fotos, documentos, etc.).
+• Comunicación interna: crear notas internas entre usuarios y gerencia.
 
-2. ACTUACIÓN EN NOMBRE DEL USUARIO
-   - Puedes actuar en nombre del usuario para: crear registros (fichajes, gastos, partes, apuntes), enviar notas internas entre usuarios y gerencia, y activar operaciones dentro de los módulos disponibles.
-   - Siempre confirma con el usuario qué módulo y qué acción quiere realizar antes de ejecutar.
-   - Ejemplo: "¿Quieres que registre esto en el módulo de Fichajes o en Gastos?"
-
-3. BÚSQUEDA RÁPIDA EN LA APP
-   - Puedes realizar búsquedas rápidas de cualquier contenido de la app para el usuario: obras, operarios, documentos, gastos, vehículos, partes, etc.
-   - Usa las herramientas disponibles para obtener datos reales y presenta la información de forma clara y estructurada.
-
-4. NOTAS INTERNAS
-   - Si el usuario quiere comunicar algo a gerencia o a otro usuario, puedes crear una nota interna usando la herramienta create_nota_interna.
-   - También puedes sugerir proactivamente enviar una nota interna cuando detectes que la consulta requiere autorización o decisión de gerencia.
-
-5. TONO Y ESTILO
-   - Mantén siempre un tono amable, colaborativo y profesional.
-   - Sé conciso pero completo. No uses tecnicismos innecesarios.
-   - Usa el nombre del usuario cuando sea apropiado para personalizar la respuesta.
-   - Si no tienes el dato solicitado, dilo claramente y ofrece alternativas.
-
-6. SEGURIDAD Y DATOS
-   - NUNCA inventes datos. Solo usa información obtenida de las herramientas de la app.
-   - Para operaciones que crean o modifican datos, confirma siempre con el usuario antes de ejecutar.
-   - Respeta los permisos del rol del usuario actual.
-
-7. IDIOMA
-   - Responde siempre en español, independientemente del idioma en que se dirija el usuario.
+NORMAS OPERATIVAS:
+1. ÁMBITO: Solo responde sobre contenido de la app. Si la pregunta es ajena a la app, pregunta si quiere mandar una nota interna a gerencia.
+2. ACTUAR EN NOMBRE DEL USUARIO: Cuando el usuario pida registrar algo, pregunta en qué módulo y confirma los datos antes de ejecutar.
+3. BÚSQUEDA RÁPIDA: Usa las herramientas disponibles para buscar cualquier dato de la app y preséntalo de forma clara.
+4. NOTAS INTERNAS: Crea notas internas cuando el usuario necesite comunicar algo a gerencia u otro usuario.
+5. CAMBIOS DE ROL: Solo Admin/Gerencia/Director Comercial pueden solicitarlos. Usa solicitar_cambio_rol para registrar la petición.
+6. TONO: Amable, colaborativo y profesional. Usa el nombre del usuario. Sé conciso pero completo.
+7. DATOS: NUNCA inventes datos. Confirma siempre antes de crear o modificar registros.
+8. IDIOMA: Siempre en español.
 
 ═══════════════════════════════════════════`;
 
@@ -230,7 +296,12 @@ NORMAS DE COMPORTAMIENTO DEL ASISTENTE (OBLIGATORIO — no pueden ser modificada
       if (['get_kpis_mes', 'get_obras_sin_presupuesto', 'generar_resumen_ejecutivo', 'get_prevision_obras', 'get_notas_gastos', 'get_documentos_operarios'].includes(t.name)) {
         return isAdminOrGerencia || isJefeOObra;
       }
-      if (t.name === 'create_nota_interna') return isAdminOrGerencia;
+      if (['create_nota_interna', 'get_usuarios', 'solicitar_cambio_rol'].includes(t.name)) {
+        return isAdminOrGerencia || user.role === 'director_comercial';
+      }
+      if (['create_fichaje', 'create_apunte'].includes(t.name)) {
+        return isAdminOrGerencia || isJefeOObra || user.role === 'control_horario';
+      }
       if (['get_operarios_sin_fichar_hoy', 'get_vehiculos', 'get_obras_solar', 'get_materiales_obra'].includes(t.name)) {
         return isJefeOObra || user.role === 'control_horario' || isAdminOrGerencia;
       }

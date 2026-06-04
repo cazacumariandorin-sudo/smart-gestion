@@ -245,6 +245,86 @@ Deno.serve(async (req) => {
       };
     }
 
+    // ── Usuarios del sistema ───────────────────────────────────────────────────
+    else if (tool_name === 'get_usuarios') {
+      if (!isAdminOrGerencia && user.role !== 'director_comercial') return Response.json({ error: 'Sin permisos' }, { status: 403 });
+      const usuarios = await base44.asServiceRole.entities.User.list('-created_date', 100);
+      const rolesDescripcion = {
+        admin: 'Acceso total', gerencia: 'Gestión completa', director_comercial: 'Gestión comercial',
+        jefe_obra: 'Gestión de obra', operario: 'Operario de campo', control_horario: 'Control de presencia',
+        cliente_obra: 'Cliente (solo lectura)', usuario_demo: 'Demo',
+      };
+      const filtrados = tool_input.rol ? usuarios.filter(u => u.role === tool_input.rol) : usuarios;
+      result = {
+        total: filtrados.length,
+        usuarios: filtrados.map(u => ({ id: u.id, nombre: u.full_name, email: u.email, rol: u.role, descripcion_rol: rolesDescripcion[u.role] || u.role, fecha_alta: u.created_date })),
+      };
+    }
+
+    // ── Crear fichaje ──────────────────────────────────────────────────────────
+    else if (tool_name === 'create_fichaje') {
+      const canCreate = isAdminOrGerencia || isJefeOObra || user.role === 'control_horario';
+      if (!canCreate) return Response.json({ error: 'Sin permisos para crear fichajes' }, { status: 403 });
+      const fichaje = await base44.asServiceRole.entities.Fichaje.create({
+        operario_id: tool_input.operario_id,
+        operario_name: tool_input.operario_name,
+        date: tool_input.date,
+        hora_entrada: tool_input.hora_entrada,
+        hora_salida: tool_input.hora_salida || null,
+        obra_id: tool_input.obra_id || null,
+        obra_name: tool_input.obra_name || null,
+        notas: tool_input.notas || null,
+        horas_trabajadas: tool_input.hora_salida ? (() => {
+          const [eh, em] = tool_input.hora_entrada.split(':').map(Number);
+          const [sh, sm] = tool_input.hora_salida.split(':').map(Number);
+          return parseFloat(((sh * 60 + sm - eh * 60 - em) / 60).toFixed(2));
+        })() : null,
+      });
+      result = { success: true, fichaje_id: fichaje.id, operario: tool_input.operario_name, fecha: tool_input.date, entrada: tool_input.hora_entrada, salida: tool_input.hora_salida || 'Sin registrar' };
+    }
+
+    // ── Crear apunte de producción ─────────────────────────────────────────────
+    else if (tool_name === 'create_apunte') {
+      const canCreate = isAdminOrGerencia || isJefeOObra;
+      if (!canCreate) return Response.json({ error: 'Sin permisos para crear apuntes' }, { status: 403 });
+      const total = (tool_input.cantidad || 0) * (tool_input.precio_unitario || 0);
+      const apunte = await base44.asServiceRole.entities.ApunteHorario.create({
+        operario_id: tool_input.operario_id,
+        operario_name: tool_input.operario_name,
+        date: tool_input.date,
+        obra_id: tool_input.obra_id,
+        obra_name: tool_input.obra_name,
+        concepto: tool_input.concepto,
+        cantidad: tool_input.cantidad,
+        unidad: tool_input.unidad || 'ud',
+        precio_unitario: tool_input.precio_unitario || 0,
+        total,
+        horas_ejecutadas: tool_input.horas_ejecutadas || null,
+        notas: tool_input.notas || null,
+      });
+      result = { success: true, apunte_id: apunte.id, operario: tool_input.operario_name, obra: tool_input.obra_name, concepto: tool_input.concepto, total };
+    }
+
+    // ── Solicitar cambio de rol ────────────────────────────────────────────────
+    else if (tool_name === 'solicitar_cambio_rol') {
+      const canRequest = isAdminOrGerencia || user.role === 'director_comercial';
+      if (!canRequest) return Response.json({ error: 'Solo Admin, Gerencia o Director Comercial pueden solicitar cambios de rol' }, { status: 403 });
+      const nota = await base44.asServiceRole.entities.AsistenteTarea.create({
+        titulo: `Cambio de rol: ${tool_input.user_nombre} → ${tool_input.rol_nuevo}`,
+        descripcion: `Solicitud de cambio de rol:\n- Usuario: ${tool_input.user_nombre}\n- Rol actual: ${tool_input.rol_actual || 'desconocido'}\n- Rol nuevo solicitado: ${tool_input.rol_nuevo}\n- Motivo: ${tool_input.motivo || 'No especificado'}\n- Solicitado por: ${user.full_name || user.email}`,
+        tipo: 'tarea_manual',
+        prioridad: 'alta',
+        estado: 'pendiente',
+        asignada_a_user_id: user.id,
+        asignada_a_nombre: user.full_name || user.email,
+        asignada_a_rol: 'admin',
+        contexto_ia: `Cambio de rol solicitado vía asistente IA. User ID: ${tool_input.user_id}`,
+        creada_por: 'asistente_ia',
+        solo_gerencia: true,
+      });
+      result = { success: true, mensaje: `Solicitud de cambio de rol registrada para ${tool_input.user_nombre}. El administrador recibirá la notificación.`, tarea_id: nota.id };
+    }
+
     // ── Nota interna (solo admin/gerencia) ────────────────────────────────────
     else if (tool_name === 'create_nota_interna') {
       if (!isAdminOrGerencia) return Response.json({ error: 'Sin permisos' }, { status: 403 });
