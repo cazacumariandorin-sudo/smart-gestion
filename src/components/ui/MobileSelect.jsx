@@ -47,10 +47,8 @@ export function MobileSelect({
 
   if (!isMobile()) {
     // Desktop: standard Radix select
-    // Radix requires value to be a non-empty string, default to first valid item if undefined/null
-    const safeValue = (value && items.find(i => i.value === value)) 
-      ? value 
-      : (items.length > 0 ? items[0].value : '');
+    // Only pass a value when it's actually selected; otherwise leave undefined so placeholder shows
+    const safeValue = (value && items.find(i => i.value === value)) ? value : undefined;
     
     // Don't render Select if no valid items exist
     // items already excludes __sep* separators
