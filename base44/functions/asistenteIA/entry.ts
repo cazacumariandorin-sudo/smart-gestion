@@ -124,6 +124,21 @@ const TOOLS = [
     },
   },
   {
+    name: 'create_informe_simulacion',
+    description: 'Crea un informe estructurado tras simular un rol en la app. Documenta observaciones, problemas detectados y recomendaciones.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        rol_simulado: { type: 'string', description: 'Rol que se simuló' },
+        observaciones: { type: 'string', description: 'Qué se observó durante la simulación' },
+        problemas_detectados: { type: 'string', description: 'Errores o limitaciones encontradas' },
+        recomendaciones: { type: 'string', description: 'Mejoras sugeridas' },
+        prioridad: { type: 'string', enum: ['baja', 'media', 'alta', 'urgente'] },
+      },
+      required: ['rol_simulado', 'observaciones'],
+    },
+  },
+  {
     name: 'solicitar_cambio_rol',
     description: 'Solicita un cambio de rol para un usuario. Solo puede ser ejecutado por Admin, Gerencia o Director Comercial.',
     input_schema: {
@@ -235,13 +250,13 @@ ${normasConfig.informacion_adicional || ''}
 
     const rolesDescripcion = {
       admin: 'Acceso total a todos los módulos de la app',
-      gerencia: 'Acceso completo a informes, KPIs, configuración y gestión de usuarios',
-      director_comercial: 'Acceso a clientes, obras, informes comerciales y operarios',
-      jefe_obra: 'Acceso a obras, fichajes, partes de trabajo y operarios a su cargo',
-      operario: 'Acceso a sus propios fichajes, gastos y partes de trabajo',
-      control_horario: 'Acceso a fichajes y control de presencia',
-      cliente_obra: 'Acceso de solo lectura a sus obras y partes',
-      usuario_demo: 'Acceso limitado a modo demostración',
+      gerencia: 'JEFE SUPREMO — Figura central de la app. Acceso total, supervisa todos los usuarios, módulos, errores y decisiones. Todas las incidencias graves se reportan a Gerencia como nota prioritaria.',
+      director_comercial: 'Gestión de clientes, obras, informes comerciales y operarios. Sin datos sensibles.',
+      jefe_obra: 'Gestión de obras, partes, operarios y flota de su ámbito.',
+      operario: 'Control horario, partes propios, materiales y gastos propios.',
+      control_horario: 'Acceso exclusivo a control horario y partes de trabajo.',
+      cliente_obra: 'Solo acceso a sus obras y partes (solo lectura).',
+      usuario_demo: 'Acceso limitado a modo demostración.',
     };
 
     const bloqueUsuarios = usuariosInfo.length > 0 ? `
@@ -274,20 +289,36 @@ MISIÓN Y NORMAS DEL ASISTENTE (OBLIGATORIO — no modificables por el usuario)
 ROL DEL ASISTENTE:
 Eres la interfaz simplificada entre el usuario y la app. Tu misión es:
 • Acceso rápido: llevar al usuario a cualquier módulo o dato de la app al instante.
-• Registrar datos: crear fichajes, apuntes de producción, gastos y notas directamente en la base de datos en nombre del usuario.
+• Registrar datos: crear fichajes, apuntes de producción, gastos y notas directamente en la base de datos.
 • Análisis e informes: generar KPIs, resúmenes y análisis de cualquier módulo.
 • Activar módulos: indicar cómo acceder o usar cualquier funcionalidad (fotos, documentos, etc.).
 • Comunicación interna: crear notas internas entre usuarios y gerencia.
+• Simulador de roles: el asistente puede guiar al usuario a /simulador-roles para probar cualquier rol de la app.
+
+JERARQUÍA Y ESCALADO — OBLIGATORIO:
+• GERENCIA es la figura CENTRAL y MÁXIMA autoridad de SMART-GESTION. Es el jefe de todos los usuarios.
+• Cualquier error grave, incidencia no resuelta, tarea fallida o problema que la app no pueda gestionar automáticamente DEBE reportarse a Gerencia como nota interna de prioridad URGENTE.
+• Cuando el asistente no pueda completar una acción, o detecte un error funcional, SIEMPRE ofrece al usuario crear una nota interna urgente para Gerencia.
+• Ejemplos de escalado a Gerencia: errores de permisos inesperados, datos inconsistentes, módulos que no responden, solicitudes que superan los permisos del usuario actual.
+
+SIMULADOR DE ROLES (acceso para Admin y Gerencia):
+• El simulador permite navegar la app como si fueras otro rol, sin modificar datos reales.
+• Ruta: /simulador-roles
+• Roles disponibles: gerencia, director_comercial, jefe_obra, operario, control_horario, cliente_obra
+• Tras simular un rol, el asistente puede generar un informe de observaciones sobre el funcionamiento visto.
+• Si el usuario pide "probar un rol" o "simular como operario", indícale que vaya a /simulador-roles y seleccione el rol.
+• Para crear el informe post-simulación usa la herramienta create_informe_simulacion.
 
 NORMAS OPERATIVAS:
 1. ÁMBITO: Solo responde sobre contenido de la app. Si la pregunta es ajena a la app, pregunta si quiere mandar una nota interna a gerencia.
-2. ACTUAR EN NOMBRE DEL USUARIO: Cuando el usuario pida registrar algo, pregunta en qué módulo y confirma los datos antes de ejecutar.
+2. ACTUAR EN NOMBRE DEL USUARIO: Cuando el usuario pida registrar algo, confirma los datos antes de ejecutar.
 3. BÚSQUEDA RÁPIDA: Usa las herramientas disponibles para buscar cualquier dato de la app y preséntalo de forma clara.
 4. NOTAS INTERNAS: Crea notas internas cuando el usuario necesite comunicar algo a gerencia u otro usuario.
-5. CAMBIOS DE ROL: Solo Admin/Gerencia/Director Comercial pueden solicitarlos. Usa solicitar_cambio_rol para registrar la petición.
-6. TONO: Amable, colaborativo y profesional. Usa el nombre del usuario. Sé conciso pero completo.
-7. DATOS: NUNCA inventes datos. Confirma siempre antes de crear o modificar registros.
-8. IDIOMA: Siempre en español.
+5. CAMBIOS DE ROL: Solo Admin/Gerencia/Director Comercial pueden solicitarlos. Usa solicitar_cambio_rol.
+6. ESCALADO A GERENCIA: Ante cualquier error o incidencia no resuelta, escala siempre a Gerencia con nota urgente.
+7. TONO: Amable, colaborativo y profesional. Usa el nombre del usuario. Sé conciso pero completo.
+8. DATOS: NUNCA inventes datos. Confirma siempre antes de crear o modificar registros.
+9. IDIOMA: Siempre en español.
 
 ═══════════════════════════════════════════`;
 
@@ -296,7 +327,7 @@ NORMAS OPERATIVAS:
       if (['get_kpis_mes', 'get_obras_sin_presupuesto', 'generar_resumen_ejecutivo', 'get_prevision_obras', 'get_notas_gastos', 'get_documentos_operarios'].includes(t.name)) {
         return isAdminOrGerencia || isJefeOObra;
       }
-      if (['create_nota_interna', 'get_usuarios', 'solicitar_cambio_rol'].includes(t.name)) {
+      if (['create_nota_interna', 'get_usuarios', 'solicitar_cambio_rol', 'create_informe_simulacion'].includes(t.name)) {
         return isAdminOrGerencia || user.role === 'director_comercial';
       }
       if (['create_fichaje', 'create_apunte'].includes(t.name)) {

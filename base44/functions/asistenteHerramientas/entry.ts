@@ -305,6 +305,42 @@ Deno.serve(async (req) => {
       result = { success: true, apunte_id: apunte.id, operario: tool_input.operario_name, obra: tool_input.obra_name, concepto: tool_input.concepto, total };
     }
 
+    // ── Informe post-simulación de roles ──────────────────────────────────────
+    else if (tool_name === 'create_informe_simulacion') {
+      if (!isAdminOrGerencia) return Response.json({ error: 'Solo Admin y Gerencia pueden crear informes de simulación' }, { status: 403 });
+      const contenido = `
+INFORME DE SIMULACIÓN DE ROL
+════════════════════════════
+Generado por: ${user.full_name || user.email} (${user.role})
+Fecha: ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+Rol simulado: ${tool_input.rol_simulado?.toUpperCase() || 'No especificado'}
+
+OBSERVACIONES:
+${tool_input.observaciones || 'Sin observaciones'}
+
+PROBLEMAS DETECTADOS:
+${tool_input.problemas_detectados || 'Ninguno registrado'}
+
+RECOMENDACIONES:
+${tool_input.recomendaciones || 'Sin recomendaciones'}
+`.trim();
+
+      const informe = await base44.asServiceRole.entities.AsistenteTarea.create({
+        titulo: `Informe simulación: Rol ${tool_input.rol_simulado}`,
+        descripcion: contenido,
+        tipo: 'informe',
+        prioridad: tool_input.prioridad || 'media',
+        estado: 'pendiente',
+        asignada_a_user_id: user.id,
+        asignada_a_nombre: user.full_name || user.email,
+        asignada_a_rol: user.role,
+        contexto_ia: 'Informe generado por el asistente IA tras simulación de roles',
+        creada_por: 'asistente_ia',
+        solo_gerencia: true,
+      });
+      result = { success: true, informe_id: informe.id, titulo: informe.titulo, mensaje: 'Informe guardado y disponible en la pestaña Tareas del asistente.' };
+    }
+
     // ── Solicitar cambio de rol ────────────────────────────────────────────────
     else if (tool_name === 'solicitar_cambio_rol') {
       const canRequest = isAdminOrGerencia || user.role === 'director_comercial';
@@ -347,11 +383,28 @@ Deno.serve(async (req) => {
     }
 
     else {
-      return Response.json({ error: `Herramienta desconocida: ${tool_name}` }, { status: 400 });
+      return Response.json({ error: `Herramienta desconocida: ${tool_name}`, escalar_a_gerencia: true }, { status: 400 });
     }
 
     return Response.json({ result });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    // Intentar registrar el error como nota urgente para Gerencia
+    try {
+      const base44Error = createClientFromRequest(req);
+      await base44Error.asServiceRole.entities.AsistenteTarea.create({
+        titulo: `⚠️ Error en asistente: ${tool_name}`,
+        descripcion: `Error detectado en herramienta "${tool_name}":\n${error.message}\n\nEscalado automático a Gerencia para revisión.`,
+        tipo: 'alerta',
+        prioridad: 'urgente',
+        estado: 'pendiente',
+        asignada_a_user_id: 'gerencia',
+        asignada_a_nombre: 'Gerencia',
+        asignada_a_rol: 'gerencia',
+        contexto_ia: 'Error auto-detectado por el asistente IA',
+        creada_por: 'sistema',
+        solo_gerencia: true,
+      });
+    } catch (_) {}
+    return Response.json({ error: error.message, escalar_a_gerencia: true }, { status: 500 });
   }
 });
