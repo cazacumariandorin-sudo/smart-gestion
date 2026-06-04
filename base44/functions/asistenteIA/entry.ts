@@ -153,7 +153,31 @@ Deno.serve(async (req) => {
       contextData = { error: 'No se pudieron cargar todos los datos' };
     }
 
+    // Cargar normas internas configuradas por gerencia
+    let normasConfig = null;
+    try {
+      const configs = await base44.asServiceRole.entities.AsistenteConfig.filter({ clave: 'normas_globales' });
+      if (configs && configs.length > 0) normasConfig = configs[0];
+    } catch (_) {}
+
+    const bloqueNormas = normasConfig ? `
+CONFIGURACIÓN DE LA EMPRESA:
+- Empresa: ${normasConfig.empresa_nombre || 'No configurado'}
+- Sector: ${normasConfig.empresa_sector || 'No configurado'}
+- Entorno de trabajo: ${normasConfig.entorno_descripcion || 'No configurado'}
+
+NORMAS INTERNAS (OBLIGATORIO CUMPLIRLAS SIEMPRE):
+${normasConfig.normas_internas || 'Sin normas definidas'}
+
+DIRECTRICES DE COMPORTAMIENTO:
+${normasConfig.directrices_comportamiento || 'Sin directrices definidas'}
+
+INFORMACIÓN ADICIONAL:
+${normasConfig.informacion_adicional || ''}
+` : '';
+
     const systemPrompt = `Eres el asistente interno de SMART-GESTION, una app de gestión de obras y operarios. Tu nombre es "Asistente SMART".
+${bloqueNormas}
 
 USUARIO ACTUAL:
 - Nombre: ${user.full_name || user.email}

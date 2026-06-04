@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Bot, Send, CheckSquare, BarChart2, Loader2, Zap } from 'lucide-react';
+import { X, Bot, Send, CheckSquare, BarChart2, Loader2, Zap, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/lib/useUserRole';
 import AsistenteChat from './AsistenteChat';
 import AsistenteTareas from './AsistenteTareas';
 import AsistenteInformes from './AsistenteInformes';
+import AsistenteConfigPanel from './AsistenteConfigPanel';
 
 const TABS = [
   { id: 'chat', label: 'Chat', icon: Bot },
   { id: 'tareas', label: 'Tareas', icon: CheckSquare },
   { id: 'informes', label: 'Informes', icon: BarChart2 },
+  { id: 'normas', label: 'Normas', icon: ShieldCheck },
 ];
 
 export default function AsistentePanel({ open, onClose, currentUser }) {
@@ -82,6 +84,7 @@ export default function AsistentePanel({ open, onClose, currentUser }) {
               {activeTab === 'chat' && <AsistenteChat currentUser={currentUser} />}
               {activeTab === 'tareas' && <AsistenteTareas currentUser={currentUser} onSwitchChat={() => setActiveTab('chat')} />}
               {activeTab === 'informes' && <AsistenteInformes currentUser={currentUser} />}
+              {activeTab === 'normas' && <AsistenteConfigPanel currentUser={currentUser} />}
             </div>
           </motion.div>
         </>

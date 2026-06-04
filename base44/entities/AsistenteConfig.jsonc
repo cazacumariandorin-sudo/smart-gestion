@@ -1,0 +1,62 @@
+{
+  "name": "AsistenteConfig",
+  "type": "object",
+  "properties": {
+    "clave": {
+      "type": "string",
+      "description": "Identificador \u00fanico de la configuraci\u00f3n (ej: 'normas_globales')"
+    },
+    "empresa_nombre": {
+      "type": "string",
+      "description": "Nombre de la empresa"
+    },
+    "empresa_sector": {
+      "type": "string",
+      "description": "Sector o actividad principal"
+    },
+    "entorno_descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n del entorno de trabajo (estructura, proyectos habituales, terminolog\u00eda)"
+    },
+    "normas_internas": {
+      "type": "string",
+      "description": "Normas y restricciones que el asistente debe respetar siempre"
+    },
+    "directrices_comportamiento": {
+      "type": "string",
+      "description": "Instrucciones sobre tono, nivel de detalle, idioma, prioridades del asistente"
+    },
+    "informacion_adicional": {
+      "type": "string",
+      "description": "Cualquier otra informaci\u00f3n relevante para el asistente"
+    },
+    "ultima_modificacion_por": {
+      "type": "string",
+      "description": "Email del gerente que realiz\u00f3 el \u00faltimo cambio"
+    },
+    "ultima_modificacion_nombre": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "clave"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "gerencia"
+      }
+    },
+    "read": true,
+    "update": {
+      "user_condition": {
+        "role": "gerencia"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "gerencia"
+      }
+    }
+  }
+}
