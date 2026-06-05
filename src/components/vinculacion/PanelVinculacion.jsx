@@ -80,6 +80,14 @@ export default function PanelVinculacion() {
 
           let operarioId, operarioNombre, tipoVinculo, esTemporal = false;
 
+          // SEGURIDAD: nunca auto-vincular usuarios con roles privilegiados
+          const rolesProtegidos = ['admin', 'gerencia', 'director_comercial'];
+          if (rolesProtegidos.includes(usuario.role)) {
+            console.warn(`[Vinculación] IGNORADO: usuario ${usuario.email} tiene rol privilegiado (${usuario.role}), no se crea operario temporal.`);
+            toast.warning(`⚠ ${usuario.email} tiene rol ${usuario.role} — no se auto-vincula como operario`);
+            continue;
+          }
+
           if (operarioCoincidente) {
             // Vincular con operario existente
             await base44.entities.Operario.update(operarioCoincidente.id, {
@@ -93,7 +101,7 @@ export default function PanelVinculacion() {
             operarioNombre = operarioCoincidente.name;
             tipoVinculo = 'operario';
           } else {
-            // Crear operario temporal
+            // Crear operario temporal — role: 'operario' es solo del Operario, NUNCA del User
             const nuevoOperario = await base44.entities.Operario.create({
               name: `Operario Temporal - ${usuario.email}`,
               email: usuario.email,
@@ -103,7 +111,7 @@ export default function PanelVinculacion() {
               es_temporal: true,
               vinculacion_tipo: 'automatico_7dias',
               vinculacion_fecha: now.toISOString(),
-              role: 'operario',
+              role: 'operario', // campo del Operario, NO modifica el User.role
             });
             operarioId = nuevoOperario.id;
             operarioNombre = nuevoOperario.name;
@@ -112,7 +120,7 @@ export default function PanelVinculacion() {
             resultados.temporales++;
           }
 
-          // Actualizar usuario
+          // Actualizar usuario — NO incluir role aquí, solo campos de vínculo
           await base44.entities.User.update(usuario.id, {
             vinculo_id: operarioId,
             vinculo_nombre: operarioNombre,

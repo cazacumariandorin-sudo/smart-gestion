@@ -41,27 +41,43 @@ export const AuthProvider = ({ children }) => {
       userLoadedRef.current = true;
       clearTimeout(timeoutId);
 
-      // PATCH: leer el rol actualizado de la entidad User
-      // base44.auth.me() devuelve el token JWT original que puede tener el rol viejo.
-      // Al consultar la entidad User por email obtenemos el rol real y actualizado.
+      // PATCH: leer el rol actualizado via función getMiRol (usa asServiceRole en backend,
+      // evita que RLS con JWT desactualizado impida leer el rol real de la entidad User).
       try {
-        const userRecords = await base44.entities.User.filter({ email: currentUser.email });
-        if (userRecords && userRecords.length > 0) {
-          const entityUser = userRecords[0];
-          // Sobreescribir campos que pueden haber cambiado desde el registro inicial
-          currentUser.role = entityUser.role || currentUser.role || 'operario';
+        const rolData = await base44.functions.invoke('getMiRol', {});
+        const entityUser = rolData?.data || rolData;
+        if (entityUser && entityUser.role) {
+          currentUser.role = entityUser.role;
           currentUser.cargo = entityUser.cargo || currentUser.cargo || '';
           currentUser.tipo_cuenta = entityUser.tipo_cuenta || 'real';
           currentUser.demo_expires_at = entityUser.demo_expires_at || null;
           currentUser.invitado_por = entityUser.invitado_por || null;
           currentUser.acceso_hasta = entityUser.acceso_hasta || null;
           currentUser.vinculo_id = entityUser.vinculo_id || null;
-          // Guardar el id de la entidad User para referencias posteriores
-          currentUser.user_entity_id = entityUser.id;
+          currentUser.user_entity_id = entityUser.user_entity_id || null;
+          if (entityUser.source === 'entity') {
+            console.log(`[Auth] Rol sincronizado desde entidad: ${entityUser.role} (${currentUser.email})`);
+          }
         }
       } catch (roleErr) {
-        // Si falla la query de rol (sin permisos, red, etc.) usar el del token
-        console.warn('Role sync from entity failed, using token role:', roleErr);
+        // Fallback: intentar directamente con filter si la función falla
+        console.warn('getMiRol falló, intentando fallback directo:', roleErr.message);
+        try {
+          const userRecords = await base44.entities.User.filter({ email: currentUser.email });
+          if (userRecords && userRecords.length > 0) {
+            const entityUser = userRecords[0];
+            currentUser.role = entityUser.role || currentUser.role || 'operario';
+            currentUser.cargo = entityUser.cargo || currentUser.cargo || '';
+            currentUser.tipo_cuenta = entityUser.tipo_cuenta || 'real';
+            currentUser.demo_expires_at = entityUser.demo_expires_at || null;
+            currentUser.invitado_por = entityUser.invitado_por || null;
+            currentUser.acceso_hasta = entityUser.acceso_hasta || null;
+            currentUser.vinculo_id = entityUser.vinculo_id || null;
+            currentUser.user_entity_id = entityUser.id;
+          }
+        } catch (fallbackErr) {
+          console.warn('Role sync fallback también falló, usando rol del token:', fallbackErr.message);
+        }
       }
 
       setUser(currentUser);
