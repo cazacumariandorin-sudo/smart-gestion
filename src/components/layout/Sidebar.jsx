@@ -223,9 +223,11 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-3 py-3 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <HardHat className="w-4 h-4 text-primary-foreground" />
-          </div>
+          <img 
+            src="https://media.base44.com/images/public/69de8e23b1cd7ac050397c82/7bb9498dd_logoSimantecnew.png" 
+            alt="SIMANTEC" 
+            className="w-8 h-8 shrink-0 object-contain"
+          />
           <div className="overflow-hidden whitespace-nowrap opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">
             <h1 className="text-sm font-extrabold uppercase tracking-tight text-emerald-600">SIMANTEC</h1>
             <p className="text-[10px] text-muted-foreground leading-tight">Gestión Empresarial</p>
