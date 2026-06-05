@@ -38,12 +38,17 @@ export default function AddUserTab({ users, usersLoaded, isOwner, onInvited }) {
 
   const qc = useQueryClient();
 
-  // Invitar usuario real (requiere backend function - no disponible en plan actual)
+  // Invitar usuario real via función serverless
   const inviteRealMutation = useMutation({
     mutationFn: async (data) => {
-      // NOTA: Esto requiere backend function que no está disponible en el plan actual
-      // El usuario deberá invitar manualmente desde el dashboard de Base44
-      throw new Error('Las invitaciones requieren plan Builder+. Por favor invita al usuario manualmente desde el dashboard de Base44.');
+      const res = await base44.functions.invoke('inviteUserFunction', {
+        email: data.email,
+        role: data.role,
+        cargo: data.cargo,
+        acceso_hasta: data.acceso_hasta,
+      });
+      if (res?.data?.error) throw new Error(res.data.error);
+      return res?.data;
     },
     onSuccess: () => {
       toast.success('Invitación enviada correctamente');
@@ -82,14 +87,29 @@ export default function AddUserTab({ users, usersLoaded, isOwner, onInvited }) {
       };
 
       await base44.entities.InvitacionDemo.create(invitacion);
-      return {
-        codigo,
-        link: `${window.location.origin}/demo-join?codigo=${codigo}`,
-      };
+      const link = `${window.location.origin}/demo-join?codigo=${codigo}`;
+
+      // Si hay email destino, enviarlo por email
+      if (data.email_destino) {
+        const res = await base44.functions.invoke('enviarInvitacionDemo', {
+          codigo,
+          email_destino: data.email_destino,
+          generada_por_nombre: invitacion.generada_por_nombre,
+          duracion_dias: data.duracion_dias,
+        });
+        if (res?.data?.error) throw new Error(res.data.error);
+        return { codigo, link, emailEnviado: true, email: data.email_destino };
+      }
+
+      return { codigo, link, emailEnviado: false };
     },
     onSuccess: (result) => {
-      setGeneratedLink(result);
-      toast.success('Link de invitación demo generado');
+      if (result.emailEnviado) {
+        toast.success(`Link generado y enviado por email a ${result.email}`);
+      } else {
+        setGeneratedLink(result);
+        toast.success('Link de invitación demo generado');
+      }
       setDemoEmail('');
       setDemoDuration(7);
     },
