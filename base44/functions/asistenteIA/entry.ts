@@ -180,11 +180,11 @@ REGLAS:
         const toolResults = await Promise.all(toolCalls.map(async (toolCall) => {
           let result;
           try {
-            const resp = await base44.asServiceRole.functions.invoke('asistenteHerramientas', {
+            const resp = await base44.functions.invoke('asistenteHerramientas', {
               tool_name: toolCall.name,
               tool_input: toolCall.input || {},
             });
-            result = JSON.stringify(resp?.result || resp || {});
+            result = JSON.stringify(resp?.result || resp?.data?.result || resp?.data || resp || {});
           } catch (err) {
             result = JSON.stringify({ error: err.message });
           }
