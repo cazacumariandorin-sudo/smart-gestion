@@ -1,174 +1,60 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import Anthropic from 'npm:@anthropic-ai/sdk@0.40.0';
 
-// Herramientas disponibles para el asistente
-const TOOLS = [
-  {
-    name: 'get_obras_activas',
-    description: 'Obtiene las obras activas con su estado, cliente y presupuesto',
-    input_schema: { type: 'object', properties: {}, required: [] },
-  },
-  {
-    name: 'get_fichajes_hoy',
-    description: 'Obtiene los fichajes de hoy o de una fecha específica',
-    input_schema: {
-      type: 'object',
-      properties: {
-        fecha: { type: 'string', description: 'Fecha YYYY-MM-DD, default=hoy' },
-        operario_id: { type: 'string', description: 'Filtrar por operario' },
-      },
-    },
-  },
-  {
-    name: 'get_gastos_pendientes',
-    description: 'Obtiene registros de gasto en estado borrador o pendiente',
-    input_schema: {
-      type: 'object',
-      properties: {
-        operario_id: { type: 'string' },
-        sin_obra: { type: 'boolean', description: 'Solo gastos sin obra asignada' },
-      },
-    },
-  },
-  {
-    name: 'get_partes_sin_firmar',
-    description: 'Obtiene los partes de trabajo sin firma del cliente',
-    input_schema: { type: 'object', properties: {}, required: [] },
-  },
-  {
-    name: 'get_kpis_mes',
-    description: 'Calcula KPIs del mes actual: horas, gastos, obras activas, operarios, partes',
-    input_schema: { type: 'object', properties: {}, required: [] },
-  },
-  {
-    name: 'create_tarea',
-    description: 'Crea una tarea en AsistenteTarea para un usuario',
-    input_schema: {
-      type: 'object',
-      properties: {
-        titulo: { type: 'string' },
-        descripcion: { type: 'string' },
-        tipo: { type: 'string', enum: ['recordatorio', 'comprobacion', 'alerta', 'tarea_manual', 'informe'] },
-        prioridad: { type: 'string', enum: ['baja', 'media', 'alta', 'urgente'] },
-        asignada_a_user_id: { type: 'string' },
-        asignada_a_nombre: { type: 'string' },
-        fecha_limite: { type: 'string' },
-        entidad_relacionada_tipo: { type: 'string' },
-        entidad_relacionada_id: { type: 'string' },
-        contexto_ia: { type: 'string' },
-      },
-      required: ['titulo', 'tipo', 'asignada_a_user_id', 'asignada_a_nombre'],
-    },
-  },
-  {
-    name: 'get_operarios_sin_fichar_hoy',
-    description: 'Devuelve operarios activos que no han fichado entrada hoy',
-    input_schema: { type: 'object', properties: {}, required: [] },
-  },
-  {
-    name: 'get_obras_sin_presupuesto',
-    description: 'Devuelve obras donde el presupuesto es 0 o nulo',
-    input_schema: { type: 'object', properties: {}, required: [] },
-  },
-  {
-    name: 'generar_resumen_ejecutivo',
-    description: 'Genera un resumen ejecutivo combinando obras, fichajes, gastos y partes',
-    input_schema: { type: 'object', properties: { periodo: { type: 'string', enum: ['hoy', 'semana', 'mes'] } }, required: ['periodo'] },
-  },
-  { name: 'get_manuales', description: 'Obtiene los manuales disponibles', input_schema: { type: 'object', properties: { categoria: { type: 'string' } } } },
-  { name: 'get_apuntes_produccion', description: 'Apuntes de producción por operario, obra o fecha', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, fecha_desde: { type: 'string' }, obra_id: { type: 'string' } } } },
-  { name: 'get_vehiculos', description: 'Estado de la flota de vehículos con alertas de mantenimiento', input_schema: { type: 'object', properties: {} } },
-  { name: 'get_vacaciones', description: 'Vacaciones y ausencias de operarios', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, pendientes_aprobacion: { type: 'boolean' } } } },
-  { name: 'get_notas_gastos', description: 'Notas de gastos de operarios con su estado', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, estado: { type: 'string' } } } },
-  { name: 'get_obras_solar', description: 'Proyectos de instalaciones solares', input_schema: { type: 'object', properties: { status: { type: 'string' } } } },
-  { name: 'get_materiales_obra', description: 'Materiales registrados de una obra', input_schema: { type: 'object', properties: { obra_id: { type: 'string' } }, required: ['obra_id'] } },
-  { name: 'get_prevision_obras', description: 'Previsión y planificación de obras con semáforo de avance', input_schema: { type: 'object', properties: {} } },
-  { name: 'get_documentos_operarios', description: 'Documentos de operarios y estado de firma', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, firma_status: { type: 'string' } } } },
-  { name: 'get_usuarios', description: 'Lista todos los usuarios de la app con nombre, email y rol actual', input_schema: { type: 'object', properties: { rol: { type: 'string', description: 'Filtrar por rol específico' } } } },
-  {
-    name: 'create_fichaje',
-    description: 'Registra un fichaje (entrada/salida) para un operario en la base de datos',
-    input_schema: {
-      type: 'object',
-      properties: {
-        operario_id: { type: 'string' },
-        operario_name: { type: 'string' },
-        date: { type: 'string', description: 'Fecha YYYY-MM-DD' },
-        hora_entrada: { type: 'string', description: 'HH:MM' },
-        hora_salida: { type: 'string', description: 'HH:MM, opcional' },
-        obra_id: { type: 'string' },
-        obra_name: { type: 'string' },
-        notas: { type: 'string' },
-      },
-      required: ['operario_id', 'operario_name', 'date', 'hora_entrada'],
-    },
-  },
-  {
-    name: 'create_apunte',
-    description: 'Registra un apunte de producción/horario para un operario en la base de datos',
-    input_schema: {
-      type: 'object',
-      properties: {
-        operario_id: { type: 'string' },
-        operario_name: { type: 'string' },
-        date: { type: 'string', description: 'Fecha YYYY-MM-DD' },
-        obra_id: { type: 'string' },
-        obra_name: { type: 'string' },
-        concepto: { type: 'string' },
-        cantidad: { type: 'number' },
-        unidad: { type: 'string' },
-        precio_unitario: { type: 'number' },
-        horas_ejecutadas: { type: 'number' },
-        notas: { type: 'string' },
-      },
-      required: ['operario_id', 'operario_name', 'date', 'obra_id', 'obra_name', 'concepto', 'cantidad'],
-    },
-  },
-  {
-    name: 'create_informe_simulacion',
-    description: 'Crea un informe estructurado tras simular un rol en la app. Documenta observaciones, problemas detectados y recomendaciones.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        rol_simulado: { type: 'string', description: 'Rol que se simuló' },
-        observaciones: { type: 'string', description: 'Qué se observó durante la simulación' },
-        problemas_detectados: { type: 'string', description: 'Errores o limitaciones encontradas' },
-        recomendaciones: { type: 'string', description: 'Mejoras sugeridas' },
-        prioridad: { type: 'string', enum: ['baja', 'media', 'alta', 'urgente'] },
-      },
-      required: ['rol_simulado', 'observaciones'],
-    },
-  },
-  {
-    name: 'solicitar_cambio_rol',
-    description: 'Solicita un cambio de rol para un usuario. Solo puede ser ejecutado por Admin, Gerencia o Director Comercial.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        user_id: { type: 'string' },
-        user_nombre: { type: 'string' },
-        rol_actual: { type: 'string' },
-        rol_nuevo: { type: 'string' },
-        motivo: { type: 'string' },
-      },
-      required: ['user_id', 'user_nombre', 'rol_nuevo'],
-    },
-  },
-  {
-    name: 'create_nota_interna',
-    description: 'Crea una nota interna confidencial visible solo para admin y gerencia. Útil para registrar observaciones, alertas o decisiones internas.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        titulo: { type: 'string', description: 'Título breve de la nota' },
-        contenido: { type: 'string', description: 'Contenido completo de la nota' },
-        prioridad: { type: 'string', enum: ['baja', 'media', 'alta', 'urgente'], description: 'Prioridad de la nota' },
-        entidad_relacionada_tipo: { type: 'string', description: 'Entidad relacionada: Obra, Operario, Vehiculo...' },
-        entidad_relacionada_id: { type: 'string', description: 'ID de la entidad relacionada' },
-      },
-      required: ['titulo', 'contenido'],
-    },
-  },
+// ── Diccionario de herramientas disponibles ───────────────────────────────────
+const TOOLS_ALL = [
+  { name: 'get_obras_activas',          description: 'Obtiene las obras activas con estado, cliente y presupuesto', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_fichajes_hoy',           description: 'Obtiene los fichajes de hoy o de una fecha específica', input_schema: { type: 'object', properties: { fecha: { type: 'string', description: 'YYYY-MM-DD, default=hoy' }, operario_id: { type: 'string' } } } },
+  { name: 'get_gastos_pendientes',      description: 'Registros de gasto en estado borrador o pendiente', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, sin_obra: { type: 'boolean' } } } },
+  { name: 'get_partes_sin_firmar',      description: 'Partes de trabajo sin firma del cliente', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_kpis_mes',              description: 'KPIs del mes: horas, gastos, obras activas, partes', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_operarios_sin_fichar_hoy', description: 'Operarios activos que no han fichado hoy', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_obras_sin_presupuesto',  description: 'Obras con presupuesto 0 o nulo', input_schema: { type: 'object', properties: {} } },
+  { name: 'generar_resumen_ejecutivo',  description: 'Resumen ejecutivo de obras, fichajes, gastos y partes', input_schema: { type: 'object', properties: { periodo: { type: 'string', enum: ['hoy', 'semana', 'mes'] } }, required: ['periodo'] } },
+  { name: 'get_apuntes_produccion',     description: 'Apuntes de producción por operario, obra o fecha', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, fecha_desde: { type: 'string' }, obra_id: { type: 'string' } } } },
+  { name: 'get_manuales',              description: 'Manuales técnicos y documentación interna disponible', input_schema: { type: 'object', properties: { categoria: { type: 'string' } } } },
+  { name: 'get_vehiculos',             description: 'Estado de la flota de vehículos con alertas de mantenimiento', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_vacaciones',            description: 'Vacaciones y ausencias de operarios', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, pendientes_aprobacion: { type: 'boolean' } } } },
+  { name: 'get_notas_gastos',          description: 'Notas de gastos de operarios con su estado', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, estado: { type: 'string' } } } },
+  { name: 'get_obras_solar',           description: 'Proyectos de instalaciones solares', input_schema: { type: 'object', properties: { status: { type: 'string' } } } },
+  { name: 'get_materiales_obra',       description: 'Materiales registrados de una obra específica', input_schema: { type: 'object', properties: { obra_id: { type: 'string' } }, required: ['obra_id'] } },
+  { name: 'get_prevision_obras',       description: 'Previsión y planificación de obras con semáforo de avance', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_documentos_operarios',  description: 'Documentos de operarios y estado de firma', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, firma_status: { type: 'string' } } } },
+  { name: 'get_usuarios',             description: 'Lista usuarios de la app con nombre, email y rol', input_schema: { type: 'object', properties: { rol: { type: 'string' } } } },
+  { name: 'create_fichaje',           description: 'Registra un fichaje (entrada/salida) para un operario', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, operario_name: { type: 'string' }, date: { type: 'string' }, hora_entrada: { type: 'string' }, hora_salida: { type: 'string' }, obra_id: { type: 'string' }, obra_name: { type: 'string' }, notas: { type: 'string' } }, required: ['operario_id', 'operario_name', 'date', 'hora_entrada'] } },
+  { name: 'create_apunte',            description: 'Registra un apunte de producción para un operario', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, operario_name: { type: 'string' }, date: { type: 'string' }, obra_id: { type: 'string' }, obra_name: { type: 'string' }, concepto: { type: 'string' }, cantidad: { type: 'number' }, unidad: { type: 'string' }, precio_unitario: { type: 'number' }, horas_ejecutadas: { type: 'number' }, notas: { type: 'string' } }, required: ['operario_id', 'operario_name', 'date', 'obra_id', 'obra_name', 'concepto', 'cantidad'] } },
+  { name: 'create_tarea',             description: 'Crea una tarea en AsistenteTarea para un usuario', input_schema: { type: 'object', properties: { titulo: { type: 'string' }, descripcion: { type: 'string' }, tipo: { type: 'string', enum: ['recordatorio', 'comprobacion', 'alerta', 'tarea_manual', 'informe'] }, prioridad: { type: 'string', enum: ['baja', 'media', 'alta', 'urgente'] }, asignada_a_user_id: { type: 'string' }, asignada_a_nombre: { type: 'string' }, fecha_limite: { type: 'string' }, entidad_relacionada_tipo: { type: 'string' }, entidad_relacionada_id: { type: 'string' } }, required: ['titulo', 'tipo', 'asignada_a_user_id', 'asignada_a_nombre'] } },
+  { name: 'create_nota_interna',      description: 'Crea una nota interna confidencial para admin y gerencia', input_schema: { type: 'object', properties: { titulo: { type: 'string' }, contenido: { type: 'string' }, prioridad: { type: 'string', enum: ['baja', 'media', 'alta', 'urgente'] }, entidad_relacionada_tipo: { type: 'string' }, entidad_relacionada_id: { type: 'string' } }, required: ['titulo', 'contenido'] } },
+  { name: 'solicitar_cambio_rol',     description: 'Solicita cambio de rol para un usuario (solo Admin/Gerencia/Director)', input_schema: { type: 'object', properties: { user_id: { type: 'string' }, user_nombre: { type: 'string' }, rol_actual: { type: 'string' }, rol_nuevo: { type: 'string' }, motivo: { type: 'string' } }, required: ['user_id', 'user_nombre', 'rol_nuevo'] } },
+  { name: 'create_informe_simulacion', description: 'Crea informe post-simulación de rol con observaciones y recomendaciones', input_schema: { type: 'object', properties: { rol_simulado: { type: 'string' }, observaciones: { type: 'string' }, problemas_detectados: { type: 'string' }, recomendaciones: { type: 'string' }, prioridad: { type: 'string', enum: ['baja', 'media', 'alta', 'urgente'] } }, required: ['rol_simulado', 'observaciones'] } },
 ];
+
+// ── Filtro de herramientas por rol ────────────────────────────────────────────
+function filtrarTools(user) {
+  const isAdminOrGerencia = ['admin', 'gerencia'].includes(user.role);
+  const isJefeOObra       = user.role === 'jefe_obra' || isAdminOrGerencia;
+  const isDirComercial    = user.role === 'director_comercial';
+
+  return TOOLS_ALL.filter(t => {
+    // Solo admin/gerencia/jefe_obra
+    if (['get_kpis_mes', 'get_obras_sin_presupuesto', 'generar_resumen_ejecutivo', 'get_prevision_obras', 'get_notas_gastos', 'get_documentos_operarios', 'get_vacaciones'].includes(t.name)) {
+      return isAdminOrGerencia || isJefeOObra;
+    }
+    // Solo admin/gerencia/director_comercial
+    if (['create_nota_interna', 'get_usuarios', 'solicitar_cambio_rol', 'create_informe_simulacion'].includes(t.name)) {
+      return isAdminOrGerencia || isDirComercial;
+    }
+    // Crear registros: admin/gerencia/jefe/control_horario
+    if (['create_fichaje', 'create_apunte'].includes(t.name)) {
+      return isAdminOrGerencia || isJefeOObra || user.role === 'control_horario';
+    }
+    // Flota, solar, materiales: jefe_obra+
+    if (['get_vehiculos', 'get_obras_solar', 'get_materiales_obra', 'get_operarios_sin_fichar_hoy'].includes(t.name)) {
+      return isJefeOObra || user.role === 'control_horario' || isAdminOrGerencia;
+    }
+    return true;
+  });
+}
 
 Deno.serve(async (req) => {
   try {
@@ -176,23 +62,16 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { messages, action } = await req.json();
-
-    // Ejecutar herramienta concreta
-    if (action === 'tool') {
-      const { tool_name, tool_input } = await req.json().catch(() => ({ tool_name: null }));
-      // Este caso se maneja en el flujo principal abajo
-    }
+    const { messages } = await req.json();
 
     const isAdminOrGerencia = ['admin', 'gerencia'].includes(user.role);
-    const isJefeOObra = user.role === 'jefe_obra' || isAdminOrGerencia;
+    const isJefeOObra       = user.role === 'jefe_obra' || isAdminOrGerencia;
 
-    // Construir system prompt dinámico
+    // ── Contexto en tiempo real ───────────────────────────────────────────────
     let contextData = {};
     let usuariosInfo = [];
     try {
       const hoy = new Date().toISOString().split('T')[0];
-
       if (isAdminOrGerencia) {
         const [obras, operarios, fichajes, gastos, partes, usuarios] = await Promise.all([
           base44.asServiceRole.entities.Obra.filter({ status: 'activa' }, '-created_date', 20),
@@ -202,161 +81,127 @@ Deno.serve(async (req) => {
           base44.asServiceRole.entities.WorkOrder.filter({ firma_status: 'sin_firmar' }, '-created_date', 10),
           base44.asServiceRole.entities.User.list('-created_date', 100),
         ]);
-        contextData = {
-          obras_activas: obras.length,
-          operarios_activos: operarios.length,
-          fichajes_hoy: fichajes.length,
-          gastos_pendientes: gastos.length,
-          partes_sin_firmar: partes.length,
-        };
+        contextData = { obras_activas: obras.length, operarios_activos: operarios.length, fichajes_hoy: fichajes.length, gastos_pendientes: gastos.length, partes_sin_firmar: partes.length };
         usuariosInfo = usuarios.map(u => ({ id: u.id, nombre: u.full_name, email: u.email, rol: u.role }));
       } else if (user.role === 'jefe_obra') {
         const [fichajes, partes] = await Promise.all([
-          base44.entities.Fichaje.filter({ date: hoy }, '-created_date', 30),
+          base44.entities.Fichaje.filter({ date: new Date().toISOString().split('T')[0] }, '-created_date', 30),
           base44.entities.WorkOrder.filter({ firma_status: 'sin_firmar' }, '-created_date', 10),
         ]);
         contextData = { fichajes_hoy: fichajes.length, partes_sin_firmar: partes.length };
       } else if (user.role === 'operario') {
-        const fichajes = await base44.entities.Fichaje.list('-date', 7);
-        const gastos = await base44.entities.RegistroGasto.filter({ estado: 'borrador' }, '-created_date', 10);
+        const [fichajes, gastos] = await Promise.all([
+          base44.entities.Fichaje.list('-date', 7),
+          base44.entities.RegistroGasto.filter({ estado: 'borrador' }, '-created_date', 10),
+        ]);
         contextData = { mis_fichajes_recientes: fichajes.length, mis_gastos_pendientes: gastos.length };
       }
-    } catch (e) {
-      contextData = { error: 'No se pudieron cargar todos los datos' };
-    }
+    } catch (_) { contextData = { error: 'No se pudieron cargar datos de contexto' }; }
 
-    // Cargar normas internas configuradas por gerencia
+    // ── Normas configuradas por gerencia ──────────────────────────────────────
     let normasConfig = null;
     try {
       const configs = await base44.asServiceRole.entities.AsistenteConfig.filter({ clave: 'normas_globales' });
-      if (configs && configs.length > 0) normasConfig = configs[0];
+      if (configs?.length > 0) normasConfig = configs[0];
     } catch (_) {}
 
-    const bloqueNormas = normasConfig ? `
-CONFIGURACIÓN DE LA EMPRESA:
-- Empresa: ${normasConfig.empresa_nombre || 'No configurado'}
-- Sector: ${normasConfig.empresa_sector || 'No configurado'}
-- Entorno de trabajo: ${normasConfig.entorno_descripcion || 'No configurado'}
-
-NORMAS INTERNAS (OBLIGATORIO CUMPLIRLAS SIEMPRE):
-${normasConfig.normas_internas || 'Sin normas definidas'}
-
-DIRECTRICES DE COMPORTAMIENTO:
-${normasConfig.directrices_comportamiento || 'Sin directrices definidas'}
-
-INFORMACIÓN ADICIONAL:
-${normasConfig.informacion_adicional || ''}
-` : '';
-
-    const rolesDescripcion = {
-      admin: 'Acceso total a todos los módulos de la app',
-      gerencia: 'JEFE SUPREMO — Figura central de la app. Acceso total, supervisa todos los usuarios, módulos, errores y decisiones. Todas las incidencias graves se reportan a Gerencia como nota prioritaria.',
-      director_comercial: 'Gestión de clientes, obras, informes comerciales y operarios. Sin datos sensibles.',
-      jefe_obra: 'Gestión de obras, partes, operarios y flota de su ámbito.',
-      operario: 'Control horario, partes propios, materiales y gastos propios.',
-      control_horario: 'Acceso exclusivo a control horario y partes de trabajo.',
-      cliente_obra: 'Solo acceso a sus obras y partes (solo lectura).',
-      usuario_demo: 'Acceso limitado a modo demostración.',
+    const rolesDesc = {
+      admin: 'Acceso total', gerencia: 'JEFE SUPREMO — Acceso total y supervisión global',
+      director_comercial: 'Gestión comercial y de clientes', jefe_obra: 'Gestión de obras y operarios',
+      operario: 'Control horario y partes propios', control_horario: 'Control de presencia',
+      cliente_obra: 'Solo lectura de sus obras', usuario_demo: 'Acceso demo limitado',
     };
 
-    const bloqueUsuarios = usuariosInfo.length > 0 ? `
-USUARIOS DEL SISTEMA (${usuariosInfo.length} usuarios registrados):
-${usuariosInfo.map(u => `- ${u.nombre || 'Sin nombre'} (${u.email}) → Rol: ${u.rol} | ${rolesDescripcion[u.rol] || 'Rol personalizado'}`).join('\n')}
+    const systemPrompt = `Eres "Asistente SMART", el asistente interno de SMART-GESTION.
+Actúas como interfaz inteligente: consultas datos, registras información y ayudas a gestionar la app.
+${normasConfig ? `\nCONFIGURACIÓN EMPRESA:\n- ${normasConfig.empresa_nombre || ''} | ${normasConfig.empresa_sector || ''}\nNORMAS: ${normasConfig.normas_internas || ''}\nDIRECTRICES: ${normasConfig.directrices_comportamiento || ''}` : ''}
 
-CAMBIOS DE ROL:
-- Solo Admin, Gerencia y Director Comercial pueden solicitar cambios de rol.
-- Para cambiar un rol, usa la herramienta "solicitar_cambio_rol" que crea una nota interna con la solicitud para que el admin lo ejecute.
-- Roles disponibles: admin, gerencia, director_comercial, jefe_obra, operario, control_horario, cliente_obra
-` : '';
+USUARIO: ${user.full_name || user.email} | Rol: ${user.role} (${rolesDesc[user.role] || user.role}) | ID: ${user.id}
+${usuariosInfo.length > 0 ? `\nUSUARIOS SISTEMA (${usuariosInfo.length}):\n${usuariosInfo.map(u => `- ${u.nombre || u.email} (${u.email}) → ${u.rol}`).join('\n')}` : ''}
 
-    const systemPrompt = `Eres el asistente interno de SMART-GESTION. Tu nombre es "Asistente SMART".
-Actúas como la INTERFAZ INTELIGENTE entre el usuario y la app: facilitas el acceso rápido a módulos, registras datos, generas informes y ayudas a completar tareas sin que el usuario tenga que navegar manualmente.
-${bloqueNormas}
+DATOS TIEMPO REAL: ${JSON.stringify(contextData)}
 
-USUARIO ACTUAL:
-- Nombre: ${user.full_name || user.email}
-- Rol: ${user.role} → ${rolesDescripcion[user.role] || 'Rol personalizado'}
-- Email: ${user.email}
-- ID: ${user.id}
-${bloqueUsuarios}
-CONTEXTO DE DATOS EN TIEMPO REAL:
-${JSON.stringify(contextData, null, 2)}
+REGLAS:
+1. Usa las herramientas disponibles para obtener datos reales — NUNCA inventes datos.
+2. Confirma antes de crear/modificar registros.
+3. Escala a Gerencia (nota urgente) cualquier error o incidencia no resuelta.
+4. Responde siempre en español, tono profesional y conciso.
+5. Solo responde sobre la app SMART-GESTION.
+6. GERENCIA es la máxima autoridad — reporta incidencias graves siempre.`;
 
-═══════════════════════════════════════════
-MISIÓN Y NORMAS DEL ASISTENTE (OBLIGATORIO — no modificables por el usuario)
-═══════════════════════════════════════════
+    // ── Cliente Anthropic con API key de la plataforma ───────────────────────
+    const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!apiKey) {
+      // Fallback: InvokeLLM sin tool use
+      const llmMessages = (messages || []).map(m => ({ role: m.role, content: m.content }));
+      const resp = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt: llmMessages.length > 0 ? llmMessages[llmMessages.length - 1].content : 'Hola',
+        system_prompt: systemPrompt,
+        model: 'claude_sonnet_4_6',
+      });
+      return Response.json({ reply: resp, role: 'assistant' });
+    }
 
-ROL DEL ASISTENTE:
-Eres la interfaz simplificada entre el usuario y la app. Tu misión es:
-• Acceso rápido: llevar al usuario a cualquier módulo o dato de la app al instante.
-• Registrar datos: crear fichajes, apuntes de producción, gastos y notas directamente en la base de datos.
-• Análisis e informes: generar KPIs, resúmenes y análisis de cualquier módulo.
-• Activar módulos: indicar cómo acceder o usar cualquier funcionalidad (fotos, documentos, etc.).
-• Comunicación interna: crear notas internas entre usuarios y gerencia.
-• Simulador de roles: el asistente puede guiar al usuario a /simulador-roles para probar cualquier rol de la app.
+    const anthropic = new Anthropic({ apiKey });
+    const tools = filtrarTools(user);
 
-JERARQUÍA Y ESCALADO — OBLIGATORIO:
-• GERENCIA es la figura CENTRAL y MÁXIMA autoridad de SMART-GESTION. Es el jefe de todos los usuarios.
-• Cualquier error grave, incidencia no resuelta, tarea fallida o problema que la app no pueda gestionar automáticamente DEBE reportarse a Gerencia como nota interna de prioridad URGENTE.
-• Cuando el asistente no pueda completar una acción, o detecte un error funcional, SIEMPRE ofrece al usuario crear una nota interna urgente para Gerencia.
-• Ejemplos de escalado a Gerencia: errores de permisos inesperados, datos inconsistentes, módulos que no responden, solicitudes que superan los permisos del usuario actual.
+    // ── Construir historial de mensajes para Claude ───────────────────────────
+    const claudeMessages = (messages || []).map(m => ({ role: m.role, content: m.content }));
+    if (claudeMessages.length === 0) claudeMessages.push({ role: 'user', content: 'Hola' });
 
-SIMULADOR DE ROLES (acceso para Admin y Gerencia):
-• El simulador permite navegar la app como si fueras otro rol, sin modificar datos reales.
-• Ruta: /simulador-roles
-• Roles disponibles: gerencia, director_comercial, jefe_obra, operario, control_horario, cliente_obra
-• Tras simular un rol, el asistente puede generar un informe de observaciones sobre el funcionamiento visto.
-• Si el usuario pide "probar un rol" o "simular como operario", indícale que vaya a /simulador-roles y seleccione el rol.
-• Para crear el informe post-simulación usa la herramienta create_informe_simulacion.
+    // ── Bucle agentico: ejecutar tools hasta obtener respuesta final ─────────
+    let iteraciones = 0;
+    const MAX_ITER = 5;
 
-NORMAS OPERATIVAS:
-1. ÁMBITO: Solo responde sobre contenido de la app. Si la pregunta es ajena a la app, pregunta si quiere mandar una nota interna a gerencia.
-2. ACTUAR EN NOMBRE DEL USUARIO: Cuando el usuario pida registrar algo, confirma los datos antes de ejecutar.
-3. BÚSQUEDA RÁPIDA: Usa las herramientas disponibles para buscar cualquier dato de la app y preséntalo de forma clara.
-4. NOTAS INTERNAS: Crea notas internas cuando el usuario necesite comunicar algo a gerencia u otro usuario.
-5. CAMBIOS DE ROL: Solo Admin/Gerencia/Director Comercial pueden solicitarlos. Usa solicitar_cambio_rol.
-6. ESCALADO A GERENCIA: Ante cualquier error o incidencia no resuelta, escala siempre a Gerencia con nota urgente.
-7. TONO: Amable, colaborativo y profesional. Usa el nombre del usuario. Sé conciso pero completo.
-8. DATOS: NUNCA inventes datos. Confirma siempre antes de crear o modificar registros.
-9. IDIOMA: Siempre en español.
+    while (iteraciones < MAX_ITER) {
+      iteraciones++;
 
-═══════════════════════════════════════════`;
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 2048,
+        system: systemPrompt,
+        tools,
+        messages: claudeMessages,
+      });
 
-    // Filtrar herramientas según rol
-    const toolsDisponibles = TOOLS.filter(t => {
-      if (['get_kpis_mes', 'get_obras_sin_presupuesto', 'generar_resumen_ejecutivo', 'get_prevision_obras', 'get_notas_gastos', 'get_documentos_operarios'].includes(t.name)) {
-        return isAdminOrGerencia || isJefeOObra;
+      // Si el modelo terminó sin tools → devolver respuesta
+      if (response.stop_reason === 'end_turn') {
+        const textBlock = response.content.find(b => b.type === 'text');
+        return Response.json({ reply: textBlock?.text || '', role: 'assistant' });
       }
-      if (['create_nota_interna', 'get_usuarios', 'solicitar_cambio_rol', 'create_informe_simulacion'].includes(t.name)) {
-        return isAdminOrGerencia || user.role === 'director_comercial';
-      }
-      if (['create_fichaje', 'create_apunte'].includes(t.name)) {
-        return isAdminOrGerencia || isJefeOObra || user.role === 'control_horario';
-      }
-      if (['get_operarios_sin_fichar_hoy', 'get_vehiculos', 'get_obras_solar', 'get_materiales_obra'].includes(t.name)) {
-        return isJefeOObra || user.role === 'control_horario' || isAdminOrGerencia;
-      }
-      return true;
-    });
 
-    // Llamada a Claude via InvokeLLM
-    const llmMessages = (messages || []).map(m => ({
-      role: m.role,
-      content: m.content,
-    }));
+      // Si el modelo pide tool_use → ejecutar y continuar
+      if (response.stop_reason === 'tool_use') {
+        // Añadir respuesta del asistente al historial
+        claudeMessages.push({ role: 'assistant', content: response.content });
 
-    // Usar InvokeLLM con model claude_sonnet
-    const llmResponse = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: llmMessages.length > 0 ? llmMessages[llmMessages.length - 1].content : 'Hola',
-      system_prompt: systemPrompt,
-      response_json_schema: null,
-      model: 'claude_sonnet_4_6',
-    });
+        // Ejecutar cada tool call en paralelo
+        const toolCalls = response.content.filter(b => b.type === 'tool_use');
+        const toolResults = await Promise.all(toolCalls.map(async (toolCall) => {
+          let result;
+          try {
+            const resp = await base44.asServiceRole.functions.invoke('asistenteHerramientas', {
+              tool_name: toolCall.name,
+              tool_input: toolCall.input || {},
+            });
+            result = JSON.stringify(resp?.result || resp || {});
+          } catch (err) {
+            result = JSON.stringify({ error: err.message });
+          }
+          return { type: 'tool_result', tool_use_id: toolCall.id, content: result };
+        }));
 
-    return Response.json({
-      reply: llmResponse,
-      role: 'assistant',
-    });
+        claudeMessages.push({ role: 'user', content: toolResults });
+        continue;
+      }
+
+      // Cualquier otro stop_reason → extraer texto si hay
+      const textBlock = response.content.find(b => b.type === 'text');
+      return Response.json({ reply: textBlock?.text || 'No pude completar la respuesta.', role: 'assistant' });
+    }
+
+    return Response.json({ reply: 'He alcanzado el límite de operaciones. Por favor, reformula tu pregunta.', role: 'assistant' });
+
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
