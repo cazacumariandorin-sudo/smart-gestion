@@ -1,0 +1,44 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+
+/**
+ * Devuelve el rol real del usuario autenticado leyendo la entidad User
+ * con asServiceRole, evitando problemas de RLS cuando el JWT tiene un rol
+ * desactualizado (ej: token con 'operario' pero entidad con 'gerencia').
+ */
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const currentUser = await base44.auth.me();
+
+    if (!currentUser) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Usar asServiceRole para que la query no dependa del rol del JWT activo
+    const records = await base44.asServiceRole.entities.User.filter(
+      { email: currentUser.email },
+      '-created_date',
+      1
+    );
+
+    if (!records || records.length === 0) {
+      return Response.json({ role: currentUser.role || 'operario', source: 'token_fallback' });
+    }
+
+    const entityUser = records[0];
+
+    return Response.json({
+      role: entityUser.role || currentUser.role || 'operario',
+      cargo: entityUser.cargo || '',
+      tipo_cuenta: entityUser.tipo_cuenta || 'real',
+      demo_expires_at: entityUser.demo_expires_at || null,
+      invitado_por: entityUser.invitado_por || null,
+      acceso_hasta: entityUser.acceso_hasta || null,
+      vinculo_id: entityUser.vinculo_id || null,
+      user_entity_id: entityUser.id,
+      source: 'entity',
+    });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});
