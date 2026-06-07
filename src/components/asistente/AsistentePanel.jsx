@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Bot, Send, CheckSquare, BarChart2, Loader2, Zap, ShieldCheck } from 'lucide-react';
+import { X, Bot, CheckSquare, BarChart2, ShieldCheck, Settings, Lock, BellOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/lib/useUserRole';
 import AsistenteChat from './AsistenteChat';
@@ -18,7 +19,26 @@ const TABS = [
 
 export default function AsistentePanel({ open, onClose, currentUser }) {
   const [activeTab, setActiveTab] = useState('chat');
+  const [showSettings, setShowSettings] = useState(false);
   const { role } = useUserRole();
+
+  const [bloqueado, setBloqueado] = useState(() =>
+    localStorage.getItem('asistente_bloqueado') === '1'
+  );
+  const [autoOpenDesactivado, setAutoOpenDesactivado] = useState(() =>
+    localStorage.getItem('asistente_no_autoopen') === '1'
+  );
+
+  const toggleBloqueado = (val) => {
+    setBloqueado(val);
+    localStorage.setItem('asistente_bloqueado', val ? '1' : '0');
+    if (val) onClose();
+  };
+
+  const toggleAutoOpen = (val) => {
+    setAutoOpenDesactivado(val);
+    localStorage.setItem('asistente_no_autoopen', val ? '1' : '0');
+  };
 
   return (
     <AnimatePresence>
@@ -52,9 +72,66 @@ export default function AsistentePanel({ open, onClose, currentUser }) {
                   <p className="text-[10px] text-blue-300">IA · Powered by Claude</p>
                 </div>
               </div>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-200 hover:text-white hover:bg-white/10" onClick={onClose}>
-                <X className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <div className="relative">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={cn('h-8 w-8 hover:bg-white/10', showSettings ? 'text-white bg-white/10' : 'text-blue-200 hover:text-white')}
+                    onClick={() => setShowSettings(s => !s)}
+                    title="Configuración del asistente"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+
+                  {/* Popover de settings */}
+                  <AnimatePresence>
+                    {showSettings && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-10 z-50 w-64 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-3 space-y-3"
+                      >
+                        <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider px-1">Configuración del asistente</p>
+
+                        {/* Bloquear asistente */}
+                        <div className="flex items-start gap-3 p-2.5 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors">
+                          <Lock className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-white">Bloquear asistente</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">Desactiva el botón flotante y el panel</p>
+                          </div>
+                          <Switch
+                            checked={bloqueado}
+                            onCheckedChange={toggleBloqueado}
+                            className="shrink-0 mt-0.5"
+                          />
+                        </div>
+
+                        {/* Bloquear inicio automático */}
+                        <div className="flex items-start gap-3 p-2.5 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors">
+                          <BellOff className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-white">Desactivar inicio automático</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">No abrir el panel al arrancar la app</p>
+                          </div>
+                          <Switch
+                            checked={autoOpenDesactivado}
+                            onCheckedChange={toggleAutoOpen}
+                            className="shrink-0 mt-0.5"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-200 hover:text-white hover:bg-white/10" onClick={onClose}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Tabs */}

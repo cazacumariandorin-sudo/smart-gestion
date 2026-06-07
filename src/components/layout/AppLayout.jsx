@@ -34,6 +34,8 @@ export default function AppLayout() {
   // Auto-abrir el asistente 5 segundos tras el arranque (solo una vez por sesión)
   useEffect(() => {
     if (sessionStorage.getItem('asistente_autoopen')) return;
+    if (localStorage.getItem('asistente_bloqueado') === '1') return;
+    if (localStorage.getItem('asistente_no_autoopen') === '1') return;
     const t = setTimeout(() => {
       setAsistenteOpen(true);
       sessionStorage.setItem('asistente_autoopen', '1');
@@ -102,8 +104,8 @@ export default function AppLayout() {
       <DemoWatermark />
       <MobileNav />
 
-      {/* Botón flotante Asistente IA */}
-      <button
+      {/* Botón flotante Asistente IA — oculto si bloqueado */}
+      {localStorage.getItem('asistente_bloqueado') !== '1' && <button
         onClick={() => setAsistenteOpen(true)}
         className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 rounded-full bg-gradient-to-br from-slate-800 to-blue-700 shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
         title={voiceActive ? 'Asistente SMART IA · Di "hola compañero" para activar' : 'Asistente SMART IA'}
@@ -114,7 +116,7 @@ export default function AppLayout() {
             <Mic className="w-2 h-2 text-white" />
           </span>
         )}
-      </button>
+      </button>}
 
       <AsistentePanel
         open={asistenteOpen}
