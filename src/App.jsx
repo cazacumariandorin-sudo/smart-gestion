@@ -16,6 +16,10 @@ import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 // Lazy load pages for performance
 const Clients = lazy(() => import('./pages/Clients'));
@@ -165,8 +169,8 @@ function AnimatedRoutes() {
       >
         <Routes location={location}>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
             <Route path="/work-orders" element={<ProtectedRoute module="work-orders"><Suspense fallback={<PageLoader />}><WorkOrders /></Suspense></ProtectedRoute>} />
             <Route path="/work-orders/new" element={<ProtectedRoute module="work-orders"><Suspense fallback={<PageLoader />}><CreateWorkOrder /></Suspense></ProtectedRoute>} />
@@ -213,6 +217,12 @@ function AnimatedRoutes() {
             <Route path="/analisis-seguridad" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><AnalisisSeguridad /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
+
+          {/* Auth pages — public */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Legacy PascalCase redirects */}
           <Route path="/AdminBackup" element={<Navigate to="/admin-backup" replace />} />
@@ -261,8 +271,7 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
+      // Redirect handled by ProtectedRoute / AnimatedRoutes
     }
   }
 

@@ -1,22 +1,25 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useUserRole } from '@/lib/useUserRole';
 import { useAuth } from '@/lib/AuthContext';
 
 /**
- * Wraps a page route and redirects to "/" if the current user
- * doesn't have access to the given module key.
+ * Wraps a page route and redirects to /login if unauthenticated,
+ * or to "/" if the user doesn't have access to the given module.
  */
 export default function ProtectedRoute({ module, children }) {
   const { isLoadingAuth, user, isAuthenticated } = useAuth();
   const { canAccess } = useUserRole();
+  const location = useLocation();
 
   // Still loading auth — don't decide yet
   if (isLoadingAuth) return null;
 
-  // Auth loaded but no user — redirect to login handled by AuthenticatedApp
-  if (!isAuthenticated || !user) return null;
+  // Not authenticated — send to /login preserving intended destination
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
-  if (!canAccess(module)) {
+  if (module && !canAccess(module)) {
     return <Navigate to="/" replace />;
   }
 
