@@ -30,6 +30,16 @@
       "type": "string",
       "description": "Cualquier otra informaci\u00f3n relevante para el asistente"
     },
+    "asistente_activo": {
+      "type": "boolean",
+      "description": "Si el asistente est\u00e1 activo globalmente para todos los usuarios",
+      "default": true
+    },
+    "asistente_autoopen": {
+      "type": "boolean",
+      "description": "Si el asistente se abre autom\u00e1ticamente al iniciar sesi\u00f3n",
+      "default": true
+    },
     "ultima_modificacion_por": {
       "type": "string",
       "description": "Email del gerente que realiz\u00f3 el \u00faltimo cambio"
