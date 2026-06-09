@@ -8,8 +8,10 @@ import DemoWatermark from '@/components/demo/DemoWatermark';
 import ConnectivityBanner from './ConnectivityBanner';
 import { useScrollRestoration } from '@/hooks/useScrollRestoration';
 import { useUserRole } from '@/lib/useUserRole';
+import { useAuth } from '@/lib/AuthContext';
 import { Bot, Mic } from 'lucide-react';
 import AsistentePanel from '@/components/asistente/AsistentePanel';
+import OnboardingModal from '@/components/OnboardingModal';
 import { base44 } from '@/api/base44Client';
 
 function ScrollRestorer() {
@@ -21,6 +23,7 @@ const VOICE_COMMAND = 'hola compañero';
 
 export default function AppLayout() {
   const { isSimulating, isDemo } = useUserRole();
+  const { user: authUser } = useAuth();
   const hasTopBanner = isSimulating || isDemo;
   const [asistenteOpen, setAsistenteOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -133,6 +136,11 @@ export default function AppLayout() {
         asistenteConfig={asistenteConfig}
         onConfigChange={setAsistenteConfig}
       />
+
+      {/* Onboarding obligatorio en el primer login */}
+      {authUser && !authUser.onboarding_completado && (
+        <OnboardingModal user={authUser} />
+      )}
     </div>
   );
 }

@@ -1,63 +1,86 @@
 {
   "name": "Operario",
+  "type": "object",
   "properties": {
-    "active": {
-      "default": true,
-      "description": "Activo",
-      "type": "boolean"
+    "name": {
+      "type": "string",
+      "description": "Nombre completo"
     },
     "dni": {
-      "description": "DNI / NIE",
-      "type": "string"
+      "type": "string",
+      "description": "DNI / NIE"
     },
     "email": {
-      "description": "Correo electr\u00f3nico personal",
-      "type": "string"
-    },
-    "es_temporal": {
-      "default": false,
-      "description": "True si fue creado autom\u00e1ticamente por el sistema tras 7 d\u00edas sin vinculaci\u00f3n manual",
-      "type": "boolean"
-    },
-    "name": {
-      "description": "Nombre completo",
-      "type": "string"
+      "type": "string",
+      "description": "Correo electr\u00f3nico personal"
     },
     "phone": {
-      "description": "Tel\u00e9fono",
-      "type": "string"
+      "type": "string",
+      "description": "Tel\u00e9fono"
     },
     "role": {
-      "description": "Puesto / categor\u00eda profesional",
-      "type": "string"
+      "type": "string",
+      "description": "Puesto / categor\u00eda profesional"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activo"
     },
     "user_email": {
-      "description": "Email del usuario de la app vinculado a este operario",
-      "type": "string"
+      "type": "string",
+      "description": "Email del usuario de la app vinculado a este operario"
     },
     "user_id": {
-      "description": "ID del usuario de la app vinculado",
-      "type": "string"
+      "type": "string",
+      "description": "ID del usuario de la app vinculado"
     },
     "user_vinculado_nombre": {
-      "description": "Nombre display del usuario vinculado",
-      "type": "string"
+      "type": "string",
+      "description": "Nombre display del usuario vinculado"
     },
     "vinculacion_fecha": {
-      "description": "Fecha en que se realiz\u00f3 el v\u00ednculo con el usuario de la app",
+      "type": "string",
       "format": "date-time",
-      "type": "string"
+      "description": "Fecha en que se realiz\u00f3 el v\u00ednculo con el usuario de la app"
     },
     "vinculacion_tipo": {
+      "type": "string",
       "default": "sin_vincular",
-      "description": "C\u00f3mo se realiz\u00f3 el v\u00ednculo",
       "enum": [
         "manual",
         "automatico_7dias",
         "demo",
         "sin_vincular"
       ],
-      "type": "string"
+      "description": "C\u00f3mo se realiz\u00f3 el v\u00ednculo"
+    },
+    "es_temporal": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si fue creado autom\u00e1ticamente por el sistema tras 7 d\u00edas sin vinculaci\u00f3n manual"
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "oficial_primera",
+        "oficial_segunda",
+        "peon",
+        "encargado",
+        "tecnico_solar",
+        "administrativo",
+        "subcontrata",
+        "temporal"
+      ],
+      "description": "Categor\u00eda profesional del trabajador"
+    },
+    "especialidad": {
+      "type": "string",
+      "description": "Especialidad t\u00e9cnica del trabajador (ej: instalaci\u00f3n fotovoltaica, electricidad, alba\u00f1iler\u00eda)"
+    },
+    "coste_hora": {
+      "type": "number",
+      "description": "Coste por hora en EUR (para c\u00e1lculo de rentabilidad de proyecto)"
     }
   },
   "required": [
@@ -82,11 +105,6 @@
           }
         }
       ]
-    },
-    "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
     },
     "read": {
       "$or": [
@@ -141,7 +159,11 @@
           "data.user_email": "{{user.email}}"
         }
       ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
     }
-  },
-  "type": "object"
+  }
 }

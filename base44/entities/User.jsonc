@@ -15,16 +15,15 @@
         "usuario_demo"
       ],
       "default": "operario",
-      "description": "Rol del usuario en la aplicaci\u00f3n"
+      "description": "Rol de acceso al sistema"
     },
     "cargo": {
       "type": "string",
-      "description": "Cargo o posici\u00f3n del usuario en la empresa"
+      "description": "Cargo o puesto visible"
     },
-    "acceso_hasta": {
+    "avatar_initials": {
       "type": "string",
-      "format": "date",
-      "description": "Fecha l\u00edmite de acceso del usuario"
+      "description": "Iniciales del avatar"
     },
     "tipo_cuenta": {
       "type": "string",
@@ -32,41 +31,16 @@
         "real",
         "demo"
       ],
-      "default": "real",
-      "description": "Clase de cuenta: real (usuario de empresa) o demo"
+      "default": "real"
     },
-    "demo_expires_at": {
+    "acceso_hasta": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha/hora de expiraci\u00f3n del acceso demo"
+      "description": "Fecha de expiraci\u00f3n del acceso (solo para demos)"
     },
     "invitado_por": {
       "type": "string",
-      "description": "Email del usuario que gener\u00f3 la invitaci\u00f3n demo"
-    },
-    "vinculo_id": {
-      "type": "string",
-      "description": "ID del Operario o Client vinculado"
-    },
-    "vinculo_tipo": {
-      "type": "string",
-      "enum": [
-        "operario",
-        "operario_temporal",
-        "demo_user",
-        "cliente_obra",
-        "sin_vincular"
-      ],
-      "default": "sin_vincular",
-      "description": "Tipo de v\u00ednculo con entidad de la app"
-    },
-    "vinculo_nombre": {
-      "type": "string",
-      "description": "Nombre del Operario o Client vinculado (copia para mostrar)"
-    },
-    "vinculo_email": {
-      "type": "string",
-      "description": "Email del registro vinculado"
+      "description": "Email del usuario que invit\u00f3"
     },
     "vinculo_estado": {
       "type": "string",
@@ -76,47 +50,33 @@
         "auto_vinculado",
         "demo"
       ],
-      "default": "pendiente",
-      "description": "Estado del proceso de vinculaci\u00f3n: pendiente=esperando acci\u00f3n admin, vinculado=asignado manualmente, auto_vinculado=asignado autom\u00e1ticamente tras 7 d\u00edas, demo=usuario demo"
+      "description": "Estado de vinculaci\u00f3n con ficha laboral"
     },
-    "vinculo_fecha": {
+    "vinculo_id": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha y hora en que se realiz\u00f3 el v\u00ednculo (manual o autom\u00e1tico)"
+      "description": "ID de la ficha Operario vinculada"
     },
-    "vinculo_asignado_por": {
+    "vinculo_nombre": {
       "type": "string",
-      "description": "Email del admin/gerencia que realiz\u00f3 el v\u00ednculo manual"
+      "description": "Nombre del operario vinculado"
     },
-    "fecha_registro": {
+    "vinculo_tipo": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha y hora en que el usuario se registr\u00f3 en la app por primera vez"
-    },
-    "fecha_limite_vinculacion": {
-      "type": "string",
-      "format": "date-time",
-      "description": "Fecha l\u00edmite para que admin/gerencia vincule al usuario (fecha_registro + 7 d\u00edas). Pasada esta fecha se auto-vincula como operario_temporal"
-    },
-    "vinculo_recordatorio_enviado": {
-      "type": "boolean",
-      "default": false,
-      "description": "Si se ha enviado recordatorio al admin de que hay una vinculaci\u00f3n pendiente"
-    },
-    "vinculo_recordatorio_fecha": {
-      "type": "string",
-      "format": "date-time",
-      "description": "Cu\u00e1ndo se envi\u00f3 el \u00faltimo recordatorio"
+      "description": "Tipo de vinculaci\u00f3n"
     },
     "user_id_personalizado": {
       "type": "string",
-      "description": "ID personalizado generado autom\u00e1ticamente: YYYY-NNNN (a\u00f1o-n\u00famero secuencial diario). Ej: 2026-0001 para el primer usuario de 2026"
+      "description": "ID personalizado del usuario"
     },
-    "visible_solo_admin": {
+    "demo_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de expiraci\u00f3n de la cuenta demo"
+    },
+    "onboarding_completado": {
       "type": "boolean",
       "default": false,
-      "description": "Si es true, el usuario solo es visible para roles admin. Invisible para otros roles."
+      "description": "El usuario ha completado el modal de bienvenida y tiene nombre configurado"
     }
-  },
-  "required": []
+  }
 }

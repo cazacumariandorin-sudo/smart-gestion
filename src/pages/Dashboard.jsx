@@ -77,7 +77,7 @@ const HUB_CONFIG = [
     watermark: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&q=60&fit=crop',
     module: 'operarios',
     links: [
-      { label: 'Operarios', path: '/operarios', icon: Users },
+      { label: 'Trabajadores', path: '/operarios', icon: Users },
       { label: 'Horario', path: '/control-horario', icon: Clock },
     ],
   },

@@ -38,11 +38,11 @@ export const HUBS = [
     activeBg: 'bg-teal-50 dark:bg-teal-950/40',
     borderColor: 'border-teal-400',
     items: [
-      { label: 'Operarios', path: '/operarios', icon: Users, module: 'operarios' },
+      { label: 'Trabajadores', path: '/operarios', icon: Users, module: 'operarios' },
       { label: 'Control Horario', path: '/control-horario', icon: Clock, module: 'control-horario' },
       { label: 'Vacaciones', path: '/calendario-vacaciones', icon: CalendarDays, module: 'calendario-vacaciones' },
       { label: 'Apuntes Horario', path: '/apuntes-horario', icon: PenLine, module: 'apuntes-horario' },
-      { label: 'Documentación', path: '/documentacion-operarios', icon: FileImage, module: 'operarios' },
+      { label: 'Documentación Trabajadores', path: '/documentacion-operarios', icon: FileImage, module: 'operarios' },
     ],
   },
   {

@@ -8,7 +8,7 @@ const TOOLS_ALL = [
   { name: 'get_gastos_pendientes',      description: 'Registros de gasto en estado borrador o pendiente', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, sin_obra: { type: 'boolean' } } } },
   { name: 'get_partes_sin_firmar',      description: 'Partes de trabajo sin firma del cliente', input_schema: { type: 'object', properties: {} } },
   { name: 'get_kpis_mes',              description: 'KPIs del mes: horas, gastos, obras activas, partes', input_schema: { type: 'object', properties: {} } },
-  { name: 'get_operarios_sin_fichar_hoy', description: 'Operarios activos que no han fichado hoy', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_operarios_sin_fichar_hoy', description: 'Trabajadores activos que no han fichado hoy', input_schema: { type: 'object', properties: {} } },
   { name: 'get_obras_sin_presupuesto',  description: 'Obras con presupuesto 0 o nulo', input_schema: { type: 'object', properties: {} } },
   { name: 'generar_resumen_ejecutivo',  description: 'Resumen ejecutivo de obras, fichajes, gastos y partes', input_schema: { type: 'object', properties: { periodo: { type: 'string', enum: ['hoy', 'semana', 'mes'] } }, required: ['periodo'] } },
   { name: 'get_apuntes_produccion',     description: 'Apuntes de producción por operario, obra o fecha', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, fecha_desde: { type: 'string' }, obra_id: { type: 'string' } } } },
@@ -19,7 +19,7 @@ const TOOLS_ALL = [
   { name: 'get_obras_solar',           description: 'Proyectos de instalaciones solares', input_schema: { type: 'object', properties: { status: { type: 'string' } } } },
   { name: 'get_materiales_obra',       description: 'Materiales registrados de una obra específica', input_schema: { type: 'object', properties: { obra_id: { type: 'string' } }, required: ['obra_id'] } },
   { name: 'get_prevision_obras',       description: 'Previsión y planificación de obras con semáforo de avance', input_schema: { type: 'object', properties: {} } },
-  { name: 'get_documentos_operarios',  description: 'Documentos de operarios y estado de firma', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, firma_status: { type: 'string' } } } },
+  { name: 'get_documentos_operarios',  description: 'Documentos de trabajadores y estado de firma', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, firma_status: { type: 'string' } } } },
   { name: 'get_usuarios',             description: 'Lista usuarios de la app con nombre, email y rol', input_schema: { type: 'object', properties: { rol: { type: 'string' } } } },
   { name: 'create_fichaje',           description: 'Registra un fichaje (entrada/salida) para un operario', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, operario_name: { type: 'string' }, date: { type: 'string' }, hora_entrada: { type: 'string' }, hora_salida: { type: 'string' }, obra_id: { type: 'string' }, obra_name: { type: 'string' }, notas: { type: 'string' } }, required: ['operario_id', 'operario_name', 'date', 'hora_entrada'] } },
   { name: 'create_apunte',            description: 'Registra un apunte de producción para un operario', input_schema: { type: 'object', properties: { operario_id: { type: 'string' }, operario_name: { type: 'string' }, date: { type: 'string' }, obra_id: { type: 'string' }, obra_name: { type: 'string' }, concepto: { type: 'string' }, cantidad: { type: 'number' }, unidad: { type: 'string' }, precio_unitario: { type: 'number' }, horas_ejecutadas: { type: 'number' }, notas: { type: 'string' } }, required: ['operario_id', 'operario_name', 'date', 'obra_id', 'obra_name', 'concepto', 'cantidad'] } },
@@ -125,6 +125,12 @@ Deno.serve(async (req) => {
 
     const systemPrompt = `Eres "Asistente SMART", el asistente interno de SMART-GESTION.
 ${normasConfig ? `\nCONFIGURACIÓN EMPRESA:\n- ${normasConfig.empresa_nombre || ''} | ${normasConfig.empresa_sector || ''}\nENTORNO: ${normasConfig.entorno_descripcion || ''}\nNORMAS: ${normasConfig.normas_internas || ''}\nDIRECTRICES: ${normasConfig.directrices_comportamiento || ''}` : ''}
+
+IMPORTANTE — Vocabulario del sistema: La plataforma distingue dos conceptos distintos:
+- USUARIO: es la cuenta de acceso al sistema (email, contraseña, rol de acceso como admin/gerencia/jefe_obra/operario...).
+- TRABAJADOR: es la ficha laboral de la empresa (DNI, categoría profesional, historial de horas). Un usuario puede o no tener una ficha de Trabajador vinculada.
+Cuando alguien pregunte por fichas laborales, usa el término TRABAJADOR. Cuando pregunte por accesos al sistema, usa el término USUARIO.
+Categorías profesionales de Trabajador: oficial_primera, oficial_segunda, peon, encargado, tecnico_solar, administrativo, subcontrata, temporal.
 
 USUARIO: ${user.full_name || user.email} | Rol: ${user.role} (${rolesDesc[user.role] || user.role}) | ID: ${user.id}
 ${usuariosInfo.length > 0 ? `\nUSUARIOS SISTEMA (${usuariosInfo.length}):\n${usuariosInfo.map(u => `- ${u.nombre || u.email} (${u.email}) → ${u.rol}`).join('\n')}` : ''}

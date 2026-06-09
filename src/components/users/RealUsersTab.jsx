@@ -53,9 +53,16 @@ export default function RealUsersTab() {
   const { data: users = [], isLoading, refetch } = useQuery({
     queryKey: ['all-users-tab'],
     queryFn: () => base44.entities.User.list('full_name', 500),
-    staleTime: 0,          // always consider stale
-    refetchOnMount: true,  // always refetch on mount
+    staleTime: 0,
+    refetchOnMount: true,
   });
+
+  const { data: trabajadores = [] } = useQuery({
+    queryKey: ['operarios'],
+    queryFn: () => base44.entities.Operario.list('-created_date', 500),
+    staleTime: 5 * 60_000,
+  });
+  const emailsConFicha = new Set(trabajadores.map(t => t.user_email).filter(Boolean));
 
   const handleRefresh = () => {
     refetch();
@@ -129,6 +136,7 @@ export default function RealUsersTab() {
                 <th className="text-left py-2.5 px-3 font-medium whitespace-nowrap">Rol</th>
                 <th className="text-left py-2.5 px-3 font-medium whitespace-nowrap">Cargo</th>
                 <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap">Tipo</th>
+                <th className="text-left py-2.5 px-3 font-medium whitespace-nowrap">Ficha laboral</th>
                 <th className="text-left py-2.5 px-3 font-medium whitespace-nowrap">Vinculación</th>
                 <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap">Estado</th>
                 <th className="text-center py-2.5 px-2 font-medium whitespace-nowrap">Acciones</th>
@@ -187,8 +195,21 @@ export default function RealUsersTab() {
                       )}
                     </td>
 
-                    {/* Vinculación */}
-                    <td className="py-2.5 px-3">
+                    {/* Ficha laboral */}
+                    <td className="py-2.5 px-3 whitespace-nowrap">
+                      {emailsConFicha.has(u.email) ? (
+                        <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200 px-2 py-0.5">
+                          ✓ Con ficha
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 px-2 py-0.5">
+                          Sin ficha laboral
+                        </Badge>
+                      )}
+                    </td>
+
+                     {/* Vinculación */}
+                     <td className="py-2.5 px-3">
                       {u.vinculo_estado === 'pendiente' ? (
                         <Badge variant="outline" className="text-[10px] bg-yellow-50 text-yellow-700 border-yellow-200 px-2 py-0.5">
                           <span className="w-1 h-1 rounded-full bg-yellow-500 animate-pulse inline-block mr-1" />
