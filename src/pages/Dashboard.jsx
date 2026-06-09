@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import {
   Building2, Users, Receipt, Car, Folder, Settings,
@@ -15,10 +15,36 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { useUserRole } from '@/lib/useUserRole';
 import NotificacionesFichaje from '@/components/dashboard/NotificacionesFichaje';
 import UserRoleDiagnostic from '@/components/debug/UserRoleDiagnostic';
-import { Images as ImagesIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+
+const QUICK_ACCESS = [
+  {
+    id: 'chat',
+    label: 'Chat',
+    icon: MessageSquare,
+    color: 'text-emerald-800',
+    iconBg: 'bg-emerald-600',
+    bg: 'bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/50 dark:to-emerald-950/40',
+    border: 'border-emerald-300 dark:border-emerald-700',
+    watermark: null,
+    module: 'chat',
+    links: [{ label: 'Chat', path: '/chat', icon: MessageSquare }],
+  },
+  {
+    id: 'galeria',
+    label: 'Foto Obra',
+    icon: Images,
+    color: 'text-violet-800',
+    iconBg: 'bg-violet-600',
+    bg: 'bg-gradient-to-br from-violet-100 to-violet-50 dark:from-violet-900/50 dark:to-violet-950/40',
+    border: 'border-violet-300 dark:border-violet-700',
+    watermark: null,
+    module: 'galeria-fotos',
+    links: [{ label: 'Galería', path: '/galeria-fotos', icon: Images }],
+  },
+];
 
 const HUB_CONFIG = [
   {
@@ -134,10 +160,12 @@ const roleLabels = {
   gerencia:        { label: 'Gerencia',        color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
 };
 
-function SistemaCard({ hub, kpi }) {
+function ModuleCard({ hub, kpi }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const navigate = useNavigate();
   const Icon = hub.icon;
+  const isSingle = hub.links.length === 1;
 
   useEffect(() => {
     if (!open) return;
@@ -151,6 +179,14 @@ function SistemaCard({ hub, kpi }) {
       document.removeEventListener('touchstart', handler);
     };
   }, [open]);
+
+  const handleBtn = () => {
+    if (isSingle) {
+      navigate(hub.links[0].path);
+    } else {
+      setOpen(o => !o);
+    }
+  };
 
   return (
     <div ref={ref} className="relative">
@@ -167,26 +203,38 @@ function SistemaCard({ hub, kpi }) {
             <Icon className="w-4 h-4 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className={cn('text-xs font-extrabold uppercase tracking-wide leading-tight', hub.color)}>{hub.label}</p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className={cn('text-xs font-extrabold uppercase tracking-wide leading-tight', hub.color)}>{hub.label}</p>
+              {kpi?.alert > 0 && (
+                <span className="inline-flex items-center gap-0.5 bg-destructive/10 border border-destructive/30 rounded-full px-1.5 py-0.5">
+                  <AlertCircle className="w-2.5 h-2.5 text-destructive" />
+                  <span className="text-[9px] font-bold text-destructive">{kpi.alert}</span>
+                </span>
+              )}
+            </div>
             {kpi?.sub && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{kpi.sub}</p>}
           </div>
           <button
-            onClick={() => setOpen(o => !o)}
+            onClick={handleBtn}
             style={{ touchAction: 'manipulation' }}
             className={cn(
-              'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg',
+              'shrink-0 flex items-center gap-1.5 h-9 px-4 rounded-lg min-w-[90px] justify-center',
               'text-xs font-bold border transition-all duration-150',
               'bg-slate-800 dark:bg-slate-700 text-white border-slate-700',
-              'hover:bg-slate-700 active:scale-95 min-h-[36px]'
+              'hover:bg-slate-700 active:scale-95'
             )}
           >
-            Gestionar
-            <span className={cn('transition-transform duration-200', open ? 'rotate-180' : 'rotate-0')}>▾</span>
+            {isSingle ? 'Abrir' : (
+              <>
+                Gestionar
+                <span className={cn('transition-transform duration-200', open ? 'rotate-180' : 'rotate-0')}>▾</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {open && (
+      {!isSingle && open && (
         <div className={cn(
           'absolute top-full left-0 right-0 z-50 mt-1',
           'bg-card border border-border rounded-xl shadow-xl',
@@ -215,69 +263,6 @@ function SistemaCard({ hub, kpi }) {
         </div>
       )}
     </div>
-  );
-}
-
-function HubCard({ hub, kpi }) {
-  if (hub.id === 'sistema') return <SistemaCard hub={hub} kpi={kpi} />;
-
-  const Icon = hub.icon;
-  return (
-    <Link to={hub.path} className="block group">
-      <div className={cn(
-        'relative rounded-xl border overflow-hidden transition-all duration-200',
-        'hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99]',
-        hub.bg, hub.border
-      )}>
-        {hub.watermark && (
-          <img src={hub.watermark} alt="" aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover opacity-[0.12] dark:opacity-[0.10] pointer-events-none select-none transition-opacity duration-300 group-hover:opacity-[0.20] dark:group-hover:opacity-[0.16]" />
-        )}
-
-        <div className="relative z-10 p-3.5">
-          <div className="flex items-start justify-between mb-2.5">
-            <div className={cn('p-2 rounded-lg shadow-sm', hub.iconBg)}>
-              <Icon className="w-4 h-4 text-white" />
-            </div>
-            {kpi?.alert && (
-              <div className="flex items-center gap-1 bg-destructive/10 border border-destructive/30 rounded-full px-2 py-0.5">
-                <AlertCircle className="w-3 h-3 text-destructive" />
-                <span className="text-[10px] font-bold text-destructive">{kpi.alert}</span>
-              </div>
-            )}
-          </div>
-
-          <p className={cn('text-[11px] font-extrabold leading-tight mb-0.5 tracking-wide uppercase', hub.color)}>{hub.label}</p>
-          {kpi?.main !== undefined && (
-            <p className={cn('text-3xl font-black leading-none tracking-tight', hub.color)}>{kpi.main}</p>
-          )}
-          {kpi?.sub && <p className="text-[10px] text-muted-foreground mt-1 font-medium">{kpi.sub}</p>}
-
-          <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2.5 border-t border-current/10">
-            {hub.links.map(l => {
-              const LIcon = l.icon;
-              return (
-                <Link
-                  key={l.path}
-                  to={l.path}
-                  onClick={e => e.stopPropagation()}
-                  className={cn(
-                    'inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border shadow-sm',
-                    'transition-all duration-150 cursor-pointer select-none',
-                    'hover:scale-105 hover:shadow-md active:scale-95',
-                    hub.border, hub.color,
-                    'bg-white/60 dark:bg-black/20 hover:bg-white/90 dark:hover:bg-white/10'
-                  )}
-                >
-                  <LIcon className="w-3 h-3 shrink-0" />
-                  {l.label}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </Link>
   );
 }
 
@@ -380,7 +365,7 @@ export default function Dashboard() {
             variant="outline"
             onClick={onRefresh}
             disabled={refreshing}
-            className="gap-2 h-8 px-3"
+            className="gap-2 h-9 px-4"
             title="Actualizar datos"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
@@ -393,40 +378,13 @@ export default function Dashboard() {
       {/* Alertas de fichaje */}
       <NotificacionesFichaje />
 
-      {/* Accesos rápidos: Chat + Foto Obra */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <Link to="/chat" className="block group">
-          <div className="relative rounded-xl border border-emerald-300 dark:border-emerald-700 overflow-hidden bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/50 dark:to-emerald-950/40 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200">
-            <div className="relative z-10 p-3 flex items-center gap-3">
-              <div className="p-2 rounded-lg shadow-sm bg-emerald-600 shrink-0">
-                <MessageSquare className="w-4 h-4 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-extrabold leading-tight text-emerald-800 dark:text-emerald-200 uppercase tracking-wide">Chat</p>
-                <p className="text-[10px] text-emerald-700 dark:text-emerald-300 mt-0.5 truncate">Mensajería segura</p>
-              </div>
-            </div>
-          </div>
-        </Link>
-        <Link to="/galeria-fotos" className="block group">
-          <div className="relative rounded-xl border border-violet-300 dark:border-violet-700 overflow-hidden bg-gradient-to-br from-violet-100 to-violet-50 dark:from-violet-900/50 dark:to-violet-950/40 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200">
-            <div className="relative z-10 p-3 flex items-center gap-3">
-              <div className="p-2 rounded-lg shadow-sm bg-violet-600 shrink-0">
-                <ImagesIcon className="w-4 h-4 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-extrabold leading-tight text-violet-800 dark:text-violet-200 uppercase tracking-wide">Foto Obra</p>
-                <p className="text-[10px] text-violet-700 dark:text-violet-300 mt-0.5 truncate">Subir · Capturar foto</p>
-              </div>
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Hub grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
+      {/* Grid unificado: módulos + accesos rápidos */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
         {visibleHubs.map(hub => (
-          <HubCard key={hub.id} hub={hub} kpi={kpis[hub.id]} />
+          <ModuleCard key={hub.id} hub={hub} kpi={kpis[hub.id]} />
+        ))}
+        {QUICK_ACCESS.map(hub => (
+          <ModuleCard key={hub.id} hub={hub} kpi={undefined} />
         ))}
       </div>
 
