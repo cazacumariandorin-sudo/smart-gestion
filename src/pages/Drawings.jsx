@@ -85,6 +85,9 @@ export default function Drawings() {
 
   const { data: drawings = [], isLoading } = useQuery({ queryKey: ['drawings'], queryFn: () => base44.entities.Drawing.list('-date', 500) });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
+  const { data: obras = [] } = useQuery({ queryKey: ['obras_drawings'], queryFn: () => base44.entities.Obra.list('name', 200) });
+  const { data: solarObras = [] } = useQuery({ queryKey: ['solar_obras_drawings'], queryFn: () => base44.entities.SolarObra.list('name', 200) });
+  const todasObras = useMemo(() => [...obras.map(o => ({ id: o.id, name: o.name, client_id: o.client_id, client_name: o.client_name })), ...solarObras.map(o => ({ id: o.id, name: o.name, client_id: o.client_id, client_name: o.client_name }))].sort((a,b) => a.name.localeCompare(b.name)), [obras, solarObras]);
 
   const createM = useMutation({ mutationFn: d => base44.entities.Drawing.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['drawings'] }); close_(); } });
   const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Drawing.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['drawings'] }); close_(); } });
@@ -97,6 +100,16 @@ export default function Drawings() {
   const handleClientChange = (id) => {
     const c = clients.find(c => c.id === id);
     setForm(p => ({ ...p, client_id: id, client_name: c?.name || '' }));
+  };
+
+  const handleObraChange = (obraName) => {
+    const obra = todasObras.find(o => o.name === obraName);
+    setForm(p => ({
+      ...p,
+      project: obraName,
+      // Auto-rellenar cliente si la obra lo tiene y el cliente no está seleccionado aún
+      ...(obra?.client_id && !p.client_id ? { client_id: obra.client_id, client_name: obra.client_name || '' } : {}),
+    }));
   };
 
   const handleFileUpload = async (file) => {
@@ -294,7 +307,9 @@ export default function Drawings() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Obra</Label>
-                <Input value={form.project} onChange={e => set('project', e.target.value)} placeholder="Obra..." />
+                <MobileSelect value={form.project || ''} onValueChange={handleObraChange} placeholder="Seleccionar obra...">
+                  {todasObras.map(o => <MobileSelectItem key={o.id} value={o.name}>{o.name}</MobileSelectItem>)}
+                </MobileSelect>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Fecha</Label>
