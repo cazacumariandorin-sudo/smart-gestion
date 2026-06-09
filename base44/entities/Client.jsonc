@@ -129,6 +129,16 @@
           }
         },
         {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        },
+        {
           "$and": [
             {
               "user_condition": {

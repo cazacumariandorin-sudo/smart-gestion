@@ -4,7 +4,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
-import { Plus, Search, Trash2, BookOpen, Save, Loader2, Upload, ExternalLink, FileText, Table, File, Languages } from 'lucide-react';
+import { Plus, Search, Trash2, BookOpen, Save, Loader2, Upload, FileText, Table, File, Languages, Eye, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -188,8 +188,11 @@ export default function Manuales() {
                           <div className="flex gap-1 shrink-0">
                             {m.file_url && (
                               <>
-                                <a href={m.file_url} target="_blank" rel="noopener noreferrer">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7"><ExternalLink className="w-3.5 h-3.5" /></Button>
+                                <a href={m.file_url} target="_blank" rel="noopener noreferrer" title="Ver documento">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7"><Eye className="w-3.5 h-3.5" /></Button>
+                                </a>
+                                <a href={m.file_url} download={m.title || 'documento'} title="Descargar">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Download className="w-3.5 h-3.5" /></Button>
                                 </a>
                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Traducir al español" onClick={() => translateDoc(m)} disabled={translating === m.id}>
                                   {translating === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Languages className="w-3.5 h-3.5" />}

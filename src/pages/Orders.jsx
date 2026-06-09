@@ -6,7 +6,7 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useI18n } from '@/lib/i18n';
-import { Plus, Search, Pencil, Trash2, ShoppingCart, Loader2, Save, Truck, Package, Euro, X, ChevronDown, ChevronUp, Upload, FileText, ExternalLink, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ShoppingCart, Loader2, Save, Truck, Package, Euro, X, ChevronDown, ChevronUp, Upload, FileText, ExternalLink, Eye, Download, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useUserRole } from '@/lib/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -352,12 +352,18 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
                         <div className="space-y-1.5">
                           {order.attached_files.map((f, i) => (
                             <div key={i} className="flex items-center gap-2 text-xs bg-card rounded-lg px-3 py-2">
-                              <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
-                              <span className="flex-1 truncate font-medium">{f.name}</span>
-                              <a href={f.url} target="_blank" rel="noopener noreferrer" download={f.name}
-                                className="flex items-center gap-1 text-primary hover:underline shrink-0">
-                                <ExternalLink className="w-3 h-3" /> Ver / Descargar
-                              </a>
+                             <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                             <span className="flex-1 truncate font-medium">{f.name}</span>
+                             <div className="flex items-center gap-2 shrink-0">
+                               <a href={f.url} target="_blank" rel="noopener noreferrer"
+                                 className="flex items-center gap-1 text-primary hover:underline">
+                                 <Eye className="w-3 h-3" /> Ver
+                               </a>
+                               <a href={f.url} download={f.name}
+                                 className="flex items-center gap-1 text-muted-foreground hover:underline">
+                                 <Download className="w-3 h-3" /> Descargar
+                               </a>
+                             </div>
                             </div>
                           ))}
                         </div>
