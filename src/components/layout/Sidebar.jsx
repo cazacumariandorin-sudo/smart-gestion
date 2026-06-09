@@ -114,28 +114,6 @@ function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo, pe
   if (hub.adminOnly && !isAdmin && !isGerencia) return null;
   if (isDemo && (hub.id === 'personas' || hub.id === 'sistema')) return null;
 
-  // Sistema: solo link simple sin expandir (el botón Gestionar del Dashboard maneja los subitems)
-  if (hub.id === 'sistema') {
-    const SistIcon = hub.icon;
-    return (
-      <Link
-        to="/users"
-        className={cn(
-          'w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm font-semibold transition-all',
-          isChildActive
-            ? cn(hub.activeBg, hub.color)
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-        )}
-      >
-        <SistIcon className={cn('w-4 h-4 shrink-0', isChildActive ? hub.color : '')} />
-        <span className="flex-1 text-left text-xs overflow-hidden whitespace-nowrap opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">
-          Sistema
-        </span>
-        <span className="text-[9px] text-muted-foreground opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150">→</span>
-      </Link>
-    );
-  }
-
   const Icon = hub.icon;
 
   return (
