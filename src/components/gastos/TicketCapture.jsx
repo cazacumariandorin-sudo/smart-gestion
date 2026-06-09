@@ -59,7 +59,12 @@ export default function TicketCapture({ onDone, onSkip }) {
       onDone({ file_url, archivo, ocrDatos });
     } catch (e) {
       setEstado('error');
-      setMensaje('Error al subir: ' + e.message);
+      const msg = e.message || '';
+      setMensaje(
+        msg.toLowerCase().includes('drive') || msg.toLowerCase().includes('gdrive')
+          ? 'Error al subir. Verifica que Google Drive está conectado o sube desde galería.'
+          : 'Error al subir el ticket: ' + msg
+      );
     }
   }, [onDone]);
 
@@ -176,15 +181,15 @@ export default function TicketCapture({ onDone, onSkip }) {
 
       {mobile ? (
         <div className="grid grid-cols-2 gap-3">
-          {/* Cámara directa */}
-          <button
-            onClick={() => cameraInputRef.current?.click()}
-            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors"
+          {/* Cámara directa — label nativo para compatibilidad iOS/Android dentro de Dialog */}
+          <label
+            htmlFor="camera-input-ticket"
+            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer"
           >
             <Camera className="w-8 h-8 text-primary" />
             <span className="text-xs font-semibold text-primary">Hacer foto</span>
-          </button>
-          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) procesarArchivo(f); e.target.value = ''; }} />
+          </label>
+          <input id="camera-input-ticket" type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) procesarArchivo(f); e.target.value = ''; }} />
 
           {/* Galería */}
           <button

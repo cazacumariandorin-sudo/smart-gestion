@@ -51,7 +51,8 @@ export default function ObraSelectorObras({ value, onChange, placeholder = 'Sele
     <MobileSelect value={currentVal} onValueChange={handleChange} placeholder={placeholder} triggerClassName={triggerClassName}>
       {obrasCiviles.length > 0 && (
         <>
-          <MobileSelectItem value="__sep_civil" disabled className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 pointer-events-none">— Obras Civiles —</MobileSelectItem>
+          {/* Cabecera visual — value sin "__sep" para evitar filtrado de MobileSelect */}
+          <MobileSelectItem value="__header_civil" disabled className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 pointer-events-none select-none">OBRAS CIVILES</MobileSelectItem>
           {obrasCiviles.map(o => (
             <MobileSelectItem key={o.id} value={o.id}>🏗 {o.name}{o.status === 'pausada' ? ' (pausada)' : ''}</MobileSelectItem>
           ))}
@@ -59,7 +60,7 @@ export default function ObraSelectorObras({ value, onChange, placeholder = 'Sele
       )}
       {obrasSolar.length > 0 && (
         <>
-          <MobileSelectItem value="__sep_solar" disabled className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 pointer-events-none">— Obras Solares —</MobileSelectItem>
+          <MobileSelectItem value="__header_solar" disabled className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 pointer-events-none select-none">OBRAS SOLARES</MobileSelectItem>
           {obrasSolar.map(o => (
             <MobileSelectItem key={o.id} value={o.id}>☀️ {o.name}{o.status === 'pausada' ? ' (pausada)' : ''}</MobileSelectItem>
           ))}
