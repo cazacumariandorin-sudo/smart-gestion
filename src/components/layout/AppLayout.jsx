@@ -25,23 +25,31 @@ export default function AppLayout() {
   const [asistenteOpen, setAsistenteOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [voiceActive, setVoiceActive] = useState(false);
+  const [asistenteConfig, setAsistenteConfig] = useState(null);
   const recognitionRef = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
-  // Auto-abrir el asistente 5 segundos tras el arranque (solo una vez por sesión)
   useEffect(() => {
+    base44.entities.AsistenteConfig.filter({ clave: 'normas_globales' })
+      .then(configs => { if (configs?.length > 0) setAsistenteConfig(configs[0]); })
+      .catch(() => {});
+  }, []);
+
+  // Auto-abrir condicionado a la config de BD
+  useEffect(() => {
+    if (!asistenteConfig) return;
+    if (!asistenteConfig.asistente_activo) return;
+    if (!asistenteConfig.asistente_autoopen) return;
     if (sessionStorage.getItem('asistente_autoopen')) return;
-    if (localStorage.getItem('asistente_bloqueado') === '1') return;
-    if (localStorage.getItem('asistente_no_autoopen') === '1') return;
     const t = setTimeout(() => {
       setAsistenteOpen(true);
       sessionStorage.setItem('asistente_autoopen', '1');
     }, 5000);
     return () => clearTimeout(t);
-  }, []);
+  }, [asistenteConfig]);
 
   // Reconocimiento de voz continuo — escucha "hola compañero"
   useEffect(() => {
@@ -104,8 +112,8 @@ export default function AppLayout() {
       <DemoWatermark />
       <MobileNav />
 
-      {/* Botón flotante Asistente IA — oculto si bloqueado */}
-      {localStorage.getItem('asistente_bloqueado') !== '1' && <button
+      {/* Botón flotante Asistente IA — condicionado a BD */}
+      {asistenteConfig?.asistente_activo !== false && <button
         onClick={() => setAsistenteOpen(true)}
         className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 rounded-full bg-gradient-to-br from-slate-800 to-blue-700 shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
         title={voiceActive ? 'Asistente SMART IA · Di "hola compañero" para activar' : 'Asistente SMART IA'}
@@ -122,6 +130,8 @@ export default function AppLayout() {
         open={asistenteOpen}
         onClose={() => setAsistenteOpen(false)}
         currentUser={currentUser}
+        asistenteConfig={asistenteConfig}
+        onConfigChange={setAsistenteConfig}
       />
     </div>
   );

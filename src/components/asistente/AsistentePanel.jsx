@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/lib/useUserRole';
+import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import AsistenteChat from './AsistenteChat';
 import AsistenteTareas from './AsistenteTareas';
 import AsistenteInformes from './AsistenteInformes';
@@ -17,27 +19,36 @@ const TABS = [
   { id: 'normas', label: 'Normas', icon: ShieldCheck },
 ];
 
-export default function AsistentePanel({ open, onClose, currentUser }) {
+export default function AsistentePanel({ open, onClose, currentUser, asistenteConfig, onConfigChange }) {
   const [activeTab, setActiveTab] = useState('chat');
   const [showSettings, setShowSettings] = useState(false);
   const { role } = useUserRole();
 
-  const [bloqueado, setBloqueado] = useState(() =>
-    localStorage.getItem('asistente_bloqueado') === '1'
-  );
-  const [autoOpenDesactivado, setAutoOpenDesactivado] = useState(() =>
-    localStorage.getItem('asistente_no_autoopen') === '1'
-  );
+  const bloqueado = asistenteConfig?.asistente_activo === false;
+  const autoOpenDesactivado = asistenteConfig?.asistente_autoopen === false;
+  const configId = asistenteConfig?.id;
 
-  const toggleBloqueado = (val) => {
-    setBloqueado(val);
-    localStorage.setItem('asistente_bloqueado', val ? '1' : '0');
-    if (val) onClose();
+  const toggleBloqueado = async (val) => {
+    try {
+      if (configId) {
+        await base44.entities.AsistenteConfig.update(configId, { asistente_activo: !val });
+        onConfigChange?.({ ...asistenteConfig, asistente_activo: !val });
+      }
+      if (val) onClose();
+    } catch {
+      toast.error('Error al guardar configuración');
+    }
   };
 
-  const toggleAutoOpen = (val) => {
-    setAutoOpenDesactivado(val);
-    localStorage.setItem('asistente_no_autoopen', val ? '1' : '0');
+  const toggleAutoOpen = async (val) => {
+    try {
+      if (configId) {
+        await base44.entities.AsistenteConfig.update(configId, { asistente_autoopen: !val });
+        onConfigChange?.({ ...asistenteConfig, asistente_autoopen: !val });
+      }
+    } catch {
+      toast.error('Error al guardar configuración');
+    }
   };
 
   return (
