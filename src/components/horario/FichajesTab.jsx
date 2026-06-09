@@ -79,8 +79,13 @@ export default function FichajesTab() {
     setEditing(f);
     if (f) {
       setForm({ ...f });
-    } else if ((isControlHorarioOnly || isOperarioRole) && myOperario) {
-      setForm({ ...empty, operario_id: myOperario.id, operario_name: myOperario.name });
+    } else if (isControlHorarioOnly || isOperarioRole) {
+      // Abrir siempre aunque myOperario no esté vinculado aún
+      setForm({
+        ...empty,
+        operario_id: myOperario?.id || '',
+        operario_name: myOperario?.name || user?.full_name || '',
+      });
     } else {
       setForm(empty);
     }
@@ -122,7 +127,11 @@ export default function FichajesTab() {
   // Para control_horario Y operario: buscar su propio Operario vinculado
   const isOperarioRole = user?.role === 'operario';
   const myOperario = (isControlHorarioOnly || isOperarioRole)
-    ? (operarios.find(o => o.user_email === user?.email) || operarios.find(o => o.email === user?.email))
+    ? (
+        operarios.find(o => o.user_email === user?.email) ||
+        operarios.find(o => o.email === user?.email) ||
+        operarios.find(o => o.user_id === user?.id)
+      )
     : null;
 
   // Autoload operario for operario/control_horario roles
@@ -301,9 +310,17 @@ export default function FichajesTab() {
                   {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
                 </MobileSelect>
               ) : (
-                <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
-                  {myOperario?.name || user?.full_name || 'Mi perfil'}
-                  {!myOperario && <span className="ml-2 text-xs text-amber-600">(sin operario vinculado)</span>}
+                <div className="flex h-auto w-full flex-col items-start rounded-md border border-input bg-muted px-3 py-2 text-sm">
+                  {myOperario ? (
+                    <span className="text-foreground font-medium">{myOperario.name}</span>
+                  ) : (
+                    <>
+                      <span className="text-amber-700 font-semibold text-xs">⚠️ Tu perfil de operario no está vinculado</span>
+                      <span className="text-muted-foreground text-[11px] mt-0.5">
+                        Pide al administrador que vincule tu email ({user?.email}) al registro de operario correspondiente.
+                      </span>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -411,7 +428,12 @@ export default function FichajesTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={close_}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.operario_id || !form.hora_entrada || isPending} className="gap-2 min-w-28">
+            <Button
+              onClick={handleSave}
+              disabled={!form.operario_id || !form.hora_entrada || isPending}
+              className="gap-2 min-w-28"
+              title={!form.operario_id ? 'Vincula tu perfil de operario primero' : ''}
+            >
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar
             </Button>
           </DialogFooter>

@@ -33,7 +33,7 @@ const HUB_GROUPS = [
     icon: Users,
     color: 'text-teal-600',
     activeBg: 'bg-teal-100 dark:bg-teal-900/40',
-    module: 'operarios',
+    module: 'control-horario',
     items: [
       { label: 'Operarios', path: '/operarios', icon: Users, module: 'operarios' },
       { label: 'Horario', path: '/control-horario', icon: Clock, module: 'control-horario' },
