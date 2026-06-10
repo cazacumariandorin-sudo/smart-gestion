@@ -49,23 +49,18 @@ export default function ObraSelectorObras({ value, onChange, placeholder = 'Sele
 
   return (
     <MobileSelect value={currentVal} onValueChange={handleChange} placeholder={placeholder} triggerClassName={triggerClassName}>
-      {obrasCiviles.length > 0 && (
-        <>
-          {/* Cabecera visual — value sin "__sep" para evitar filtrado de MobileSelect */}
-          <MobileSelectItem value="__header_civil" disabled className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 pointer-events-none select-none">OBRAS CIVILES</MobileSelectItem>
-          {obrasCiviles.map(o => (
-            <MobileSelectItem key={o.id} value={o.id}>🏗 {o.name}{o.status === 'pausada' ? ' (pausada)' : ''}</MobileSelectItem>
-          ))}
-        </>
-      )}
-      {obrasSolar.length > 0 && (
-        <>
-          <MobileSelectItem value="__header_solar" disabled className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 pointer-events-none select-none">OBRAS SOLARES</MobileSelectItem>
-          {obrasSolar.map(o => (
-            <MobileSelectItem key={o.id} value={o.id}>☀️ {o.name}{o.status === 'pausada' ? ' (pausada)' : ''}</MobileSelectItem>
-          ))}
-        </>
-      )}
+      {obrasCiviles.length > 0 &&
+        <MobileSelectItem value="__header_civil" disabled className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 pointer-events-none select-none">OBRAS CIVILES</MobileSelectItem>
+      }
+      {obrasCiviles.map(o => (
+        <MobileSelectItem key={o.id} value={o.id}>🏗 {o.name}{o.status === 'pausada' ? ' (pausada)' : ''}</MobileSelectItem>
+      ))}
+      {obrasSolar.length > 0 &&
+        <MobileSelectItem value="__header_solar" disabled className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 pointer-events-none select-none">OBRAS SOLARES</MobileSelectItem>
+      }
+      {obrasSolar.map(o => (
+        <MobileSelectItem key={o.id} value={o.id}>☀️ {o.name}{o.status === 'pausada' ? ' (pausada)' : ''}</MobileSelectItem>
+      ))}
       {FIXED.map(f => (
         <MobileSelectItem key={f.id} value={f.id}>{f.name}</MobileSelectItem>
       ))}
