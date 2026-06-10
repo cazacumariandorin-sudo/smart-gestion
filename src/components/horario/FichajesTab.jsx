@@ -75,12 +75,22 @@ export default function FichajesTab() {
   const deleteM = useMutation({ mutationFn: id => base44.entities.Fichaje.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['fichajes'] }) });
   const deleteApunteM = useMutation({ mutationFn: id => base44.entities.ApunteHorario.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['apuntes'] }) });
 
+  // Para control_horario Y operario: buscar su propio Operario vinculado
+  // IMPORTANTE: debe declararse ANTES de open_() para evitar crash por uso antes de declaración
+  const isOperarioRole = user?.role === 'operario';
+  const myOperario = (isControlHorarioOnly || isOperarioRole)
+    ? (
+        operarios.find(o => o.user_email === user?.email) ||
+        operarios.find(o => o.email === user?.email) ||
+        operarios.find(o => o.user_id === user?.id)
+      )
+    : null;
+
   const open_ = (f = null) => {
     setEditing(f);
     if (f) {
       setForm({ ...f });
     } else if (isControlHorarioOnly || isOperarioRole) {
-      // Abrir siempre aunque myOperario no esté vinculado aún
       setForm({
         ...empty,
         operario_id: myOperario?.id || '',
@@ -94,7 +104,6 @@ export default function FichajesTab() {
   };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(empty); setApuntes([]); };
 
-  // Apuntes inline form helpers
   const addApunte = () => setApuntes(p => [...p, { ...emptyApunte }]);
   const removeApunte = i => setApuntes(p => p.filter((_, idx) => idx !== i));
   const setApunteField = (i, k, v) => setApuntes(p => {
@@ -123,16 +132,6 @@ export default function FichajesTab() {
     const data = { ...form, horas_trabajadas: horas, project: form.obra_name || form.project };
     editing ? updateM.mutate({ id: editing.id, d: data }) : createM.mutate(data);
   };
-
-  // Para control_horario Y operario: buscar su propio Operario vinculado
-  const isOperarioRole = user?.role === 'operario';
-  const myOperario = (isControlHorarioOnly || isOperarioRole)
-    ? (
-        operarios.find(o => o.user_email === user?.email) ||
-        operarios.find(o => o.email === user?.email) ||
-        operarios.find(o => o.user_id === user?.id)
-      )
-    : null;
 
   // Autoload operario for operario/control_horario roles
   useEffect(() => {
