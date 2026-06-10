@@ -152,14 +152,7 @@ const HUB_CONFIG = [
   },
 ];
 
-const roleLabels = {
-  admin:           { label: 'Administrador',   color: 'bg-red-100 text-red-700 border-red-200' },
-  jefe_obra:       { label: 'Jefe de Obra',    color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  operario:        { label: 'Operario',        color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  control_horario: { label: 'Control Horario', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  cliente_obra:    { label: 'Cliente Obra',    color: 'bg-violet-100 text-violet-700 border-violet-200' },
-  gerencia:        { label: 'Gerencia',        color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
-};
+import { ROLE_LABELS } from '@/lib/roleLabels';
 
 function ModuleCard({ hub, kpi }) {
   const [open, setOpen] = useState(false);
@@ -333,7 +326,7 @@ export default function Dashboard() {
     },
   };
 
-  const roleCfg = roleLabels[role] || roleLabels.operario;
+  const roleCfg = ROLE_LABELS[role] || { label: role, className: 'bg-gray-100 text-gray-700 border-gray-200' };
 
   const visibleHubs = HUB_CONFIG.filter(hub => {
     if (hub.adminOnly && !isAdmin && !isGerencia) return false;
@@ -372,7 +365,7 @@ export default function Dashboard() {
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Actualizar</span>
           </Button>
-          <Badge variant="outline" className={cn('text-xs font-semibold px-2.5 py-1', roleCfg.color)}>{roleCfg.label}</Badge>
+          <Badge variant="outline" className={cn('text-xs font-semibold px-2.5 py-1', roleCfg.className)}>{roleCfg.label}</Badge>
         </div>
       </div>
 
