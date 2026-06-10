@@ -6,7 +6,7 @@ import {
   Building2, Users, Receipt, Car, Folder, Settings,
   HardHat, Sun, ClipboardList, Clock, Truck, Images,
   AlertCircle, BarChart2, MessageSquare, Database,
-  Link2, FlaskConical, RefreshCw
+  Link2, FlaskConical, RefreshCw, Eye
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -147,6 +147,7 @@ const HUB_CONFIG = [
       { label: 'Backup',        path: '/admin-backup',       icon: Database },
       { label: 'Informes',      path: '/reports',            icon: BarChart2 },
       { label: 'Vinculaciones', path: '/vinculacion',        icon: Users },
+      { label: 'Simulador',     path: '/simulador-roles',    icon: Eye },
     ],
   },
 ];
