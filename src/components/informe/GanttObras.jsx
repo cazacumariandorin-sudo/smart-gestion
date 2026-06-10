@@ -44,11 +44,12 @@ export default function GanttObras({ obras, previsiones, month, onMonthChange })
     if (barStart > rangoEnd || barEnd < rangoStart) return null;
     const left = (differenceInDays(barStart, rangoStart) / totalDias) * 100;
     const width = ((differenceInDays(barEnd, barStart) + 1) / totalDias) * 100;
-    return { left: `${left}%`, width: `${Math.max(1, width)}%` };
+    return { left: `${left}%`, width: `${Math.max(2, width)}%` };
   };
 
   return (
-    <div>
+    <div className="w-full">
+      <div className="overflow-x-auto">
       {/* Navegación */}
       <div className="flex items-center justify-between bg-muted/40 rounded-xl px-4 py-2 mb-3">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onMonthChange(-1)}>
@@ -62,7 +63,7 @@ export default function GanttObras({ obras, previsiones, month, onMonthChange })
         </Button>
       </div>
 
-      <div className="border border-border rounded-xl overflow-hidden bg-card">
+      <div className="border border-border rounded-xl overflow-hidden bg-card" style={{ minWidth: 560 }}>
         {/* Cabecera meses */}
         <div className="flex border-b border-border">
           <div className="w-44 shrink-0 border-r border-border px-3 py-2 text-[10px] font-semibold text-muted-foreground bg-muted/30">OBRA</div>
@@ -157,6 +158,7 @@ export default function GanttObras({ obras, previsiones, month, onMonthChange })
           Hoy
         </span>
       </div>
+      </div> {/* cierre overflow-x-auto */}
     </div>
   );
 }

@@ -28,7 +28,7 @@ export function getQueueCountByHub() {
   return {
     obras: queue.filter(i => ['WorkOrder', 'ObraMaterial'].includes(i.entityName)).length,
     personas: queue.filter(i => ['Fichaje', 'ApunteHorario'].includes(i.entityName)).length,
-    economico: queue.filter(i => i.entityName === 'GastoOperario').length,
+    economico: queue.filter(i => i.entityName === 'RegistroGasto').length,
   };
 }
 

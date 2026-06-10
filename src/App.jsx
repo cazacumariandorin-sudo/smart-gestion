@@ -6,7 +6,8 @@ import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-route
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavDirection } from '@/hooks/useNavDirection';
-import { processOfflineQueue } from '@/utils/offlineQueue';
+import { processOfflineQueue, getQueue } from '@/utils/offlineQueue';
+import { recalcularPrevision } from '@/hooks/useRecalcularPrevision';
 import { base44 } from '@/api/base44Client';
 import { I18nProvider } from './lib/i18n';
 import PageNotFound from './lib/PageNotFound';
@@ -119,16 +120,22 @@ function DeviceCapabilityDetector() {
 function OfflineQueueProcessor() {
   useEffect(() => {
     const handleOnline = async () => {
-      const queue = JSON.parse(localStorage.getItem('sg_offline_queue') || '[]');
-      if (queue.length === 0) return;
+      const pendingQueue = getQueue();
+      if (pendingQueue.length === 0) return;
       const entityApis = {
         Fichaje: base44.entities.Fichaje,
         WorkOrder: base44.entities.WorkOrder,
-        GastoOperario: base44.entities.GastoOperario,
+        RegistroGasto: base44.entities.RegistroGasto,
         ApunteHorario: base44.entities.ApunteHorario,
         ObraMaterial: base44.entities.ObraMaterial,
       };
+      const fichajesConObra = pendingQueue.filter(i => i.entityName === 'Fichaje' && i.payload?.obra_id);
       await processOfflineQueue(entityApis);
+      const obraIds = [...new Set(fichajesConObra.map(i => i.payload.obra_id))];
+      for (const obraId of obraIds) {
+        const obraName = fichajesConObra.find(i => i.payload.obra_id === obraId)?.payload?.obra_name || '';
+        await recalcularPrevision(obraId, obraName).catch(() => {});
+      }
     };
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
@@ -211,9 +218,9 @@ function AnimatedRoutes() {
             <Route path="/prevision-obras" element={<ProtectedRoute module="informe-obras"><Suspense fallback={<PageLoader />}><PrevisionObras /></Suspense></ProtectedRoute>} />
             <Route path="/invitaciones-demo" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><InvitacionesDemo /></Suspense></ProtectedRoute>} />
             <Route path="/simulador-roles" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><SimuladorRoles /></Suspense></ProtectedRoute>} />
-            <Route path="/diagnostico-operario" element={<Suspense fallback={<PageLoader />}><DiagnosticoOperario /></Suspense>} />
-            <Route path="/diagnostico-duplicacion" element={<Suspense fallback={<PageLoader />}><DiagnosticoDuplicacion /></Suspense>} />
-            <Route path="/vinculacion" element={<Suspense fallback={<PageLoader />}><VinculacionPage /></Suspense>} />
+            <Route path="/diagnostico-operario" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DiagnosticoOperario /></Suspense></ProtectedRoute>} />
+            <Route path="/diagnostico-duplicacion" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DiagnosticoDuplicacion /></Suspense></ProtectedRoute>} />
+            <Route path="/vinculacion" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><VinculacionPage /></Suspense></ProtectedRoute>} />
             <Route path="/analisis-seguridad" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><AnalisisSeguridad /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
