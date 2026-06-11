@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { FileText, Upload, List, ChevronDown } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { FileText, Upload, List, BarChart2 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import PageHeader from '@/components/layout/PageHeader';
 import CargaNominasForm from '@/components/nominas/CargaNominasForm';
 import ResultadoProcesamiento from '@/components/nominas/ResultadoProcesamiento';
 import ListaNominas from '@/components/nominas/ListaNominas';
+import AnalisisCostes from '@/components/nominas/AnalisisCostes';
 
 export default function Nominas() {
   const { user } = useAuth();
@@ -32,18 +31,34 @@ export default function Nominas() {
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all
               ${tab === 'lista' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
-            <List className="w-4 h-4" /> Consultar nóminas
+            <List className="w-4 h-4" /> Nóminas
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => setTab('analisis')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all
+                ${tab === 'analisis' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <BarChart2 className="w-4 h-4" /> Costes
+            </button>
+          )}
           {isAdmin && (
             <button
               onClick={() => setTab('carga')}
               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all
                 ${tab === 'carga' || tab === 'resultado' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
             >
-              <Upload className="w-4 h-4" /> Cargar nóminas
+              <Upload className="w-4 h-4" /> Cargar
             </button>
           )}
         </div>
+
+        {/* Tab: Análisis de costes */}
+        {tab === 'analisis' && isAdmin && (
+          <div className="bg-card border border-border rounded-2xl p-5">
+            <AnalisisCostes />
+          </div>
+        )}
 
         {/* Tab: Lista */}
         {tab === 'lista' && (
