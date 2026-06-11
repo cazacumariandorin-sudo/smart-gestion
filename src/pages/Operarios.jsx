@@ -32,8 +32,8 @@ const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true,
 export default function Operarios() {
   const qc = useQueryClient();
   const { isAdmin, isJefeObra, role } = useUserRole();
-  const showUserCol = isAdmin || isJefeObra;
-  const canCreate = isAdmin || isJefeObra || role === 'director_comercial';
+  const showUserCol = isAdmin;
+  const canCreate = isAdmin || role === 'director_comercial';
   const canDelete = isAdmin;
   const defaultTab = typeof window !== 'undefined' && typeof window.location !== 'undefined' && window.location.pathname.includes('documentacion') ? 'documentacion' : 'operarios';
   const [activeTab, setActiveTab] = useState(defaultTab);
