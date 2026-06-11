@@ -114,11 +114,6 @@
         },
         {
           "user_condition": {
-            "role": "jefe_obra"
-          }
-        },
-        {
-          "user_condition": {
             "role": "control_horario"
           }
         },
