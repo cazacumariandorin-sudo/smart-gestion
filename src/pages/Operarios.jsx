@@ -292,33 +292,35 @@ export default function Operarios() {
                 <Input type="number" value={form.coste_hora} onChange={e => set('coste_hora', parseFloat(e.target.value) || '')} placeholder="0.00" min="0" step="0.5" />
               </div>
             </div>
-            <div className="space-y-1.5 pt-1 border-t border-border mt-1">
-              <Label className="text-xs flex items-center gap-1.5">
-                <Link2 className="w-3.5 h-3.5 text-primary" /> Usuario de la app vinculado
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Asocia este operario a un usuario que hace login.
-              </p>
-              <MobileSelect
-                value={form.user_email}
-                onValueChange={(val) => {
-                  const u = appUsers.find(u => u.email === val);
-                  set('user_email', val);
-                  set('user_id', u?.id || '');
-                }}
-                placeholder="Sin usuario vinculado"
-              >
-                <MobileSelectItem value="">Sin usuario vinculado</MobileSelectItem>
-                {appUsers.map(u => (
-                  <MobileSelectItem key={u.id} value={u.email}>
-                    {u.full_name || u.email}
-                  </MobileSelectItem>
-                ))}
-              </MobileSelect>
-              {form.user_email && (
-                <p className="text-xs text-green-600 font-medium">Vinculado: {form.user_email}</p>
-              )}
-            </div>
+            {isAdmin && (
+              <div className="space-y-1.5 pt-1 border-t border-border mt-1">
+                <Label className="text-xs flex items-center gap-1.5">
+                  <Link2 className="w-3.5 h-3.5 text-primary" /> Usuario de la app vinculado
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Asocia este operario a un usuario que hace login.
+                </p>
+                <MobileSelect
+                  value={form.user_email}
+                  onValueChange={(val) => {
+                    const u = appUsers.find(u => u.email === val);
+                    set('user_email', val);
+                    set('user_id', u?.id || '');
+                  }}
+                  placeholder="Sin usuario vinculado"
+                >
+                  <MobileSelectItem value="">Sin usuario vinculado</MobileSelectItem>
+                  {appUsers.map(u => (
+                    <MobileSelectItem key={u.id} value={u.email}>
+                      {u.full_name || u.email}
+                    </MobileSelectItem>
+                  ))}
+                </MobileSelect>
+                {form.user_email && (
+                  <p className="text-xs text-green-600 font-medium">Vinculado: {form.user_email}</p>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={close_}>Cancelar</Button>

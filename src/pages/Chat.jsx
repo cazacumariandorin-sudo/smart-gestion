@@ -152,6 +152,8 @@ export default function Chat() {
       const selectedConv = conversations.find(c => c.id === selectedConvId);
       const participantes = selectedConv?.participantes || [];
 
+      const destinatarios = participantes.map(p => p.user_email).filter(Boolean);
+
       let mensajePayload = {
         conversacion_id: selectedConvId,
         autor_email: currentUser?.email || '',
@@ -159,6 +161,7 @@ export default function Chat() {
         fecha_envio: new Date().toISOString(),
         leido_por: [currentUser?.email],
         adjuntos: adjuntos || [],
+        destinatarios,
       };
 
       // Reply
