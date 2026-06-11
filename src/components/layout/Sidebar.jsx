@@ -1,119 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard, HardHat, Users, Receipt, Car, Folder,
-  Settings, CircleUser, ChevronDown, ChevronRight,
-  Building2, Sun, ClipboardList, Package, BarChart2,
-  Clock, CalendarDays, FileImage, BookOpen, Factory,
-  ShoppingCart, Truck, Images, MessageSquare, Database,
-  Shield, PenLine, Wrench, FlaskConical, Eye, FileSpreadsheet
-} from 'lucide-react';
+import { LayoutDashboard, CircleUser, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { useUserRole } from '@/lib/useUserRole';
 import { getQueueCountByHub } from '@/utils/offlineQueue';
+import { HUBS, isHubVisible } from '@/lib/hubs';
 
-// Hub definitions — color is a Tailwind text color class
-export const HUBS = [
-  {
-    id: 'obras',
-    label: 'Obras & Proyectos',
-    icon: Building2,
-    color: 'text-purple-600',
-    activeBg: 'bg-purple-50 dark:bg-purple-950/40',
-    borderColor: 'border-purple-400',
-    items: [
-      { label: 'Obras civiles', path: '/obras-civiles', icon: Building2, module: 'obras-civiles' },
-      { label: 'Clientes', path: '/clients', icon: Users, module: 'clients' },
-      { label: 'Solar', path: '/solar', icon: Sun, module: 'solar' },
-      { label: 'Partes de trabajo', path: '/work-orders', icon: ClipboardList, module: 'work-orders' },
-      { label: 'Informe Obras', path: '/informe-obras', icon: BarChart2, module: 'informe-obras' },
-    ],
-  },
-  {
-    id: 'personas',
-    label: 'Personas & Equipos',
-    icon: Users,
-    color: 'text-teal-600',
-    activeBg: 'bg-teal-50 dark:bg-teal-950/40',
-    borderColor: 'border-teal-400',
-    items: [
-      { label: 'Trabajadores', path: '/operarios', icon: Users, module: 'operarios' },
-      { label: 'Control Horario', path: '/control-horario', icon: Clock, module: 'control-horario' },
-      { label: 'Vacaciones', path: '/calendario-vacaciones', icon: CalendarDays, module: 'calendario-vacaciones' },
-      { label: 'Apuntes Horario', path: '/apuntes-horario', icon: PenLine, module: 'apuntes-horario' },
-      { label: 'Documentación Trabajadores', path: '/documentacion-operarios', icon: FileImage, module: 'operarios' },
-    ],
-  },
-  {
-    id: 'economico',
-    label: 'Económico',
-    icon: Receipt,
-    color: 'text-amber-600',
-    activeBg: 'bg-amber-50 dark:bg-amber-950/40',
-    borderColor: 'border-amber-400',
-    items: [
-      { label: 'Registro de Gasto', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
-      { label: 'Pedidos', path: '/orders', icon: ShoppingCart, module: 'orders' },
-      { label: 'Nóminas', path: '/nominas', icon: FileSpreadsheet, module: 'nominas' },
-      { label: 'Datos Sensibles', path: '/datos-sensibles', icon: Shield, module: 'users' },
-    ],
-  },
-  {
-    id: 'flota',
-    label: 'Flota & Movilidad',
-    icon: Car,
-    color: 'text-blue-600',
-    activeBg: 'bg-blue-50 dark:bg-blue-950/40',
-    borderColor: 'border-blue-400',
-    items: [
-      { label: 'Vehículos', path: '/flota', icon: Truck, module: 'flota' },
-    ],
-  },
-  {
-    id: 'documental',
-    label: 'Documental',
-    icon: Folder,
-    color: 'text-orange-600',
-    activeBg: 'bg-orange-50 dark:bg-orange-950/40',
-    borderColor: 'border-orange-400',
-    items: [
-      { label: 'Planos', path: '/drawings', icon: FileImage, module: 'drawings' },
-      { label: 'Manuales', path: '/manuales', icon: BookOpen, module: 'manuales' },
-      { label: 'Galería Fotos', path: '/galeria-fotos', icon: Images, module: 'galeria-fotos' },
-      { label: 'Materiales', path: '/materials', icon: Package, module: 'orders' },
-      { label: 'Inventario', path: '/inventario', icon: Wrench, module: 'users' },
-      { label: 'Fabricantes', path: '/fabricantes', icon: Factory, module: 'users' },
-    ],
-  },
-  {
-    id: 'sistema',
-    label: 'Sistema',
-    icon: Settings,
-    color: 'text-slate-600',
-    activeBg: 'bg-slate-50 dark:bg-slate-950/40',
-    borderColor: 'border-slate-400',
-    adminOnly: true,
-    items: [
-      { label: 'Chat', path: '/chat', icon: MessageSquare, module: null },
-      { label: 'Usuarios', path: '/users', icon: Users, module: 'users' },
-      { label: 'Usuarios Demo', path: '/demo-users', icon: Users, module: 'users' },
-      { label: 'Invitaciones Demo', path: '/invitaciones-demo', icon: FlaskConical, module: 'users' },
-      { label: 'Backup', path: '/admin-backup', icon: Database, module: 'users' },
-      { label: 'Informe Mensual', path: '/reports', icon: BarChart2, module: 'reports' },
-      { label: 'Simulador de Roles', path: '/simulador-roles', icon: Eye, module: 'users' },
-    ],
-  },
-];
 
-function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo, pendingCount = 0 }) {
+
+function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo, role, pendingCount = 0 }) {
   const items = hub.items.filter(i => i.module === null || canAccess(i.module));
   const isChildActive = items.some(i => currentPath === i.path || (i.path !== '/' && currentPath.startsWith(i.path)));
   const [open, setOpen] = useState(isChildActive);
 
   if (items.length === 0) return null;
-  if (hub.adminOnly && !isAdmin && !isGerencia) return null;
-  if (isDemo && (hub.id === 'personas' || hub.id === 'sistema')) return null;
+  if (!isHubVisible(hub, { role, isDemo })) return null;
 
   const Icon = hub.icon;
 
@@ -238,6 +140,7 @@ export default function Sidebar() {
             isAdmin={isAdmin}
             isGerencia={isGerencia}
             isDemo={isDemo}
+            role={role}
             pendingCount={
               hub.id === 'obras' ? queueCounts.obras :
               hub.id === 'personas' ? queueCounts.personas :

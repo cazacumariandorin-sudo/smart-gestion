@@ -1,101 +1,10 @@
 import { useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  LayoutDashboard, Building2, Users, Receipt, Car, Folder, Settings,
-  UserCircle, X, ClipboardList, Clock, ShoppingCart, Sun,
-  CalendarDays, FileImage, BookOpen, Factory, Package, Truck,
-  Images, MessageSquare, Database, PenLine, Wrench, Shield, BarChart2
-} from 'lucide-react';
+import { LayoutDashboard, UserCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserRole } from '@/lib/useUserRole';
-
-// Hub items for mobile bottom sheet
-const HUB_GROUPS = [
-  {
-    id: 'obras',
-    label: 'Obras',
-    icon: Building2,
-    color: 'text-purple-600',
-    activeBg: 'bg-purple-100 dark:bg-purple-900/40',
-    module: 'obras',
-    items: [
-      { label: 'Obras', path: '/obras-civiles', icon: Building2, module: 'obras-civiles' },
-      { label: 'Clientes', path: '/clients', icon: Users, module: 'clients' },
-      { label: 'Solar', path: '/solar', icon: Sun, module: 'solar' },
-      { label: 'Partes', path: '/work-orders', icon: ClipboardList, module: 'work-orders' },
-      { label: 'Informe', path: '/informe-obras', icon: BarChart2, module: 'informe-obras' },
-    ],
-  },
-  {
-    id: 'personas',
-    label: 'Personas',
-    icon: Users,
-    color: 'text-teal-600',
-    activeBg: 'bg-teal-100 dark:bg-teal-900/40',
-    module: 'control-horario',
-    items: [
-      { label: 'Operarios', path: '/operarios', icon: Users, module: 'operarios' },
-      { label: 'Horario', path: '/control-horario', icon: Clock, module: 'control-horario' },
-      { label: 'Vacaciones', path: '/calendario-vacaciones', icon: CalendarDays, module: 'calendario-vacaciones' },
-      { label: 'Apuntes', path: '/apuntes-horario', icon: PenLine, module: 'apuntes-horario' },
-      { label: 'Docs', path: '/documentacion-operarios', icon: FileImage, module: 'operarios' },
-    ],
-  },
-  {
-    id: 'economico',
-    label: 'Económico',
-    icon: Receipt,
-    color: 'text-amber-600',
-    activeBg: 'bg-amber-100 dark:bg-amber-900/40',
-    module: 'notas-gastos',
-    items: [
-      { label: 'Gastos', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
-      { label: 'Pedidos', path: '/orders', icon: ShoppingCart, module: 'orders' },
-    ],
-  },
-  {
-    id: 'flota',
-    label: 'Flota',
-    icon: Car,
-    color: 'text-blue-600',
-    activeBg: 'bg-blue-100 dark:bg-blue-900/40',
-    module: 'flota',
-    items: [
-      { label: 'Vehículos', path: '/flota', icon: Truck, module: 'flota' },
-    ],
-  },
-  {
-    id: 'documental',
-    label: 'Docs',
-    icon: Folder,
-    color: 'text-orange-600',
-    activeBg: 'bg-orange-100 dark:bg-orange-900/40',
-    module: 'orders',
-    items: [
-      { label: 'Planos', path: '/drawings', icon: FileImage, module: 'orders' },
-      { label: 'Manuales', path: '/manuales', icon: BookOpen, module: 'orders' },
-      { label: 'Galería', path: '/galeria-fotos', icon: Images, module: 'galeria-fotos' },
-      { label: 'Materiales', path: '/materials', icon: Package, module: 'orders' },
-      { label: 'Inventario', path: '/inventario', icon: Wrench, module: 'users' },
-      { label: 'Fabricantes', path: '/fabricantes', icon: Factory, module: 'users' },
-    ],
-  },
-  {
-    id: 'sistema',
-    label: 'Sistema',
-    icon: Settings,
-    color: 'text-slate-600',
-    activeBg: 'bg-slate-100 dark:bg-slate-900/40',
-    module: 'users',
-    adminOnly: true,
-    items: [
-      { label: 'Chat', path: '/chat', icon: MessageSquare, module: null },
-      { label: 'Usuarios', path: '/users', icon: Users, module: 'users' },
-      { label: 'Backup', path: '/admin-backup', icon: Database, module: 'users' },
-    ],
-  },
-];
+import { HUBS, isHubVisible } from '@/lib/hubs';
 
 function haptic(ms = 8) {
   if (navigator?.vibrate) navigator.vibrate(ms);
@@ -200,10 +109,9 @@ export default function MobileNav() {
   const closeAll = useCallback(() => setOpenHub(null), []);
 
   const isDemo = role === 'usuario_demo';
-  const visibleHubs = HUB_GROUPS.filter(hub => {
-    if (hub.id === 'sistema') return false; // acceso via dashboard → botón Gestionar
-    if (hub.adminOnly && !isAdmin && !isGerencia) return false;
-    if (isDemo && (hub.id === 'personas' || hub.id === 'sistema')) return false;
+  const visibleHubs = HUBS.filter(hub => {
+    if (hub.id === 'sistema') return false;
+    if (!isHubVisible(hub, { role, isDemo })) return false;
     return hub.items.some(i => i.module === null || canAccess(i.module));
   });
 

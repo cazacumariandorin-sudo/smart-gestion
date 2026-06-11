@@ -2,12 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import {
-  Building2, Users, Receipt, Car, Folder, Settings,
-  HardHat, Sun, ClipboardList, Clock, Truck, Images,
-  AlertCircle, BarChart2, MessageSquare, Database,
-  Link2, FlaskConical, RefreshCw, Eye, ChevronDown, ChevronUp
-} from 'lucide-react';
+import { HardHat, RefreshCw, ChevronDown, ChevronUp, AlertCircle, MessageSquare, Images } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -19,6 +14,7 @@ import { ModuloBadge, PanelTareas, useTareasAdmin } from '@/components/dashboard
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { HUBS, isHubVisible } from '@/lib/hubs';
 
 const QUICK_ACCESS = [
   {
@@ -47,111 +43,14 @@ const QUICK_ACCESS = [
   },
 ];
 
-const HUB_CONFIG = [
-  {
-    id: 'obras',
-    label: 'Obras & Proyectos',
-    icon: Building2,
-    path: '/obras-civiles',
-    color: 'text-purple-800',
-    iconBg: 'bg-purple-600',
-    bg: 'bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/50 dark:to-purple-950/40',
-    border: 'border-purple-300 dark:border-purple-700',
-    watermark: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&q=60&fit=crop',
-    module: 'obras-civiles',
-    links: [
-      { label: 'Obras civiles', path: '/obras-civiles', icon: Building2 },
-      { label: 'Solar', path: '/solar', icon: Sun },
-      { label: 'Partes', path: '/work-orders', icon: ClipboardList },
-      { label: 'Informe', path: '/informe-obras', icon: BarChart2 },
-    ],
-  },
-  {
-    id: 'personas',
-    label: 'Personas & Equipos',
-    icon: Users,
-    path: '/operarios',
-    color: 'text-teal-800',
-    iconBg: 'bg-teal-600',
-    bg: 'bg-gradient-to-br from-teal-100 to-teal-50 dark:from-teal-900/50 dark:to-teal-950/40',
-    border: 'border-teal-300 dark:border-teal-700',
-    watermark: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&q=60&fit=crop',
-    module: 'operarios',
-    links: [
-      { label: 'Trabajadores', path: '/operarios', icon: Users },
-      { label: 'Horario', path: '/control-horario', icon: Clock },
-    ],
-  },
-  {
-    id: 'economico',
-    label: 'Económico',
-    icon: Receipt,
-    path: '/notas-gastos',
-    color: 'text-amber-800',
-    iconBg: 'bg-amber-500',
-    bg: 'bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/50 dark:to-amber-950/40',
-    border: 'border-amber-300 dark:border-amber-700',
-    watermark: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&q=60&fit=crop',
-    module: 'notas-gastos',
-    links: [
-      { label: 'Gastos', path: '/notas-gastos', icon: Receipt },
-    ],
-  },
-  {
-    id: 'flota',
-    label: 'Flota & Movilidad',
-    icon: Car,
-    path: '/flota',
-    color: 'text-blue-800',
-    iconBg: 'bg-blue-600',
-    bg: 'bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/50 dark:to-blue-950/40',
-    border: 'border-blue-300 dark:border-blue-700',
-    watermark: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400&q=60&fit=crop',
-    module: 'flota',
-    links: [
-      { label: 'Vehículos', path: '/flota', icon: Truck },
-    ],
-  },
-  {
-    id: 'documental',
-    label: 'Documental',
-    icon: Folder,
-    path: '/drawings',
-    color: 'text-orange-800',
-    iconBg: 'bg-orange-500',
-    bg: 'bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/50 dark:to-orange-950/40',
-    border: 'border-orange-300 dark:border-orange-700',
-    watermark: 'https://images.unsplash.com/photo-1568219656418-15c329312bf1?w=400&q=60&fit=crop',
-    module: 'orders',
-    links: [
-      { label: 'Planos', path: '/drawings', icon: Folder },
-      { label: 'Galería', path: '/galeria-fotos', icon: Images },
-    ],
-  },
-  {
-    id: 'sistema',
-    label: 'Sistema',
-    icon: Settings,
-    path: '/users',
-    color: 'text-slate-800',
-    iconBg: 'bg-slate-600',
-    bg: 'bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-900/50 dark:to-slate-950/40',
-    border: 'border-slate-300 dark:border-slate-700',
-    watermark: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&q=60&fit=crop',
-    module: 'users',
-    adminOrGerencia: true,
-    links: [
-      { label: 'Usuarios',      path: '/users',              icon: Users },
-      { label: 'Chat',          path: '/chat',               icon: MessageSquare },
-      { label: 'Demos',         path: '/demo-users',         icon: FlaskConical },
-      { label: 'Invitaciones',  path: '/invitaciones-demo',  icon: Link2 },
-      { label: 'Backup',        path: '/admin-backup',       icon: Database },
-      { label: 'Informes',      path: '/reports',            icon: BarChart2 },
-      { label: 'Vinculaciones', path: '/vinculacion',        icon: Users },
-      { label: 'Simulador',     path: '/simulador-roles',    icon: Eye },
-    ],
-  },
-];
+const DASHBOARD_META = {
+  obras: { watermark: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/50 dark:to-purple-950/40', border: 'border-purple-300 dark:border-purple-700', iconBg: 'bg-purple-600', color: 'text-purple-800' },
+  personas: { watermark: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-teal-100 to-teal-50 dark:from-teal-900/50 dark:to-teal-950/40', border: 'border-teal-300 dark:border-teal-700', iconBg: 'bg-teal-600', color: 'text-teal-800' },
+  economico: { watermark: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/50 dark:to-amber-950/40', border: 'border-amber-300 dark:border-amber-700', iconBg: 'bg-amber-500', color: 'text-amber-800' },
+  flota: { watermark: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/50 dark:to-blue-950/40', border: 'border-blue-300 dark:border-blue-700', iconBg: 'bg-blue-600', color: 'text-blue-800' },
+  documental: { watermark: 'https://images.unsplash.com/photo-1568219656418-15c329312bf1?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/50 dark:to-orange-950/40', border: 'border-orange-300 dark:border-orange-700', iconBg: 'bg-orange-500', color: 'text-orange-800' },
+  sistema: { watermark: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-900/50 dark:to-slate-950/40', border: 'border-slate-300 dark:border-slate-700', iconBg: 'bg-slate-600', color: 'text-slate-800' },
+};
 
 import { ROLE_LABELS } from '@/lib/roleLabels';
 import TareasButton from '@/components/dashboard/TareasButton';
@@ -162,8 +61,8 @@ function ModuleCard({ hub, kpi, tareas = [], onTareasClick }) {
   const [expanded, setExpanded] = useState(false);
   const Icon = hub.icon;
 
-  const visibleLinks = hub.links.slice(0, MAX_VISIBLE_LINKS);
-  const hiddenLinks = hub.links.slice(MAX_VISIBLE_LINKS);
+  const visibleLinks = hub.items.slice(0, MAX_VISIBLE_LINKS);
+  const hiddenLinks = hub.items.slice(MAX_VISIBLE_LINKS);
   const hasMore = hiddenLinks.length > 0;
 
   return (
@@ -349,11 +248,10 @@ export default function Dashboard() {
 
   const roleCfg = ROLE_LABELS[role] || { label: role, className: 'bg-gray-100 text-gray-700 border-gray-200' };
 
-  const visibleHubs = HUB_CONFIG.filter(hub => {
-    if (hub.adminOnly && !isAdmin && !isGerencia) return false;
-    if (hub.adminOrGerencia && !isAdmin && !isGerencia) return false;
-    return hub.module === null || canAccess(hub.module);
-  });
+  const visibleHubs = HUBS
+    .filter(hub => isHubVisible(hub, { role, isDemo: role === 'usuario_demo' }))
+    .filter(hub => hub.module === null || canAccess(hub.module))
+    .map(hub => ({ ...hub, ...DASHBOARD_META[hub.id] }));
 
   const showDiagnostic = !roleLoading && visibleHubs.length === 0;
 
