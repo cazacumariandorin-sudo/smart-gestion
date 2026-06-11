@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { BarChart2, Download, TrendingUp, Users, Euro, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import TendenciaNominas from './TendenciaNominas';
 
 const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -252,6 +253,9 @@ export default function AnalisisCostes() {
           Datos de {nominasFiltradas.length} nómina{nominasFiltradas.length !== 1 ? 's' : ''} en el período · El CSV incluye el desglose mensual completo
         </p>
       )}
+
+      {/* Tendencias históricas — usa todas las nóminas, no solo el filtro */}
+      <TendenciaNominas nominas={nominas} />
     </div>
   );
 }
