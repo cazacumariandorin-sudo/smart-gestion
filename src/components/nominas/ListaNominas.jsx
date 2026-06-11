@@ -11,18 +11,72 @@ import { Button } from '@/components/ui/button';
 
 const MESES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+// Extrae mes/año del campo periodo_texto si existe (ej: "De 01/05/26 a 31/05/26")
+function parsearPeriodoLiquidacion(nom) {
+  const texto = nom.texto_extraido ? (() => { try { return JSON.parse(nom.texto_extraido); } catch { return {}; } })() : {};
+  const periodoTexto = texto.periodo_texto || '';
+  // Busca fecha "a DD/MM/YY" o "a DD/MM/YYYY" (fin del período de liquidación)
+  const match = periodoTexto.match(/a\s+(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i);
+  if (match) {
+    const mesLiq = parseInt(match[2]);
+    const anioLiq = parseInt(match[3]) < 100 ? 2000 + parseInt(match[3]) : parseInt(match[3]);
+    return { mes: mesLiq, anio: anioLiq };
+  }
+  // Fallback: usar mes/anio del registro
+  return { mes: nom.mes, anio: nom.anio };
+}
+
 function detectarDuplicados(nominas) {
   const grupos = {};
+
+  // CRITERIO 1: mismo trabajador + mismo mes/año de registro
   for (const nom of nominas) {
-    const clave = `${(nom.operario_dni || nom.operario_name || '').toUpperCase()}_${nom.mes}_${nom.anio}`;
-    if (!grupos[clave]) grupos[clave] = [];
-    grupos[clave].push(nom);
+    const clave = `C1_${(nom.operario_dni || nom.operario_name || '').toUpperCase()}_${nom.mes}_${nom.anio}`;
+    if (!grupos[clave]) grupos[clave] = { nominas: [], motivo: 'Mismo trabajador y período de alta' };
+    grupos[clave].nominas.push(nom);
   }
-  return Object.values(grupos).filter(g => g.length > 1);
+
+  // CRITERIO 2: mismo trabajador + mismo importe + mismo período de liquidación (aunque mes/año de alta sean distintos)
+  const porTrabajador = {};
+  for (const nom of nominas) {
+    const trabKey = (nom.operario_dni || nom.operario_name || '').toUpperCase();
+    if (!porTrabajador[trabKey]) porTrabajador[trabKey] = [];
+    porTrabajador[trabKey].push(nom);
+  }
+
+  for (const [trabKey, noms] of Object.entries(porTrabajador)) {
+    if (noms.length < 2) continue;
+    for (let i = 0; i < noms.length; i++) {
+      for (let j = i + 1; j < noms.length; j++) {
+        const a = noms[i];
+        const b = noms[j];
+        // Solo si tienen importe y son iguales (tolerancia 0.01€)
+        if (!a.liquido_percibir || !b.liquido_percibir) continue;
+        if (Math.abs(a.liquido_percibir - b.liquido_percibir) > 0.01) continue;
+        // Comparar período de liquidación extraído del documento
+        const periA = parsearPeriodoLiquidacion(a);
+        const periB = parsearPeriodoLiquidacion(b);
+        if (periA.mes === periB.mes && periA.anio === periB.anio) {
+          // Son duplicados por criterio 2 — agruparlos si no están ya en el mismo grupo C1
+          const mismoGrupoC1 = `C1_${trabKey}_${a.mes}_${a.anio}` === `C1_${trabKey}_${b.mes}_${b.anio}`;
+          if (!mismoGrupoC1) {
+            const clave = `C2_${trabKey}_${periA.mes}_${periA.anio}_${Math.round(a.liquido_percibir * 100)}`;
+            if (!grupos[clave]) grupos[clave] = { nominas: [], motivo: `Mismo importe (${a.liquido_percibir.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €) y período de liquidación` };
+            if (!grupos[clave].nominas.find(n => n.id === a.id)) grupos[clave].nominas.push(a);
+            if (!grupos[clave].nominas.find(n => n.id === b.id)) grupos[clave].nominas.push(b);
+          }
+        }
+      }
+    }
+  }
+
+  return Object.values(grupos)
+    .filter(g => g.nominas.length > 1)
+    .map(g => ({ nominas: g.nominas, motivo: g.motivo }));
 }
 
 function AlertaDuplicados({ grupos, onVerDuplicados }) {
-  const total = grupos.reduce((s, g) => s + g.length - 1, 0);
+  const total = grupos.reduce((s, g) => s + g.nominas.length - 1, 0);
   return (
     <div className="flex items-start gap-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3">
       <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
@@ -31,7 +85,7 @@ function AlertaDuplicados({ grupos, onVerDuplicados }) {
           ⚠️ {total} nómina{total !== 1 ? 's' : ''} duplicada{total !== 1 ? 's' : ''} detectada{total !== 1 ? 's' : ''}
         </p>
         <p className="text-xs text-red-600/80 dark:text-red-400/70 mt-0.5">
-          {grupos.length} trabajador{grupos.length !== 1 ? 'es' : ''} con más de una nómina para el mismo período.
+          {grupos.length} grupo{grupos.length !== 1 ? 's' : ''} de posibles duplicados encontrados.
         </p>
       </div>
       <Button size="sm" variant="destructive" className="h-8 px-3 text-xs shrink-0" onClick={onVerDuplicados}>
@@ -45,7 +99,7 @@ function ModalDuplicados({ grupos, onClose, onEliminar, eliminando }) {
   const [seleccionados, setSeleccionados] = useState(() => {
     const ids = new Set();
     for (const grupo of grupos) {
-      const ordenados = [...grupo].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+      const ordenados = [...grupo.nominas].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
       ordenados.slice(1).forEach(n => ids.add(n.id));
     }
     return ids;
@@ -71,14 +125,19 @@ function ModalDuplicados({ grupos, onClose, onEliminar, eliminando }) {
         </div>
         <div className="overflow-y-auto flex-1 px-5 py-3 space-y-4">
           {grupos.map((grupo, gi) => {
-            const ordenados = [...grupo].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+            const ordenados = [...grupo.nominas].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
             return (
               <div key={gi} className="border border-border rounded-xl overflow-hidden">
-                <div className="bg-muted/40 px-3 py-2 flex items-center gap-2">
-                  <User className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs font-semibold truncate">{grupo[0].operario_name}</span>
-                  <span className="text-xs text-muted-foreground">· {grupo[0].operario_dni || '—'}</span>
-                  <Badge variant="destructive" className="text-[10px] ml-auto">{grupo.length} copias</Badge>
+                <div className="bg-muted/40 px-3 py-2 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-xs font-semibold truncate">{grupo.nominas[0].operario_name}</span>
+                    <span className="text-xs text-muted-foreground">· {grupo.nominas[0].operario_dni || '—'}</span>
+                    <Badge variant="destructive" className="text-[10px] ml-auto">{grupo.nominas.length} copias</Badge>
+                  </div>
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 shrink-0" /> {grupo.motivo}
+                  </p>
                 </div>
                 <div className="divide-y divide-border">
                   {ordenados.map((nom, ni) => (
@@ -87,7 +146,7 @@ function ModalDuplicados({ grupos, onClose, onEliminar, eliminando }) {
                       <input type="checkbox" checked={seleccionados.has(nom.id)} onChange={() => toggle(nom.id)} className="accent-destructive w-4 h-4 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium">{nom.periodo || `${MESES[nom.mes]} ${nom.anio}`} · Lote: <span className="font-mono">{(nom.lote_id || '—').slice(-8)}</span></p>
-                        <p className="text-[11px] text-muted-foreground">Creado: {nom.created_date ? new Date(nom.created_date).toLocaleString('es-ES') : '—'}</p>
+                        <p className="text-[11px] text-muted-foreground">Subida: {nom.created_date ? new Date(nom.created_date).toLocaleString('es-ES') : '—'}</p>
                       </div>
                       {nom.liquido_percibir && <span className="text-xs font-semibold text-green-700 shrink-0">{nom.liquido_percibir.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</span>}
                       {ni === 0 && <Badge variant="secondary" className="text-[10px] shrink-0">Original</Badge>}
@@ -351,7 +410,7 @@ export default function ListaNominas({ esAdmin }) {
   const gruposDuplicados = useMemo(() => detectarDuplicados(nominas), [nominas]);
   const idsDuplicados = useMemo(() => {
     const ids = new Set();
-    gruposDuplicados.forEach(g => g.forEach(n => ids.add(n.id)));
+    gruposDuplicados.forEach(g => g.nominas.forEach(n => ids.add(n.id)));
     return ids;
   }, [gruposDuplicados]);
 
