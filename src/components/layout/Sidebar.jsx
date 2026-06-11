@@ -6,7 +6,7 @@ import {
   Building2, Sun, ClipboardList, Package, BarChart2,
   Clock, CalendarDays, FileImage, BookOpen, Factory,
   ShoppingCart, Truck, Images, MessageSquare, Database,
-  Shield, PenLine, Wrench, FlaskConical, Eye
+  Shield, PenLine, Wrench, FlaskConical, Eye, FileSpreadsheet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -55,6 +55,7 @@ export const HUBS = [
     items: [
       { label: 'Registro de Gasto', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
       { label: 'Pedidos', path: '/orders', icon: ShoppingCart, module: 'orders' },
+      { label: 'Nóminas', path: '/nominas', icon: FileSpreadsheet, module: 'nominas' },
       { label: 'Datos Sensibles', path: '/datos-sensibles', icon: Shield, module: 'users' },
     ],
   },

@@ -1,0 +1,130 @@
+{
+  "name": "Nomina",
+  "type": "object",
+  "properties": {
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario vinculado"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario"
+    },
+    "operario_dni": {
+      "type": "string",
+      "description": "DNI del operario"
+    },
+    "mes": {
+      "type": "integer",
+      "description": "Mes (1-12)"
+    },
+    "anio": {
+      "type": "integer",
+      "description": "A\u00f1o"
+    },
+    "periodo": {
+      "type": "string",
+      "description": "Ej: Enero 2026"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL del PDF de la n\u00f3mina individual"
+    },
+    "drive_file_id": {
+      "type": "string",
+      "description": "ID del archivo en Google Drive"
+    },
+    "liquido_percibir": {
+      "type": "number",
+      "description": "L\u00edquido a percibir extra\u00eddo del PDF"
+    },
+    "total_devengado": {
+      "type": "number",
+      "description": "Total devengado extra\u00eddo del PDF"
+    },
+    "estado_asignacion": {
+      "type": "string",
+      "enum": [
+        "asignada",
+        "sin_asignar",
+        "revision_manual"
+      ],
+      "default": "asignada",
+      "description": "Estado de la asignaci\u00f3n autom\u00e1tica"
+    },
+    "lote_id": {
+      "type": "string",
+      "description": "ID del lote de procesamiento (para agrupar el mismo upload)"
+    },
+    "pagina_origen": {
+      "type": "integer",
+      "description": "N\u00famero de p\u00e1gina en el PDF original"
+    },
+    "texto_extraido": {
+      "type": "string",
+      "description": "Texto extra\u00eddo del PDF para referencia / asistente"
+    }
+  },
+  "required": [
+    "mes",
+    "anio",
+    "file_url"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "data.operario_id": "{{user.id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

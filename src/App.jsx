@@ -59,6 +59,7 @@ const DiagnosticoOperario = lazy(() => import('./pages/DiagnosticoOperario'));
 const DiagnosticoDuplicacion = lazy(() => import('./pages/DiagnosticoDuplicacion'));
 const VinculacionPage = lazy(() => import('./pages/Vinculacion'));
 const AnalisisSeguridad = lazy(() => import('./pages/AnalisysSeguridad'));
+const Nominas = lazy(() => import('./pages/Nominas'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -237,6 +238,7 @@ function AnimatedRoutes() {
             <Route path="/diagnostico-duplicacion" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DiagnosticoDuplicacion /></Suspense></ProtectedRoute>} />
             <Route path="/vinculacion" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><VinculacionPage /></Suspense></ProtectedRoute>} />
             <Route path="/analisis-seguridad" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><AnalisisSeguridad /></Suspense></ProtectedRoute>} />
+            <Route path="/nominas" element={<ProtectedRoute module="nominas"><Suspense fallback={<PageLoader />}><Nominas /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
 
