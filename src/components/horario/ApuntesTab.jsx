@@ -18,6 +18,7 @@ import { format, parseISO, startOfWeek, getWeek, getYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
+import { useConsolidarJornada } from '@/hooks/useConsolidarJornada';
 
 const UNITS = ['m', 'm²', 'm³', 'ud', 'kg', 'l', 'h', 'ml', 'tn'];
 const PERIOD_OPTIONS = [
@@ -81,10 +82,17 @@ export default function ApuntesTab() {
     queryKey: ['apuntes'],
     queryFn: () => base44.entities.ApunteHorario.list('-date', 1000),
   });
+  const { data: fichajes = [] } = useQuery({
+    queryKey: ['fichajes'],
+    queryFn: () => base44.entities.Fichaje.list('-date', 500),
+  });
   const { data: operarios = [] } = useQuery({
     queryKey: ['operarios'],
     queryFn: () => base44.entities.Operario.list('name', 200),
   });
+
+  // Usar hook de consolidación para mostrar estado de anclaje
+  const { getEstadoAnclaje, apuntesSinAnclar } = useConsolidarJornada(fichajes, apuntes);
 
   const createM = useMutation({ mutationFn: d => base44.entities.ApunteHorario.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['apuntes'] }); close_(); } });
   const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.ApunteHorario.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['apuntes'] }); close_(); } });
@@ -273,7 +281,7 @@ export default function ApuntesTab() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <Card className="p-4 text-center">
           <p className="text-xs text-muted-foreground mb-1">Apuntes</p>
           <p className="text-2xl font-bold">{filtered.length}</p>
@@ -285,6 +293,23 @@ export default function ApuntesTab() {
         <Card className="p-4 text-center">
           <p className="text-xs text-muted-foreground mb-1">Importe Total</p>
           <p className="text-2xl font-bold text-emerald-600">{totalImporte > 0 ? totalImporte.toFixed(2) + ' €' : '—'}</p>
+        </Card>
+        <Card className="p-4 text-center relative overflow-hidden">
+          <p className="text-xs text-muted-foreground mb-1">Estado Anclaje</p>
+          {apuntesSinAnclar.length === 0 ? (
+            <div className="flex items-center justify-center gap-1 text-emerald-600">
+              <span className="text-2xl font-bold">100%</span>
+              <span className="text-lg">✓</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-1 text-amber-600">
+              <span className="text-2xl font-bold">{filtered.length - apuntesSinAnclar.length}/{filtered.length}</span>
+              <span className="text-lg">⚠</span>
+            </div>
+          )}
+          {apuntesSinAnclar.length > 0 && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-400" title={`${apuntesSinAnclar.length} apuntes sin jornada asociada`} />
+          )}
         </Card>
       </div>
 
@@ -311,39 +336,51 @@ export default function ApuntesTab() {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  {items.sort((a, b) => a.date > b.date ? 1 : -1).map(a => (
-                    <div key={a.id} className="flex items-center justify-between text-xs py-1.5 border-b border-border last:border-0 gap-2">
-                      <span className="text-muted-foreground w-14 shrink-0">
-                        {a.date ? format(parseISO(a.date), 'dd/MM', { locale: es }) : '--'}
-                      </span>
-                      <span className="font-medium w-20 shrink-0 truncate">{a.operario_name}</span>
-                      <span className="flex-1 truncate text-muted-foreground">{a.concepto}</span>
-                      <span className="font-semibold shrink-0">{a.cantidad} {a.unidad}</span>
-                      {a.total > 0 && <span className="text-emerald-600 shrink-0">{a.total} €</span>}
-                      <div className="flex gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(a)}>
-                          <Pencil className="w-3 h-3" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Eliminar apunte?</AlertDialogTitle>
-                              <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteM.mutate(a.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                  {items.sort((a, b) => a.date > b.date ? 1 : -1).map(a => {
+                    const estadoAnclaje = getEstadoAnclaje(a);
+                    return (
+                      <div key={a.id} className="flex items-center justify-between text-xs py-1.5 border-b border-border last:border-0 gap-2">
+                        <span className="text-muted-foreground w-14 shrink-0">
+                          {a.date ? format(parseISO(a.date), 'dd/MM', { locale: es }) : '--'}
+                        </span>
+                        <span className="font-medium w-20 shrink-0 truncate">{a.operario_name}</span>
+                        <span className="flex-1 truncate text-muted-foreground">{a.concepto}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge 
+                            variant="outline" 
+                            className={`text-[9px] ${estadoAnclaje.badgeClass} gap-1`}
+                            title={estadoAnclaje.mensaje}
+                          >
+                            {estadoAnclaje.anclado ? '✓' : '⚠'} {estadoAnclaje.anclado ? 'Anclado' : 'Sin fichaje'}
+                          </Badge>
+                          <span className="font-semibold">{a.cantidad} {a.unidad}</span>
+                          {a.total > 0 && <span className="text-emerald-600">{a.total} €</span>}
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(a)}>
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar apunte?</AlertDialogTitle>
+                                <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteM.mutate(a.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </Card>
             );

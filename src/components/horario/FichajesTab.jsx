@@ -5,6 +5,7 @@ import { useUserRole } from '@/lib/useUserRole';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { calcularHoras } from '@/lib/horasUtils';
 import { recalcularPrevision } from '@/hooks/useRecalcularPrevision';
+import { useConsolidarJornada } from '@/hooks/useConsolidarJornada';
 import { Plus, Search, Trash2, Pencil, Save, Loader2, Clock, ChevronDown, ChevronUp, ClipboardList } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,9 @@ export default function FichajesTab() {
   const { data: fichajes = [], isLoading } = useQuery({ queryKey: ['fichajes'], queryFn: () => base44.entities.Fichaje.list('-date', 500) });
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
   const { data: allApuntes = [] } = useQuery({ queryKey: ['apuntes'], queryFn: () => base44.entities.ApunteHorario.list('-date', 1000) });
+
+  // Consolidar fichajes con apuntes usando el hook de anclaje virtual
+  const { jornadasConsolidadas, totalHoras, totalImporte } = useConsolidarJornada(fichajes, allApuntes);
 
   const createM = useOptimisticMutation(
     async (d) => {
@@ -155,7 +159,7 @@ export default function FichajesTab() {
       .catch(() => {});
   }, [user?.email, user?.role]);
 
-  const filtered = fichajes.filter(f => {
+  const filtered = jornadasConsolidadas.filter(f => {
     // control_horario y operario solo ven sus propios fichajes
     if (isControlHorarioOnly || isOperarioRole) {
       if (!myOperario || f.operario_id !== myOperario.id) return false;
@@ -167,11 +171,8 @@ export default function FichajesTab() {
     return mQ && mOp && mMonth;
   });
 
-  const totalHoras = filtered.reduce((s, f) => s + (f.horas_trabajadas || 0), 0);
-
-  // Get apuntes linked to a fichaje (same operario + date)
-  const getApuntesForFichaje = (f) =>
-    allApuntes.filter(a => a.operario_id === f.operario_id && a.date === f.date);
+  // Get apuntes linked to a fichaje (ya viene del hook de consolidación)
+  const getApuntesForFichaje = (f) => f.apuntes || [];
   const isPending = createM.isPending || updateM.isPending;
 
   const statusBadge = (f) => {
@@ -201,9 +202,17 @@ export default function FichajesTab() {
       </div>
 
       {/* Summary */}
-      <Card className="p-4 mb-4 flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{filtered.length} fichajes filtrados</span>
-        <span className="font-bold text-lg text-primary">{totalHoras.toFixed(1)} h totales</span>
+      <Card className="p-4 mb-4 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-muted-foreground">{filtered.length} fichajes filtrados</span>
+          <span className="font-bold text-lg text-primary">{totalHoras.toFixed(1)} h</span>
+        </div>
+        {totalImporte > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+            <ClipboardList className="w-4 h-4 text-emerald-600" />
+            <span className="font-bold text-sm text-emerald-700 dark:text-emerald-400">{totalImporte.toFixed(2)} € en apuntes</span>
+          </div>
+        )}
       </Card>
 
       {/* List */}
