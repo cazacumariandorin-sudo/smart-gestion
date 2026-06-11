@@ -15,6 +15,7 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { useUserRole } from '@/lib/useUserRole';
 import NotificacionesFichaje from '@/components/dashboard/NotificacionesFichaje';
 import UserRoleDiagnostic from '@/components/debug/UserRoleDiagnostic';
+import { ModuloBadge, PanelTareas, useTareasAdmin } from '@/components/dashboard/TareasIndicador';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -156,7 +157,7 @@ import { ROLE_LABELS } from '@/lib/roleLabels';
 
 const MAX_VISIBLE_LINKS = 3;
 
-function ModuleCard({ hub, kpi }) {
+function ModuleCard({ hub, kpi, tareas = [], onTareasClick }) {
   const [expanded, setExpanded] = useState(false);
   const Icon = hub.icon;
 
@@ -169,6 +170,7 @@ function ModuleCard({ hub, kpi }) {
       'relative rounded-xl border overflow-hidden transition-all duration-200',
       hub.bg, hub.border
     )}>
+      {onTareasClick && <ModuloBadge moduloId={hub.id} tareas={tareas} onClick={onTareasClick} />}
       {hub.watermark && (
         <img src={hub.watermark} alt="" aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover opacity-[0.07] pointer-events-none select-none" />
@@ -277,6 +279,11 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const { canAccess, isAdmin, role, isLoading: roleLoading } = useUserRole();
   const isGerencia = role === 'gerencia';
+  const isDirComercial = role === 'director_comercial';
+  const isTrioAdmin = isAdmin || isGerencia || isDirComercial;
+
+  const { data: tareasAdmin = [] } = useTareasAdmin(isTrioAdmin);
+  const [panelTareas, setPanelTareas] = useState(null); // array de tareas a mostrar
 
   const onRefresh = () => {
     ['obras_dash', 'operarios_dash', 'gastos_dash', 'fichajes_hoy', 'flota_dash'].forEach(k =>
@@ -388,7 +395,10 @@ export default function Dashboard() {
       {/* Grid unificado: módulos + accesos rápidos */}
       <div className="grid grid-cols-2 gap-2 mb-4">
         {visibleHubs.map(hub => (
-          <ModuleCard key={hub.id} hub={hub} kpi={kpis[hub.id]} />
+          <ModuleCard key={hub.id} hub={hub} kpi={kpis[hub.id]}
+            tareas={isTrioAdmin ? tareasAdmin : []}
+            onTareasClick={isTrioAdmin ? setPanelTareas : undefined}
+          />
         ))}
         {QUICK_ACCESS.map(hub => (
           <ModuleCard key={hub.id} hub={hub} kpi={undefined} />
@@ -396,6 +406,13 @@ export default function Dashboard() {
       </div>
 
       {showDiagnostic && <UserRoleDiagnostic />}
+
+      {panelTareas && (
+        <PanelTareas
+          tareasSeleccionadas={panelTareas}
+          onClose={() => setPanelTareas(null)}
+        />
+      )}
     </div>
   );
 }
