@@ -32,13 +32,24 @@ const defaultForm = {
   notas: '',
 };
 
-/** Genera un número de nota en el frontend: NOT-YYYY-XX-MM */
-function generarNumeroNota() {
+/** Genera un número de registro real consultando cuántos existen este año */
+async function generarNumeroNota() {
   const now = new Date();
   const year = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const sec = String(Math.floor(Math.random() * 900) + 100); // 3 dígitos aleatorios como secuencia temporal
-  return { numero_nota: `REG-${year}-${sec}-${mm}`, numero_secuencia: parseInt(sec) };
+  try {
+    const todos = await base44.entities.RegistroGasto.list('-created_date', 9999);
+    const esteAnio = todos.filter(r => {
+      const fecha = r.fecha_creacion_real || r.created_date;
+      return fecha && new Date(fecha).getFullYear() === year;
+    });
+    const seq = esteAnio.length + 1;
+    const numero_nota = `REG-${year}-${String(seq).padStart(4, '0')}`;
+    return { numero_nota, numero_secuencia: seq };
+  } catch {
+    // Fallback: usar timestamp como secuencia única
+    const ts = Date.now() % 100000;
+    return { numero_nota: `REG-${year}-${ts}`, numero_secuencia: ts };
+  }
 }
 
 export default function NotaGastoForm({ open, onClose, onCreated, operario, isAdmin = false, operarios = [] }) {
@@ -137,7 +148,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     ) || null;
   };
 
-  const doGuardar = (extraFields = {}) => {
+  const doGuardar = async (extraFields = {}) => {
     const dup = checkDuplicado();
     if (dup && !posibleDup) {
       setPosibleDup(dup);
@@ -145,7 +156,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       return;
     }
 
-    const { numero_nota, numero_secuencia } = generarNumeroNota();
+    const { numero_nota, numero_secuencia } = await generarNumeroNota();
     const hoy = format(new Date(), 'yyyy-MM-dd');
 
     createMutation.mutate({
@@ -194,7 +205,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     doGuardar();
   };
 
-  const handleObraAsignada = ({ obra_id, obra_name, obra_tipo }) => {
+  const handleObraAsignada = async ({ obra_id, obra_name, obra_tipo }) => {
     setForm(f => ({ ...f, obra_id, obra_name, obra_tipo }));
     setShowObraModal(false);
     setPendingSave(false);
@@ -207,7 +218,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     
     // Guardar con la obra asignada directamente
     const dup = checkDuplicado();
-    const { numero_nota, numero_secuencia } = generarNumeroNota();
+    const { numero_nota, numero_secuencia } = await generarNumeroNota();
     const hoy = format(new Date(), 'yyyy-MM-dd');
     createMutation.mutate({
       numero_nota,
