@@ -212,6 +212,25 @@ export default function Dashboard() {
     }
   };
 
+  const [auditandoObras, setAuditandoObras] = useState(false);
+
+  const handleAuditoriaObras = async () => {
+    try {
+      setAuditandoObras(true);
+      const res = await base44.functions.invoke('sincronizarObrasEnCaliente', {});
+      if (res.data.success) {
+        const r = res.data.resumen;
+        toast.success('Auditoría de Obras completada', {
+          description: `${r.obras_procesadas} obras · ${r.ids_generados} IDs generados · ${r.duplicados_detectados} duplicados detectados`
+        });
+      }
+    } catch (error) {
+      toast.error('Error en auditoría de obras', { description: error.message });
+    } finally {
+      setAuditandoObras(false);
+    }
+  };
+
   const { data: obras = [] } = useQuery({
     queryKey: ['obras_dash'],
     queryFn: () => base44.entities.Obra.list('name', 200),
@@ -305,6 +324,17 @@ export default function Dashboard() {
               >
                 <ShieldCheck className={`w-3.5 h-3.5 ${auditando ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">{auditando ? 'Auditando...' : 'Auditoría'}</span>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAuditoriaObras}
+                disabled={auditandoObras}
+                className="gap-2 h-9 px-3 text-purple-700 border-purple-300 hover:bg-purple-50 dark:text-purple-400"
+                title="Ejecutar Auditoría de Obras (IDs y Duplicados)"
+              >
+                <HardHat className={`w-3.5 h-3.5 ${auditandoObras ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{auditandoObras ? 'Auditando...' : 'Obras'}</span>
               </Button>
               <TareasButton onClick={() => setPanelTareas(tareasAdmin)} />
             </>
