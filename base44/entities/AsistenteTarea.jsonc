@@ -16,7 +16,8 @@
         "alerta",
         "tarea_manual",
         "informe",
-        "nota_interna"
+        "nota_interna",
+        "nota_privada"
       ]
     },
     "prioridad": {
@@ -87,13 +88,20 @@
     "solo_gerencia": {
       "type": "boolean",
       "default": false,
-      "description": "Si es true, solo visible para admin y gerencia"
+      "description": "Si es true, solo visible para admin, gerencia y director_comercial"
+    },
+    "modulo": {
+      "type": "string",
+      "description": "M\u00f3dulo del dashboard al que pertenece: obras, personas, economico, flota, nominas, sistema..."
+    },
+    "origen_solicitud": {
+      "type": "string",
+      "description": "Nombre o email del trabajador/cliente que origin\u00f3 la solicitud"
     }
   },
   "required": [
     "titulo",
-    "tipo",
-    "asignada_a_user_id"
+    "tipo"
   ],
   "rls": {
     "create": {
@@ -106,6 +114,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
           }
         },
         {
@@ -123,6 +136,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
           }
         },
         {
@@ -162,6 +180,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
           "data.asignada_a_user_id": "{{user.id}}"
         }
       ]
@@ -176,6 +199,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
           }
         }
       ]
