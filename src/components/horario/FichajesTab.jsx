@@ -44,7 +44,11 @@ export default function FichajesTab() {
   const { data: allApuntes = [] } = useQuery({ queryKey: ['apuntes'], queryFn: () => base44.entities.ApunteHorario.list('-date', 1000) });
 
   // Consolidar fichajes con apuntes usando el hook de anclaje virtual
-  const { jornadasConsolidadas, totalHoras, totalImporte } = useConsolidarJornada(fichajes, allApuntes);
+  const { jornadasConsolidadas } = useConsolidarJornada(fichajes, allApuntes);
+  
+  // Calcular totales derivados de las jornadas consolidadas
+  const totalHoras = jornadasConsolidadas.reduce((acc, j) => acc + (j.horas_trabajadas || 0), 0);
+  const totalImporte = jornadasConsolidadas.reduce((acc, j) => acc + (j.total_importe || 0), 0);
 
   const createM = useOptimisticMutation(
     async (d) => {
