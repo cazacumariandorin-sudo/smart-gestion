@@ -2,7 +2,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { HardHat, RefreshCw, ChevronDown, ChevronUp, AlertCircle, MessageSquare, Images } from 'lucide-react';
+import { toast } from 'sonner';
+import { HardHat, RefreshCw, ChevronDown, ChevronUp, AlertCircle, MessageSquare, Images, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -192,6 +193,25 @@ export default function Dashboard() {
   };
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
+  const [auditando, setAuditando] = useState(false);
+
+  const handleAuditoriaIdentidad = async () => {
+    try {
+      setAuditando(true);
+      const res = await base44.functions.invoke('sincronizarTodoElSistema', {});
+      if (res.data.success) {
+        const r = res.data.resumen;
+        toast.success('Auditoría completada', {
+          description: `${r.registros_actualizados} registros actualizados · ${r.alertas_obra_huerfana} alertas de obra`
+        });
+      }
+    } catch (error) {
+      toast.error('Error en auditoría', { description: error.message });
+    } finally {
+      setAuditando(false);
+    }
+  };
+
   const { data: obras = [] } = useQuery({
     queryKey: ['obras_dash'],
     queryFn: () => base44.entities.Obra.list('name', 200),
@@ -274,7 +294,20 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           {isTrioAdmin && (
-            <TareasButton onClick={() => setPanelTareas(tareasAdmin)} />
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAuditoriaIdentidad}
+                disabled={auditando}
+                className="gap-2 h-9 px-3 text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-400"
+                title="Ejecutar Auditoría de Identidad (Regla de Oro)"
+              >
+                <ShieldCheck className={`w-3.5 h-3.5 ${auditando ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{auditando ? 'Auditando...' : 'Auditoría'}</span>
+              </Button>
+              <TareasButton onClick={() => setPanelTareas(tareasAdmin)} />
+            </>
           )}
           <Button
             size="sm"
