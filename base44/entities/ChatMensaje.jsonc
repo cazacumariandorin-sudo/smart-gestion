@@ -50,6 +50,13 @@
     "conversacion_id": {
       "type": "string"
     },
+    "destinatarios": {
+      "type": "array",
+      "description": "Emails de los participantes de la conversaci\u00f3n en el momento del env\u00edo",
+      "items": {
+        "type": "string"
+      }
+    },
     "editado": {
       "default": false,
       "type": "boolean"
@@ -134,6 +141,13 @@
         },
         {
           "created_by": "{{user.email}}"
+        },
+        {
+          "data.destinatarios": {
+            "$elemMatch": {
+              "$eq": "{{user.email}}"
+            }
+          }
         }
       ]
     },
