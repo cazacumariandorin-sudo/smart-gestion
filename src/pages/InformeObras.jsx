@@ -128,7 +128,7 @@ export default function InformeObras() {
   });
   const removeOp = idx => setForm(p => ({ ...p, operarios_asignados: p.operarios_asignados.filter((_, i) => i !== idx) }));
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const data = {
       ...form,
       horas_totales_previstas: form.horas_totales_previstas ? parseFloat(form.horas_totales_previstas) : null,
@@ -136,6 +136,34 @@ export default function InformeObras() {
         .map(op => ({ ...op, horas_previstas: op.horas_previstas ? parseFloat(op.horas_previstas) : null }))
         .filter(op => op.operario_id),
     };
+
+    // Validar conflicto solo si es nueva previsión (no al editar)
+    if (!editing && form.obra_id && form.fecha_inicio) {
+      try {
+        const res = await base44.functions.invoke('validarPrevisionConflicto', {
+          obra_id: form.obra_id,
+          fecha_inicio: form.fecha_inicio,
+          client_id: form.client_id,
+        });
+
+        if (res.data.conflicto) {
+          toast.warning(res.data.mensaje || 'Conflicto detectado - Gerencia validará');
+          // Crear previsión igualmente pero marcar para validación
+          createM.mutate({ ...data, requiere_validacion: true });
+          return;
+        }
+      } catch (err) {
+        if (err.response?.status === 409) {
+          // Conflicto confirmado
+          toast.warning('Pendiente de confirmación por gerencia');
+          createM.mutate({ ...data, requiere_validacion: true, conflicto_info: err.response.data.prevision_existente });
+          return;
+        }
+        // Error inesperado - continuar sin validación
+        console.warn('Validación de conflicto no disponible:', err);
+      }
+    }
+
     editing ? updateM.mutate({ id: editing.id, d: data }) : createM.mutate(data);
   };
 
