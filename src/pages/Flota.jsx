@@ -178,7 +178,7 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin }) {
 
 export default function Flota() {
   const qc = useQueryClient();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isGerencia } = useUserRole();
   const [flotaTab, setFlotaTab] = useState('vehiculos');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -275,7 +275,7 @@ export default function Flota() {
         title="Flota"
         subtitle={`${vehiculos.length} vehículo${vehiculos.length !== 1 ? 's' : ''}${alertasUrgentes > 0 ? ` · ${alertasUrgentes} con alertas urgentes` : ''}${alertasPendientes.length > 0 ? ` · ${alertasPendientes.length} alertas pendientes` : ''}`}
         hideBack={true}
-        actions={isAdmin ? (
+        actions={(isAdmin || isGerencia) ? (
           <Button onClick={() => { setEditing(null); setForm(EMPTY_FORM); setOpen(true); }} size="sm" className="gap-2">
             <Plus className="w-4 h-4" /> Añadir vehículo
           </Button>
@@ -326,7 +326,7 @@ export default function Flota() {
               <div className="text-center py-16 border border-dashed rounded-xl">
                 <Car className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground mb-4">No hay vehículos registrados</p>
-                {isAdmin && <Button onClick={() => setOpen(true)} className="gap-2"><Plus className="w-4 h-4" /> Añadir vehículo</Button>}
+                {(isAdmin || isGerencia) && <Button onClick={() => setOpen(true)} className="gap-2"><Plus className="w-4 h-4" /> Añadir vehículo</Button>}
               </div>
             ) : (
               <div className="space-y-3">

@@ -26,9 +26,9 @@ const empty = { operario_id: '', operario_name: '', date: new Date().toISOString
 
 export default function FichajesTab() {
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra, isControlHorarioOnly, user } = useUserRole();
-  const canEditExitTime = isAdmin;
-  const canSeeAll = isAdmin; // solo admin ve todos; jefe_obra, control_horario y operario solo ven los suyos
+  const { isAdmin, isJefeObra, isControlHorarioOnly, isGerencia, user } = useUserRole();
+  const canEditExitTime = isAdmin || isGerencia;
+  const canSeeAll = isAdmin || isGerencia; // solo admin ve todos; jefe_obra, control_horario y operario solo ven los suyos
   const [search, setSearch] = useState('');
   const [opFilter, setOpFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
