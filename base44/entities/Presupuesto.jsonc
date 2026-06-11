@@ -4,7 +4,11 @@
   "properties": {
     "titulo": {
       "type": "string",
-      "description": "T\u00edtulo del presupuesto (autogenerado si est\u00e1 vac\u00edo)"
+      "description": "T\u00edtulo descriptivo del presupuesto (opcional, se autogenera si est\u00e1 vac\u00edo)"
+    },
+    "codigo_registro": {
+      "type": "string",
+      "description": "ID \u00fanico estandarizado: PRES-SG-AAAA-NNN (ej: PRES-SG-2026-001)"
     },
     "cliente_id": {
       "type": "string",

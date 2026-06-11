@@ -19,24 +19,32 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  */
 
 const PREFIJOS = {
-  Operario:   'OPE',
-  Client:     'CLI',
-  Obra:       'OBR',
-  SolarObra:  'SOL',
-  Manual:     'MAN',
-  Order:      'PED',
-  WorkOrder:  'ALB',
-  Vehiculo:   'VEH',
-  User:       'USR',
+  Operario:    'OPE',
+  Client:      'CLI',
+  Obra:        'OBR',
+  SolarObra:   'SOL',
+  Manual:      'MAN',
+  Order:       'PED',
+  WorkOrder:   'ALB',
+  Vehiculo:    'VEH',
+  User:        'USR',
+  Presupuesto: 'PRES',
 };
 
 /**
  * Genera un código de registro estandarizado.
- * @param prefijo  Prefijo de 3 chars (ej: 'OPE')
+ * @param prefijo  Prefijo (ej: 'OPE' o 'PRES')
  * @param secuencial Número secuencial
- * @param anio   Año completo (ej: 2026) — usa 2 últimos dígitos
+ * @param anio   Año completo (ej: 2026)
+ * @param entidad Nombre de la entidad para formatos especiales
  */
-function formatearId(prefijo, secuencial, anio) {
+function formatearId(prefijo, secuencial, anio, entidad) {
+  // Presupuesto usa formato especial: PRES-SG-AAAA-NNN
+  if (entidad === 'Presupuesto') {
+    const seq3 = String(secuencial).padStart(3, '0');
+    return `${prefijo.toUpperCase()}-SG-${anio}-${seq3}`;
+  }
+  // Formato estándar para resto de entidades: PREFIJO-AA-SSSSS
   const anio2 = String(anio).slice(-2);
   const seq5  = String(secuencial).padStart(5, '0');
   return `${prefijo.toUpperCase()}-${anio2}-${seq5}`;
@@ -90,7 +98,7 @@ Deno.serve(async (req) => {
 
     const todos = await entityApi.list('-created_date', 500);
     const siguiente = calcularSiguienteSecuencial(todos, campoId, prefijo, anio2);
-    const nuevoId = formatearId(prefijo, siguiente, anio);
+    const nuevoId = formatearId(prefijo, siguiente, anio, entidad);
 
     // Actualizar el registro con el nuevo ID
     await entityApi.update(record_id, { [campoId]: nuevoId });

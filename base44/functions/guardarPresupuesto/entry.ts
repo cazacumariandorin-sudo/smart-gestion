@@ -23,8 +23,9 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
         }
 
-        // Generar título automático si no se proporciona
-        const tituloFinal = titulo || `PRE-${fecha.split('-')[0]}-${Date.now().toString().slice(-6)}`;
+        // Generar título automático si no se proporciona (usando código de registro)
+        // El código de registro se genera después de crear el presupuesto
+        const tituloFinal = titulo || '';
 
         // DETECCIÓN DE DUPLICADOS - Solo si no es confirmación manual
         if (!es_duplicado_confirmado) {
@@ -59,11 +60,11 @@ Deno.serve(async (req) => {
             }
         }
 
-        // Aplicar sufijo _01 si es duplicado confirmado
+        // Crear presupuesto sin código de registro (se genera después)
         const tituloDefinitivo = es_duplicado_confirmado ? `${tituloFinal}_01` : tituloFinal;
 
         const nuevoPresupuesto = await base44.entities.Presupuesto.create({
-            titulo: tituloDefinitivo,
+            titulo: tituloDefinitivo || `PRES-SG-${fecha.split('-')[0]}-BORRADOR`,
             cliente_id,
             cliente_name,
             fecha,
@@ -76,6 +77,34 @@ Deno.serve(async (req) => {
             file_url,
             estado: 'borrador'
         });
+
+        // Generar y asignar código de registro estandarizado
+        try {
+            const idResponse = await base44.functions.invoke('generarIdUnico', {
+                entidad: 'Presupuesto',
+                record_id: nuevoPresupuesto.id,
+                campo_id: 'codigo_registro',
+                anio_override: new Date(fecha).getFullYear()
+            });
+            
+            if (idResponse.data && idResponse.data.id_generado) {
+                // Actualizar título con el código de registro si estaba vacío
+                const tituloConCodigo = tituloDefinitivo || idResponse.data.id_generado;
+                await base44.entities.Presupuesto.update(nuevoPresupuesto.id, {
+                    titulo: tituloConCodigo
+                });
+                
+                return Response.json({
+                    success: true,
+                    data: { ...nuevoPresupuesto, titulo: tituloConCodigo, codigo_registro: idResponse.data.id_generado },
+                    codigo_registro: idResponse.data.id_generado,
+                    mensaje: es_duplicado_confirmado ? 'Presupuesto duplicado creado con sufijo _01' : 'Presupuesto creado correctamente'
+                });
+            }
+        } catch (error) {
+            // Si falla la generación del ID, loguear pero no fallar la operación
+            console.error('Error generando código de registro:', error);
+        }
 
         return Response.json({
             success: true,

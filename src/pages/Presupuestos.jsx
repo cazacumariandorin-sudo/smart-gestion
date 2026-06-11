@@ -83,7 +83,14 @@ export default function Presupuestos() {
                         <Card key={presupuesto.id}>
                             <CardHeader className="pb-3">
                                 <div className="flex items-start justify-between">
-                                    <CardTitle className="text-base font-semibold">{presupuesto.titulo}</CardTitle>
+                                    <div>
+                                        {presupuesto.codigo_registro && (
+                                            <Badge variant="outline" className="text-[10px] font-mono mb-1">
+                                                {presupuesto.codigo_registro}
+                                            </Badge>
+                                        )}
+                                        <CardTitle className="text-base font-semibold">{presupuesto.titulo}</CardTitle>
+                                    </div>
                                     <Badge className={estadoColors[presupuesto.estado]}>
                                         {presupuesto.estado}
                                     </Badge>
