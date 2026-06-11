@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Trash2, FileText } from "lucide-react";
+import { X, Plus, Trash2, FileText, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function PresupuestoForm({ onSubmit, onCancel }) {
     const [formData, setFormData] = useState({
@@ -19,6 +20,7 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
         importe: 0,
         conceptos: [],
         partes_trabajo_ids: [],
+        descripcion: "",
         notas: ""
     });
 
@@ -29,9 +31,26 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
         precio_unitario: 0
     });
 
-    const { data: partesTrabajo = [] } = useQuery({
-        queryKey: ['partes_trabajo_presupuesto'],
-        queryFn: () => base44.entities.WorkOrder.list('-created_date', 100),
+    const [loadingPartes, setLoadingPartes] = useState(false);
+
+    // Cargar clientes disponibles
+    const { data: clientes = [] } = useQuery({
+        queryKey: ['clientes_presupuesto'],
+        queryFn: () => base44.entities.Client.list('name', 200),
+    });
+
+    // Cargar partes de trabajo filtrados por cliente seleccionado
+    const { data: partesTrabajo = [], refetch: refetchPartes } = useQuery({
+        queryKey: ['partes_trabajo_presupuesto', formData.cliente_id],
+        queryFn: async () => {
+            if (!formData.cliente_id) return [];
+            setLoadingPartes(true);
+            const allPartes = await base44.entities.WorkOrder.list('-created_date', 200);
+            setLoadingPartes(false);
+            // Filtrar por cliente seleccionado
+            return allPartes.filter(p => p.client_id === formData.cliente_id);
+        },
+        enabled: !!formData.cliente_id,
     });
 
     const handleAddConcepto = () => {
@@ -86,24 +105,39 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                         {/* Datos básicos */}
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="titulo">Título *</Label>
+                                <Label htmlFor="titulo">Título (opcional)</Label>
                                 <Input
                                     id="titulo"
                                     value={formData.titulo}
                                     onChange={(e) => setFormData(prev => ({ ...prev, titulo: e.target.value }))}
-                                    placeholder="Ej: Reforma Oficina Centro"
-                                    required
+                                    placeholder="Se autogenera si está vacío"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="cliente">Cliente *</Label>
-                                <Input
-                                    id="cliente"
-                                    value={formData.cliente_name}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, cliente_name: e.target.value }))}
-                                    placeholder="Nombre del cliente"
+                                <Select
+                                    value={formData.cliente_id}
+                                    onValueChange={(value) => {
+                                        const cliente = clientes.find(c => c.id === value);
+                                        setFormData(prev => ({ 
+                                            ...prev, 
+                                            cliente_id: value,
+                                            cliente_name: cliente?.name || ''
+                                        }));
+                                    }}
                                     required
-                                />
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Seleccionar cliente" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {clientes.map(cliente => (
+                                            <SelectItem key={cliente.id} value={cliente.id}>
+                                                {cliente.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="fecha">Fecha *</Label>
@@ -126,6 +160,18 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                                     className="bg-muted font-bold"
                                 />
                             </div>
+                        </div>
+
+                        {/* Descripción autocompletada */}
+                        <div className="space-y-2">
+                            <Label htmlFor="descripcion">Descripción (autocompletada)</Label>
+                            <Textarea
+                                id="descripcion"
+                                value={formData.descripcion}
+                                onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
+                                placeholder="Se rellena automáticamente al seleccionar partes de trabajo"
+                                className="min-h-[60px]"
+                            />
                         </div>
 
                         {/* Conceptos */}
@@ -199,42 +245,49 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                         </div>
 
                         {/* Partes de trabajo vinculados */}
-                        {partesTrabajo.length > 0 && (
+                        {formData.cliente_id && (
                             <div className="space-y-3">
-                                <Label className="flex items-center gap-2">
-                                    <FileText className="w-4 h-4" />
-                                    Partes de Trabajo Vinculados
+                                <Label className="flex items-center justify-between">
+                                    <span className="flex items-center gap-2">
+                                        <FileText className="w-4 h-4" />
+                                        Partes de Trabajo de este Cliente
+                                    </span>
+                                    {loadingPartes && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
                                 </Label>
-                                <div className="grid gap-2 md:grid-cols-2">
-                                    {partesTrabajo.map(parte => (
-                                        <Button
-                                            key={parte.id}
-                                            type="button"
-                                            variant={formData.partes_trabajo_ids.includes(parte.id) ? "default" : "outline"}
-                                            className="justify-start h-auto py-2 px-3"
-                                            onClick={() => handleToggleParteTrabajo(parte.id)}
-                                        >
-                                            <FileText className="w-4 h-4 mr-2 shrink-0" />
-                                            <div className="text-left">
-                                                <p className="text-xs font-medium">{parte.titulo || `Parte ${parte.id.slice(-4)}`}</p>
-                                                <p className="text-[10px] text-muted-foreground">
-                                                    {parte.obra_name || 'Sin obra'} · {parte.trabajadores?.length || 0} trabajadores
-                                                </p>
-                                            </div>
-                                        </Button>
-                                    ))}
-                                </div>
+                                {partesTrabajo.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">No hay partes de trabajo para este cliente</p>
+                                ) : (
+                                    <div className="grid gap-2 md:grid-cols-2">
+                                        {partesTrabajo.map(parte => (
+                                            <Button
+                                                key={parte.id}
+                                                type="button"
+                                                variant={formData.partes_trabajo_ids.includes(parte.id) ? "default" : "outline"}
+                                                className="justify-start h-auto py-2 px-3"
+                                                onClick={() => handleToggleParteTrabajo(parte.id)}
+                                            >
+                                                <FileText className="w-4 h-4 mr-2 shrink-0" />
+                                                <div className="text-left">
+                                                    <p className="text-xs font-medium">{parte.titulo || `Parte ${parte.id.slice(-4)}`}</p>
+                                                    <p className="text-[10px] text-muted-foreground">
+                                                        {parte.obra_name || 'Sin obra'} · {parte.trabajadores?.length || 0} trabajadores
+                                                    </p>
+                                                </div>
+                                            </Button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
 
                         {/* Notas */}
                         <div className="space-y-2">
-                            <Label htmlFor="notas">Notas / Observaciones</Label>
+                            <Label htmlFor="notas">Notas / Observaciones (opcional)</Label>
                             <Textarea
                                 id="notas"
                                 value={formData.notas}
                                 onChange={(e) => setFormData(prev => ({ ...prev, notas: e.target.value }))}
-                                placeholder="Observaciones adicionales..."
+                                placeholder="Añade aquí tus observaciones personales..."
                                 className="min-h-[80px]"
                             />
                         </div>

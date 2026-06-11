@@ -4,7 +4,7 @@
   "properties": {
     "titulo": {
       "type": "string",
-      "description": "T\u00edtulo del presupuesto"
+      "description": "T\u00edtulo del presupuesto (autogenerado si est\u00e1 vac\u00edo)"
     },
     "cliente_id": {
       "type": "string",
@@ -70,6 +70,10 @@
       "default": false,
       "description": "Si es true, el usuario confirm\u00f3 que es duplicado autorizado"
     },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n del presupuesto (autocompletada desde partes)"
+    },
     "notas": {
       "type": "string",
       "description": "Observaciones"
@@ -80,7 +84,6 @@
     }
   },
   "required": [
-    "titulo",
     "cliente_id",
     "fecha",
     "importe"

@@ -16,12 +16,15 @@ Deno.serve(async (req) => {
         }
 
         const body = await req.json();
-        const { titulo, cliente_id, cliente_name, fecha, importe, conceptos, partes_trabajo_ids, notas, file_url, es_duplicado_confirmado = false } = body;
+        const { titulo, cliente_id, cliente_name, fecha, importe, conceptos, partes_trabajo_ids, notas, file_url, descripcion, es_duplicado_confirmado = false } = body;
 
-        // Validaciones básicas
-        if (!titulo || !cliente_id || !fecha || !importe) {
+        // Validaciones básicas (título es opcional, se autogenera)
+        if (!cliente_id || !fecha || !importe) {
             return Response.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
         }
+
+        // Generar título automático si no se proporciona
+        const tituloFinal = titulo || `PRE-${fecha.split('-')[0]}-${Date.now().toString().slice(-6)}`;
 
         // DETECCIÓN DE DUPLICADOS - Solo si no es confirmación manual
         if (!es_duplicado_confirmado) {
@@ -56,11 +59,11 @@ Deno.serve(async (req) => {
             }
         }
 
-        // Crear presupuesto (con sufijo _01 si es duplicado confirmado)
-        const tituloFinal = es_duplicado_confirmado ? `${titulo}_01` : titulo;
+        // Aplicar sufijo _01 si es duplicado confirmado
+        const tituloDefinitivo = es_duplicado_confirmado ? `${tituloFinal}_01` : tituloFinal;
 
         const nuevoPresupuesto = await base44.entities.Presupuesto.create({
-            titulo: tituloFinal,
+            titulo: tituloDefinitivo,
             cliente_id,
             cliente_name,
             fecha,
@@ -68,6 +71,7 @@ Deno.serve(async (req) => {
             conceptos,
             partes_trabajo_ids: partes_trabajo_ids || [],
             es_duplicado_confirmado,
+            descripcion,
             notas,
             file_url,
             estado: 'borrador'
