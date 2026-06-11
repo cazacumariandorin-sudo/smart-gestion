@@ -26,11 +26,11 @@ const MODULOS = [
   { id: 'reports', label: 'Informes', icon: BarChart2, submodulos: [] },
 ];
 
-export default function DiagnosticoOperario() {
+export default function DiagnosticoTecnico() {
   const { role, isOperario, isSimulating, canAccess } = useUserRole();
 
-  // Lista EXACTA de módulos para operario según useUserRole.js
-  const operarioModules = [
+  // Lista EXACTA de módulos para técnico según useUserRole.js
+  const tecnicoModules = [
     'dashboard', 'work-orders', 'clients', 'control-horario', 'orders', 
     'obras', 'obras-civiles', 'materials', 'drawings', 'manuales', 
     'calendario-vacaciones', 'photos', 'notas-gastos', 'vehiculos', 'chat', 
@@ -40,7 +40,7 @@ export default function DiagnosticoOperario() {
   return (
     <div className="max-w-6xl mx-auto">
       <PageHeader
-        title="Diagnóstico: Rol Operario"
+        title="Diagnóstico: Rol Técnico"
         subtitle="Verificación completa de módulos y permisos"
         hideBack={true}
       />
@@ -53,13 +53,13 @@ export default function DiagnosticoOperario() {
             <div className="flex-1">
               <p className="text-sm font-bold">
                 {isSimulating && role === 'operario' 
-                  ? '✅ Simulación de Operario ACTIVA' 
-                  : '⚠️ Activa la simulación de Operario'}
+                  ? '✅ Simulación de Técnico ACTIVA' 
+                  : '⚠️ Activa la simulación de Técnico'}
               </p>
               <p className="text-xs text-muted-foreground">
                 {isSimulating && role === 'operario'
-                  ? 'Estás viendo la app como OPERARIO. Verifica que todos los módulos estén accesibles.'
-                  : 'Ve al Simulador de Roles y activa "Operario" para ver esta página con sus permisos.'}
+                  ? 'Estás viendo la app como TÉCNICO. Verifica que todos los módulos estén accesibles.'
+                  : 'Ve al Simulador de Roles y activa "Técnico" para ver esta página con sus permisos.'}
               </p>
             </div>
             {!isSimulating && (
@@ -74,13 +74,13 @@ export default function DiagnosticoOperario() {
         <div className="space-y-3">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <LayoutDashboard className="w-5 h-5" />
-            Módulos Disponibles para Operario
+            Módulos Disponibles para Técnico
           </h2>
 
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {MODULOS.map(mod => {
               const Icon = mod.icon;
-              const hasAccess = operarioModules.includes(mod.id);
+              const hasAccess = tecnicoModules.includes(mod.id);
               const canView = hasAccess;
               
               return (
@@ -119,7 +119,7 @@ export default function DiagnosticoOperario() {
         <Card className="p-4 bg-blue-50 border-blue-200">
           <h3 className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2">
             <Shield className="w-4 h-4" />
-            Capacidades del Rol Operario
+            Capacidades del Rol Técnico
           </h3>
           <div className="space-y-2 text-xs">
             <div className="flex items-center gap-2">
@@ -186,7 +186,7 @@ export default function DiagnosticoOperario() {
           <h3 className="text-sm font-semibold mb-2">📋 Pasos para Verificar:</h3>
           <ol className="text-xs space-y-1.5 list-decimal list-inside text-muted-foreground">
             <li>Si no estás en simulación, haz clic en "Ir al Simulador"</li>
-            <li>Activa el rol <strong>Operario</strong></li>
+            <li>Activa el rol <strong>Técnico</strong></li>
             <li>Navega por cada módulo listado arriba</li>
             <li>Verifica que los botones "Nuevo" / "Crear" estén visibles</li>
             <li>Comprueba que puedes guardar registros en cada módulo</li>

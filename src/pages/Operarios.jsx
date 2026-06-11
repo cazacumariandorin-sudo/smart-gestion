@@ -29,7 +29,7 @@ const CATEGORIAS = [
 
 const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true, user_email: '', user_id: '', categoria: '', especialidad: '', coste_hora: '' };
 
-export default function Operarios() {
+export default function Tecnicos() {
   const qc = useQueryClient();
   const { isAdmin, isJefeObra, role } = useUserRole();
   const showUserCol = isAdmin;
@@ -43,13 +43,13 @@ export default function Operarios() {
   const [form, setForm] = useState(empty);
 
   const onRefresh = useCallback(() => {
-    qc.invalidateQueries({ queryKey: ['operarios'] });
+    qc.invalidateQueries({ queryKey: ['tecnicos'] });
     qc.invalidateQueries({ queryKey: ['obras'] });
   }, [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
-  const { data: operarios = [], isLoading } = useQuery({
-    queryKey: ['operarios'],
+  const { data: tecnicos = [], isLoading } = useQuery({
+    queryKey: ['tecnicos'],
     queryFn: () => base44.entities.Operario.list('name', 200),
   });
 
@@ -65,15 +65,15 @@ export default function Operarios() {
 
   const createM = useMutation({
     mutationFn: d => base44.entities.Operario.create(d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['operarios'] }); close_(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); close_(); },
   });
   const updateM = useMutation({
     mutationFn: ({ id, d }) => base44.entities.Operario.update(id, d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['operarios'] }); close_(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); close_(); },
   });
   const deleteM = useMutation({
     mutationFn: id => base44.entities.Operario.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['operarios'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tecnicos'] }),
   });
 
   const open_ = (op = null) => {
@@ -98,7 +98,7 @@ export default function Operarios() {
   const handleSave = () => editing ? updateM.mutate({ id: editing.id, d: form }) : createM.mutate(form);
   const isPending = createM.isPending || updateM.isPending;
 
-  const filtered = operarios.filter(op => {
+  const filtered = tecnicos.filter(op => {
     const q = search.toLowerCase();
     return !search || op.name?.toLowerCase().includes(q) || op.dni?.toLowerCase().includes(q) || op.email?.toLowerCase().includes(q);
   });
@@ -106,8 +106,8 @@ export default function Operarios() {
   return (
     <div className="max-w-6xl mx-auto">
       <PageHeader
-        title="Trabajadores"
-        subtitle={`${operarios.length} trabajadores registrados`}
+        title="Técnicos"
+        subtitle={`${tecnicos.length} técnicos registrados`}
         hideBack={true}
         actions={canCreate && (
           <Button onClick={() => open_()} className="gap-2 shadow-sm" size="sm">
@@ -121,7 +121,7 @@ export default function Operarios() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex flex-wrap gap-2 mb-6">
             {[
-              { value: 'operarios',     label: 'Trabajadores',  icon: User,     color: 'bg-teal-500 hover:bg-teal-600 border-teal-600 shadow-teal-200' },
+              { value: 'operarios',     label: 'Técnicos',  icon: User,     color: 'bg-teal-500 hover:bg-teal-600 border-teal-600 shadow-teal-200' },
               { value: 'documentacion', label: 'Documentación', icon: FileText, color: 'bg-indigo-500 hover:bg-indigo-600 border-indigo-600 shadow-indigo-200' },
             ].map(({ value, label, icon: Icon, color }) => (
               <button
@@ -148,7 +148,7 @@ export default function Operarios() {
             <div className="relative mb-6">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar trabajador..."
+                placeholder="Buscar técnico..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="pl-9"
@@ -162,10 +162,10 @@ export default function Operarios() {
             ) : filtered.length === 0 ? (
               <div className="text-center py-16 border border-dashed rounded-xl">
                 <User className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground mb-3">No hay trabajadores registrados</p>
+                <p className="text-sm text-muted-foreground mb-3">No hay técnicos registrados</p>
                 {canCreate && (
                   <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2">
-                    <Plus className="w-3.5 h-3.5" /> Añadir trabajador
+                    <Plus className="w-3.5 h-3.5" /> Añadir técnico
                   </Button>
                 )}
               </div>
@@ -193,8 +193,8 @@ export default function Operarios() {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>¿Eliminar operario?</AlertDialogTitle>
-                                <AlertDialogDescription>"{op.name}" será eliminado permanentemente.</AlertDialogDescription>
+                                <AlertDialogTitle>¿Eliminar técnico?</AlertDialogTitle>
+                                <AlertDialogDescription>"{op.name}" (Técnico) será eliminado permanentemente.</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -242,7 +242,7 @@ export default function Operarios() {
           </TabsContent>
 
           <TabsContent value="documentacion">
-            <DocsList operarios={operarios} obras={obras} />
+            <DocsList operarios={tecnicos} obras={obras} />
           </TabsContent>
         </Tabs>
       </div>
@@ -250,7 +250,7 @@ export default function Operarios() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Editar Trabajador' : 'Nuevo Trabajador'}</DialogTitle>
+            <DialogTitle>{editing ? 'Editar Técnico' : 'Nuevo Técnico'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
@@ -269,7 +269,7 @@ export default function Operarios() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Email</Label>
-              <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="operario@empresa.com" />
+              <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="tecnico@empresa.com" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Puesto / Cargo</Label>

@@ -77,7 +77,7 @@ export const HUBS = [
     module: 'operarios',
     roleRestricted: null,
     items: [
-      { label: 'Trabajadores', path: '/operarios', icon: Users, module: 'operarios' },
+      { label: 'Técnicos', path: '/operarios', icon: Users, module: 'operarios' },
       { label: 'Horario', path: '/control-horario', icon: Clock, module: 'control-horario' },
       { label: 'Vacaciones', path: '/calendario-vacaciones', icon: Calendar, module: 'calendario-vacaciones' },
       { label: 'Apuntes', path: '/apuntes-horario', icon: Clock, module: 'apuntes-horario' },

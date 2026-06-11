@@ -11,7 +11,7 @@ import {
   User, Mail, Shield, LogOut, Trash2, ChevronRight, HelpCircle,
   FileText, Scale, Info, Phone, Briefcase, Pencil, Save, X, Hash, ShieldCheck, Link2, Cloud, Loader2,
 } from 'lucide-react';
-import { useOperarioName } from '@/hooks/useOperarioName';
+import { useTecnicoName } from '@/hooks/useTecnicoName';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -41,7 +41,7 @@ function generateUserId(createdDate, counter = 1) {
 
 export default function Profile() {
   const queryClient = useQueryClient();
-  const { getOperarioName, operarios } = useOperarioName();
+  const { getTecnicoName, tecnicos } = useTecnicoName();
   const [legalDialog, setLegalDialog] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ phone: '', position: '', department: '', avatar_initials: '' });
@@ -124,8 +124,8 @@ export default function Profile() {
     },
   });
 
-  // Check if this user has a linked operario record
-  const miOperario = operarios.find(op => op.user_email === me?.email);
+  // Check if this user has a linked tecnico record
+  const miTecnico = tecnicos.find(op => op.user_email === me?.email);
 
   const displayInitials = me?.avatar_initials
     ? me.avatar_initials.toUpperCase()
@@ -163,11 +163,11 @@ export default function Profile() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-base truncate">
-              {miOperario ? miOperario.name : (me?.full_name || '—')}
+              {miTecnico ? miTecnico.name : (me?.full_name || '—')}
             </p>
-            {miOperario && (
+            {miTecnico && (
               <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
-                <Link2 className="w-3 h-3" /> Operario vinculado
+                <Link2 className="w-3 h-3" /> Técnico vinculado
               </p>
             )}
             <p className="text-sm text-muted-foreground flex items-center gap-1.5 truncate mt-0.5">

@@ -34,7 +34,7 @@ const Users = lazy(() => import('./pages/UsersPage'));
 const MaterialCatalog = lazy(() => import('./pages/MaterialCatalog'));
 const Drawings = lazy(() => import('./pages/Drawings'));
 const Orders = lazy(() => import('./pages/Orders'));
-const Operarios = lazy(() => import('./pages/Operarios'));
+const Tecnicos = lazy(() => import('./pages/Tecnicos'));
 const ControlHorario = lazy(() => import('./pages/ControlHorario'));
 const ObrasCiviles = lazy(() => import('./pages/ObrasCiviles'));
 const CalendarioVacaciones = lazy(() => import('./pages/CalendarioVacaciones'));
@@ -55,6 +55,7 @@ const GaleriaFotos = lazy(() => import('./pages/GaleriaFotos'));
 const ApuntesHorario = lazy(() => import('./pages/ApuntesHorario'));
 const PrevisionObras = lazy(() => import('./pages/PrevisionObras'));
 const SimuladorRoles = lazy(() => import('./pages/SimuladorRoles'));
+const DiagnosticoTecnico = lazy(() => import('./pages/DiagnosticoTecnico'));
 const DiagnosticoOperario = lazy(() => import('./pages/DiagnosticoOperario'));
 const DiagnosticoDuplicacion = lazy(() => import('./pages/DiagnosticoDuplicacion'));
 const VinculacionPage = lazy(() => import('./pages/Vinculacion'));
@@ -216,8 +217,8 @@ function AnimatedRoutes() {
             {/* SOLAR - Integrated solar project management with sub-modules */}
             <Route path="/solar" element={<ProtectedRoute module="solar"><Suspense fallback={<PageLoader />}><Solar /></Suspense></ProtectedRoute>} />
 
-            <Route path="/operarios" element={<ProtectedRoute module="operarios"><Suspense fallback={<PageLoader />}><Operarios /></Suspense></ProtectedRoute>} />
-            <Route path="/documentacion-operarios" element={<ProtectedRoute module="operarios"><Suspense fallback={<PageLoader />}><Operarios /></Suspense></ProtectedRoute>} />
+            <Route path="/operarios" element={<ProtectedRoute module="operarios"><Suspense fallback={<PageLoader />}><Tecnicos /></Suspense></ProtectedRoute>} />
+            <Route path="/documentacion-operarios" element={<ProtectedRoute module="operarios"><Suspense fallback={<PageLoader />}><Tecnicos /></Suspense></ProtectedRoute>} />
             <Route path="/control-horario" element={<ProtectedRoute module="control-horario"><Suspense fallback={<PageLoader />}><ControlHorario /></Suspense></ProtectedRoute>} />
             <Route path="/calendario-vacaciones" element={<ProtectedRoute module="calendario-vacaciones"><Suspense fallback={<PageLoader />}><CalendarioVacaciones /></Suspense></ProtectedRoute>} />
 
@@ -235,7 +236,7 @@ function AnimatedRoutes() {
             <Route path="/prevision-obras" element={<ProtectedRoute module="informe-obras"><Suspense fallback={<PageLoader />}><PrevisionObras /></Suspense></ProtectedRoute>} />
             <Route path="/invitaciones-demo" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><InvitacionesDemo /></Suspense></ProtectedRoute>} />
             <Route path="/simulador-roles" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><SimuladorRoles /></Suspense></ProtectedRoute>} />
-            <Route path="/diagnostico-operario" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DiagnosticoOperario /></Suspense></ProtectedRoute>} />
+            <Route path="/diagnostico-tecnico" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DiagnosticoTecnico /></Suspense></ProtectedRoute>} />
             <Route path="/diagnostico-duplicacion" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DiagnosticoDuplicacion /></Suspense></ProtectedRoute>} />
             <Route path="/vinculacion" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><VinculacionPage /></Suspense></ProtectedRoute>} />
             <Route path="/analisis-seguridad" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><AnalisisSeguridad /></Suspense></ProtectedRoute>} />
@@ -268,6 +269,8 @@ function AnimatedRoutes() {
           <Route path="/MonthlyReport" element={<Navigate to="/reports" replace />} />
           <Route path="/Obras" element={<Navigate to="/obras-civiles" replace />} />
           <Route path="/Operarios" element={<Navigate to="/operarios" replace />} />
+          <Route path="/Tecnicos" element={<Navigate to="/operarios" replace />} />
+          <Route path="/DiagnosticoTecnico" element={<Navigate to="/diagnostico-tecnico" replace />} />
           <Route path="/Orders" element={<Navigate to="/orders" replace />} />
           <Route path="/PhotoGallery" element={<Navigate to="/photos" replace />} />
           <Route path="/Profile" element={<Navigate to="/profile" replace />} />
