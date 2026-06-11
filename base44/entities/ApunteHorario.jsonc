@@ -99,9 +99,16 @@
           }
         },
         {
-          "user_condition": {
-            "role": "jefe_obra"
-          }
+          "$and": [
+            {
+              "user_condition": {
+                "role": "jefe_obra"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         },
         {
           "created_by": "{{user.email}}"
@@ -116,9 +123,16 @@
           }
         },
         {
-          "user_condition": {
-            "role": "jefe_obra"
-          }
+          "$and": [
+            {
+              "user_condition": {
+                "role": "jefe_obra"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         },
         {
           "created_by": "{{user.email}}"
