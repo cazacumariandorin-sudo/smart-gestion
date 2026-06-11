@@ -27,7 +27,7 @@ const QUICK_ACCESS = [
     border: 'border-emerald-300 dark:border-emerald-700',
     watermark: null,
     module: 'chat',
-    links: [{ label: 'Chat', path: '/chat', icon: MessageSquare }],
+    items: [{ label: 'Chat', path: '/chat', icon: MessageSquare }],
   },
   {
     id: 'galeria',
@@ -39,7 +39,7 @@ const QUICK_ACCESS = [
     border: 'border-violet-300 dark:border-violet-700',
     watermark: null,
     module: 'galeria-fotos',
-    links: [{ label: 'Galería', path: '/galeria-fotos', icon: Images }],
+    items: [{ label: 'Galería', path: '/galeria-fotos', icon: Images }],
   },
 ];
 
