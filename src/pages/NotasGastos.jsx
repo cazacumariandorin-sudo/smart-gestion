@@ -17,7 +17,7 @@ import NotaGastoCard from '@/components/gastos/NotaGastoCard';
 import NotaGastoDetalle from '@/components/gastos/NotaGastoDetalle';
 import InformeGastos from '@/components/gastos/InformeGastos';
 import { useAuth } from '@/lib/AuthContext';
-import { useOperarioName } from '@/hooks/useOperarioName';
+import { useTecnicoName } from '@/hooks/useTecnicoName';
 
 const ESTADOS = ['todos', 'borrador', 'pendiente', 'validada', 'cerrada', 'rechazada'];
 const CATEGORIAS = ['todas', 'material', 'combustible', 'peaje', 'parking', 'otros'];
@@ -67,7 +67,7 @@ function OperarioGroup({ operario, notas, onVerNota, isOpen, onToggle }) {
 export default function NotasGastos() {
   const { user } = useAuth();
   const { isAdmin, isOperario, isGerencia } = useUserRole();
-  const { getOperarioName, operarios } = useOperarioName();
+  const { getTecnicoName, tecnicos } = useTecnicoName();
   const qc = useQueryClient();
 
   const onRefresh = useCallback(() => {
@@ -75,12 +75,12 @@ export default function NotasGastos() {
   }, [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
-  // Buscar operario por email o usar el usuario actual si es operario
-  const miOperario = operarios.find(op => op.user_email === user?.email);
-  const miNombre = miOperario?.name || user?.full_name || user?.email || '';
+  // Buscar técnico por email o usar el usuario actual si es operario
+  const miTecnico = tecnicos.find(op => op.user_email === user?.email);
+  const miNombre = miTecnico?.name || user?.full_name || user?.email || '';
   
-  // Para operarios, usar su ID de usuario si no tienen registro en Operario
-  const operarioId = miOperario?.id || (isOperario ? user?.id : null);
+  // Para técnicos, usar su ID de usuario si no tienen registro en Operario
+  const operarioId = miTecnico?.id || (isOperario ? user?.id : null);
 
   const [showForm, setShowForm] = useState(false);
   const [notaSeleccionada, setNotaSeleccionada] = useState(null);
@@ -105,12 +105,12 @@ export default function NotasGastos() {
 
   const operarioActual = {
     id: operarioId || user?.id,
-    name: miOperario?.name || user?.full_name || user?.email?.split('@')[0],
+    name: miTecnico?.name || user?.full_name || user?.email?.split('@')[0],
     user_email: user?.email,
   };
   
-  // Verificar si puede crear: operarios siempre pueden, admins/gerencia también
-  const puedeCrearRegistro = isOperario || isAdmin || isGerencia || !!miOperario?.id;
+  // Verificar si puede crear: técnicos siempre pueden, admins/gerencia también
+  const puedeCrearRegistro = isOperario || isAdmin || isGerencia || !!miTecnico?.id;
 
   const notas = notasRaw.filter(n => {
     const txt = busqueda.toLowerCase();
@@ -198,10 +198,10 @@ export default function NotasGastos() {
             <MobileSelectItem key={obra.id} value={obra.id}>{obra.name}</MobileSelectItem>
           ))}
         </MobileSelect>
-        {isAdmin && operarios.length > 0 && (
+        {isAdmin && tecnicos.length > 0 && (
           <MobileSelect value={filtroOperario} onValueChange={setFiltroOperario} placeholder="Operario" triggerClassName="w-40">
             <MobileSelectItem value="todos">Todos los operarios</MobileSelectItem>
-            {operarios.filter(op => op.active !== false).map(op => (
+            {tecnicos.filter(op => op.active !== false).map(op => (
               <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
             ))}
           </MobileSelect>
@@ -272,14 +272,14 @@ export default function NotasGastos() {
         onCreated={() => qc.invalidateQueries({ queryKey: ['notas_gasto'] })}
         operario={operarioActual}
         isAdmin={isAdmin}
-        operarios={operarios}
+        operarios={tecnicos}
       />
 
       {notaSeleccionada && (
         <NotaGastoDetalle
           nota={notaSeleccionada}
           isAdmin={isAdmin}
-          operarios={operarios}
+          operarios={tecnicos}
           open={!!notaSeleccionada}
           onClose={() => {
             setNotaSeleccionada(null);
