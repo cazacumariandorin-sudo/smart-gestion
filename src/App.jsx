@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavDirection } from '@/hooks/useNavDirection';
 import { processOfflineQueue, getQueue } from '@/utils/offlineQueue';
+import { preloadOfflineCache } from '@/hooks/useOfflineCache';
 import { recalcularPrevision } from '@/hooks/useRecalcularPrevision';
 import { base44 } from '@/api/base44Client';
 import { I18nProvider } from './lib/i18n';
@@ -116,6 +117,19 @@ function DeviceCapabilityDetector() {
   return null;
 }
 
+// Precarga en background los datos críticos para uso offline
+function OfflinePrecacher() {
+  useEffect(() => {
+    if (navigator.onLine) {
+      preloadOfflineCache(base44).catch(() => {});
+    }
+    const handleOnline = () => preloadOfflineCache(base44).catch(() => {});
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
+  return null;
+}
+
 // Procesa la cola offline cuando se recupera la conexión
 function OfflineQueueProcessor() {
   useEffect(() => {
@@ -129,6 +143,7 @@ function OfflineQueueProcessor() {
         ApunteHorario: base44.entities.ApunteHorario,
         ObraMaterial: base44.entities.ObraMaterial,
       };
+
       const fichajesConObra = pendingQueue.filter(i => i.entityName === 'Fichaje' && i.payload?.obra_id);
       await processOfflineQueue(entityApis);
       const obraIds = [...new Set(fichajesConObra.map(i => i.payload.obra_id))];
@@ -294,6 +309,7 @@ function App() {
             <ThemeDetector />
             <DeviceCapabilityDetector />
             <OfflineQueueProcessor />
+            <OfflinePrecacher />
             <AuthenticatedApp />
           </Router>
           <Toaster />

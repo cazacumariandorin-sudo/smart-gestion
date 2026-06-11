@@ -57,7 +57,7 @@ export default function ConnectivityBanner() {
       bg: '#FCEBEB',
       border: '#E24B4A',
       text: '#791F1F',
-      msg: `📵 Sin conexión — modo offline activo.${pendingCount > 0 ? ` ${pendingCount} registro(s) pendiente(s) de sincronizar.` : ' Tus cambios se guardarán al recuperar señal.'}`,
+      msg: `📵 Sin conexión — modo offline activo. ${pendingCount > 0 ? `${pendingCount} registro(s) pendiente(s) de sincronizar.` : 'Disponible: fichajes, gastos y calendario. Tus cambios se sincronizarán al recuperar señal.'}`,
     },
     syncing: {
       bg: '#E6F1FB',

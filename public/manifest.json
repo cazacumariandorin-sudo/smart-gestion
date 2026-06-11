@@ -1,0 +1,20 @@
+{
+  "name": "SIMANTEC - Gestión Empresarial",
+  "short_name": "SIMANTEC",
+  "description": "Gestión de obras, fichajes y operarios",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1B4F72",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://base44.com/logo_v2.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "es"
+}
