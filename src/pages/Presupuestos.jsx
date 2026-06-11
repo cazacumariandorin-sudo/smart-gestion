@@ -4,9 +4,10 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Plus, FileText, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import PresupuestoForm from "@/pages/presupuestos/PresupuestoForm";
 
 export default function Presupuestos() {
     const queryClient = useQueryClient();
@@ -116,6 +117,14 @@ export default function Presupuestos() {
                     ))
                 )}
             </div>
+
+            {/* Formulario de Creación */}
+            {showForm && (
+                <PresupuestoForm
+                    onCancel={() => setShowForm(false)}
+                    onSubmit={(data) => crearPresupuestoMutation.mutate(data)}
+                />
+            )}
 
             {/* Modal de Confirmación de Duplicado */}
             {duplicadoConfirm && (
