@@ -28,29 +28,39 @@ export default function TicketCapture({ onDone, onSkip }) {
     try {
       // Convert file to base64
       const base64 = await fileToBase64(file);
-      
-      // Upload to Google Drive (if connected) or local storage
-      const res = await base44.functions.invoke('uploadFileToGdrive', { 
-        file: base64, 
-        folder_path: 'Notas_Gastos' 
-      });
-      
-      const file_url = res.data.file_url;
-      const archivo = { 
-        url: file_url, 
-        nombre: file.name, 
-        tipo: file.type, 
+
+      // Intentar subir a Google Drive; si falla, usar Data URL local
+      let file_url = base64;
+      let archivo = {
+        url: base64,
+        nombre: file.name,
+        tipo: file.type,
         fecha_subida: new Date().toISOString(),
-        storage: res.data.storage,
-        drive_file_id: res.data.drive_file_id,
+        storage: 'local',
       };
+
+      try {
+        const res = await base44.functions.invoke('uploadFileToGdrive', {
+          file: base64,
+          folder_path: 'Notas_Gastos',
+        });
+        file_url = res.data.file_url;
+        archivo = {
+          url: file_url,
+          nombre: file.name,
+          tipo: file.type,
+          fecha_subida: new Date().toISOString(),
+          storage: res.data.storage,
+          drive_file_id: res.data.drive_file_id,
+        };
+      } catch { /* Drive no disponible — usar Data URL local */ }
 
       setEstado('ocr');
       setMensaje('Extrayendo datos con IA...');
       let ocrDatos = {};
       try {
-        const res = await base44.functions.invoke('procesarOcrNota', { file_url, file_tipo: file.type });
-        if (res.data?.success && res.data?.datos) ocrDatos = res.data.datos;
+        const ocrRes = await base44.functions.invoke('procesarOcrNota', { file_url, file_tipo: file.type });
+        if (ocrRes.data?.success && ocrRes.data?.datos) ocrDatos = ocrRes.data.datos;
       } catch { /* OCR no disponible — continuar sin datos */ }
 
       setEstado('ok');
@@ -58,12 +68,7 @@ export default function TicketCapture({ onDone, onSkip }) {
       onDone({ file_url, archivo, ocrDatos });
     } catch (e) {
       setEstado('error');
-      const msg = e.message || '';
-      setMensaje(
-        msg.toLowerCase().includes('drive') || msg.toLowerCase().includes('gdrive')
-          ? 'Error al subir. Verifica que Google Drive está conectado o sube desde galería.'
-          : 'Error al subir el ticket: ' + msg
-      );
+      setMensaje('Error al procesar el ticket: ' + (e.message || ''));
     }
   }, [onDone]);
 

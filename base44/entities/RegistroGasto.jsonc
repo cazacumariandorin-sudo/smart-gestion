@@ -142,6 +142,11 @@
         },
         {
           "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
