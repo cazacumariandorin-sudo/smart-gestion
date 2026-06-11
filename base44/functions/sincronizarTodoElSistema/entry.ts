@@ -23,19 +23,25 @@ Deno.serve(async (req) => {
         };
 
         // FASE 1: NORMALIZACIÓN DE OPERARIOS (Limpieza de datos)
-        const operarios = await base44.asServiceRole.entities.Operario.list();
+        const operariosRaw = await base44.asServiceRole.entities.Operario.list();
+        const operarios = Array.isArray(operariosRaw) ? operariosRaw : (operariosRaw?.data || []);
+        
         for (const op of operarios) {
+            const datos = op.data || op;
             const cambios = {};
             
             // Normalizar nombre (trim)
-            if (op.data.name && op.data.name.trim() !== op.data.name) {
-                cambios.name = op.data.name.trim();
+            if (datos.name && typeof datos.name === 'string' && datos.name.trim() !== datos.name) {
+                cambios.name = datos.name.trim();
             }
             
             // Normalizar email (trim + lowercase)
-            const email = (op.data.email || "").trim().toLowerCase();
-            if (email && email !== op.data.email) {
-                cambios.email = email;
+            const email = (datos.email || "");
+            if (typeof email === 'string') {
+                const emailNormalizado = email.trim().toLowerCase();
+                if (emailNormalizado && emailNormalizado !== datos.email) {
+                    cambios.email = emailNormalizado;
+                }
             }
             
             if (Object.keys(cambios).length > 0) {
@@ -45,20 +51,21 @@ Deno.serve(async (req) => {
         }
 
         // FASE 2: MAPEO DE IDENTIDAD (Generación de User-SG-AAAA-NNN)
-        const operariosActualizados = await base44.asServiceRole.entities.Operario.list();
+        const operariosActualizadosRaw = await base44.asServiceRole.entities.Operario.list();
+        const operariosActualizados = Array.isArray(operariosActualizadosRaw) ? operariosActualizadosRaw : (operariosActualizadosRaw?.data || []);
         const mapaMigracion = {};
-        const añoActual = new Date().getFullYear();
         
         for (const op of operariosActualizados) {
-            let nuevoId = op.data.codigo_registro;
+            const datos = op.data || op;
+            let nuevoId = datos.codigo_registro;
             
             // Generar ID si no existe
             if (!nuevoId) {
                 // Usar año de creación si existe, sino año actual
-                const fechaCreacion = op.data.created_date ? new Date(op.data.created_date) : new Date();
+                const fechaCreacion = datos.created_date ? new Date(datos.created_date) : new Date();
                 const año = fechaCreacion.getFullYear();
                 
-                // Generar número secuencial basado en el total de operarios
+                // Generar número secuencial basado en el índice
                 const numeroSecuencial = String(operariosActualizados.indexOf(op) + 1).padStart(3, '0');
                 nuevoId = `User-SG-${año}-${numeroSecuencial}`;
                 
@@ -83,25 +90,28 @@ Deno.serve(async (req) => {
             
             for (const entidad of entidades) {
                 try {
-                    const registros = await base44.asServiceRole.entities[entidad.nombre].filter({ [entidad.campoOperario]: operarioId });
+                    const registrosRaw = await base44.asServiceRole.entities[entidad.nombre].filter({ [entidad.campoOperario]: operarioId });
+                    const registros = Array.isArray(registrosRaw) ? registrosRaw : (registrosRaw?.data || []);
                     
-                    if (registros.length > 0) {
+                    if (registros.length > 0 && !reporte.entidades_procesadas.includes(entidad.nombre)) {
                         reporte.entidades_procesadas.push(entidad.nombre);
                     }
                     
                     for (const reg of registros) {
+                        const datos = reg.data || reg;
                         const updates = {};
                         
                         // Actualizar ID de usuario si es necesario
-                        if (reg.data.user_sg_id !== nuevoId) {
+                        if (datos.user_sg_id !== nuevoId) {
                             updates.user_sg_id = nuevoId;
                         }
                         
                         // Validación de Obra (Seguridad Extra - Regla de Oro)
-                        if (entidad.tieneObra && reg.data.obra_id) {
-                            const obra = await base44.asServiceRole.entities.Obra.list({ id: reg.data.obra_id });
+                        if (entidad.tieneObra && datos.obra_id) {
+                            const obraRaw = await base44.asServiceRole.entities.Obra.list({ id: datos.obra_id });
+                            const obra = Array.isArray(obraRaw) ? obraRaw : (obraRaw?.data || []);
                             if (!obra || obra.length === 0) {
-                                updates.notas = (reg.data.notas || "") + " [ALERTA: Obra huérfana detectada]";
+                                updates.notas = (datos.notas || "") + " [ALERTA: Obra huérfana detectada]";
                                 reporte.alertas_obra_huerfana++;
                             }
                         }
