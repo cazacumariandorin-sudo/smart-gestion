@@ -19,8 +19,7 @@ export default function TicketCapture({ onDone, onSkip }) {
   const [stream, setStream] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const cameraInputRef = useRef(null);
+
 
   const procesarArchivo = useCallback(async (file) => {
     setEstado('uploading');
@@ -183,23 +182,23 @@ export default function TicketCapture({ onDone, onSkip }) {
         <div className="grid grid-cols-2 gap-3">
           {/* Cámara directa — label nativo para compatibilidad iOS/Android dentro de Dialog */}
           <label
-            htmlFor="camera-input-ticket"
+            htmlFor="ticket-camera-input"
             className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer"
           >
             <Camera className="w-8 h-8 text-primary" />
             <span className="text-xs font-semibold text-primary">Hacer foto</span>
           </label>
-          <input id="camera-input-ticket" type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) procesarArchivo(f); e.target.value = ''; }} />
+          <input id="ticket-camera-input" type="file" accept="image/*" capture="environment" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) procesarArchivo(f); e.target.value = ''; }} />
 
           {/* Galería */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-accent/30 transition-colors"
+          <label
+            htmlFor="ticket-gallery-input"
+            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-accent/30 transition-colors cursor-pointer"
           >
             <Image className="w-8 h-8 text-muted-foreground" />
             <span className="text-xs font-semibold text-muted-foreground">Galería</span>
-          </button>
-          <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) procesarArchivo(f); e.target.value = ''; }} />
+          </label>
+          <input id="ticket-gallery-input" type="file" accept="image/*,.pdf" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) procesarArchivo(f); e.target.value = ''; }} />
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -214,14 +213,14 @@ export default function TicketCapture({ onDone, onSkip }) {
           <canvas ref={canvasRef} className="hidden" />
 
           {/* Subir archivo */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-accent/30 transition-colors"
+          <label
+            htmlFor="desktop-file-input"
+            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-accent/30 transition-colors cursor-pointer"
           >
             <Upload className="w-8 h-8 text-muted-foreground" />
             <span className="text-xs font-semibold text-muted-foreground">Subir archivo</span>
-          </button>
-          <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) procesarArchivo(f); e.target.value = ''; }} />
+          </label>
+          <input id="desktop-file-input" type="file" accept="image/*,.pdf" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) procesarArchivo(f); e.target.value = ''; }} />
         </div>
       )}
 
