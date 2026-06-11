@@ -1,0 +1,181 @@
+{
+  "name": "Presupuesto",
+  "type": "object",
+  "properties": {
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo del presupuesto"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "cliente_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del presupuesto"
+    },
+    "importe": {
+      "type": "number",
+      "description": "Importe total (\u20ac)"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "enviado",
+        "aceptado",
+        "rechazado"
+      ],
+      "default": "borrador",
+      "description": "Estado del presupuesto"
+    },
+    "conceptos": {
+      "type": "array",
+      "description": "L\u00edneas del presupuesto",
+      "items": {
+        "type": "object",
+        "properties": {
+          "descripcion": {
+            "type": "string"
+          },
+          "cantidad": {
+            "type": "number"
+          },
+          "unidad": {
+            "type": "string"
+          },
+          "precio_unitario": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "partes_trabajo_ids": {
+      "type": "array",
+      "description": "IDs de partes de trabajo consolidados",
+      "items": {
+        "type": "string"
+      }
+    },
+    "es_duplicado_confirmado": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si es true, el usuario confirm\u00f3 que es duplicado autorizado"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "PDF del presupuesto"
+    }
+  },
+  "required": [
+    "titulo",
+    "cliente_id",
+    "fecha",
+    "importe"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
+    }
+  }
+}

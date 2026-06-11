@@ -97,6 +97,7 @@ export const HUBS = [
       { label: 'Gastos', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
       { label: 'Pedidos', path: '/orders', icon: CreditCard, module: 'orders' },
       { label: 'Nóminas', path: '/nominas', icon: Banknote, module: 'nominas' },
+      { label: 'Presupuestos', path: '/presupuestos', icon: FileText, module: 'economico' },
       { label: 'Datos sensibles', path: '/datos-sensibles', icon: Lock, module: 'users' },
     ],
   },
