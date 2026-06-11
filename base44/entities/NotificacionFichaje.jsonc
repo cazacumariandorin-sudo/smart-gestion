@@ -58,6 +58,9 @@
           "user_condition": {
             "role": "director_comercial"
           }
+        },
+        {
+          "data.operario_id": "{{user.id}}"
         }
       ]
     },
