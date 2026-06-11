@@ -31,8 +31,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Faltan parámetros: pdf_base64 (o pdf_url), mes, anio' }, { status: 400 });
     }
 
+    // mes/anio son valores de fallback si el documento no tiene fecha clara
+    // El loteId se genera con los valores de formulario; se ajustará si el documento tiene período distinto
     const loteId = `NOMINAS_${anio}_${String(mes).padStart(2, '0')}_${Date.now()}`;
-    const periodoNombre = getNombrePeriodo(mes, anio);
 
     // Obtener lista de operarios para el matching
     const operarios = await base44.asServiceRole.entities.Operario.list();
@@ -71,7 +72,9 @@ Para CADA trabajador extrae en formato JSON array:
       "pagina": 1,
       "nombre": "APELLIDO1 APELLIDO2 NOMBRE o como aparezca",
       "dni": "12345678X",
-      "periodo": "De 01/01/26 a 31/01/26",
+      "periodo_texto": "De 01/01/26 a 31/01/26",
+      "mes_documento": 1,
+      "anio_documento": 2026,
       "categoria": "PROFESIONAL OFICIO 1ª",
       "liquido_percibir": 1671.17,
       "total_devengado": 2090.53,
@@ -85,6 +88,8 @@ El campo "nombre" aparece tras "PERSONA TRABAJADORA" en la cabecera.
 El campo "dni" (NIF) aparece en la columna derecha de la cabecera junto al nombre.
 "liquido_percibir" aparece como "LÍQUIDO A PERCIBIR".
 "coste_empresa" aparece como "Coste Empresa=" en la parte inferior izquierda de la nómina.
+"periodo_texto" es el texto literal del período que aparece en el documento (ej: "De 01/01/26 a 31/01/26").
+"mes_documento" y "anio_documento" son el mes (1-12) y año (4 dígitos) del período de la nómina según el documento.
 Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
             },
             {
@@ -152,8 +157,11 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
         const pdfIndividualBytes = await pdfIndividual.save();
         const base64Individual = btoa(String.fromCharCode(...pdfIndividualBytes));
 
-        const nombreArchivo = `nomina_${dniLimpio || nombreLimpio.replace(/\s+/g, '_')}_${periodoNombre.replace(' ', '_')}.pdf`;
-        const folderPath = `Nominas/${anio}/${String(mes).padStart(2, '0')}`;
+        const mesReal = trab.mes_documento ? parseInt(trab.mes_documento) : parseInt(mes);
+        const anioReal = trab.anio_documento ? parseInt(trab.anio_documento) : parseInt(anio);
+        const periodoReal = getNombrePeriodo(mesReal, anioReal);
+        const nombreArchivo = `nomina_${dniLimpio || nombreLimpio.replace(/\s+/g, '_')}_${periodoReal.replace(' ', '_')}.pdf`;
+        const folderPath = `Nominas/${anioReal}/${String(mesReal).padStart(2, '0')}`;
 
         const fileResult = await subirPDF(accessToken, useGdrive, base64Individual, folderPath, nombreArchivo, base44);
         fileUrl = fileResult.file_url;
@@ -162,13 +170,18 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
 
       const estadoAsignacion = operarioMatch ? 'asignada' : 'sin_asignar';
 
+      // Usar mes/año extraído del documento; si la IA no lo detectó, caer al valor del formulario
+      const mesReal = trab.mes_documento ? parseInt(trab.mes_documento) : parseInt(mes);
+      const anioReal = trab.anio_documento ? parseInt(trab.anio_documento) : parseInt(anio);
+      const periodoReal = getNombrePeriodo(mesReal, anioReal);
+
       const nominaData = {
         operario_id: operarioMatch?.id || null,
         operario_name: operarioMatch?.name || trab.nombre,
         operario_dni: dniLimpio || operarioMatch?.dni || '',
-        mes: parseInt(mes),
-        anio: parseInt(anio),
-        periodo: periodoNombre,
+        mes: mesReal,
+        anio: anioReal,
+        periodo: periodoReal,
         file_url: fileUrl,
         drive_file_id: driveFileId,
         liquido_percibir: trab.liquido_percibir || null,
@@ -188,10 +201,13 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
       }
     }
 
+    // Período representativo del lote (del primer resultado)
+    const periodoLote = resultados.length > 0 ? resultados[0].periodo : getNombrePeriodo(mes, anio);
+
     // Tarea si hay nóminas sin asignar
     if (sinAsignar.length > 0) {
       await base44.asServiceRole.entities.AsistenteTarea.create({
-        titulo: `⚠️ ${sinAsignar.length} nómina(s) sin asignar - ${periodoNombre}`,
+        titulo: `⚠️ ${sinAsignar.length} nómina(s) sin asignar - ${periodoLote}`,
         descripcion: `Las siguientes nóminas no pudieron asignarse automáticamente:\n${sinAsignar.map(s => `• ${s.nombre} (DNI: ${s.dni || 'no detectado'}, pág. ${s.pagina})`).join('\n')}\n\nRevisa y asigna manualmente en el módulo de Nóminas.`,
         tipo: 'tarea_manual',
         prioridad: 'alta',
@@ -231,7 +247,7 @@ Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
     return Response.json({
       success: true,
       lote_id: loteId,
-      periodo: periodoNombre,
+      periodo: periodoLote,
       total_procesadas: resultados.length,
       asignadas_automaticamente: resultados.filter(r => r.operario_encontrado).length,
       sin_asignar: sinAsignar.length,
