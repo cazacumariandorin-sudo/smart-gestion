@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Check, X, Clock, AlertTriangle, ChevronRight, FileText, User } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,7 @@ export function ModuloBadge({ moduloId, tareas, onClick }) {
 // ── Panel lateral de tareas ──────────────────────────────────────────────────
 function TareaItem({ tarea, onCompletar, onDescartar, completando }) {
   const cfg = PRIORIDAD_CONFIG[tarea.prioridad] || PRIORIDAD_CONFIG.media;
+  const isProcessing = completando === tarea.id;
 
   return (
     <div className="border border-border rounded-xl p-3 space-y-2 bg-card">
@@ -63,6 +65,23 @@ function TareaItem({ tarea, onCompletar, onDescartar, completando }) {
           <p className="text-sm font-semibold leading-tight">{tarea.titulo}</p>
           {tarea.descripcion && (
             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{tarea.descripcion}</p>
+          )}
+          
+          {/* Barra de progreso minimalista */}
+          {isProcessing && (
+            <motion.div
+              className="h-0.5 w-full bg-muted rounded-full mt-2 overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                className={cn('h-full rounded-full', cfg.color)}
+                initial={{ width: '0%' }}
+                animate={{ width: '100%' }}
+                transition={{ duration: 2, ease: 'easeInOut' }}
+              />
+            </motion.div>
           )}
         </div>
         <Badge variant="outline" className={cn('text-[9px] shrink-0', cfg.badgeClass)}>
@@ -84,26 +103,36 @@ function TareaItem({ tarea, onCompletar, onDescartar, completando }) {
         </div>
       )}
 
-      <div className="flex gap-2 pt-1">
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 px-3 text-xs gap-1 flex-1 border-green-200 text-green-700 hover:bg-green-50"
-          onClick={() => onCompletar(tarea.id)}
-          disabled={completando === tarea.id}
-        >
-          <Check className="w-3 h-3" /> Completar
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 px-3 text-xs gap-1 text-muted-foreground hover:text-destructive"
-          onClick={() => onDescartar(tarea.id)}
-          disabled={completando === tarea.id}
-        >
-          <X className="w-3 h-3" /> Descartar
-        </Button>
-      </div>
+      {!isProcessing ? (
+        <div className="flex gap-2 pt-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-3 text-xs gap-1 flex-1 border-green-200 text-green-700 hover:bg-green-50"
+            onClick={() => onCompletar(tarea.id)}
+          >
+            <Check className="w-3 h-3" /> Completar
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-3 text-xs gap-1 text-muted-foreground hover:text-destructive"
+            onClick={() => onDescartar(tarea.id)}
+          >
+            <X className="w-3 h-3" /> Descartar
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          >
+            <Clock className="w-3 h-3" />
+          </motion.div>
+          <span>Procesando...</span>
+        </div>
+      )}
     </div>
   );
 }
