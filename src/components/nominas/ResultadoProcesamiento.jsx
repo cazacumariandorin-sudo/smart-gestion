@@ -68,7 +68,10 @@ export default function ResultadoProcesamiento({ resultado, onCerrar }) {
             </div>
             <div className="text-right shrink-0">
               {nom.liquido_percibir && (
-                <p className="font-semibold text-sm">{nom.liquido_percibir.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+                <p className="font-semibold text-sm text-green-700">{nom.liquido_percibir.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+              )}
+              {nom.coste_empresa && (
+                <p className="text-xs text-muted-foreground">Coste: {nom.coste_empresa.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
               )}
               <Badge variant={nom.asignada ? 'default' : 'outline'} className="text-[10px] mt-0.5">
                 {nom.asignada ? 'Asignada' : 'Sin asignar'}

@@ -109,8 +109,13 @@ export default function ListaNominas({ esAdmin }) {
                   </div>
                   <div className="text-right shrink-0">
                     {nom.liquido_percibir && (
-                      <p className="font-semibold text-sm">
+                      <p className="font-semibold text-sm text-green-700">
                         {nom.liquido_percibir.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                      </p>
+                    )}
+                    {esAdmin && nom.coste_empresa && (
+                      <p className="text-xs text-muted-foreground">
+                        Coste: {nom.coste_empresa.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
                       </p>
                     )}
                     <Badge

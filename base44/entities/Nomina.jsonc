@@ -28,7 +28,7 @@
     },
     "file_url": {
       "type": "string",
-      "description": "URL del PDF de la n\u00f3mina individual"
+      "description": "URL del PDF de la n\u00f3mina individual (solo la p\u00e1gina del trabajador)"
     },
     "drive_file_id": {
       "type": "string",
@@ -42,6 +42,10 @@
       "type": "number",
       "description": "Total devengado extra\u00eddo del PDF"
     },
+    "coste_empresa": {
+      "type": "number",
+      "description": "Coste total para la empresa extra\u00eddo del PDF"
+    },
     "estado_asignacion": {
       "type": "string",
       "enum": [
@@ -54,7 +58,7 @@
     },
     "lote_id": {
       "type": "string",
-      "description": "ID del lote de procesamiento (para agrupar el mismo upload)"
+      "description": "ID del lote de procesamiento"
     },
     "pagina_origen": {
       "type": "integer",

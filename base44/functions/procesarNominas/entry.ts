@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
+import { PDFDocument } from 'npm:pdf-lib@1.17.1';
 
 const ROOT_FOLDER_ID = '1yJzcwSzo2acrswgmtKLbNTKVd7WxUtF1';
 
@@ -30,7 +31,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Faltan parámetros: pdf_base64 (o pdf_url), mes, anio' }, { status: 400 });
     }
 
-    // Generar lote ID único
     const loteId = `NOMINAS_${anio}_${String(mes).padStart(2, '0')}_${Date.now()}`;
     const periodoNombre = getNombrePeriodo(mes, anio);
 
@@ -50,10 +50,9 @@ Deno.serve(async (req) => {
       console.log('Google Drive no disponible, usando almacenamiento local');
     }
 
-    // Usar IA para extraer y analizar las páginas del PDF
+    // Usar IA para extraer datos de cada trabajador del PDF
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 
-    // Primero extraemos la estructura completa del PDF con Claude
     const extractResponse = await anthropic.messages.create({
       model: 'claude-opus-4-5',
       max_tokens: 4096,
@@ -63,7 +62,7 @@ Deno.serve(async (req) => {
           content: [
             {
               type: 'text',
-              text: `Analiza este PDF de nóminas que contiene múltiples trabajadores (una nómina por página). 
+              text: `Analiza este PDF de nóminas con múltiples trabajadores (una nómina por página). 
               
 Para CADA trabajador extrae en formato JSON array:
 {
@@ -76,15 +75,17 @@ Para CADA trabajador extrae en formato JSON array:
       "categoria": "PROFESIONAL OFICIO 1ª",
       "liquido_percibir": 1671.17,
       "total_devengado": 2090.53,
-      "total_deducir": 419.36
+      "total_deducir": 419.36,
+      "coste_empresa": 2871.33
     }
   ]
 }
 
-El campo "nombre" aparece tras "PERSONA TRABAJADORA" en la cabecera de cada nómina.
+El campo "nombre" aparece tras "PERSONA TRABAJADORA" en la cabecera.
 El campo "dni" (NIF) aparece en la columna derecha de la cabecera junto al nombre.
 "liquido_percibir" aparece como "LÍQUIDO A PERCIBIR".
-Responde SOLO con el JSON, sin texto adicional.`
+"coste_empresa" aparece como "Coste Empresa=" en la parte inferior izquierda de la nómina.
+Responde SOLO con el JSON, sin texto adicional ni bloques de código.`
             },
             {
               type: 'document',
@@ -102,65 +103,61 @@ Responde SOLO con el JSON, sin texto adicional.`
     let trabajadoresPDF = [];
     try {
       let jsonText = extractResponse.content[0].text.trim();
-      // Limpiar bloques de código markdown si la IA los envuelve en ```json ... ```
       jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
       const parsed = JSON.parse(jsonText);
       trabajadoresPDF = parsed.trabajadores || [];
     } catch (e) {
-      console.error('Error parseando respuesta IA:', e.message, 'Raw:', extractResponse.content[0]?.text?.substring(0, 200));
+      console.error('Error parseando respuesta IA:', e.message, 'Raw:', extractResponse.content[0]?.text?.substring(0, 300));
       return Response.json({ error: 'Error al procesar el PDF con IA', detalle: e.message }, { status: 500 });
     }
+
+    // Cargar el PDF completo con pdf-lib para extraer páginas individuales
+    const pdfBase64Clean = pdf_base64.includes(',') ? pdf_base64.split(',')[1] : pdf_base64;
+    const pdfBytes = Uint8Array.from(atob(pdfBase64Clean), c => c.charCodeAt(0));
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const totalPaginas = pdfDoc.getPageCount();
 
     const resultados = [];
     const sinAsignar = [];
 
     for (const trab of trabajadoresPDF) {
-      // Matching por DNI (prioritario) o por nombre
       const dniLimpio = (trab.dni || '').trim().toUpperCase();
       const nombreLimpio = (trab.nombre || '').trim().toUpperCase();
 
+      // Matching: 1. DNI exacto, 2. nombre
       let operarioMatch = null;
-
-      // 1. Match exacto por DNI
       if (dniLimpio) {
-        operarioMatch = operarios.find(op => 
+        operarioMatch = operarios.find(op =>
           (op.dni || '').trim().toUpperCase() === dniLimpio
         );
       }
-
-      // 2. Match por nombre si no se encontró por DNI
       if (!operarioMatch && nombreLimpio) {
         operarioMatch = operarios.find(op => {
           const opNombre = (op.name || '').trim().toUpperCase();
-          return opNombre === nombreLimpio || 
+          return opNombre === nombreLimpio ||
                  opNombre.includes(nombreLimpio.split(' ')[0]) ||
                  nombreLimpio.includes(opNombre.split(' ')[0]);
         });
       }
 
-      // Subir el PDF completo (la página individual la identificamos por lote + número de página)
-      // Para nóminas individuales subimos el PDF completo una vez y guardamos referencia de página
+      // Extraer SOLO la página de este trabajador como PDF individual
+      const pageIndex = (trab.pagina || 1) - 1;
       let fileUrl = '';
       let driveFileId = '';
 
-      // Subir el PDF original una sola vez (primera iteración)
-      if (trab.pagina === 1 || !resultados.some(r => r.lote_id === loteId && r.file_url)) {
-        const pdfBase64Clean = pdf_base64.includes(',') ? pdf_base64.split(',')[1] : pdf_base64;
-        const fileResult = await subirPDF(
-          accessToken,
-          useGdrive,
-          pdfBase64Clean,
-          `Nominas/${anio}/${String(mes).padStart(2, '0')}`,
-          nombre_archivo || `nominas_${periodoNombre.replace(' ', '_')}.pdf`,
-          base44
-        );
+      if (pageIndex >= 0 && pageIndex < totalPaginas) {
+        const pdfIndividual = await PDFDocument.create();
+        const [pagCopiada] = await pdfIndividual.copyPages(pdfDoc, [pageIndex]);
+        pdfIndividual.addPage(pagCopiada);
+        const pdfIndividualBytes = await pdfIndividual.save();
+        const base64Individual = btoa(String.fromCharCode(...pdfIndividualBytes));
+
+        const nombreArchivo = `nomina_${dniLimpio || nombreLimpio.replace(/\s+/g, '_')}_${periodoNombre.replace(' ', '_')}.pdf`;
+        const folderPath = `Nominas/${anio}/${String(mes).padStart(2, '0')}`;
+
+        const fileResult = await subirPDF(accessToken, useGdrive, base64Individual, folderPath, nombreArchivo, base44);
         fileUrl = fileResult.file_url;
         driveFileId = fileResult.drive_file_id || '';
-      } else {
-        // Reutilizar URL del primer upload
-        const primerRegistro = resultados.find(r => r.lote_id === loteId);
-        fileUrl = primerRegistro?.file_url || '';
-        driveFileId = primerRegistro?.drive_file_id || '';
       }
 
       const estadoAsignacion = operarioMatch ? 'asignada' : 'sin_asignar';
@@ -176,6 +173,7 @@ Responde SOLO con el JSON, sin texto adicional.`
         drive_file_id: driveFileId,
         liquido_percibir: trab.liquido_percibir || null,
         total_devengado: trab.total_devengado || null,
+        coste_empresa: trab.coste_empresa || null,
         estado_asignacion: estadoAsignacion,
         lote_id: loteId,
         pagina_origen: trab.pagina,
@@ -190,7 +188,7 @@ Responde SOLO con el JSON, sin texto adicional.`
       }
     }
 
-    // Si hay nóminas sin asignar, crear tarea para el gerente
+    // Tarea si hay nóminas sin asignar
     if (sinAsignar.length > 0) {
       await base44.asServiceRole.entities.AsistenteTarea.create({
         titulo: `⚠️ ${sinAsignar.length} nómina(s) sin asignar - ${periodoNombre}`,
@@ -208,16 +206,15 @@ Responde SOLO con el JSON, sin texto adicional.`
       });
     }
 
-    // Tarea pendiente Parte 2: Asistente explicación nóminas
+    // Tarea técnica pendiente Parte 2 (una sola vez)
     const tareasExistentes = await base44.asServiceRole.entities.AsistenteTarea.list();
-    const tareaAsistenteExiste = tareasExistentes.some(t => 
+    const tareaAsistenteExiste = tareasExistentes.some(t =>
       t.titulo && t.titulo.includes('explicación asistente nóminas')
     );
-
     if (!tareaAsistenteExiste) {
       await base44.asServiceRole.entities.AsistenteTarea.create({
         titulo: '🤖 PENDIENTE: Implementar explicación asistente nóminas',
-        descripcion: `Tarea técnica pendiente (Parte 2 del módulo de Nóminas):\n\n• Añadir herramienta "leer_nomina_usuario" al asistenteHerramientas\n• Permitir al trabajador preguntar al asistente "¿me explicas mi nómina de enero?"\n• El asistente accederá al campo texto_extraido de la entidad Nomina del trabajador\n• Desglosará en lenguaje natural: sueldo base, incentivos, deducciones, IRPF y líquido final\n\nEsta tarea se eliminará automáticamente una vez implementada.`,
+        descripcion: `Tarea técnica pendiente (Parte 2):\n• Herramienta "leer_nomina_usuario" en asistenteHerramientas\n• El trabajador puede preguntar "¿me explicas mi nómina de enero?"\n• El asistente accede a texto_extraido de Nomina y explica en lenguaje natural`,
         tipo: 'tarea_manual',
         prioridad: 'media',
         estado: 'pendiente',
@@ -227,7 +224,7 @@ Responde SOLO con el JSON, sin texto adicional.`
         solo_gerencia: true,
         creada_por: 'sistema',
         entidad_relacionada_tipo: 'Nomina',
-        contexto_ia: 'Parte 2 módulo nóminas - pendiente implementación'
+        contexto_ia: 'Parte 2 módulo nóminas'
       });
     }
 
@@ -245,7 +242,8 @@ Responde SOLO con el JSON, sin texto adicional.`
         operario_dni: r.operario_dni,
         pagina: r.pagina_origen,
         asignada: r.operario_encontrado,
-        liquido_percibir: r.liquido_percibir
+        liquido_percibir: r.liquido_percibir,
+        coste_empresa: r.coste_empresa
       }))
     });
 
@@ -259,11 +257,7 @@ async function subirPDF(accessToken, useGdrive, base64Data, folderPath, fileName
   if (useGdrive && accessToken) {
     try {
       const folderId = await getOrCreateFolder(accessToken, folderPath);
-      const binaryData = atob(base64Data);
-      const bytes = new Uint8Array(binaryData.length);
-      for (let i = 0; i < binaryData.length; i++) {
-        bytes[i] = binaryData.charCodeAt(i);
-      }
+      const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
       const blob = new Blob([bytes], { type: 'application/pdf' });
       const formData = new FormData();
       const metadata = { name: fileName, parents: [folderId] };
@@ -275,7 +269,6 @@ async function subirPDF(accessToken, useGdrive, base64Data, folderPath, fileName
         headers: { Authorization: `Bearer ${accessToken}` },
         body: formData,
       });
-
       if (!res.ok) throw new Error('Error subiendo a Drive');
       const driveFile = await res.json();
 
@@ -295,10 +288,8 @@ async function subirPDF(accessToken, useGdrive, base64Data, folderPath, fileName
     }
   }
 
-  // Convertir base64 a Blob para UploadFile
-  const binaryStr = atob(base64Data);
-  const bytes = new Uint8Array(binaryStr.length);
-  for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+  // Fallback: almacenamiento local via UploadFile
+  const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
   const blob = new Blob([bytes], { type: 'application/pdf' });
   const formData = new FormData();
   formData.append('file', blob, fileName);
