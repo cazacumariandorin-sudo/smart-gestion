@@ -12,10 +12,14 @@ export default function ObraSelector({ value, obraName, obraTipo, onChange }) {
   const { data: obras = [] } = useQuery({
     queryKey: ['obras_selector'],
     queryFn: () => base44.entities.Obra.list('name', 200),
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
   });
   const { data: solares = [] } = useQuery({
     queryKey: ['solar_selector'],
     queryFn: () => base44.entities.SolarObra.list('name', 200),
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
   });
 
   const todasObras = [
