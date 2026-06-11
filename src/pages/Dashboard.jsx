@@ -1,12 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link, useNavigate } from 'react-router-dom';
-import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import {
   Building2, Users, Receipt, Car, Folder, Settings,
   HardHat, Sun, ClipboardList, Clock, Truck, Images,
   AlertCircle, BarChart2, MessageSquare, Database,
-  Link2, FlaskConical, RefreshCw, Eye
+  Link2, FlaskConical, RefreshCw, Eye, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -154,45 +154,29 @@ const HUB_CONFIG = [
 
 import { ROLE_LABELS } from '@/lib/roleLabels';
 
+const MAX_VISIBLE_LINKS = 3;
+
 function ModuleCard({ hub, kpi }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  const navigate = useNavigate();
+  const [expanded, setExpanded] = useState(false);
   const Icon = hub.icon;
-  const isSingle = hub.links.length === 1;
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('touchstart', handler);
-    return () => {
-      document.removeEventListener('mousedown', handler);
-      document.removeEventListener('touchstart', handler);
-    };
-  }, [open]);
-
-  const handleBtn = () => {
-    if (isSingle) {
-      navigate(hub.links[0].path);
-    } else {
-      setOpen(o => !o);
-    }
-  };
+  const visibleLinks = hub.links.slice(0, MAX_VISIBLE_LINKS);
+  const hiddenLinks = hub.links.slice(MAX_VISIBLE_LINKS);
+  const hasMore = hiddenLinks.length > 0;
 
   return (
-    <div ref={ref} className="relative">
-      <div className={cn(
-        'relative rounded-xl border overflow-hidden transition-all duration-200',
-        hub.bg, hub.border
-      )}>
-        {hub.watermark && (
-          <img src={hub.watermark} alt="" aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover opacity-[0.07] pointer-events-none select-none" />
-        )}
-        <div className="relative z-10 flex items-center gap-3 px-4 py-3">
+    <div className={cn(
+      'relative rounded-xl border overflow-hidden transition-all duration-200',
+      hub.bg, hub.border
+    )}>
+      {hub.watermark && (
+        <img src={hub.watermark} alt="" aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover opacity-[0.07] pointer-events-none select-none" />
+      )}
+      <div className="relative z-10 px-4 pt-3 pb-3 space-y-2.5">
+
+        {/* Cabecera: icono + label + KPI */}
+        <div className="flex items-center gap-2.5">
           <div className={cn('p-2 rounded-lg shadow-sm shrink-0', hub.iconBg)}>
             <Icon className="w-4 h-4 text-white" />
           </div>
@@ -206,56 +190,85 @@ function ModuleCard({ hub, kpi }) {
                 </span>
               )}
             </div>
-            {kpi?.sub && <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{kpi.sub}</p>}
+            {kpi?.sub && (
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{kpi.sub}</p>
+            )}
           </div>
-          <button
-            onClick={handleBtn}
-            style={{ touchAction: 'manipulation' }}
-            className={cn(
-              'shrink-0 flex items-center gap-1.5 h-9 px-4 rounded-lg min-w-[90px] justify-center',
-              'text-xs font-bold border transition-all duration-150',
-              'bg-slate-800 dark:bg-slate-700 text-white border-slate-700',
-              'hover:bg-slate-700 active:scale-95'
-            )}
-          >
-            {isSingle ? 'Abrir' : (
-              <>
-                Gestionar
-                <span className={cn('transition-transform duration-200', open ? 'rotate-180' : 'rotate-0')}>▾</span>
-              </>
-            )}
-          </button>
         </div>
-      </div>
 
-      {!isSingle && open && (
-        <div className={cn(
-          'absolute top-full left-0 right-0 z-50 mt-1',
-          'bg-card border border-border rounded-xl shadow-xl',
-          'p-2 grid grid-cols-3 gap-1.5'
-        )}>
-          {hub.links.map(l => {
+        {/* Pill-buttons: links visibles + botón expandir */}
+        <div className="flex flex-wrap gap-1.5">
+          {visibleLinks.map(l => {
             const LIcon = l.icon;
             return (
               <Link
                 key={l.path}
                 to={l.path}
-                onClick={() => setOpen(false)}
+                style={{ touchAction: 'manipulation' }}
                 className={cn(
-                  'flex flex-col items-center gap-1.5 py-3 px-2',
-                  'rounded-lg bg-muted/60 hover:bg-muted',
-                  'text-[10px] font-semibold text-muted-foreground',
-                  'hover:text-foreground transition-all active:scale-95',
-                  'min-h-[56px] justify-center'
+                  'inline-flex items-center gap-1 h-6 px-2.5 rounded-full',
+                  'text-[10px] font-semibold border transition-all duration-150',
+                  'bg-foreground/10 dark:bg-white/15',
+                  'border-foreground/20 dark:border-white/20',
+                  'text-foreground hover:bg-foreground/20',
+                  'active:scale-95'
                 )}
               >
-                <LIcon className="w-4 h-4 shrink-0" />
-                <span className="text-center leading-tight">{l.label}</span>
+                <LIcon className="w-3 h-3 shrink-0" />
+                {l.label}
               </Link>
             );
           })}
+
+          {hasMore && (
+            <button
+              onClick={() => setExpanded(o => !o)}
+              style={{ touchAction: 'manipulation' }}
+              aria-label={expanded ? 'Ver menos' : `Ver ${hiddenLinks.length} más`}
+              className={cn(
+                'inline-flex items-center gap-1 h-6 px-2 rounded-full',
+                'text-[10px] font-semibold border transition-all duration-150',
+                'bg-foreground/10 dark:bg-white/15',
+                'border-foreground/20 dark:border-white/20',
+                'text-foreground hover:bg-foreground/15',
+                'active:scale-95'
+              )}
+            >
+              {expanded
+                ? <><ChevronUp className="w-3 h-3" />Menos</>
+                : <><ChevronDown className="w-3 h-3" />+{hiddenLinks.length}</>
+              }
+            </button>
+          )}
         </div>
-      )}
+
+        {/* Links ocultos expandidos en grid 3 col dentro de la tarjeta */}
+        {hasMore && expanded && (
+          <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-foreground/10">
+            {hiddenLinks.map(l => {
+              const LIcon = l.icon;
+              return (
+                <Link
+                  key={l.path}
+                  to={l.path}
+                  onClick={() => setExpanded(false)}
+                  style={{ touchAction: 'manipulation' }}
+                  className={cn(
+                    'flex flex-col items-center gap-1 py-2 px-1 rounded-lg',
+                    'bg-black/5 dark:bg-white/5',
+                    'hover:bg-black/10 dark:hover:bg-white/10',
+                    'text-[9px] font-semibold text-muted-foreground hover:text-foreground',
+                    'transition-all active:scale-95 min-h-[44px] justify-center'
+                  )}
+                >
+                  <LIcon className="w-3.5 h-3.5 shrink-0" />
+                  {l.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -373,7 +386,7 @@ export default function Dashboard() {
       <NotificacionesFichaje />
 
       {/* Grid unificado: módulos + accesos rápidos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+      <div className="grid grid-cols-2 gap-2 mb-4">
         {visibleHubs.map(hub => (
           <ModuleCard key={hub.id} hub={hub} kpi={kpis[hub.id]} />
         ))}
