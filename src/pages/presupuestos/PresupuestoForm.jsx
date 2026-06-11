@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Trash2, FileText, Loader2 } from "lucide-react";
+import { X, Plus, Trash2, FileText, Loader2, Upload, Search } from "lucide-react";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import OcrUploader from "@/components/gastos/OcrUploader";
 
 export default function PresupuestoForm({ onSubmit, onCancel }) {
     const [formData, setFormData] = useState({
@@ -32,6 +33,9 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
     });
 
     const [loadingPartes, setLoadingPartes] = useState(false);
+    const [busquedaPartes, setBusquedaPartes] = useState("");
+    const [archivoFuente, setArchivoFuente] = useState(null);
+    const [procesandoOcr, setProcesandoOcr] = useState(false);
 
     // Cargar clientes disponibles
     const { data: clientes = [] } = useQuery({
@@ -52,6 +56,30 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
         },
         enabled: !!formData.cliente_id,
     });
+
+    // Filtrar partes por búsqueda
+    const partesFiltrados = partesTrabajo.filter(parte => {
+        if (!busquedaPartes) return true;
+        const search = busquedaPartes.toLowerCase();
+        const titulo = (parte.titulo || "").toLowerCase();
+        const obra = (parte.obra_name || "").toLowerCase();
+        return titulo.includes(search) || obra.includes(search);
+    });
+
+    const handleDatosOcrExtraidos = (datos) => {
+        if (datos?.conceptos && datos.conceptos.length > 0) {
+            setFormData(prev => ({
+                ...prev,
+                conceptos: [...prev.conceptos, ...datos.conceptos],
+                importe: prev.importe + (datos.importe_total || 0),
+                descripcion: datos.notas || prev.descripcion
+            }));
+        }
+    };
+
+    const handleArchivoFuente = (archivoInfo) => {
+        setArchivoFuente(archivoInfo);
+    };
 
     const handleAddConcepto = () => {
         if (!nuevoConcepto.descripcion || !nuevoConcepto.precio_unitario) return;
@@ -174,6 +202,23 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                             />
                         </div>
 
+                        {/* Subida de documento fuente con OCR */}
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-2">
+                                <Upload className="w-4 h-4" />
+                                Documento Fuente (opcional)
+                            </Label>
+                            <OcrUploader
+                                onDatosExtraidos={handleDatosOcrExtraidos}
+                                onArchivoSubido={handleArchivoFuente}
+                            />
+                            {archivoFuente && (
+                                <p className="text-xs text-muted-foreground">
+                                    Archivo: {archivoFuente.nombre} · {new Date(archivoFuente.fecha_subida).toLocaleDateString()}
+                                </p>
+                            )}
+                        </div>
+
                         {/* Conceptos */}
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
@@ -254,11 +299,28 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                                     </span>
                                     {loadingPartes && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
                                 </Label>
-                                {partesTrabajo.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">No hay partes de trabajo para este cliente</p>
+                                
+                                {/* Buscador de partes */}
+                                {partesTrabajo.length > 0 && (
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input
+                                            type="text"
+                                            placeholder="Buscar por título o obra..."
+                                            value={busquedaPartes}
+                                            onChange={(e) => setBusquedaPartes(e.target.value)}
+                                            className="w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                        />
+                                    </div>
+                                )}
+                                
+                                {partesFiltrados.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        {busquedaPartes ? 'No se encontraron partes con esa búsqueda' : 'No hay partes de trabajo para este cliente'}
+                                    </p>
                                 ) : (
-                                    <div className="grid gap-2 md:grid-cols-2">
-                                        {partesTrabajo.map(parte => (
+                                    <div className="grid gap-2 md:grid-cols-2 max-h-64 overflow-y-auto">
+                                        {partesFiltrados.map(parte => (
                                             <Button
                                                 key={parte.id}
                                                 type="button"
