@@ -128,6 +128,11 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "user_condition": {
+            "role": "cliente_obra"
+          }
         }
       ]
     },
@@ -140,6 +145,11 @@
         },
         {
           "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -147,6 +157,26 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "data.client_id": "{{user.client_id}}"
+        },
+        {
+          "$and": [
+            {
+              "data.status": {
+                "$in": [
+                  "planificada",
+                  "en_curso"
+                ]
+              }
+            },
+            {
+              "user_condition": {
+                "role": "cliente_obra"
+              }
+            }
+          ]
         }
       ]
     },
@@ -159,20 +189,48 @@
         },
         {
           "user_condition": {
-            "role": "director_comercial"
+            "role": "gerencia"
           }
         },
         {
           "user_condition": {
-            "role": "jefe_obra"
+            "role": "director_comercial"
           }
+        },
+        {
+          "$and": [
+            {
+              "data.client_id": "{{user.client_id}}"
+            },
+            {
+              "user_condition": {
+                "role": "cliente_obra"
+              }
+            },
+            {
+              "data.status": {
+                "$in": [
+                  "planificada"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
     }
   }
 }
