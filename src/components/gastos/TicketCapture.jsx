@@ -5,10 +5,10 @@
  * En escritorio: "Capturar con webcam" (getUserMedia) y "Subir archivo".
  * Tras captura/subida, llama a onDone({ file_url, archivo, ocrDatos }).
  */
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Camera, Upload, Image, SkipForward, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Camera, Upload, Image, SkipForward, Loader2, CheckCircle2, AlertCircle, RefreshCw, ScanLine } from 'lucide-react';
 
 const isMobile = () => 'ontouchstart' in window || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
@@ -17,8 +17,27 @@ export default function TicketCapture({ onDone, onSkip }) {
   const [mensaje, setMensaje] = useState('');
   const [preview, setPreview] = useState(null);
   const [stream, setStream] = useState(null);
+  const [permisoCamara, setPermisoCamara] = useState('indeterminado'); // 'concedido' | 'denegado' | 'indeterminado'
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+
+  // Detectar permisos de cámara al montar
+  useEffect(() => {
+    const checkPermiso = async () => {
+      try {
+        if (!navigator.permissions) {
+          setPermisoCamara('indeterminado');
+          return;
+        }
+        const result = await navigator.permissions.query({ name: 'camera' });
+        setPermisoCamara(result.state);
+        result.onchange = () => setPermisoCamara(result.state);
+      } catch {
+        setPermisoCamara('indeterminado');
+      }
+    };
+    checkPermiso();
+  }, []);
 
 
   const procesarArchivo = useCallback(async (file) => {
@@ -128,7 +147,22 @@ export default function TicketCapture({ onDone, onSkip }) {
   if (estado === 'webcam') {
     return (
       <div className="space-y-3">
-        <video ref={videoRef} autoPlay playsInline className="w-full rounded-xl border bg-black aspect-video object-cover" />
+        <div className="relative w-full rounded-xl border bg-black overflow-hidden">
+          <video ref={videoRef} autoPlay playsInline className="w-full aspect-video object-cover" />
+          {/* Guía de encuadre */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute inset-8 border-2 border-white/50 rounded-lg">
+              <div className="absolute top-0 left-1/4 w-1/2 h-4 border-t-4 border-l-4 border-r-4 border-primary rounded-t-lg" />
+              <div className="absolute bottom-0 left-1/4 w-1/2 h-4 border-b-4 border-l-4 border-r-4 border-primary rounded-b-lg" />
+              <div className="absolute top-1/4 left-0 w-4 h-1/2 border-t-4 border-l-4 border-b-4 border-primary rounded-l-lg" />
+              <div className="absolute top-1/4 right-0 w-4 h-1/2 border-t-4 border-r-4 border-b-4 border-primary rounded-r-lg" />
+            </div>
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full flex items-center gap-1.5">
+              <ScanLine className="w-3 h-3" />
+              Encuarda el documento dentro del marco
+            </div>
+          </div>
+        </div>
         <canvas ref={canvasRef} className="hidden" />
         <div className="flex gap-2">
           <Button onClick={captureFrame} className="flex-1 gap-2">
@@ -182,6 +216,17 @@ export default function TicketCapture({ onDone, onSkip }) {
   return (
     <div className="space-y-3">
       <p className="text-sm font-semibold text-center text-muted-foreground">Captura el ticket o factura</p>
+
+      {/* Banner de permisos */}
+      {permisoCamara === 'denegado' && (
+        <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <div className="text-xs text-amber-700 dark:text-amber-300">
+            <p className="font-semibold mb-0.5">Permiso de cámara denegado</p>
+            <p>Actívalo en los ajustes de tu navegador/dispositivo para poder escanear documentos.</p>
+          </div>
+        </div>
+      )}
 
       {mobile ? (
         <div className="grid grid-cols-2 gap-3">

@@ -12,6 +12,8 @@ Deno.serve(async (req) => {
     const prompt = `Eres un sistema OCR especializado en facturas y tickets de gasto empresarial en España.
 Analiza la imagen/documento y extrae TODOS los datos relevantes.
 
+**IMPORTANTE: Busca y decodifica cualquier código QR o código de barras visible.** Muchos tickets modernos incluyen un código de validación fiscal (ej: TicketBAI, Factura Electrónica) que es único por transacción.
+
 Devuelve un JSON con esta estructura exacta:
 {
   "concepto": "descripción del gasto o producto/servicio",
@@ -22,6 +24,7 @@ Devuelve un JSON con esta estructura exacta:
   "categoria_sugerida": "material|combustible|peaje|parking|otros",
   "confianza": "alta|media|baja",
   "ocr_raw": "texto completo extraído del documento",
+  "codigo_validacion_fiscal": "contenido exacto del QR o código de barras (si existe)",
   "detalles_adicionales": "cualquier información relevante adicional"
 }
 
@@ -32,7 +35,8 @@ Criterios de categoría:
 - parking: aparcamientos, parkings
 - otros: cualquier otro tipo de gasto
 
-Si no puedes extraer un dato, usa null. Para importe usa número decimal sin símbolo €.`;
+Si no puedes extraer un dato, usa null. Para importe usa número decimal sin símbolo €.
+Si no hay QR/código visible, codigo_validacion_fiscal debe ser null.`;
 
     const result = await base44.integrations.Core.InvokeLLM({
       prompt,
@@ -48,6 +52,7 @@ Si no puedes extraer un dato, usa null. Para importe usa número decimal sin sí
           categoria_sugerida: { type: "string" },
           confianza: { type: "string" },
           ocr_raw: { type: "string" },
+          codigo_validacion_fiscal: { type: "string" },
           detalles_adicionales: { type: "string" }
         }
       }

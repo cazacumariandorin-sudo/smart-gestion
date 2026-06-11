@@ -35,6 +35,10 @@
     "concepto": {
       "type": "string"
     },
+    "codigo_validacion_fiscal": {
+      "type": "string",
+      "description": "C\u00f3digo QR o de barras extra\u00eddo del documento (identificador \u00fanico de transacci\u00f3n)"
+    },
     "duplicado_confirmado": {
       "default": false,
       "type": "boolean"

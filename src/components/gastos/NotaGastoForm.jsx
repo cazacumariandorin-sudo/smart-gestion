@@ -26,6 +26,7 @@ const defaultForm = {
   nif_comercio: '',
   nombre_comercio: '',
   fecha_documento: '',
+  codigo_validacion_fiscal: '',
   obra_id: '',
   obra_name: '',
   obra_tipo: '',
@@ -134,11 +135,22 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     if (ocrDatos.nombre_comercio) setField('nombre_comercio', ocrDatos.nombre_comercio);
     if (ocrDatos.fecha_documento) setField('fecha_documento', ocrDatos.fecha_documento);
     if (ocrDatos.categoria_sugerida) setField('categoria', ocrDatos.categoria_sugerida);
+    if (ocrDatos.codigo_validacion_fiscal) setField('codigo_validacion_fiscal', ocrDatos.codigo_validacion_fiscal);
     setTicketPreview(file_url);
     setPaso('formulario');
   };
 
   const checkDuplicado = () => {
+    // Prioridad 1: Si hay código QR/fiscal, buscar duplicado exacto por ese código
+    if (form.codigo_validacion_fiscal) {
+      const dupPorQr = notasExistentes.find(n =>
+        n.codigo_validacion_fiscal === form.codigo_validacion_fiscal &&
+        n.estado !== 'rechazada'
+      );
+      if (dupPorQr) return { ...dupPorQr, esDuplicadoFiscal: true };
+    }
+    
+    // Prioridad 2: Firma compuesta tradicional (NIF + Importe + Fecha + 1 min)
     if (!form.fecha_documento || !form.nombre_comercio || !form.importe) return null;
     return notasExistentes.find(n =>
       n.fecha_documento === form.fecha_documento &&
@@ -178,6 +190,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       archivos,
       ocr_raw: ocrRaw,
       ocr_status: ocrRaw ? 'procesado' : 'pendiente',
+      codigo_validacion_fiscal: form.codigo_validacion_fiscal || null,
       es_gasto_tardio: false,
       es_posible_duplicado: !!dup,
       duplicado_confirmado: !!posibleDup,
@@ -239,6 +252,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       archivos,
       ocr_raw: ocrRaw,
       ocr_status: ocrRaw ? 'procesado' : 'pendiente',
+      codigo_validacion_fiscal: form.codigo_validacion_fiscal || null,
       es_gasto_tardio: false,
       es_posible_duplicado: !!dup,
       duplicado_confirmado: false,
@@ -412,18 +426,29 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" /> Posible duplicado detectado
+              <AlertTriangle className="w-5 h-5 text-amber-500" /> 
+              {posibleDup?.esDuplicadoFiscal ? 'Duplicado exacto detectado (QR)' : 'Posible duplicado detectado'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Ya existe un registro con el mismo día, comercio e importe:<br />
-              <strong>{posibleDup?.numero_nota}</strong> — {posibleDup?.concepto}<br />
-              ¿Confirmas que este gasto es diferente?
+              {posibleDup?.esDuplicadoFiscal ? (
+                <>
+                  Este ticket tiene el <strong>mismo código de validación fiscal (QR)</strong> que un registro existente:<br />
+                  <strong>{posibleDup?.numero_nota}</strong> — {posibleDup?.concepto}<br />
+                  <span className="text-xs text-red-600 mt-1 block">⚠️ Los códigos QR son únicos por transacción. ¿Estás seguro de que no es un duplicado?</span>
+                </>
+              ) : (
+                <>
+                  Ya existe un registro con el mismo día, comercio e importe:<br />
+                  <strong>{posibleDup?.numero_nota}</strong> — {posibleDup?.concepto}<br />
+                  ¿Confirmas que este gasto es diferente?
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => { setPosibleDup(null); setShowDupAlert(false); }}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => { setShowDupAlert(false); handleSubmit(); }}>
-              Sí, es un gasto diferente
+              Sí, continuar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
