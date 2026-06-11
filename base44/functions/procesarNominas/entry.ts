@@ -12,10 +12,22 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Acceso no autorizado' }, { status: 403 });
     }
 
-    const { pdf_base64, mes, anio, nombre_archivo } = await req.json();
+    const body = await req.json();
+    let { pdf_base64, pdf_url, mes, anio, nombre_archivo } = body;
+
+    // Soporte para pdf_url: descargar y convertir a base64
+    if (!pdf_base64 && pdf_url) {
+      const pdfRes = await fetch(pdf_url);
+      if (!pdfRes.ok) return Response.json({ error: 'No se pudo descargar el PDF desde la URL' }, { status: 400 });
+      const arrayBuffer = await pdfRes.arrayBuffer();
+      const uint8 = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+      pdf_base64 = btoa(binary);
+    }
 
     if (!pdf_base64 || !mes || !anio) {
-      return Response.json({ error: 'Faltan parámetros: pdf_base64, mes, anio' }, { status: 400 });
+      return Response.json({ error: 'Faltan parámetros: pdf_base64 (o pdf_url), mes, anio' }, { status: 400 });
     }
 
     // Generar lote ID único
@@ -89,11 +101,13 @@ Responde SOLO con el JSON, sin texto adicional.`
 
     let trabajadoresPDF = [];
     try {
-      const jsonText = extractResponse.content[0].text.trim();
+      let jsonText = extractResponse.content[0].text.trim();
+      // Limpiar bloques de código markdown si la IA los envuelve en ```json ... ```
+      jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
       const parsed = JSON.parse(jsonText);
       trabajadoresPDF = parsed.trabajadores || [];
     } catch (e) {
-      console.error('Error parseando respuesta IA:', e.message);
+      console.error('Error parseando respuesta IA:', e.message, 'Raw:', extractResponse.content[0]?.text?.substring(0, 200));
       return Response.json({ error: 'Error al procesar el PDF con IA', detalle: e.message }, { status: 500 });
     }
 
@@ -281,10 +295,15 @@ async function subirPDF(accessToken, useGdrive, base64Data, folderPath, fileName
     }
   }
 
-  const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({
-    file: `data:application/pdf;base64,${base64Data}`
-  });
-  return { file_url, drive_file_id: '', storage: 'local' };
+  // Convertir base64 a Blob para UploadFile
+  const binaryStr = atob(base64Data);
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const formData = new FormData();
+  formData.append('file', blob, fileName);
+  const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file: formData.get('file') });
+  return { file_url: uploadRes.file_url, drive_file_id: '', storage: 'local' };
 }
 
 async function getOrCreateFolder(accessToken, folderPath) {
