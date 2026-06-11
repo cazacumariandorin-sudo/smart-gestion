@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import ObraSelector from './ObraSelector';
 import TicketCapture from './TicketCapture';
 import ObraObligatoriaModal from './ObraObligatoriaModal';
-import { Loader2, AlertTriangle, FileCheck, UserCheck, Image, RefreshCw } from 'lucide-react';
+import { Loader2, AlertTriangle, FileCheck, UserCheck, Image, RefreshCw, Clock } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -31,6 +31,7 @@ const defaultForm = {
   obra_name: '',
   obra_tipo: '',
   notas: '',
+  justificacion_tardia: '',
 };
 
 /** Genera un número de registro real consultando cuántos existen este año */
@@ -126,6 +127,15 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  // Calcular si es gasto tardío (más de 30 días de antigüedad)
+  const esGastoTardio = useMemo(() => {
+    if (!form.fecha_documento) return false;
+    const hoy = new Date();
+    const fechaTicket = new Date(form.fecha_documento);
+    const diferenciaDias = Math.floor((hoy - fechaTicket) / (1000 * 60 * 60 * 24));
+    return diferenciaDias > 30;
+  }, [form.fecha_documento]);
+
   const handleTicketDone = ({ file_url, archivo, ocrDatos }) => {
     setArchivos([archivo]);
     if (ocrDatos.ocr_raw) setOcrRaw(ocrDatos.ocr_raw);
@@ -170,6 +180,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
 
     const { numero_nota, numero_secuencia } = await generarNumeroNota();
     const hoy = format(new Date(), 'yyyy-MM-dd');
+    const conceptoFinal = esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto del mes anterior'}` : form.concepto;
 
     createMutation.mutate({
       numero_nota,
@@ -177,7 +188,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       operario_id: operarioEfectivo.id,
       operario_name: operarioEfectivo.name || operarioEfectivo.full_name,
       categoria: form.categoria,
-      concepto: form.concepto,
+      concepto: conceptoFinal,
       importe: parseFloat(form.importe),
       nif_comercio: form.nif_comercio,
       nombre_comercio: form.nombre_comercio,
@@ -191,7 +202,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       ocr_raw: ocrRaw,
       ocr_status: ocrRaw ? 'procesado' : 'pendiente',
       codigo_validacion_fiscal: form.codigo_validacion_fiscal || null,
-      es_gasto_tardio: false,
+      es_gasto_tardio: esGastoTardio,
+      justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null,
       es_posible_duplicado: !!dup,
       duplicado_confirmado: !!posibleDup,
       ...extraFields,
@@ -205,6 +217,10 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     }
     if (!form.categoria || !form.importe) {
       toast.error('Categoría e importe son obligatorios');
+      return;
+    }
+    if (esGastoTardio && !form.justificacion_tardia?.trim()) {
+      toast.error('Debes justificar por qué este gasto se registra con retraso');
       return;
     }
 
@@ -229,17 +245,24 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       return;
     }
     
+    // Validar justificación si es tardío
+    if (esGastoTardio && !form.justificacion_tardia?.trim()) {
+      toast.error('Debes justificar por qué este gasto se registra con retraso');
+      return;
+    }
+    
     // Guardar con la obra asignada directamente
     const dup = checkDuplicado();
     const { numero_nota, numero_secuencia } = await generarNumeroNota();
     const hoy = format(new Date(), 'yyyy-MM-dd');
+    const conceptoFinal = esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto del mes anterior'}` : form.concepto;
     createMutation.mutate({
       numero_nota,
       numero_secuencia,
       operario_id: operarioEfectivo.id,
       operario_name: operarioEfectivo.name || operarioEfectivo.full_name,
       categoria: form.categoria,
-      concepto: form.concepto,
+      concepto: conceptoFinal,
       importe: parseFloat(form.importe),
       nif_comercio: form.nif_comercio,
       nombre_comercio: form.nombre_comercio,
@@ -253,7 +276,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       ocr_raw: ocrRaw,
       ocr_status: ocrRaw ? 'procesado' : 'pendiente',
       codigo_validacion_fiscal: form.codigo_validacion_fiscal || null,
-      es_gasto_tardio: false,
+      es_gasto_tardio: esGastoTardio,
+      justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null,
       es_posible_duplicado: !!dup,
       duplicado_confirmado: false,
       aviso_obra_mostrado: true,
@@ -276,8 +300,13 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
               {paso === 'captura' ? 'Nuevo Registro de Gasto — Ticket' : 'Nuevo Registro de Gasto'}
+              {esGastoTardio && (
+                <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-1 rounded-full">
+                  Pendiente de contabilizar
+                </span>
+              )}
             </DialogTitle>
           </DialogHeader>
 
@@ -400,6 +429,25 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
                 <Label className="text-xs">Notas adicionales</Label>
                 <Input placeholder="Observaciones..." value={form.notas} onChange={e => setField('notas', e.target.value)} />
               </div>
+
+              {/* Justificación gasto tardío */}
+              {esGastoTardio && (
+                <div className="space-y-1.5 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <Label className="text-xs flex items-center gap-1.5 text-amber-700 dark:text-amber-300 font-semibold">
+                    <Clock className="w-3.5 h-3.5" /> Gasto con más de 30 días
+                  </Label>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
+                    Este gasto se registrará como "pendiente de contabilizar". Explica brevemente el motivo del retraso.
+                  </p>
+                  <Input
+                    placeholder="Ej: Olvidé subir el ticket del mes pasado..."
+                    value={form.justificacion_tardia}
+                    onChange={e => setField('justificacion_tardia', e.target.value)}
+                    className="border-amber-300 focus:border-amber-500"
+                    required
+                  />
+                </div>
+              )}
             </div>
           )}
 

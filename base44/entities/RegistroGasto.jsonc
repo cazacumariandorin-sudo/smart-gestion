@@ -77,6 +77,10 @@
     "importe": {
       "type": "number"
     },
+    "justificacion_tardia": {
+      "type": "string",
+      "description": "Motivo por el que el gasto se registra con m\u00e1s de 30 d\u00edas de retraso"
+    },
     "nif_comercio": {
       "type": "string"
     },
