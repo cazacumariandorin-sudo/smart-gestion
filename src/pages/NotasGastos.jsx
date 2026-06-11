@@ -66,7 +66,7 @@ function OperarioGroup({ operario, notas, onVerNota, isOpen, onToggle }) {
 
 export default function NotasGastos() {
   const { user } = useAuth();
-  const { isAdmin, isOperario } = useUserRole();
+  const { isAdmin, isOperario, isGerencia } = useUserRole();
   const { getOperarioName, operarios } = useOperarioName();
   const qc = useQueryClient();
 
@@ -104,13 +104,13 @@ export default function NotasGastos() {
   });
 
   const operarioActual = {
-    id: operarioId,
-    name: miNombre,
-    email: user?.email,
+    id: operarioId || user?.id,
+    name: miOperario?.name || user?.full_name || user?.email?.split('@')[0],
+    user_email: user?.email,
   };
   
-  // Verificar si puede crear: operarios siempre pueden, admins también
-  const puedeCrearRegistro = isOperario || isAdmin || !!miOperario?.id;
+  // Verificar si puede crear: operarios siempre pueden, admins/gerencia también
+  const puedeCrearRegistro = isOperario || isAdmin || isGerencia || !!miOperario?.id;
 
   const notas = notasRaw.filter(n => {
     const txt = busqueda.toLowerCase();
