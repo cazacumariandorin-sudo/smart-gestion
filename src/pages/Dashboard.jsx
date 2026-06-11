@@ -154,6 +154,7 @@ const HUB_CONFIG = [
 ];
 
 import { ROLE_LABELS } from '@/lib/roleLabels';
+import TareasButton from '@/components/dashboard/TareasButton';
 
 const MAX_VISIBLE_LINKS = 3;
 
@@ -374,6 +375,9 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {isTrioAdmin && (
+            <TareasButton onClick={() => setPanelTareas(tareasAdmin)} />
+          )}
           <Button
             size="sm"
             variant="outline"
