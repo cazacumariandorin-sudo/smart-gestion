@@ -158,7 +158,7 @@ REGLAS ESTRICTAS:
       const resp = await base44.asServiceRole.integrations.Core.InvokeLLM({
         prompt: llmMessages.length > 0 ? llmMessages[llmMessages.length - 1].content : 'Hola',
         system_prompt: systemPrompt,
-        model: 'claude_sonnet_4_6',
+        model: 'claude-sonnet-4-6',
       });
       return Response.json({ reply: resp, role: 'assistant' });
     }
@@ -178,7 +178,7 @@ REGLAS ESTRICTAS:
       iteraciones++;
 
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2048,
         system: systemPrompt,
         tools,
