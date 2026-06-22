@@ -312,7 +312,7 @@ export default function FichajesTab() {
       )}
 
       {/* Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) close_(); }}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{editing ? 'Editar Fichaje' : 'Nuevo Fichaje'}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
