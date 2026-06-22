@@ -15,8 +15,10 @@ Deno.serve(async (req) => {
     }
 
     // Usar asServiceRole para que la query no dependa del rol del JWT activo
+    // ACC-01: normalizar email para evitar fallos por mayúsculas (Google/Apple pueden devolver casing distinto)
+    const cleanEmail = currentUser.email.toLowerCase().trim();
     const records = await base44.asServiceRole.entities.User.filter(
-      { email: currentUser.email },
+      { email: cleanEmail },
       '-created_date',
       1
     );
@@ -32,7 +34,7 @@ Deno.serve(async (req) => {
     let operario_name = entityUser.vinculo_nombre || null;
     try {
       const opRecords = await base44.asServiceRole.entities.Operario.filter(
-        { user_email: currentUser.email },
+        { user_email: cleanEmail },
         '-vinculacion_fecha',
         1
       );

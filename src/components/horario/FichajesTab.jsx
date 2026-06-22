@@ -28,7 +28,8 @@ const empty = { operario_id: '', operario_name: '', date: new Date().toISOString
 export default function FichajesTab() {
   const qc = useQueryClient();
   const { isAdmin, isJefeObra, isControlHorarioOnly, isGerencia, user } = useUserRole();
-  const canEditExitTime = isAdmin || isGerencia;
+  const isOpRole = user?.role === 'operario' || user?.role === 'control_horario';
+  const canEditExitTime = isAdmin || isGerencia || isOpRole;
   const canSeeAll = isAdmin || isGerencia; // solo admin ve todos; jefe_obra, control_horario y operario solo ven los suyos
   const [search, setSearch] = useState('');
   const [opFilter, setOpFilter] = useState('all');
@@ -176,7 +177,7 @@ export default function FichajesTab() {
   });
 
   // Get apuntes linked to a fichaje (ya viene del hook de consolidación)
-  const getApuntesForFichaje = (f) => f.apuntes || [];
+  const getApuntesForFichaje = (f) => f.apuntes_asociados || f.apuntes || [];
   const isPending = createM.isPending || updateM.isPending;
 
   const statusBadge = (f) => {

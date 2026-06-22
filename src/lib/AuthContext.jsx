@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
         // Fallback: intentar directamente con filter si la función falla
         console.warn('getMiRol falló, intentando fallback directo:', roleErr.message);
         try {
-          const userRecords = await base44.entities.User.filter({ email: currentUser.email });
+          const userRecords = await base44.entities.User.filter({ email: currentUser.email.toLowerCase().trim() });
           if (userRecords && userRecords.length > 0) {
             const entityUser = userRecords[0];
             currentUser.role = entityUser.role || currentUser.role || 'operario';
