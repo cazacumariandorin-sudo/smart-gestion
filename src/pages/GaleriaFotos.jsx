@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Image, Search, X, ZoomIn, Filter, Plus, Upload, Loader2 } from 'lucide-react';
+import { Image, Search, X, ZoomIn, Filter, Plus, Upload, Loader2, Download, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -39,6 +39,42 @@ export default function GaleriaFotos() {
   const [filterObra, setFilterObra] = useState('');
   const [selectedFoto, setSelectedFoto] = useState(null);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [descargando, setDescargando] = useState(false);
+
+  const handleDescargar = async (foto) => {
+    setDescargando(true);
+    try {
+      const response = await fetch(foto.foto_url);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (foto.titulo || 'foto') + '.jpg';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Si fetch falla (CORS), abrir en nueva pestaña como fallback
+      window.open(foto.foto_url, '_blank');
+    } finally {
+      setDescargando(false);
+    }
+  };
+
+  const handleCompartir = async (foto) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: foto.titulo || 'Foto de proyecto',
+          text: [foto.proyecto_name, foto.descripcion].filter(Boolean).join(' — '),
+          url: foto.foto_url,
+        });
+      } catch { /* usuario canceló */ }
+    } else {
+      // Fallback: copiar URL al portapapeles
+      await navigator.clipboard.writeText(foto.foto_url);
+      alert('Enlace copiado al portapapeles');
+    }
+  };
   const [uploading, setUploading] = useState(false);
   const [uploadForm, setUploadForm] = useState({
     titulo: '',
@@ -239,9 +275,17 @@ export default function GaleriaFotos() {
                 <h3 className="font-semibold">{selectedFoto.titulo || 'Sin título'}</h3>
                 <p className="text-xs text-muted-foreground">{selectedFoto.proyecto_name}</p>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedFoto(null)}>
-                <X className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" onClick={() => handleDescargar(selectedFoto)} disabled={descargando} title="Descargar">
+                  {descargando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => handleCompartir(selectedFoto)} title="Compartir">
+                  <Share2 className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedFoto(null)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
             <div className="flex-1 overflow-hidden">
               <img src={selectedFoto.foto_url} alt={selectedFoto.titulo} className="w-full h-full object-contain max-h-[60vh]" />
