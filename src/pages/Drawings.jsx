@@ -69,7 +69,7 @@ export default function Drawings() {
   const qc = useQueryClient();
   const { isAdmin, isJefeObra, isGerencia, isOperario, role } = useUserRole();
   // Admin, jefe_obra, gerencia, director_comercial y operario pueden crear/editar planos
-  const canCreate = isAdmin || isJefeObra || isGerencia || role === 'director_comercial' || isOperario;
+  const canCreate = isAdmin || isJefeObra || isGerencia || role === 'director_comercial';
   const canDelete = isAdmin || isJefeObra;
 
   const onRefresh = useCallback(() => qc.invalidateQueries({ queryKey: ['drawings'] }), [qc]);
