@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import OperarioDetalleDialog from '@/components/vacaciones/OperarioDetalleDialog';
 import AusenciaCard from '@/components/vacaciones/AusenciaCard';
+import PanelAprobacionCancelaciones from '@/components/vacaciones/PanelAprobacionCancelaciones';
 
 const TIPOS = [
   { key: 'vacaciones', label: 'Vacaciones', color: 'bg-blue-500', light: 'bg-blue-100 text-blue-700 border-blue-200' },
@@ -263,6 +264,7 @@ export default function CalendarioVacaciones() {
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           <TabsTrigger value="festivos">Festivos</TabsTrigger>
           <TabsTrigger value="convenio">Vacaciones Convenio</TabsTrigger>
+          <TabsTrigger value="cancelaciones">Cancelaciones</TabsTrigger>
         </TabsList>
 
         {/* CALENDAR VIEW */}
@@ -368,6 +370,8 @@ export default function CalendarioVacaciones() {
                   onApprove={(id, aprobado) => updateM.mutate({ id, d: { aprobado } })}
                   onDelete={(id) => deleteM.mutate(id)}
                   onEdit={(id, data) => updateM.mutate({ id, d: data })}
+                  isOperario={isOperarioRole}
+                  currentUser={user}
                 />
               ))}
             </div>
@@ -575,6 +579,10 @@ export default function CalendarioVacaciones() {
         </DialogContent>
       </Dialog>
 
+        {/* CANCELACIONES TAB */}
+        <TabsContent value="cancelaciones">
+          <PanelAprobacionCancelaciones />
+        </TabsContent>
       {/* Dialog detalle operario */}
       <OperarioDetalleDialog 
         open={detalleOpen} 

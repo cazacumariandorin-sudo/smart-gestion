@@ -8,7 +8,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
-import { Calendar, Check, X, Pencil, Trash2, Loader2, Save } from 'lucide-react';
+import { Calendar, Check, X, Pencil, Trash2, Loader2, Save, XCircle } from 'lucide-react';
+import SolicitarCancelacionDialog from '@/components/vacaciones/SolicitarCancelacionDialog';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -23,9 +24,10 @@ const TIPOS = [
 
 const tipoCfg = Object.fromEntries(TIPOS.map(t => [t.key, t]));
 
-export default function AusenciaCard({ v, onApprove, onDelete, onEdit }) {
+export default function AusenciaCard({ v, onApprove, onDelete, onEdit, isOperario = false, currentUser = null }) {
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState({ ...v });
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const cfg = tipoCfg[v.tipo];
 
@@ -86,30 +88,50 @@ export default function AusenciaCard({ v, onApprove, onDelete, onEdit }) {
         {v.notas && <p className="text-xs text-muted-foreground truncate">{v.notas}</p>}
       </div>
       <div className="flex gap-1 shrink-0">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditMode(true)}>
-          <Pencil className="w-3.5 h-3.5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" onClick={() => onApprove(v.id, !v.aprobado)}>
-          {v.aprobado ? <X className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
-        </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
-              <Trash2 className="w-3.5 h-3.5" />
+        {isOperario ? (
+          // Operario solo puede solicitar cancelación, no editar/borrar directamente
+          <Button
+            variant="ghost" size="icon"
+            className="h-7 w-7 text-destructive hover:bg-red-50"
+            onClick={() => setCancelDialogOpen(true)}
+            title="Solicitar cancelación"
+          >
+            <XCircle className="w-3.5 h-3.5" />
+          </Button>
+        ) : (
+          <>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditMode(true)}>
+              <Pencil className="w-3.5 h-3.5" />
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>¿Eliminar registro?</AlertDialogTitle>
-              <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onDelete(v.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" onClick={() => onApprove(v.id, !v.aprobado)}>
+              {v.aprobado ? <X className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar registro?</AlertDialogTitle>
+                  <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(v.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        )}
       </div>
+      <SolicitarCancelacionDialog
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        vacacion={v}
+        currentUser={currentUser}
+      />
     </Card>
   );
 }

@@ -1,0 +1,153 @@
+{
+  "name": "SolicitudCancelacionVacacion",
+  "type": "object",
+  "properties": {
+    "vacacion_id": {
+      "type": "string",
+      "description": "ID de la Vacacion a cancelar"
+    },
+    "operario_id": {
+      "type": "string"
+    },
+    "operario_name": {
+      "type": "string"
+    },
+    "fecha_inicio_vac": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha inicio de la vacaci\u00f3n original"
+    },
+    "fecha_fin_vac": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha fin de la vacaci\u00f3n original"
+    },
+    "tipo_vac": {
+      "type": "string",
+      "description": "Tipo de la vacaci\u00f3n original"
+    },
+    "motivo": {
+      "type": "string",
+      "description": "Motivo de la solicitud de cancelaci\u00f3n"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "aprobada",
+        "rechazada"
+      ],
+      "default": "pendiente"
+    },
+    "resuelta_por": {
+      "type": "string",
+      "description": "Email del responsable que resolvi\u00f3"
+    },
+    "resuelta_por_nombre": {
+      "type": "string"
+    },
+    "fecha_resolucion": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notas_resolucion": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "vacacion_id",
+    "operario_id",
+    "motivo"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    }
+  }
+}
