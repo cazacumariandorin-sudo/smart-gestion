@@ -270,6 +270,7 @@ function AnimatedRoutes() {
           <Route path="/Obras" element={<Navigate to="/obras-civiles" replace />} />
           <Route path="/Operarios" element={<Navigate to="/operarios" replace />} />
           <Route path="/Tecnicos" element={<Navigate to="/operarios" replace />} />
+          <Route path="/tecnicos" element={<Navigate to="/operarios" replace />} />
           <Route path="/DiagnosticoTecnico" element={<Navigate to="/diagnostico-tecnico" replace />} />
           <Route path="/Orders" element={<Navigate to="/orders" replace />} />
           <Route path="/PhotoGallery" element={<Navigate to="/photos" replace />} />
