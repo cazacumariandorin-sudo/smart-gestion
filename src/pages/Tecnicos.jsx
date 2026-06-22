@@ -5,7 +5,8 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
-import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, FileText, Link2, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, FileText, Link2, CheckCircle2, BadgeCheck } from 'lucide-react';
+import AltaUnificadaDialog from '@/components/tecnicos/AltaUnificadaDialog';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ export default function Tecnicos() {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [altaUnificadaOpen, setAltaUnificadaOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(empty);
 
@@ -110,10 +112,16 @@ export default function Tecnicos() {
         subtitle={`${tecnicos.length} técnicos registrados`}
         hideBack={true}
         actions={canCreate && (
-          <Button onClick={() => open_()} className="gap-2 shadow-sm" size="sm">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Nuevo Técnico</span>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setAltaUnificadaOpen(true)} className="gap-2 shadow-sm" size="sm">
+              <BadgeCheck className="w-4 h-4" />
+              <span className="hidden sm:inline">Alta Unificada</span>
+            </Button>
+            <Button onClick={() => open_()} className="gap-2 shadow-sm" size="sm">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Nuevo Técnico</span>
+            </Button>
+          </div>
         )}
       />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
@@ -176,6 +184,9 @@ export default function Tecnicos() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-sm truncate">{op.name}</h3>
+                        {op.num_empleado && (
+                          <span className="inline-block text-[10px] font-mono bg-primary/10 text-primary rounded px-1.5 py-0.5 mt-0.5">{op.num_empleado}</span>
+                        )}
                         {op.role && <p className="text-xs text-muted-foreground mt-0.5">{op.role}</p>}
                       </div>
                       <div className="flex gap-1 ml-2">
@@ -246,6 +257,8 @@ export default function Tecnicos() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AltaUnificadaDialog open={altaUnificadaOpen} onOpenChange={setAltaUnificadaOpen} />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">

@@ -2,6 +2,10 @@
   "name": "Operario",
   "type": "object",
   "properties": {
+    "num_empleado": {
+      "type": "string",
+      "description": "N\u00famero de empleado \u00fanico \u2014 formato SMT-AAAA-NNNNN. Generado autom\u00e1ticamente al crear el t\u00e9cnico."
+    },
     "name": {
       "type": "string",
       "description": "Nombre completo"
