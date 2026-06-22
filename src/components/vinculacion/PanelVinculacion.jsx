@@ -216,6 +216,9 @@ export default function PanelVinculacion() {
         <div className="flex items-center gap-1 text-xs">
           <CheckCircle className="w-3 h-3 text-green-600" />
           <span className="text-green-700 dark:text-green-300 font-medium">{coincidencia.name}</span>
+          {coincidencia.num_empleado && (
+            <span className="font-mono bg-primary/10 text-primary rounded px-1 py-0.5 text-[10px]">{coincidencia.num_empleado}</span>
+          )}
           <Badge variant="outline" className="text-[10px]">Email exacto ✓</Badge>
         </div>
       );

@@ -62,7 +62,8 @@ export default function VincularOperarioDialog({ open, onOpenChange, user, onSuc
     return (
       op.name?.toLowerCase().includes(term) ||
       op.email?.toLowerCase().includes(term) ||
-      op.dni?.toLowerCase().includes(term)
+      op.dni?.toLowerCase().includes(term) ||
+      op.num_empleado?.toLowerCase().includes(term)
     );
   });
 
@@ -152,7 +153,7 @@ export default function VincularOperarioDialog({ open, onOpenChange, user, onSuc
           <div className="relative">
             <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Filtrar por nombre, email o DNI..."
+              placeholder="Filtrar por nombre, email, DNI o nº empleado..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
@@ -214,14 +215,14 @@ export default function VincularOperarioDialog({ open, onOpenChange, user, onSuc
                             <Badge variant="outline" className="text-xs">
                               {op.role || 'Sin rol'}
                             </Badge>
+                            {op.num_empleado && (
+                              <span className="text-xs font-mono bg-primary/10 text-primary rounded px-1.5 py-0.5">
+                                {op.num_empleado}
+                              </span>
+                            )}
                             {op.dni && (
                               <span className="text-xs text-muted-foreground">
                                 {op.dni}
-                              </span>
-                            )}
-                            {op.phone && (
-                              <span className="text-xs text-muted-foreground">
-                                {op.phone}
                               </span>
                             )}
                           </div>
