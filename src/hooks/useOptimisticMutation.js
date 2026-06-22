@@ -50,7 +50,7 @@ export function useOptimisticMutation(
       if (optimisticUpdater && queryKey) {
         const keys = Array.isArray(queryKey) ? queryKey : [queryKey];
         keys.forEach(key => {
-          queryClient.setQueryData(key, optimisticUpdater);
+          queryClient.setQueryData(key, (prev) => optimisticUpdater(prev ?? [], data));
         });
       }
 
