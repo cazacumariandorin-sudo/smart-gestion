@@ -100,6 +100,16 @@
           "user_condition": {
             "role": "gerencia"
           }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
         }
       ]
     },
@@ -124,6 +134,9 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "created_by": "{{user.email}}"
         }
       ]
     },
