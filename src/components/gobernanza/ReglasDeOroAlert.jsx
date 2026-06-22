@@ -47,7 +47,7 @@ export default function ReglasDeOroAlert({ role }) {
           </p>
         </div>
         <Link
-          to="/sistema/reglas-de-oro"
+          to={`/sistema/reglas-de-oro?filtro=${alerta.pendientes > 0 ? 'pendiente_decision' : 'incumplida'}`}
           className="text-xs text-amber-700 dark:text-amber-300 font-medium underline underline-offset-2 shrink-0"
           onClick={() => setDismissed(true)}
         >

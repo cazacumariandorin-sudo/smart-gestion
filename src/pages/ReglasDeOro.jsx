@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,8 +30,8 @@ const ESTADO_CONFIG = {
   pendiente_decision: { label: 'Decisión pendiente', icon: AlertTriangle, color: 'text-amber-600' },
 };
 
-function ReglaCard({ regla, onDecidir }) {
-  const [expanded, setExpanded] = useState(false);
+function ReglaCard({ regla, onDecidir, defaultExpanded = false }) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const estado = ESTADO_CONFIG[regla.estado_cumplimiento] || ESTADO_CONFIG.no_verificada;
   const EstadoIcon = estado.icon;
 
@@ -89,8 +90,12 @@ function ReglaCard({ regla, onDecidir }) {
 
 export default function ReglasDeOro() {
   const qc = useQueryClient();
+  const [searchParams] = useSearchParams();
   const [filtroCategoria, setFiltroCategoria] = useState('todas');
-  const [filtroEstado, setFiltroEstado] = useState('todas');
+  const [filtroEstado, setFiltroEstado] = useState(() => {
+    const f = searchParams.get('filtro');
+    return ['cumplida', 'incumplida', 'pendiente_decision', 'no_verificada'].includes(f) ? f : 'todas';
+  });
   const [reglaDecision, setReglaDecision] = useState(null);
   const [textoDecision, setTextoDecision] = useState('');
 
@@ -217,7 +222,12 @@ export default function ReglasDeOro() {
       ) : (
         <div className="space-y-2">
           {reglasFiltradas.map(regla => (
-            <ReglaCard key={regla.id} regla={regla} onDecidir={setReglaDecision} />
+            <ReglaCard
+              key={regla.id}
+              regla={regla}
+              onDecidir={setReglaDecision}
+              defaultExpanded={filtroEstado === 'pendiente_decision' && regla.decision_requerida && !regla.decision_tomada}
+            />
           ))}
         </div>
       )}
