@@ -2,6 +2,7 @@
  * offlineQueue — Sistema avanzado de cola offline con localStorage
  * Soporta reintentos automáticos, priorización y sincronización selectiva
  */
+import { useEffect } from 'react';
 
 const QUEUE_KEY = 'sg_offline_queue';
 const QUEUE_META_KEY = 'sg_offline_queue_meta';

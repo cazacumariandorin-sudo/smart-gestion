@@ -54,9 +54,12 @@ export const AuthProvider = ({ children }) => {
           currentUser.invitado_por = entityUser.invitado_por || null;
           currentUser.acceso_hasta = entityUser.acceso_hasta || null;
           currentUser.vinculo_id = entityUser.vinculo_id || null;
+          // Fase 0: identidad unificada — operario_id canónico en sesión
+          currentUser.operario_id = entityUser.operario_id || null;
+          currentUser.operario_name = entityUser.operario_name || null;
           currentUser.user_entity_id = entityUser.user_entity_id || null;
           if (entityUser.source === 'entity') {
-            console.log(`[Auth] Rol sincronizado desde entidad: ${entityUser.role} (${currentUser.email})`);
+            console.log(`[Auth] Identidad unificada: rol=${entityUser.role} operario_id=${entityUser.operario_id || 'none'} (${currentUser.email})`);
           }
         }
       } catch (roleErr) {

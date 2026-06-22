@@ -27,6 +27,21 @@ Deno.serve(async (req) => {
 
     const entityUser = records[0];
 
+    // Buscar operario vinculado por email para obtener operario_id canónico
+    let operario_id = entityUser.vinculo_id || null;
+    let operario_name = entityUser.vinculo_nombre || null;
+    try {
+      const opRecords = await base44.asServiceRole.entities.Operario.filter(
+        { user_email: currentUser.email },
+        '-vinculacion_fecha',
+        1
+      );
+      if (opRecords && opRecords.length > 0) {
+        operario_id = opRecords[0].id;
+        operario_name = opRecords[0].name;
+      }
+    } catch (_) { /* no bloquear si falla */ }
+
     return Response.json({
       role: entityUser.role || currentUser.role || 'operario',
       cargo: entityUser.cargo || '',
@@ -35,6 +50,8 @@ Deno.serve(async (req) => {
       invitado_por: entityUser.invitado_por || null,
       acceso_hasta: entityUser.acceso_hasta || null,
       vinculo_id: entityUser.vinculo_id || null,
+      operario_id,
+      operario_name,
       user_entity_id: entityUser.id,
       source: 'entity',
     });
