@@ -1,16 +1,55 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// ── Matriz declarativa de permisos de herramientas ───────────────────────────
+const TOOL_ROLES = {
+  get_obras_activas:            ['admin', 'gerencia', 'director_comercial', 'jefe_obra', 'cliente_obra'],
+  get_fichajes_hoy:             ['admin', 'gerencia', 'jefe_obra', 'control_horario', 'operario'],
+  get_gastos_pendientes:        ['admin', 'gerencia', 'jefe_obra', 'director_comercial', 'operario'],
+  get_partes_sin_firmar:        ['admin', 'gerencia', 'director_comercial', 'jefe_obra'],
+  get_kpis_mes:                 ['admin', 'gerencia', 'director_comercial', 'jefe_obra'],
+  get_operarios_sin_fichar_hoy: ['admin', 'gerencia', 'jefe_obra', 'control_horario'],
+  get_obras_sin_presupuesto:    ['admin', 'gerencia', 'director_comercial'],
+  generar_resumen_ejecutivo:    ['admin', 'gerencia', 'director_comercial', 'jefe_obra'],
+  get_apuntes_produccion:       ['admin', 'gerencia', 'director_comercial', 'jefe_obra', 'control_horario', 'operario'],
+  get_manuales:                 ['admin', 'gerencia', 'director_comercial', 'jefe_obra', 'control_horario', 'operario', 'cliente_obra', 'usuario_demo'],
+  get_vehiculos:                ['admin', 'gerencia', 'director_comercial', 'jefe_obra', 'control_horario'],
+  get_vacaciones:               ['admin', 'gerencia', 'director_comercial', 'jefe_obra'],
+  get_notas_gastos:             ['admin', 'gerencia', 'director_comercial', 'jefe_obra', 'operario'],
+  get_obras_solar:              ['admin', 'gerencia', 'director_comercial', 'jefe_obra'],
+  get_materiales_obra:          ['admin', 'gerencia', 'director_comercial', 'jefe_obra'],
+  get_prevision_obras:          ['admin', 'gerencia', 'director_comercial', 'jefe_obra', 'cliente_obra'],
+  get_documentos_operarios:     ['admin', 'gerencia', 'jefe_obra'],
+  get_usuarios:                 ['admin', 'gerencia', 'director_comercial'],
+  create_fichaje:               ['admin', 'gerencia', 'jefe_obra', 'control_horario'],
+  create_apunte:                ['admin', 'gerencia', 'jefe_obra', 'control_horario'],
+  create_tarea:                 ['admin', 'gerencia', 'director_comercial', 'jefe_obra'],
+  create_nota_interna:          ['admin', 'gerencia'],
+  solicitar_cambio_rol:         ['admin', 'gerencia', 'director_comercial'],
+  create_informe_simulacion:    ['admin', 'gerencia'],
+};
+
+function tienePermiso(role, toolName) {
+  const roles = TOOL_ROLES[toolName];
+  if (!roles) return false;
+  return roles.includes(role);
+}
+
 Deno.serve(async (req) => {
+  const tool_name_ref = { value: 'desconocida' };
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { tool_name, tool_input = {} } = await req.json();
-    const isAdminOrGerencia = ['admin', 'gerencia'].includes(user.role);
-    const isJefeOObra = user.role === 'jefe_obra' || isAdminOrGerencia;
-    const hoy = new Date().toISOString().split('T')[0];
+    tool_name_ref.value = tool_name;
 
+    // ── Guard de permisos unificado ───────────────────────────────────────────
+    if (!tienePermiso(user.role, tool_name)) {
+      return Response.json({ error: `Sin permisos para "${tool_name}" con rol "${user.role}"` }, { status: 403 });
+    }
+
+    const hoy = new Date().toISOString().split('T')[0];
     let result = {};
 
     // ── Obras civiles ──────────────────────────────────────────────────────────
@@ -24,6 +63,8 @@ Deno.serve(async (req) => {
       const fecha = tool_input.fecha || hoy;
       const query = { date: fecha };
       if (tool_input.operario_id) query.operario_id = tool_input.operario_id;
+      // Operario solo ve sus propios fichajes
+      if (user.role === 'operario') query.operario_id = user.id;
       const fichajes = await base44.asServiceRole.entities.Fichaje.filter(query, '-created_date', 50);
       result = { fecha, total: fichajes.length, fichajes: fichajes.map(f => ({ operario: f.operario_name, entrada: f.hora_entrada, salida: f.hora_salida, obra: f.obra_name, horas: f.horas_trabajadas })) };
     }
@@ -31,8 +72,8 @@ Deno.serve(async (req) => {
     // ── Gastos ─────────────────────────────────────────────────────────────────
     else if (tool_name === 'get_gastos_pendientes') {
       const query = { estado: 'pendiente' };
-      if (tool_input.operario_id) query.operario_id = tool_input.operario_id;
-      if (tool_input.sin_obra) query.sin_obra = true;
+      if (user.role === 'operario') query.operario_id = user.id;
+      else if (tool_input.operario_id) query.operario_id = tool_input.operario_id;
       const gastos = await base44.asServiceRole.entities.RegistroGasto.filter(query, '-created_date', 30);
       result = { total: gastos.length, importe_total: gastos.reduce((s, g) => s + (g.importe || 0), 0), gastos: gastos.map(g => ({ id: g.id, concepto: g.concepto, importe: g.importe, operario: g.operario_name, obra: g.obra_name })) };
     }
@@ -46,7 +87,6 @@ Deno.serve(async (req) => {
 
     // ── KPIs mes ───────────────────────────────────────────────────────────────
     else if (tool_name === 'get_kpis_mes') {
-      if (!isAdminOrGerencia) return Response.json({ error: 'Sin permisos' }, { status: 403 });
       const mesInicio = hoy.substring(0, 7) + '-01';
       const [fichajes, gastos, obras, partes] = await Promise.all([
         base44.asServiceRole.entities.Fichaje.list('-date', 200),
@@ -66,25 +106,6 @@ Deno.serve(async (req) => {
       };
     }
 
-    // ── Crear tarea ────────────────────────────────────────────────────────────
-    else if (tool_name === 'create_tarea') {
-      const tarea = await base44.asServiceRole.entities.AsistenteTarea.create({
-        titulo: tool_input.titulo,
-        descripcion: tool_input.descripcion || '',
-        tipo: tool_input.tipo || 'tarea_manual',
-        prioridad: tool_input.prioridad || 'media',
-        estado: 'pendiente',
-        asignada_a_user_id: tool_input.asignada_a_user_id,
-        asignada_a_nombre: tool_input.asignada_a_nombre,
-        fecha_limite: tool_input.fecha_limite || null,
-        entidad_relacionada_tipo: tool_input.entidad_relacionada_tipo || null,
-        entidad_relacionada_id: tool_input.entidad_relacionada_id || null,
-        contexto_ia: tool_input.contexto_ia || null,
-        creada_por: 'asistente_ia',
-      });
-      result = { success: true, tarea_id: tarea.id, titulo: tarea.titulo };
-    }
-
     // ── Operarios sin fichar ───────────────────────────────────────────────────
     else if (tool_name === 'get_operarios_sin_fichar_hoy') {
       const [operarios, fichajes] = await Promise.all([
@@ -98,7 +119,6 @@ Deno.serve(async (req) => {
 
     // ── Obras sin presupuesto ──────────────────────────────────────────────────
     else if (tool_name === 'get_obras_sin_presupuesto') {
-      if (!isAdminOrGerencia) return Response.json({ error: 'Sin permisos' }, { status: 403 });
       const obras = await base44.asServiceRole.entities.Obra.list('-created_date', 100);
       const sinPres = obras.filter(o => !o.budget || o.budget === 0);
       result = { total: sinPres.length, obras: sinPres.map(o => ({ id: o.id, name: o.name, client_name: o.client_name, status: o.status })) };
@@ -106,15 +126,10 @@ Deno.serve(async (req) => {
 
     // ── Resumen ejecutivo ──────────────────────────────────────────────────────
     else if (tool_name === 'generar_resumen_ejecutivo') {
-      if (!isAdminOrGerencia) return Response.json({ error: 'Sin permisos' }, { status: 403 });
       const periodo = tool_input.periodo || 'mes';
       let fechaDesde = hoy;
-      if (periodo === 'semana') {
-        const d = new Date(); d.setDate(d.getDate() - 7);
-        fechaDesde = d.toISOString().split('T')[0];
-      } else if (periodo === 'mes') {
-        fechaDesde = hoy.substring(0, 7) + '-01';
-      }
+      if (periodo === 'semana') { const d = new Date(); d.setDate(d.getDate() - 7); fechaDesde = d.toISOString().split('T')[0]; }
+      else if (periodo === 'mes') { fechaDesde = hoy.substring(0, 7) + '-01'; }
       const [fichajes, gastos, obras, partes, operarios] = await Promise.all([
         base44.asServiceRole.entities.Fichaje.list('-date', 200),
         base44.asServiceRole.entities.RegistroGasto.list('-created_date', 200),
@@ -125,11 +140,9 @@ Deno.serve(async (req) => {
       const fFich = fichajes.filter(f => f.date >= fechaDesde);
       const fGasto = gastos.filter(g => g.fecha_documento >= fechaDesde);
       result = {
-        periodo,
-        fecha_desde: fechaDesde,
+        periodo, fecha_desde: fechaDesde,
         resumen: {
-          obras_activas: obras.length,
-          operarios_activos: operarios.length,
+          obras_activas: obras.length, operarios_activos: operarios.length,
           total_horas: fFich.reduce((s, f) => s + (f.horas_trabajadas || 0), 0).toFixed(1),
           total_gastos_eur: fGasto.reduce((s, g) => s + (g.importe || 0), 0).toFixed(2),
           partes_completados: partes.filter(p => p.status === 'completado').length,
@@ -141,8 +154,6 @@ Deno.serve(async (req) => {
 
     // ── Manuales ───────────────────────────────────────────────────────────────
     else if (tool_name === 'get_manuales') {
-      const query = {};
-      if (tool_input.categoria) query.categoria = tool_input.categoria;
       const manuales = await base44.asServiceRole.entities.Manual.list('-created_date', 50);
       const filtrados = tool_input.categoria ? manuales.filter(m => m.categoria === tool_input.categoria) : manuales;
       result = { total: filtrados.length, manuales: filtrados.map(m => ({ id: m.id, titulo: m.title || m.titulo || m.name, categoria: m.categoria, descripcion: m.description || m.descripcion, fecha: m.created_date })) };
@@ -151,7 +162,8 @@ Deno.serve(async (req) => {
     // ── Apuntes de producción ──────────────────────────────────────────────────
     else if (tool_name === 'get_apuntes_produccion') {
       const query = {};
-      if (tool_input.operario_id) query.operario_id = tool_input.operario_id;
+      if (user.role === 'operario') query.operario_id = user.id;
+      else if (tool_input.operario_id) query.operario_id = tool_input.operario_id;
       if (tool_input.obra_id) query.obra_id = tool_input.obra_id;
       const apuntes = await base44.asServiceRole.entities.ApunteHorario.filter(query, '-date', 50);
       const filtrados = tool_input.fecha_desde ? apuntes.filter(a => a.date >= tool_input.fecha_desde) : apuntes;
@@ -183,23 +195,17 @@ Deno.serve(async (req) => {
       if (tool_input.operario_id) query.operario_id = tool_input.operario_id;
       if (tool_input.pendientes_aprobacion) query.aprobado = false;
       const vacaciones = await base44.asServiceRole.entities.Vacacion.filter(query, '-fecha_inicio', 50);
-      result = {
-        total: vacaciones.length,
-        vacaciones: vacaciones.map(v => ({ id: v.id, operario: v.operario_name, tipo: v.tipo, fecha_inicio: v.fecha_inicio, fecha_fin: v.fecha_fin, dias: v.dias, aprobado: v.aprobado })),
-      };
+      result = { total: vacaciones.length, vacaciones: vacaciones.map(v => ({ id: v.id, operario: v.operario_name, tipo: v.tipo, fecha_inicio: v.fecha_inicio, fecha_fin: v.fecha_fin, dias: v.dias, aprobado: v.aprobado })) };
     }
 
     // ── Notas de gastos ────────────────────────────────────────────────────────
     else if (tool_name === 'get_notas_gastos') {
       const query = {};
-      if (tool_input.operario_id) query.operario_id = tool_input.operario_id;
+      if (user.role === 'operario') query.operario_id = user.id;
+      else if (tool_input.operario_id) query.operario_id = tool_input.operario_id;
       if (tool_input.estado) query.estado = tool_input.estado;
       const notas = await base44.asServiceRole.entities.NotaGasto.filter(query, '-created_date', 30);
-      result = {
-        total: notas.length,
-        total_importe: notas.reduce((s, n) => s + (n.total_importes || 0), 0).toFixed(2),
-        notas: notas.map(n => ({ id: n.id, numero: n.numero_nota, operario: n.operario_name, periodo: n.periodo_mes, estado: n.estado, total: n.total_importes, num_registros: n.num_registros })),
-      };
+      result = { total: notas.length, total_importe: notas.reduce((s, n) => s + (n.total_importes || 0), 0).toFixed(2), notas: notas.map(n => ({ id: n.id, numero: n.numero_nota, operario: n.operario_name, periodo: n.periodo_mes, estado: n.estado, total: n.total_importes, num_registros: n.num_registros })) };
     }
 
     // ── Solar ──────────────────────────────────────────────────────────────────
@@ -207,64 +213,40 @@ Deno.serve(async (req) => {
       const query = {};
       if (tool_input.status) query.status = tool_input.status;
       const obras = await base44.asServiceRole.entities.SolarObra.filter(query, '-created_date', 30);
-      result = {
-        total: obras.length,
-        obras: obras.map(o => ({ id: o.id, name: o.name, client_name: o.client_name, status: o.status, potencia_kw: o.potencia_kw, budget: o.budget, start_date: o.start_date, end_date: o.end_date })),
-      };
+      result = { total: obras.length, obras: obras.map(o => ({ id: o.id, name: o.name, client_name: o.client_name, status: o.status, potencia_kw: o.potencia_kw, budget: o.budget, start_date: o.start_date, end_date: o.end_date })) };
     }
 
     // ── Materiales de obra ─────────────────────────────────────────────────────
     else if (tool_name === 'get_materiales_obra') {
       if (!tool_input.obra_id) return Response.json({ error: 'obra_id requerido' }, { status: 400 });
       const materiales = await base44.asServiceRole.entities.ObraMaterial.filter({ obra_id: tool_input.obra_id }, '-created_date', 50);
-      result = {
-        total: materiales.length,
-        coste_total: materiales.reduce((s, m) => s + (m.precio_total || 0), 0).toFixed(2),
-        materiales: materiales.map(m => ({ id: m.id, nombre: m.nombre, tipo: m.tipo, cantidad: m.cantidad, unidad: m.unidad, precio_total: m.precio_total, proveedor: m.proveedor })),
-      };
+      result = { total: materiales.length, coste_total: materiales.reduce((s, m) => s + (m.precio_total || 0), 0).toFixed(2), materiales: materiales.map(m => ({ id: m.id, nombre: m.nombre, tipo: m.tipo, cantidad: m.cantidad, unidad: m.unidad, precio_total: m.precio_total, proveedor: m.proveedor })) };
     }
 
     // ── Previsión de obras ─────────────────────────────────────────────────────
     else if (tool_name === 'get_prevision_obras') {
       const previsiones = await base44.asServiceRole.entities.PrevisionObra.list('-created_date', 30);
-      result = {
-        total: previsiones.length,
-        previsiones: previsiones.map(p => ({ id: p.id, obra_name: p.obra_name, status: p.status, status_semaforo: p.status_semaforo, horas_previstas: p.horas_totales_previstas, horas_reales: p.horas_reales_acumuladas, desviacion: p.desviacion_horas, porcentaje_avance: p.porcentaje_avance_horas, fecha_inicio: p.fecha_inicio, fecha_fin: p.fecha_fin })),
-      };
+      result = { total: previsiones.length, previsiones: previsiones.map(p => ({ id: p.id, obra_name: p.obra_name, status: p.status, status_semaforo: p.status_semaforo, horas_previstas: p.horas_totales_previstas, horas_reales: p.horas_reales_acumuladas, desviacion: p.desviacion_horas, porcentaje_avance: p.porcentaje_avance_horas, fecha_inicio: p.fecha_inicio, fecha_fin: p.fecha_fin })) };
     }
 
     // ── Documentos de operarios ────────────────────────────────────────────────
     else if (tool_name === 'get_documentos_operarios') {
       const query = {};
       if (tool_input.operario_id) query.operario_id = tool_input.operario_id;
-      if (tool_input.firma_status) query.firma_status = tool_input.firma_status;
       const docs = await base44.asServiceRole.entities.OperarioDoc.filter(query, '-created_date', 50);
-      result = {
-        total: docs.length,
-        docs: docs.map(d => ({ id: d.id, operario: d.operario_name, titulo: d.title, tipo: d.tipo, firma_status: d.firma_status, firmado: d.firmado, expiry_date: d.expiry_date })),
-      };
+      result = { total: docs.length, docs: docs.map(d => ({ id: d.id, operario: d.operario_name, titulo: d.title, tipo: d.tipo, firmado: d.firmado, expiry_date: d.expiry_date })) };
     }
 
     // ── Usuarios del sistema ───────────────────────────────────────────────────
     else if (tool_name === 'get_usuarios') {
-      if (!isAdminOrGerencia && user.role !== 'director_comercial') return Response.json({ error: 'Sin permisos' }, { status: 403 });
       const usuarios = await base44.asServiceRole.entities.User.list('-created_date', 100);
-      const rolesDescripcion = {
-        admin: 'Acceso total', gerencia: 'Gestión completa', director_comercial: 'Gestión comercial',
-        jefe_obra: 'Gestión de obra', operario: 'Operario de campo', control_horario: 'Control de presencia',
-        cliente_obra: 'Cliente (solo lectura)', usuario_demo: 'Demo',
-      };
+      const rolesDescripcion = { admin: 'Acceso total', gerencia: 'Gestión completa', director_comercial: 'Gestión comercial', jefe_obra: 'Gestión de obra', operario: 'Operario de campo', control_horario: 'Control de presencia', cliente_obra: 'Cliente (solo lectura)', usuario_demo: 'Demo' };
       const filtrados = tool_input.rol ? usuarios.filter(u => u.role === tool_input.rol) : usuarios;
-      result = {
-        total: filtrados.length,
-        usuarios: filtrados.map(u => ({ id: u.id, nombre: u.full_name, email: u.email, rol: u.role, descripcion_rol: rolesDescripcion[u.role] || u.role, fecha_alta: u.created_date })),
-      };
+      result = { total: filtrados.length, usuarios: filtrados.map(u => ({ id: u.id, nombre: u.full_name, email: u.email, rol: u.role, descripcion_rol: rolesDescripcion[u.role] || u.role, fecha_alta: u.created_date })) };
     }
 
     // ── Crear fichaje ──────────────────────────────────────────────────────────
     else if (tool_name === 'create_fichaje') {
-      const canCreate = isAdminOrGerencia || isJefeOObra || user.role === 'control_horario';
-      if (!canCreate) return Response.json({ error: 'Sin permisos para crear fichajes' }, { status: 403 });
       const fichaje = await base44.asServiceRole.entities.Fichaje.create({
         operario_id: tool_input.operario_id,
         operario_name: tool_input.operario_name,
@@ -285,8 +267,6 @@ Deno.serve(async (req) => {
 
     // ── Crear apunte de producción ─────────────────────────────────────────────
     else if (tool_name === 'create_apunte') {
-      const canCreate = isAdminOrGerencia || isJefeOObra;
-      if (!canCreate) return Response.json({ error: 'Sin permisos para crear apuntes' }, { status: 403 });
       const total = (tool_input.cantidad || 0) * (tool_input.precio_unitario || 0);
       const apunte = await base44.asServiceRole.entities.ApunteHorario.create({
         operario_id: tool_input.operario_id,
@@ -305,65 +285,27 @@ Deno.serve(async (req) => {
       result = { success: true, apunte_id: apunte.id, operario: tool_input.operario_name, obra: tool_input.obra_name, concepto: tool_input.concepto, total };
     }
 
-    // ── Informe post-simulación de roles ──────────────────────────────────────
-    else if (tool_name === 'create_informe_simulacion') {
-      if (!isAdminOrGerencia) return Response.json({ error: 'Solo Admin y Gerencia pueden crear informes de simulación' }, { status: 403 });
-      const contenido = `
-INFORME DE SIMULACIÓN DE ROL
-════════════════════════════
-Generado por: ${user.full_name || user.email} (${user.role})
-Fecha: ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-Rol simulado: ${tool_input.rol_simulado?.toUpperCase() || 'No especificado'}
-
-OBSERVACIONES:
-${tool_input.observaciones || 'Sin observaciones'}
-
-PROBLEMAS DETECTADOS:
-${tool_input.problemas_detectados || 'Ninguno registrado'}
-
-RECOMENDACIONES:
-${tool_input.recomendaciones || 'Sin recomendaciones'}
-`.trim();
-
-      const informe = await base44.asServiceRole.entities.AsistenteTarea.create({
-        titulo: `Informe simulación: Rol ${tool_input.rol_simulado}`,
-        descripcion: contenido,
-        tipo: 'informe',
+    // ── Crear tarea ────────────────────────────────────────────────────────────
+    else if (tool_name === 'create_tarea') {
+      const tarea = await base44.asServiceRole.entities.AsistenteTarea.create({
+        titulo: tool_input.titulo,
+        descripcion: tool_input.descripcion || '',
+        tipo: tool_input.tipo || 'tarea_manual',
         prioridad: tool_input.prioridad || 'media',
         estado: 'pendiente',
-        asignada_a_user_id: user.id,
-        asignada_a_nombre: user.full_name || user.email,
-        asignada_a_rol: user.role,
-        contexto_ia: 'Informe generado por el asistente IA tras simulación de roles',
+        asignada_a_user_id: tool_input.asignada_a_user_id,
+        asignada_a_nombre: tool_input.asignada_a_nombre,
+        fecha_limite: tool_input.fecha_limite || null,
+        entidad_relacionada_tipo: tool_input.entidad_relacionada_tipo || null,
+        entidad_relacionada_id: tool_input.entidad_relacionada_id || null,
+        contexto_ia: tool_input.contexto_ia || null,
         creada_por: 'asistente_ia',
-        solo_gerencia: true,
       });
-      result = { success: true, informe_id: informe.id, titulo: informe.titulo, mensaje: 'Informe guardado y disponible en la pestaña Tareas del asistente.' };
+      result = { success: true, tarea_id: tarea.id, titulo: tarea.titulo };
     }
 
-    // ── Solicitar cambio de rol ────────────────────────────────────────────────
-    else if (tool_name === 'solicitar_cambio_rol') {
-      const canRequest = isAdminOrGerencia || user.role === 'director_comercial';
-      if (!canRequest) return Response.json({ error: 'Solo Admin, Gerencia o Director Comercial pueden solicitar cambios de rol' }, { status: 403 });
-      const nota = await base44.asServiceRole.entities.AsistenteTarea.create({
-        titulo: `Cambio de rol: ${tool_input.user_nombre} → ${tool_input.rol_nuevo}`,
-        descripcion: `Solicitud de cambio de rol:\n- Usuario: ${tool_input.user_nombre}\n- Rol actual: ${tool_input.rol_actual || 'desconocido'}\n- Rol nuevo solicitado: ${tool_input.rol_nuevo}\n- Motivo: ${tool_input.motivo || 'No especificado'}\n- Solicitado por: ${user.full_name || user.email}`,
-        tipo: 'tarea_manual',
-        prioridad: 'alta',
-        estado: 'pendiente',
-        asignada_a_user_id: user.id,
-        asignada_a_nombre: user.full_name || user.email,
-        asignada_a_rol: 'admin',
-        contexto_ia: `Cambio de rol solicitado vía asistente IA. User ID: ${tool_input.user_id}`,
-        creada_por: 'asistente_ia',
-        solo_gerencia: true,
-      });
-      result = { success: true, mensaje: `Solicitud de cambio de rol registrada para ${tool_input.user_nombre}. El administrador recibirá la notificación.`, tarea_id: nota.id };
-    }
-
-    // ── Nota interna (solo admin/gerencia) ────────────────────────────────────
+    // ── Nota interna ───────────────────────────────────────────────────────────
     else if (tool_name === 'create_nota_interna') {
-      if (!isAdminOrGerencia) return Response.json({ error: 'Sin permisos' }, { status: 403 });
       const nota = await base44.asServiceRole.entities.AsistenteTarea.create({
         titulo: tool_input.titulo,
         descripcion: tool_input.contenido,
@@ -382,22 +324,59 @@ ${tool_input.recomendaciones || 'Sin recomendaciones'}
       result = { success: true, nota_id: nota.id, titulo: nota.titulo };
     }
 
+    // ── Informe post-simulación ────────────────────────────────────────────────
+    else if (tool_name === 'create_informe_simulacion') {
+      const contenido = `INFORME DE SIMULACIÓN DE ROL\nGenerado por: ${user.full_name || user.email} (${user.role})\nFecha: ${new Date().toLocaleDateString('es-ES')}\nRol simulado: ${tool_input.rol_simulado?.toUpperCase()}\n\nOBSERVACIONES:\n${tool_input.observaciones || 'Sin observaciones'}\n\nPROBLEMAS DETECTADOS:\n${tool_input.problemas_detectados || 'Ninguno'}\n\nRECOMENDACIONES:\n${tool_input.recomendaciones || 'Sin recomendaciones'}`;
+      const informe = await base44.asServiceRole.entities.AsistenteTarea.create({
+        titulo: `Informe simulación: Rol ${tool_input.rol_simulado}`,
+        descripcion: contenido,
+        tipo: 'informe',
+        prioridad: tool_input.prioridad || 'media',
+        estado: 'pendiente',
+        asignada_a_user_id: user.id,
+        asignada_a_nombre: user.full_name || user.email,
+        asignada_a_rol: user.role,
+        contexto_ia: 'Informe generado por el asistente IA tras simulación de roles',
+        creada_por: 'asistente_ia',
+        solo_gerencia: true,
+      });
+      result = { success: true, informe_id: informe.id, titulo: informe.titulo, mensaje: 'Informe guardado. Disponible en la pestaña Tareas del asistente.' };
+    }
+
+    // ── Solicitar cambio de rol ────────────────────────────────────────────────
+    else if (tool_name === 'solicitar_cambio_rol') {
+      const nota = await base44.asServiceRole.entities.AsistenteTarea.create({
+        titulo: `Cambio de rol: ${tool_input.user_nombre} → ${tool_input.rol_nuevo}`,
+        descripcion: `Solicitud de cambio de rol:\n- Usuario: ${tool_input.user_nombre}\n- Rol actual: ${tool_input.rol_actual || 'desconocido'}\n- Rol nuevo: ${tool_input.rol_nuevo}\n- Motivo: ${tool_input.motivo || 'No especificado'}\n- Solicitado por: ${user.full_name || user.email}`,
+        tipo: 'tarea_manual',
+        prioridad: 'alta',
+        estado: 'pendiente',
+        asignada_a_user_id: user.id,
+        asignada_a_nombre: user.full_name || user.email,
+        asignada_a_rol: 'admin',
+        contexto_ia: `Cambio de rol solicitado vía asistente IA. User ID: ${tool_input.user_id}`,
+        creada_por: 'asistente_ia',
+        solo_gerencia: true,
+      });
+      result = { success: true, mensaje: `Solicitud registrada para ${tool_input.user_nombre}. El administrador recibirá la notificación.`, tarea_id: nota.id };
+    }
+
     else {
-      return Response.json({ error: `Herramienta desconocida: ${tool_name}`, escalar_a_gerencia: true }, { status: 400 });
+      return Response.json({ error: `Herramienta desconocida: ${tool_name}` }, { status: 400 });
     }
 
     return Response.json({ result });
+
   } catch (error) {
-    // Intentar registrar el error como nota urgente para Gerencia
+    // Escalado enriquecido: incluye contexto completo del fallo
     try {
-      const base44Error = createClientFromRequest(req);
-      await base44Error.asServiceRole.entities.AsistenteTarea.create({
-        titulo: `⚠️ Error en asistente: ${tool_name}`,
-        descripcion: `Error detectado en herramienta "${tool_name}":\n${error.message}\n\nEscalado automático a Gerencia para revisión.`,
+      const base44Err = createClientFromRequest(req);
+      await base44Err.asServiceRole.entities.AsistenteTarea.create({
+        titulo: `⚠️ Error en asistente: ${tool_name_ref.value}`,
+        descripcion: `Herramienta: "${tool_name_ref.value}"\nError: ${error.message}\n\nEscalado automático a Gerencia.`,
         tipo: 'alerta',
         prioridad: 'urgente',
         estado: 'pendiente',
-        asignada_a_user_id: 'gerencia',
         asignada_a_nombre: 'Gerencia',
         asignada_a_rol: 'gerencia',
         contexto_ia: 'Error auto-detectado por el asistente IA',
@@ -405,6 +384,10 @@ ${tool_input.recomendaciones || 'Sin recomendaciones'}
         solo_gerencia: true,
       });
     } catch (_) {}
-    return Response.json({ error: error.message, escalar_a_gerencia: true }, { status: 500 });
+    return Response.json({
+      error: true,
+      mensaje: `No se pudieron obtener los datos de "${tool_name_ref.value}". Incidencia registrada para revisión.`,
+      detalle: error.message,
+    }, { status: 500 });
   }
 });
