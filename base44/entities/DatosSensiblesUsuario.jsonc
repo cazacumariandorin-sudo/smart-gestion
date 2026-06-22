@@ -2,50 +2,113 @@
   "name": "DatosSensiblesUsuario",
   "type": "object",
   "properties": {
-    "usuario_id": {
+    "user_email": {
       "type": "string",
-      "description": "ID del usuario relacionado"
+      "description": "ANCLA \u00daNICA \u2014 Email del usuario de la app vinculado. Nunca debe duplicarse."
     },
-    "usuario_email": {
+    "user_id": {
       "type": "string",
-      "description": "Email del usuario"
+      "description": "ID del usuario de la app (User.id)"
     },
-    "numero_afiliacion": {
+    "operario_id": {
       "type": "string",
-      "description": "N\u00famero de afiliaci\u00f3n a la seguridad social"
+      "description": "ID del registro Operario vinculado (referencia cruzada)"
     },
-    "numero_cuenta_bancaria": {
+    "operario_name": {
       "type": "string",
-      "description": "IBAN o n\u00famero de cuenta (encriptado)"
+      "description": "Nombre del operario (desnormalizado para lectura r\u00e1pida)"
+    },
+    "dni_nie": {
+      "type": "string",
+      "description": "DNI o NIE del trabajador"
+    },
+    "num_afiliacion_ss": {
+      "type": "string",
+      "description": "N\u00famero de afiliaci\u00f3n a la Seguridad Social"
+    },
+    "cuenta_bancaria_iban": {
+      "type": "string",
+      "description": "IBAN o n\u00famero de cuenta bancaria para n\u00f3mina"
+    },
+    "coste_hora": {
+      "type": "number",
+      "description": "Coste por hora en EUR (para rentabilidad de proyectos). Solo visible para admin/gerencia."
+    },
+    "salario_bruto_mensual": {
+      "type": "number",
+      "description": "Salario bruto mensual en EUR"
+    },
+    "categoria_laboral": {
+      "type": "string",
+      "enum": [
+        "oficial_primera",
+        "oficial_segunda",
+        "peon",
+        "encargado",
+        "tecnico_solar",
+        "administrativo",
+        "subcontrata",
+        "temporal"
+      ],
+      "description": "Categor\u00eda laboral oficial (convenio)"
+    },
+    "fecha_alta_empresa": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de alta en la empresa"
+    },
+    "fecha_baja_empresa": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de baja (si aplica)"
     },
     "contrato_url": {
       "type": "string",
-      "description": "URL del contrato de trabajo"
+      "description": "URL del contrato de trabajo (archivo privado)"
     },
-    "datos_personales": {
-      "type": "string",
-      "description": "Datos personales sensibles (DNI, domicilio, tel\u00e9fono personales)"
-    },
-    "salario_bruto": {
-      "type": "number",
-      "description": "Salario bruto mensual"
+    "documentacion_adjunta": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "description": "Tipo de documento (TC2, IRPF, certificado m\u00e9dico...)"
+          },
+          "url": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date"
+          },
+          "nombre": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Documentos privados del trabajador"
     },
     "notas_confidenciales": {
       "type": "string",
-      "description": "Notas internas confidenciales"
+      "description": "Notas internas de gerencia (solo admin/gerencia pueden leer)"
+    },
+    "migrado_desde_operario": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si este registro fue creado por migraci\u00f3n autom\u00e1tica desde Operario"
+    },
+    "fecha_migracion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se realiz\u00f3 la migraci\u00f3n de datos"
     }
   },
   "required": [
-    "usuario_id",
-    "usuario_email"
+    "user_email"
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "read": {
       "$or": [
         {
           "user_condition": {
@@ -59,10 +122,36 @@
         }
       ]
     },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "data.user_email": "{{user.email}}"
+        }
+      ]
+    },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
     },
     "delete": {
       "user_condition": {
