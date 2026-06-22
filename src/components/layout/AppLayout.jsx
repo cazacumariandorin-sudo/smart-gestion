@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { Bot, Mic } from 'lucide-react';
 import AsistentePanel from '@/components/asistente/AsistentePanel';
 import OnboardingModal from '@/components/OnboardingModal';
+import ReglasDeOroAlert from '@/components/gobernanza/ReglasDeOroAlert';
 import { base44 } from '@/api/base44Client';
 
 function ScrollRestorer() {
@@ -141,6 +142,9 @@ export default function AppLayout() {
       {authUser && !authUser.onboarding_completado && (
         <OnboardingModal user={authUser} />
       )}
+
+      {/* Alerta discreta de Reglas de Oro — solo Admin/Gerencia */}
+      <ReglasDeOroAlert role={authUser?.role} />
     </div>
   );
 }

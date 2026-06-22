@@ -24,7 +24,8 @@ import {
   Eye,
   HardHat,
   Truck,
-  Briefcase
+  Briefcase,
+  Shield
 } from 'lucide-react';
 
 /**
@@ -149,6 +150,7 @@ export const HUBS = [
       { label: 'Backup', path: '/admin-backup', icon: Database, module: 'users' },
       { label: 'Informes', path: '/reports', icon: BarChart2, module: 'reports' },
       { label: 'Simulador', path: '/simulador-roles', icon: Eye, module: 'users' },
+      { label: 'Reglas de Oro', path: '/sistema/reglas-de-oro', icon: Shield, module: 'users' },
     ],
   },
 ];

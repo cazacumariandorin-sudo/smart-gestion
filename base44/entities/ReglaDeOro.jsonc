@@ -1,0 +1,144 @@
+{
+  "name": "ReglaDeOro",
+  "type": "object",
+  "properties": {
+    "codigo": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico de la regla (ej: VAC-01, ACC-01)"
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "acceso",
+        "vacaciones",
+        "fichajes",
+        "obras",
+        "economico",
+        "seguridad",
+        "datos",
+        "general"
+      ],
+      "description": "Categor\u00eda de la regla"
+    },
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo corto de la regla"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n completa de la regla"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "obligatoria",
+        "interna",
+        "recomendada"
+      ],
+      "default": "obligatoria",
+      "description": "Tipo de regla"
+    },
+    "estado_cumplimiento": {
+      "type": "string",
+      "enum": [
+        "cumplida",
+        "incumplida",
+        "no_verificada",
+        "pendiente_decision"
+      ],
+      "default": "no_verificada",
+      "description": "Estado actual de cumplimiento"
+    },
+    "decision_requerida": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si requiere decisi\u00f3n expl\u00edcita de Direcci\u00f3n"
+    },
+    "decision_tomada": {
+      "type": "string",
+      "description": "Decisi\u00f3n tomada por Direcci\u00f3n"
+    },
+    "decision_fecha": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de la decisi\u00f3n"
+    },
+    "decision_por": {
+      "type": "string",
+      "description": "Email de quien tom\u00f3 la decisi\u00f3n"
+    },
+    "ultima_verificacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima vez que se verific\u00f3 esta regla"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Notas internas"
+    },
+    "activa": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si la regla est\u00e1 activa"
+    }
+  },
+  "required": [
+    "codigo",
+    "titulo",
+    "tipo"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
