@@ -173,6 +173,18 @@
           "$and": [
             {
               "user_condition": {
+                "role": "operario"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
                 "role": "usuario_demo"
               }
             },
