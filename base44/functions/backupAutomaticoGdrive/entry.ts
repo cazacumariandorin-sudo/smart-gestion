@@ -35,6 +35,8 @@ Deno.serve(async (req) => {
       { nombre: 'Nominas', entity: base44.asServiceRole.entities.Nomina },
       { nombre: 'Vacaciones', entity: base44.asServiceRole.entities.Vacacion },
       { nombre: 'ApuntesHorario', entity: base44.asServiceRole.entities.ApunteHorario },
+      { nombre: 'Manuales', entity: base44.asServiceRole.entities.Manual },
+      { nombre: 'Planos', entity: base44.asServiceRole.entities.Drawing },
     ];
 
     for (const { nombre, entity } of entidades) {
