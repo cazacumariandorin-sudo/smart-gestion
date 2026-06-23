@@ -64,9 +64,13 @@ export default function SolarObras() {
     queryFn: () => base44.entities.SolarCliente.list('name', 300),
   });
 
+  const asignarIdSolar = async (id) => {
+    try { await base44.functions.invoke('generarIdUnico', { entidad: 'SolarObra', record_id: id, campo_id: 'codigo_registro' }); } catch {}
+    qc.invalidateQueries({ queryKey: ['solar_obras'] });
+  };
   const createM = useMutation({
     mutationFn: d => base44.entities.SolarObra.create(d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['solar_obras'] }); toast.success('Obra solar creada'); close_(); },
+    onSuccess: (rec) => { asignarIdSolar(rec.id); toast.success('Obra solar creada'); close_(); },
     onError: () => toast.error('Error al crear la obra'),
   });
   const updateM = useMutation({

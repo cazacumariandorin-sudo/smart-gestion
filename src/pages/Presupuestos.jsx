@@ -24,10 +24,14 @@ export default function Presupuestos() {
             const response = await base44.functions.invoke('guardarPresupuesto', data);
             return response.data;
         },
-        onSuccess: (result) => {
+        onSuccess: async (result) => {
             if (result.code === 'DUPLICATE_BUDGET') {
                 setDuplicadoConfirm(result);
             } else {
+                // Asignar ID único al presupuesto recién creado
+                if (result.id) {
+                    try { await base44.functions.invoke('generarIdUnico', { entidad: 'Presupuesto', record_id: result.id, campo_id: 'codigo_registro' }); } catch {}
+                }
                 queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
                 setShowForm(false);
             }

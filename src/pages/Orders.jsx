@@ -66,11 +66,15 @@ export default function Orders() {
   const { data: materials = [] } = useQuery({ queryKey: ['material_catalog'], queryFn: () => base44.entities.MaterialCatalog.list('name', 500) });
   const { data: obras = [] } = useQuery({ queryKey: ['obras'], queryFn: () => base44.entities.Obra.list('name', 300) });
 
+  const asignarIdOrder = async (id) => {
+    try { await base44.functions.invoke('generarIdUnico', { entidad: 'Order', record_id: id, campo_id: 'codigo_registro' }); } catch {}
+    qc.invalidateQueries({ queryKey: ['orders'] });
+  };
   const createM = useOptimisticMutation(
     d => base44.entities.Order.create(d),
     'orders',
     (prev, newOrder) => [...prev, { ...newOrder, id: `temp_${Date.now()}` }],
-    () => close_()
+    (rec) => { if (rec?.id) asignarIdOrder(rec.id); close_(); }
   );
   const updateM = useOptimisticMutation(
     ({ id, d }) => base44.entities.Order.update(id, d),

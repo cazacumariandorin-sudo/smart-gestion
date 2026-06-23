@@ -29,6 +29,7 @@ const PREFIJOS = {
   Vehiculo:    'VEH',
   User:        'USR',
   Presupuesto: 'PRES',
+  Drawing:     'PLN',
 };
 
 /**

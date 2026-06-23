@@ -116,7 +116,11 @@ export default function Clients() {
     return () => clearTimeout(debounceRef.current);
   }, [form.name, clients, editing, dialogOpen]);
 
-  const createMutation = useMutation({ mutationFn: d => base44.entities.Client.create(d), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); closeDialog(); } });
+  const asignarId = async (id) => {
+    try { await base44.functions.invoke('generarIdUnico', { entidad: 'Client', record_id: id, campo_id: 'codigo_registro' }); } catch {}
+    queryClient.invalidateQueries({ queryKey: ['clients'] });
+  };
+  const createMutation = useMutation({ mutationFn: d => base44.entities.Client.create(d), onSuccess: (rec) => { asignarId(rec.id); closeDialog(); } });
   const updateMutation = useMutation({ mutationFn: ({ id, data }) => base44.entities.Client.update(id, data), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['clients'] }); closeDialog(); } });
   const deleteMutation = useMutation({ mutationFn: id => base44.entities.Client.delete(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }) });
 

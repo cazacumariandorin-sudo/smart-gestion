@@ -89,7 +89,11 @@ export default function Drawings() {
   const { data: solarObras = [] } = useQuery({ queryKey: ['solar_obras_drawings'], queryFn: () => base44.entities.SolarObra.list('name', 200) });
   const todasObras = useMemo(() => [...obras.map(o => ({ id: o.id, name: o.name, client_id: o.client_id, client_name: o.client_name })), ...solarObras.map(o => ({ id: o.id, name: o.name, client_id: o.client_id, client_name: o.client_name }))].sort((a,b) => a.name.localeCompare(b.name)), [obras, solarObras]);
 
-  const createM = useMutation({ mutationFn: d => base44.entities.Drawing.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['drawings'] }); close_(); } });
+  const asignarId = async (id) => {
+    try { await base44.functions.invoke('generarIdUnico', { entidad: 'Drawing', record_id: id, campo_id: 'codigo_registro' }); } catch {}
+    qc.invalidateQueries({ queryKey: ['drawings'] });
+  };
+  const createM = useMutation({ mutationFn: d => base44.entities.Drawing.create(d), onSuccess: (rec) => { asignarId(rec.id); close_(); } });
   const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Drawing.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['drawings'] }); close_(); } });
   const deleteM = useMutation({ mutationFn: id => base44.entities.Drawing.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['drawings'] }) });
 

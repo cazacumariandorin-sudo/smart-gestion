@@ -65,7 +65,11 @@ export default function ObrasCiviles() {
     queryFn: () => base44.entities.Client.list('name', 200),
   });
 
-  const createM = useMutation({ mutationFn: d => base44.entities.Obra.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['obras-civiles'] }); close_(); } });
+  const asignarId = async (id) => {
+    try { await base44.functions.invoke('generarIdUnico', { entidad: 'Obra', record_id: id, campo_id: 'codigo_registro' }); } catch {}
+    qc.invalidateQueries({ queryKey: ['obras-civiles'] });
+  };
+  const createM = useMutation({ mutationFn: d => base44.entities.Obra.create(d), onSuccess: (rec) => { asignarId(rec.id); close_(); } });
   const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Obra.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['obras-civiles'] }); close_(); } });
   const deleteM = useMutation({ mutationFn: id => base44.entities.Obra.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['obras-civiles'] }) });
 
