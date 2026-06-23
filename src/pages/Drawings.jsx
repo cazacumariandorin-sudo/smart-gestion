@@ -76,6 +76,8 @@ export default function Drawings() {
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
   const [search, setSearch] = useState('');
   const [clientFilter, setClientFilter] = useState('all');
+  const [obraFilter, setObraFilter] = useState('all');
+  const [yearFilter, setYearFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(empty);
@@ -88,6 +90,7 @@ export default function Drawings() {
   const { data: obras = [] } = useQuery({ queryKey: ['obras_drawings'], queryFn: () => base44.entities.Obra.list('name', 200) });
   const { data: solarObras = [] } = useQuery({ queryKey: ['solar_obras_drawings'], queryFn: () => base44.entities.SolarObra.list('name', 200) });
   const todasObras = useMemo(() => [...obras.map(o => ({ id: o.id, name: o.name, client_id: o.client_id, client_name: o.client_name })), ...solarObras.map(o => ({ id: o.id, name: o.name, client_id: o.client_id, client_name: o.client_name }))].sort((a,b) => a.name.localeCompare(b.name)), [obras, solarObras]);
+  const uniqueYears = useMemo(() => [...new Set(drawings.map(d => d.date?.split('-')[0]).filter(Boolean))].sort((a, b) => b - a), [drawings]);
 
   const createM = useMutation({ mutationFn: d => base44.entities.Drawing.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['drawings'] }); close_(); } });
   const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Drawing.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['drawings'] }); close_(); } });
@@ -128,7 +131,9 @@ export default function Drawings() {
     const q = search.toLowerCase();
     const matchQ = !search || d.title?.toLowerCase().includes(q) || d.reference?.toLowerCase().includes(q) || d.project?.toLowerCase().includes(q);
     const matchC = clientFilter === 'all' || d.client_id === clientFilter;
-    return matchQ && matchC;
+    const matchO = obraFilter === 'all' || d.project === obraFilter;
+    const matchY = yearFilter === 'all' || d.date?.startsWith(yearFilter);
+    return matchQ && matchC && matchO && matchY;
   });
 
   // Group by client → project
@@ -171,9 +176,17 @@ export default function Drawings() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar plano, referencia, obra..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <MobileSelect value={clientFilter} onValueChange={setClientFilter} placeholder="Cliente" triggerClassName="w-full sm:w-48">
+        <MobileSelect value={clientFilter} onValueChange={setClientFilter} placeholder="Cliente" triggerClassName="w-full sm:w-44">
           <MobileSelectItem value="all">Todos los clientes</MobileSelectItem>
           {clients.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
+        </MobileSelect>
+        <MobileSelect value={obraFilter} onValueChange={setObraFilter} placeholder="Obra" triggerClassName="w-full sm:w-44">
+          <MobileSelectItem value="all">Todas las obras</MobileSelectItem>
+          {todasObras.map(o => <MobileSelectItem key={o.id} value={o.name}>{o.name}</MobileSelectItem>)}
+        </MobileSelect>
+        <MobileSelect value={yearFilter} onValueChange={setYearFilter} placeholder="Año" triggerClassName="w-full sm:w-24">
+          <MobileSelectItem value="all">Todos</MobileSelectItem>
+          {uniqueYears.map(y => <MobileSelectItem key={y} value={y}>{y}</MobileSelectItem>)}
         </MobileSelect>
       </div>
 
