@@ -519,6 +519,11 @@ export default function CalendarioVacaciones() {
             </div>
           </Card>
         </TabsContent>
+
+        {/* CANCELACIONES TAB */}
+        <TabsContent value="cancelaciones">
+          <PanelAprobacionCancelaciones />
+        </TabsContent>
       </Tabs>
 
       {/* Dialog nueva ausencia */}
@@ -579,10 +584,6 @@ export default function CalendarioVacaciones() {
         </DialogContent>
       </Dialog>
 
-        {/* CANCELACIONES TAB */}
-        <TabsContent value="cancelaciones">
-          <PanelAprobacionCancelaciones />
-        </TabsContent>
       {/* Dialog detalle operario */}
       <OperarioDetalleDialog 
         open={detalleOpen} 
