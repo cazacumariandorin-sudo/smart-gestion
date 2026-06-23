@@ -1,9 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { HardHat, RefreshCw, ChevronDown, ChevronUp, AlertCircle, MessageSquare, Images, ShieldCheck } from 'lucide-react';
+import { HardHat, RefreshCw, AlertCircle, MessageSquare, Images, ShieldCheck, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -16,6 +15,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { HUBS, isHubVisible } from '@/lib/hubs';
+import HubSheet from '@/components/dashboard/HubSheet';
 
 const QUICK_ACCESS = [
   {
@@ -56,28 +56,25 @@ const DASHBOARD_META = {
 import { ROLE_LABELS } from '@/lib/roleLabels';
 import TareasButton from '@/components/dashboard/TareasButton';
 
-const MAX_VISIBLE_LINKS = 3;
-
-function ModuleCard({ hub, kpi, tareas = [], onTareasClick }) {
-  const [expanded, setExpanded] = useState(false);
+function ModuleCard({ hub, kpi, tareas = [], onTareasClick, onOpen }) {
   const Icon = hub.icon;
 
-  const visibleLinks = hub.items.slice(0, MAX_VISIBLE_LINKS);
-  const hiddenLinks = hub.items.slice(MAX_VISIBLE_LINKS);
-  const hasMore = hiddenLinks.length > 0;
-
   return (
-    <div className={cn(
-      'relative rounded-xl border overflow-hidden transition-all duration-200',
-      hub.bg, hub.border
-    )}>
-      {onTareasClick && <ModuloBadge moduloId={hub.id} tareas={tareas} onClick={onTareasClick} />}
+    <button
+      onClick={onOpen}
+      style={{ touchAction: 'manipulation' }}
+      className={cn(
+        'relative rounded-xl border overflow-hidden transition-all duration-150 text-left w-full',
+        'active:scale-[0.97] hover:brightness-95',
+        hub.bg, hub.border
+      )}
+    >
+      {onTareasClick && <ModuloBadge moduloId={hub.id} tareas={tareas} onClick={(e) => { e.stopPropagation(); onTareasClick(tareas.filter(t => t.modulo === hub.id)); }} />}
       {hub.watermark && (
         <img src={hub.watermark} alt="" aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover opacity-[0.07] pointer-events-none select-none" />
       )}
-      <div className="relative z-10 px-4 pt-3 pb-3 space-y-2.5">
-
+      <div className="relative z-10 px-4 pt-3 pb-3 space-y-1.5">
         {/* Cabecera: icono + label + KPI */}
         <div className="flex items-center gap-2.5">
           <div className={cn('p-2 rounded-lg shadow-sm shrink-0', hub.iconBg)}>
@@ -97,82 +94,24 @@ function ModuleCard({ hub, kpi, tareas = [], onTareasClick }) {
               <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{kpi.sub}</p>
             )}
           </div>
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
         </div>
 
-        {/* Pill-buttons: links visibles + botón expandir */}
-        <div className="flex flex-wrap gap-1.5">
-          {visibleLinks.map(l => {
-            const LIcon = l.icon;
-            return (
-              <Link
-                key={l.path}
-                to={l.path}
-                style={{ touchAction: 'manipulation' }}
-                className={cn(
-                  'inline-flex items-center gap-1 h-6 px-2.5 rounded-full',
-                  'text-[10px] font-semibold border transition-all duration-150',
-                  'bg-foreground/10 dark:bg-white/15',
-                  'border-foreground/20 dark:border-white/20',
-                  'text-foreground hover:bg-foreground/20',
-                  'active:scale-95'
-                )}
-              >
-                <LIcon className="w-3 h-3 shrink-0" />
-                {l.label}
-              </Link>
-            );
-          })}
-
-          {hasMore && (
-            <button
-              onClick={() => setExpanded(o => !o)}
-              style={{ touchAction: 'manipulation' }}
-              aria-label={expanded ? 'Ver menos' : `Ver ${hiddenLinks.length} más`}
-              className={cn(
-                'inline-flex items-center gap-1 h-6 px-2 rounded-full',
-                'text-[10px] font-semibold border transition-all duration-150',
-                'bg-foreground/10 dark:bg-white/15',
-                'border-foreground/20 dark:border-white/20',
-                'text-foreground hover:bg-foreground/15',
-                'active:scale-95'
-              )}
-            >
-              {expanded
-                ? <><ChevronUp className="w-3 h-3" />Menos</>
-                : <><ChevronDown className="w-3 h-3" />+{hiddenLinks.length}</>
-              }
-            </button>
+        {/* Sub-módulos preview */}
+        <div className="flex flex-wrap gap-1">
+          {hub.items.slice(0, 3).map(l => (
+            <span key={l.path} className="text-[9px] font-medium text-muted-foreground bg-black/5 dark:bg-white/10 rounded-full px-1.5 py-0.5">
+              {l.label}
+            </span>
+          ))}
+          {hub.items.length > 3 && (
+            <span className="text-[9px] font-medium text-muted-foreground bg-black/5 dark:bg-white/10 rounded-full px-1.5 py-0.5">
+              +{hub.items.length - 3}
+            </span>
           )}
         </div>
-
-        {/* Links ocultos expandidos en grid 3 col dentro de la tarjeta */}
-        {hasMore && expanded && (
-          <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-foreground/10">
-            {hiddenLinks.map(l => {
-              const LIcon = l.icon;
-              return (
-                <Link
-                  key={l.path}
-                  to={l.path}
-                  onClick={() => setExpanded(false)}
-                  style={{ touchAction: 'manipulation' }}
-                  className={cn(
-                    'flex flex-col items-center gap-1 py-2 px-1 rounded-lg',
-                    'bg-black/5 dark:bg-white/5',
-                    'hover:bg-black/10 dark:hover:bg-white/10',
-                    'text-[9px] font-semibold text-muted-foreground hover:text-foreground',
-                    'transition-all active:scale-95 min-h-[44px] justify-center'
-                  )}
-                >
-                  <LIcon className="w-3.5 h-3.5 shrink-0" />
-                  {l.label}
-                </Link>
-              );
-            })}
-          </div>
-        )}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -192,6 +131,8 @@ export default function Dashboard() {
     );
   };
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
+
+  const [activeHub, setActiveHub] = useState(null);
 
   const [auditando, setAuditando] = useState(false);
 
@@ -363,12 +304,19 @@ export default function Dashboard() {
           <ModuleCard key={hub.id} hub={hub} kpi={kpis[hub.id]}
             tareas={isTrioAdmin ? tareasAdmin : []}
             onTareasClick={isTrioAdmin ? setPanelTareas : undefined}
+            onOpen={() => setActiveHub(hub)}
           />
         ))}
         {QUICK_ACCESS.map(hub => (
-          <ModuleCard key={hub.id} hub={hub} kpi={undefined} />
+          <ModuleCard key={hub.id} hub={hub} kpi={undefined} onOpen={() => setActiveHub(hub)} />
         ))}
       </div>
+
+      <HubSheet
+        hub={activeHub}
+        open={!!activeHub}
+        onOpenChange={(open) => { if (!open) setActiveHub(null); }}
+      />
 
       {showDiagnostic && <UserRoleDiagnostic />}
 
