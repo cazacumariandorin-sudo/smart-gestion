@@ -25,7 +25,8 @@ import {
   HardHat,
   Truck,
   Briefcase,
-  Shield
+  Shield,
+  ClipboardCheck
 } from 'lucide-react';
 
 /**

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
@@ -10,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Search, Filter, FileBarChart2, Receipt, ChevronDown, ChevronRight, Building2 } from 'lucide-react';
+import { Plus, Search, FileBarChart2, Receipt, ChevronDown, ChevronRight, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NotaGastoForm from '@/components/gastos/NotaGastoForm';
 import NotaGastoCard from '@/components/gastos/NotaGastoCard';
