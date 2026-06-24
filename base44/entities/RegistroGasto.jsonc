@@ -56,8 +56,9 @@
       "enum": [
         "borrador",
         "pendiente",
-        "validada",
-        "cerrada",
+        "aprobado_gerencia",
+        "en_administracion",
+        "pagada",
         "rechazada"
       ],
       "type": "string"
@@ -130,6 +131,35 @@
     },
     "validado_por": {
       "type": "string"
+    },
+    "aprobado_por": {
+      "type": "string",
+      "description": "Email de quien aprob\u00f3 el gasto (gerencia o director_comercial)"
+    },
+    "fecha_aprobacion": {
+      "type": "string",
+      "description": "Fecha ISO de la aprobaci\u00f3n"
+    },
+    "pagado_por": {
+      "type": "string",
+      "description": "Email del administrador que registr\u00f3 el pago"
+    },
+    "fecha_pago": {
+      "type": "string",
+      "description": "Fecha ISO en que se realiz\u00f3 el reembolso"
+    },
+    "importe_pagado_real": {
+      "type": "number",
+      "description": "Importe final pagado, puede diferir del original"
+    },
+    "metodo_pago": {
+      "type": "string",
+      "enum": [
+        "transferencia",
+        "efectivo",
+        "tarjeta_empresa",
+        "sepa"
+      ]
     }
   },
   "required": [
