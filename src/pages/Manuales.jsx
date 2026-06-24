@@ -4,7 +4,8 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
-import { Plus, Search, Trash2, BookOpen, Save, Loader2, Upload, FileText, Table, File, Languages, Eye, Download } from 'lucide-react';
+import { Plus, Search, Trash2, BookOpen, Save, Loader2, Upload, FileText, Table, File, Languages, Eye, Download, Link2 } from 'lucide-react';
+import ReasignarDocModal from '@/components/documentos/ReasignarDocModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,7 +30,7 @@ function fileIcon(fileType) {
 
 export default function Manuales() {
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra, isOperario, role } = useUserRole();
+  const { isAdmin, isJefeObra, isOperario, isGerencia, role } = useUserRole();
   // Admin, jefe_obra, director_comercial y operario pueden crear manuales
   const canCreate = isAdmin || isJefeObra || role === 'director_comercial' || isOperario;
   const canDelete = isAdmin || isJefeObra;
@@ -41,6 +42,7 @@ export default function Manuales() {
   const [form, setForm] = useState(getEmptyForm());
   const [uploading, setUploading] = useState(false);
   const [translating, setTranslating] = useState(null);
+  const [reasignarDoc, setReasignarDoc] = useState(null);
 
   const { data: manuales = [], isLoading, refetch: refetchManuales } = useQuery({ queryKey: ['manuales'], queryFn: () => base44.entities.Manual.list('-date', 300) });
 
@@ -199,6 +201,11 @@ export default function Manuales() {
                                 </Button>
                               </>
                             )}
+                            {(isAdmin || isGerencia) && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Reasignar obra/cliente" onClick={() => setReasignarDoc(m)}>
+                                <Link2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
                             {canDelete && <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
@@ -221,6 +228,16 @@ export default function Manuales() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Reasignar Modal */}
+      {reasignarDoc && (
+        <ReasignarDocModal
+          doc={reasignarDoc}
+          entityName="Manual"
+          open={!!reasignarDoc}
+          onClose={() => setReasignarDoc(null)}
+        />
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

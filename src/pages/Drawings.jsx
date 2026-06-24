@@ -5,7 +5,8 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { useI18n } from '@/lib/i18n';
-import { Plus, Search, Pencil, Trash2, FileImage, Upload, Loader2, Save, ExternalLink, ChevronRight, ChevronDown, File, FileText } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, FileImage, Upload, Loader2, Save, ExternalLink, ChevronRight, ChevronDown, File, FileText, Link2, AlertTriangle } from 'lucide-react';
+import ReasignarDocModal from '@/components/documentos/ReasignarDocModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -84,6 +85,7 @@ export default function Drawings() {
   const [uploading, setUploading] = useState(false);
   const [viewerDoc, setViewerDoc] = useState(null);
   const [expandedClients, setExpandedClients] = useState({});
+  const [reasignarDoc, setReasignarDoc] = useState(null);
 
   const { data: drawings = [], isLoading } = useQuery({ queryKey: ['drawings'], queryFn: () => base44.entities.Drawing.list('-date', 500) });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
@@ -224,26 +226,34 @@ export default function Drawings() {
                           {pData.drawings.map(d => {
                             const ft = getFileType(d.file_url);
                             return (
-                              <div key={d.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/40 group">
-                                <div className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${ft ? fileTypeColor[ft] : 'bg-gray-100 text-gray-600'}`}>
-                                  {ft ? fileTypeLabel[ft] : '—'}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">{d.title}</p>
-                                  <div className="flex items-center gap-2">
-                                    {d.reference && <span className="text-[10px] font-mono text-muted-foreground">{d.reference}</span>}
-                                    {d.version && <span className="text-[10px] text-muted-foreground">v{d.version}</span>}
-                                    {d.date && <span className="text-[10px] text-muted-foreground">{format(parseISO(d.date), 'd MMM yyyy', { locale: es })}</span>}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {d.file_url && (
-                                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setViewerDoc(d)}>
-                                      <ExternalLink className="w-3 h-3" /> Ver
-                                    </Button>
-                                  )}
-                                  {canCreate && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(d)}><Pencil className="w-3 h-3" /></Button>}
-                                  {canDelete && (
+                              <div key={d.id} className={`flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/40 group ${!d.client_id && !d.project ? 'bg-amber-50/60' : ''}`}>
+                                     <div className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${ft ? fileTypeColor[ft] : 'bg-gray-100 text-gray-600'}`}>
+                                       {ft ? fileTypeLabel[ft] : '—'}
+                                     </div>
+                                     <div className="flex-1 min-w-0">
+                                       <div className="flex items-center gap-1.5">
+                                         <p className="text-sm font-medium truncate">{d.title}</p>
+                                         {!d.client_id && !d.project && <span title="Sin obra ni cliente asignado"><AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" /></span>}
+                                       </div>
+                                       <div className="flex items-center gap-2">
+                                         {d.reference && <span className="text-[10px] font-mono text-muted-foreground">{d.reference}</span>}
+                                         {d.version && <span className="text-[10px] text-muted-foreground">v{d.version}</span>}
+                                         {d.date && <span className="text-[10px] text-muted-foreground">{format(parseISO(d.date), 'd MMM yyyy', { locale: es })}</span>}
+                                       </div>
+                                     </div>
+                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                       {d.file_url && (
+                                         <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setViewerDoc(d)}>
+                                           <ExternalLink className="w-3 h-3" /> Ver
+                                         </Button>
+                                       )}
+                                       {(isAdmin || isGerencia) && (
+                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Reasignar obra/cliente" onClick={() => setReasignarDoc(d)}>
+                                           <Link2 className="w-3 h-3" />
+                                         </Button>
+                                       )}
+                                       {canCreate && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(d)}><Pencil className="w-3 h-3" /></Button>}
+                                       {canDelete && (
                                     <AlertDialog>
                                       <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button>
@@ -290,6 +300,16 @@ export default function Drawings() {
             </div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Reasignar Modal */}
+      {reasignarDoc && (
+        <ReasignarDocModal
+          doc={reasignarDoc}
+          entityName="Drawing"
+          open={!!reasignarDoc}
+          onClose={() => setReasignarDoc(null)}
+        />
       )}
 
       {/* Create/Edit Dialog */}
