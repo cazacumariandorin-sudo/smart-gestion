@@ -65,6 +65,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [operarioSeleccionado, setOperarioSeleccionado] = useState(null);
   const [showObraModal, setShowObraModal] = useState(false);
   const [pendingSave, setPendingSave] = useState(false);
+  const [analizando, setAnalizando] = useState(false);
   const { user } = useAuth();
 
   // Reset al abrir/cerrar
@@ -136,7 +137,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     return diferenciaDias > 30;
   }, [form.fecha_documento]);
 
-  const handleTicketDone = ({ file_url, archivo, ocrDatos }) => {
+  const handleTicketDone = async ({ file_url, archivo, ocrDatos }) => {
     setArchivos([archivo]);
     if (ocrDatos.ocr_raw) setOcrRaw(ocrDatos.ocr_raw);
     if (ocrDatos.concepto) setField('concepto', ocrDatos.concepto);
@@ -148,6 +149,28 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     if (ocrDatos.codigo_validacion_fiscal) setField('codigo_validacion_fiscal', ocrDatos.codigo_validacion_fiscal);
     setTicketPreview(file_url);
     setPaso('formulario');
+
+    // OCR mejorado via backend
+    setAnalizando(true);
+    try {
+      const res = await base44.functions.invoke('procesarOcrNota', { file_url });
+      if (res?.data) {
+        setForm(prev => ({
+          ...prev,
+          concepto: res.data.concepto || prev.concepto,
+          importe: res.data.importe ? String(res.data.importe) : prev.importe,
+          nombre_comercio: res.data.nombre_comercio || prev.nombre_comercio,
+          nif_comercio: res.data.nif_comercio || prev.nif_comercio,
+          fecha_documento: res.data.fecha || prev.fecha_documento,
+          codigo_validacion_fiscal: res.data.codigo_qr || prev.codigo_validacion_fiscal,
+        }));
+        toast.success('Datos extraídos del ticket — revisa antes de guardar');
+      }
+    } catch {
+      toast.warning('No se pudieron extraer datos automáticamente del ticket');
+    } finally {
+      setAnalizando(false);
+    }
   };
 
   const checkDuplicado = () => {
@@ -320,7 +343,13 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
 
           {/* PASO 2: FORMULARIO */}
           {paso === 'formulario' && (
-            <div className="space-y-4 py-2">
+            <div className="space-y-4 py-2 relative">
+              {analizando && (
+                <div className="absolute inset-0 z-10 bg-background/80 flex flex-col items-center justify-center gap-2 rounded-lg">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <p className="text-sm font-medium text-muted-foreground">Analizando ticket...</p>
+                </div>
+              )}
               {/* Selector de operario — solo admins */}
               {isAdmin && operarios.length > 0 && (
                 <div className="space-y-1.5 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">

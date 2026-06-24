@@ -20,7 +20,26 @@ import InformeGastos from '@/components/gastos/InformeGastos';
 import { useAuth } from '@/lib/AuthContext';
 import { useTecnicoName } from '@/hooks/useTecnicoName';
 
-const ESTADOS = ['todos', 'borrador', 'pendiente', 'validada', 'cerrada', 'rechazada'];
+const ESTADOS = ['todos', 'borrador', 'pendiente', 'aprobado_gerencia', 'en_administracion', 'pagada', 'rechazada'];
+
+const ESTADO_LABELS = {
+  todos: 'Todos',
+  borrador: 'Borrador',
+  pendiente: 'Pendiente',
+  aprobado_gerencia: 'Aprobado por gerencia',
+  en_administracion: 'En administración',
+  pagada: 'Pagada',
+  rechazada: 'Rechazada',
+};
+
+const ESTADO_COLORS = {
+  borrador: 'bg-slate-100 text-slate-600 border-slate-200',
+  pendiente: 'bg-blue-50 text-blue-700 border-blue-200',
+  aprobado_gerencia: 'bg-amber-50 text-amber-700 border-amber-200',
+  en_administracion: 'bg-purple-50 text-purple-700 border-purple-200',
+  pagada: 'bg-green-50 text-green-700 border-green-200',
+  rechazada: 'bg-red-50 text-red-700 border-red-200',
+};
 const CATEGORIAS = ['todas', 'material', 'combustible', 'peaje', 'parking', 'otros'];
 
 function OperarioGroup({ operario, notas, onVerNota, isOpen, onToggle }) {
@@ -67,7 +86,9 @@ function OperarioGroup({ operario, notas, onVerNota, isOpen, onToggle }) {
 
 export default function NotasGastos() {
   const { user } = useAuth();
-  const { isAdmin, isOperario, isGerencia } = useUserRole();
+  const { isAdmin, isOperario, isGerencia, isDirComercial } = useUserRole();
+  const [searchParams] = useSearchParams();
+  const vistaAdmin = searchParams.get('vista') === 'admin' && (isAdmin || isGerencia || isDirComercial);
   const { getTecnicoName, tecnicos } = useTecnicoName();
   const qc = useQueryClient();
 
@@ -114,6 +135,10 @@ export default function NotasGastos() {
   const puedeCrearRegistro = isOperario || isAdmin || isGerencia || !!miTecnico?.id;
 
   const notas = notasRaw.filter(n => {
+    // Si no es vista admin ni admin/gerencia, mostrar solo las propias
+    if (!vistaAdmin && !isAdmin && !isGerencia && !isDirComercial) {
+      if (n.created_by !== user?.email && n.operario_id !== operarioId) return false;
+    }
     const txt = busqueda.toLowerCase();
     const matchBusq = !txt || (n.numero_nota || '').toLowerCase().includes(txt) ||
       (n.nombre_comercio || '').toLowerCase().includes(txt) ||
@@ -187,8 +212,8 @@ export default function NotasGastos() {
             onChange={e => setBusqueda(e.target.value)}
           />
         </div>
-        <MobileSelect value={filtroEstado} onValueChange={setFiltroEstado} placeholder="Estado" triggerClassName="w-36">
-          {ESTADOS.map(e => <MobileSelectItem key={e} value={e}>{e.charAt(0).toUpperCase() + e.slice(1)}</MobileSelectItem>)}
+        <MobileSelect value={filtroEstado} onValueChange={setFiltroEstado} placeholder="Estado" triggerClassName="w-44">
+          {ESTADOS.map(e => <MobileSelectItem key={e} value={e}>{ESTADO_LABELS[e] || e}</MobileSelectItem>)}
         </MobileSelect>
         <MobileSelect value={filtroCategoria} onValueChange={setFiltroCategoria} placeholder="Categoría" triggerClassName="w-36">
           {CATEGORIAS.map(c => <MobileSelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</MobileSelectItem>)}
