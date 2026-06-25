@@ -128,6 +128,11 @@
           "user_condition": {
             "role": "director_comercial"
           }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
         }
       ]
     },
