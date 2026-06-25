@@ -250,14 +250,14 @@ export default function Manuales() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Cliente</Label>
-                <MobileSelect value={form.client_id} onValueChange={handleClientChange} placeholder="Seleccionar...">
+                <Label className="text-xs">Cliente *</Label>
+                <MobileSelect value={form.client_id} onValueChange={handleClientChange} placeholder="Seleccionar... (obligatorio)">
                   {clients.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
                 </MobileSelect>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Obra</Label>
-                <MobileSelect value={form.obra_id} onValueChange={handleObraChange} placeholder="Seleccionar...">
+                <Label className="text-xs">Obra *</Label>
+                <MobileSelect value={form.obra_id} onValueChange={handleObraChange} placeholder="Seleccionar... (obligatorio)">
                   {obras.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
                 </MobileSelect>
               </div>
@@ -303,7 +303,7 @@ export default function Manuales() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={close_}>Cancelar</Button>
-            <Button onClick={() => createM.mutate(form)} disabled={!form.title || createM.isPending} className="gap-2 min-w-28">
+            <Button onClick={() => createM.mutate(form)} disabled={!form.title || !form.client_id || !form.obra_id || createM.isPending} className="gap-2 min-w-28">
               {createM.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar
             </Button>
           </DialogFooter>

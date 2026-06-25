@@ -48,8 +48,9 @@ export default function TicketCapture({ onDone, onSkip }) {
       // Convert file to base64
       const base64 = await fileToBase64(file);
 
-      // Intentar subir a Google Drive; si falla, usar Data URL local
-      let file_url = base64;
+      // Intentar subir a Google Drive
+      let file_url = null;
+      let driveOk = false;
       let archivo = {
         url: base64,
         nombre: file.name,
@@ -64,6 +65,7 @@ export default function TicketCapture({ onDone, onSkip }) {
           folder_path: 'Notas_Gastos',
         });
         file_url = res.data.file_url;
+        driveOk = true;
         archivo = {
           url: file_url,
           nombre: file.name,
@@ -72,19 +74,21 @@ export default function TicketCapture({ onDone, onSkip }) {
           storage: res.data.storage,
           drive_file_id: res.data.drive_file_id,
         };
-      } catch { /* Drive no disponible — usar Data URL local */ }
+      } catch { /* Drive no disponible */ }
 
       setEstado('ocr');
-      setMensaje('Extrayendo datos con IA...');
+      setMensaje(driveOk ? 'Extrayendo datos con IA...' : 'Imagen guardada (sin extracción automática — sin conexión a Drive)');
       let ocrDatos = {};
-      try {
-        const ocrRes = await base44.functions.invoke('procesarOcrNota', { file_url, file_tipo: file.type });
-        if (ocrRes.data?.success && ocrRes.data?.datos) ocrDatos = ocrRes.data.datos;
-      } catch { /* OCR no disponible — continuar sin datos */ }
+      if (driveOk) {
+        try {
+          const ocrRes = await base44.functions.invoke('procesarOcrNota', { file_url, file_tipo: file.type });
+          if (ocrRes.data?.success && ocrRes.data?.datos) ocrDatos = ocrRes.data.datos;
+        } catch { /* OCR no disponible — continuar sin datos */ }
+      }
 
       setEstado('ok');
-      setMensaje('Imagen procesada');
-      onDone({ file_url, archivo, ocrDatos });
+      setMensaje(driveOk ? 'Imagen procesada' : 'Imagen guardada localmente');
+      onDone({ file_url: file_url || base64, archivo, ocrDatos });
     } catch (e) {
       setEstado('error');
       setMensaje('Error al procesar el ticket: ' + (e.message || ''));

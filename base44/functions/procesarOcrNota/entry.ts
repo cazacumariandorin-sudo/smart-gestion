@@ -9,6 +9,14 @@ Deno.serve(async (req) => {
     const { file_url, file_tipo } = await req.json();
     if (!file_url) return Response.json({ error: 'file_url requerido' }, { status: 400 });
 
+    // Rechazar Data URLs — el motor de IA no puede acceder a base64 embebido
+    if (file_url.startsWith('data:')) {
+      return Response.json({
+        error: 'No se puede procesar OCR: la imagen no se subió a almacenamiento accesible. Verifica la conexión a Google Drive.',
+        success: false,
+      }, { status: 422 });
+    }
+
     const prompt = `Eres un sistema OCR especializado en facturas y tickets de gasto empresarial en España.
 Analiza la imagen/documento y extrae TODOS los datos relevantes.
 
