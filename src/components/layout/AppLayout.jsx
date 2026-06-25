@@ -6,6 +6,7 @@ import RoleSimulatorBanner from '@/components/RoleSimulatorBanner';
 import DemoBanner from '@/components/demo/DemoBanner';
 import DemoWatermark from '@/components/demo/DemoWatermark';
 import ConnectivityBanner from './ConnectivityBanner';
+import SystemHealthBanner from '@/components/sistema/SystemHealthBanner';
 import { useScrollRestoration } from '@/hooks/useScrollRestoration';
 import { useUserRole } from '@/lib/useUserRole';
 import { useAuth } from '@/lib/AuthContext';
@@ -99,6 +100,7 @@ export default function AppLayout() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <ScrollRestorer />
+      <SystemHealthBanner />
       <ConnectivityBanner />
       <RoleSimulatorBanner />
       <DemoBanner />

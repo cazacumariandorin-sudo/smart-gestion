@@ -100,7 +100,7 @@ export const HUBS = [
       { label: 'Gestión Gastos', path: '/notas-gastos?vista=admin', icon: ClipboardCheck, module: 'notas-gastos', roles: ['admin', 'gerencia', 'director_comercial'] },
       { label: 'Pedidos', path: '/orders', icon: CreditCard, module: 'orders' },
       { label: 'Nóminas', path: '/nominas', icon: Banknote, module: 'nominas' },
-      { label: 'Presupuestos', path: '/presupuestos', icon: FileText, module: 'economico' },
+      { label: 'Presupuestos', path: '/presupuestos', icon: FileText, module: 'presupuestos' },
       { label: 'Datos sensibles', path: '/datos-sensibles', icon: Lock, module: 'users' },
     ],
   },

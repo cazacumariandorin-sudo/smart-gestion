@@ -1,0 +1,131 @@
+{
+  "name": "SystemHealthCheck",
+  "type": "object",
+  "properties": {
+    "fecha_ejecucion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que se ejecut\u00f3 esta comprobaci\u00f3n"
+    },
+    "tipo_ejecucion": {
+      "type": "string",
+      "enum": [
+        "programada",
+        "manual"
+      ],
+      "description": "Si fue el cron de las 6:00 o una comprobaci\u00f3n pedida por Gerencia"
+    },
+    "solicitada_por_email": {
+      "type": "string",
+      "description": "Email de quien pidi\u00f3 la comprobaci\u00f3n manual"
+    },
+    "estado_global": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "error",
+        "en_progreso"
+      ],
+      "description": "Resultado consolidado de toda la comprobaci\u00f3n"
+    },
+    "modulos_prioritarios_resultado": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "modulo": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error"
+            ]
+          },
+          "detalle_error": {
+            "type": "string"
+          },
+          "tiempo_respuesta_ms": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "modulos_secundarios_resultado": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "modulo": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error"
+            ]
+          },
+          "detalle_error": {
+            "type": "string"
+          },
+          "tiempo_respuesta_ms": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "resumen_error": {
+      "type": "string",
+      "description": "Texto corto para mostrar en el banner rojo"
+    },
+    "reconocida_por_gerencia": {
+      "type": "boolean",
+      "default": false
+    },
+    "reconocida_fecha": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reconocida_por_email": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "fecha_ejecucion",
+    "tipo_ejecucion",
+    "estado_global"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "gerencia"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
