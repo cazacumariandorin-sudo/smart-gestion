@@ -3,6 +3,8 @@
  * Muestra cuadrícula mensual con registros diarios + panel de detalle inline + formulario de apunte
  */
 import { useState, useMemo } from 'react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isSameMonth, isToday, format, getDay, parseISO, isWithinInterval,
@@ -206,6 +208,7 @@ function PanelDetalle({ day, registros, obras, onClose, onSaveApunte }) {
 
 // ── Calendario mensual principal ──────────────────────────────────────────────
 export default function CalendarioObras({ previsiones, month, onMonthChange, obras }) {
+  const isMobile = useIsMobile();
   const [selectedDay, setSelectedDay] = useState(null);
   const [extraRegistros, setExtraRegistros] = useState([]); // apuntes añadidos inline
 
@@ -375,15 +378,36 @@ export default function CalendarioObras({ previsiones, month, onMonthChange, obr
         })}
       </div>
 
-      {/* Panel de detalle inline */}
-      {selectedDay && (
-        <PanelDetalle
-          day={selectedDay}
-          registros={panelFinal}
-          obras={obras}
-          onClose={() => setSelectedDay(null)}
-          onSaveApunte={handleSaveApunte}
-        />
+      {/* Panel de detalle — Sheet en móvil, inline en desktop */}
+      {isMobile ? (
+        <Sheet open={!!selectedDay} onOpenChange={(open) => !open && setSelectedDay(null)}>
+          <SheetContent side="bottom" className="h-[85vh] overflow-y-auto p-0">
+            <SheetHeader className="px-4 pt-4 pb-2 border-b">
+              <SheetTitle className="text-sm capitalize">
+                {selectedDay && format(selectedDay, "EEEE d 'de' MMMM yyyy", { locale: es })}
+              </SheetTitle>
+            </SheetHeader>
+            {selectedDay && (
+              <PanelDetalle
+                day={selectedDay}
+                registros={panelFinal}
+                obras={obras}
+                onClose={() => setSelectedDay(null)}
+                onSaveApunte={handleSaveApunte}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
+      ) : (
+        selectedDay && (
+          <PanelDetalle
+            day={selectedDay}
+            registros={panelFinal}
+            obras={obras}
+            onClose={() => setSelectedDay(null)}
+            onSaveApunte={handleSaveApunte}
+          />
+        )
       )}
     </div>
   );

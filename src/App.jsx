@@ -242,7 +242,7 @@ function AnimatedRoutes() {
             <Route path="/vinculacion" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><VinculacionPage /></Suspense></ProtectedRoute>} />
             <Route path="/analisis-seguridad" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><AnalisisSeguridad /></Suspense></ProtectedRoute>} />
             <Route path="/nominas" element={<ProtectedRoute module="nominas"><Suspense fallback={<PageLoader />}><Nominas /></Suspense></ProtectedRoute>} />
-            <Route path="/presupuestos" element={<ProtectedRoute module="economico"><Suspense fallback={<PageLoader />}><Presupuestos /></Suspense></ProtectedRoute>} />
+            <Route path="/presupuestos" element={<ProtectedRoute module="presupuestos"><Suspense fallback={<PageLoader />}><Presupuestos /></Suspense></ProtectedRoute>} />
             <Route path="/sistema/reglas-de-oro" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><ReglasDeOro /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
