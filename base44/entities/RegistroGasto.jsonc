@@ -28,6 +28,7 @@
         "combustible",
         "peaje",
         "parking",
+        "comida",
         "otros"
       ],
       "type": "string"
@@ -160,6 +161,11 @@
         "tarjeta_empresa",
         "sepa"
       ]
+    },
+    "ia_no_disponible": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si la IA no pudo extraer datos del ticket al crear el registro \u2014 \u00fatil para auditor\u00eda"
     }
   },
   "required": [

@@ -34,7 +34,6 @@ const defaultForm = {
   justificacion_tardia: '',
 };
 
-/** Genera un número de registro real consultando cuántos existen este año */
 async function generarNumeroNota() {
   const now = new Date();
   const year = now.getFullYear();
@@ -45,17 +44,15 @@ async function generarNumeroNota() {
       return fecha && new Date(fecha).getFullYear() === year;
     });
     const seq = esteAnio.length + 1;
-    const numero_nota = `REG-${year}-${String(seq).padStart(4, '0')}`;
-    return { numero_nota, numero_secuencia: seq };
+    return { numero_nota: `REG-${year}-${String(seq).padStart(4, '0')}`, numero_secuencia: seq };
   } catch {
-    // Fallback: usar timestamp como secuencia única
     const ts = Date.now() % 100000;
     return { numero_nota: `REG-${year}-${ts}`, numero_secuencia: ts };
   }
 }
 
 export default function NotaGastoForm({ open, onClose, onCreated, operario, isAdmin = false, operarios = [] }) {
-  const [paso, setPaso] = useState('captura'); // captura | formulario
+  const [paso, setPaso] = useState('captura');
   const [form, setForm] = useState(defaultForm);
   const [archivos, setArchivos] = useState([]);
   const [ocrRaw, setOcrRaw] = useState('');
@@ -64,10 +61,12 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [posibleDup, setPosibleDup] = useState(null);
   const [operarioSeleccionado, setOperarioSeleccionado] = useState(null);
   const [showObraModal, setShowObraModal] = useState(false);
+  const [iaNoDispo, setIaNoDispo] = useState(false);
+  const [confirmadoSinIA, setConfirmadoSinIA] = useState(false);
+  const [showConfirmSinIA, setShowConfirmSinIA] = useState(false);
   const [pendingSave, setPendingSave] = useState(false);
   const { user } = useAuth();
 
-  // Reset al abrir/cerrar
   useEffect(() => {
     if (open) {
       setPaso('captura');
@@ -79,27 +78,18 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       setOperarioSeleccionado(null);
       setShowObraModal(false);
       setPendingSave(false);
+      setIaNoDispo(false);
+      setConfirmadoSinIA(false);
+      setShowConfirmSinIA(false);
     }
   }, [open]);
 
-  // Autoload operario for operario/control_horario roles
   useEffect(() => {
     if (!user?.email) return;
     if (user.role !== 'operario' && user.role !== 'control_horario') return;
-    
     base44.entities.Operario
       .filter({ user_email: user.email })
-      .then(operarios => {
-        if (operarios.length > 0) {
-          const op = operarios[0];
-          if (!operario) {
-            // Si no hay operario prop (modo admin), usar el encontrado
-            // Esto es solo para usuarios con rol operario que están creando gastos personales
-          }
-        } else {
-          console.warn('No Operario record linked to user:', user.email);
-        }
-      })
+      .then(ops => { if (ops.length === 0) console.warn('No Operario record linked to user:', user.email); })
       .catch(() => {});
   }, [user?.email, user?.role]);
 
@@ -111,11 +101,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     (payload) => base44.entities.RegistroGasto.create(payload),
     'notas_gasto',
     (prev, payload) => [{ id: `optimistic-${Date.now()}`, ...payload }, ...prev],
-    (data) => {
-      toast.success(`Registro ${data?.numero_nota || ''} creado`);
-      onCreated?.();
-      onClose();
-    },
+    (data) => { toast.success(`Registro ${data?.numero_nota || ''} creado`); onCreated?.(); onClose(); },
     (err) => toast.error('Error al crear registro: ' + err.message)
   );
 
@@ -127,16 +113,16 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  // Calcular si es gasto tardío (más de 30 días de antigüedad)
   const esGastoTardio = useMemo(() => {
     if (!form.fecha_documento) return false;
     const hoy = new Date();
     const fechaTicket = new Date(form.fecha_documento);
-    const diferenciaDias = Math.floor((hoy - fechaTicket) / (1000 * 60 * 60 * 24));
-    return diferenciaDias > 30;
+    return Math.floor((hoy - fechaTicket) / (1000 * 60 * 60 * 24)) > 30;
   }, [form.fecha_documento]);
 
-  const handleTicketDone = ({ file_url, archivo, ocrDatos }) => {
+  const handleTicketDone = ({ file_url, archivo, ocrDatos, ia_no_disponible }) => {
+    setIaNoDispo(!!ia_no_disponible);
+    setConfirmadoSinIA(false);
     setArchivos([archivo]);
     if (ocrDatos.ocr_raw) setOcrRaw(ocrDatos.ocr_raw);
     if (ocrDatos.concepto) setField('concepto', ocrDatos.concepto);
@@ -148,7 +134,9 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     if (ocrDatos.codigo_validacion_fiscal) setField('codigo_validacion_fiscal', ocrDatos.codigo_validacion_fiscal);
     setTicketPreview(file_url);
     setPaso('formulario');
-    if (Object.keys(ocrDatos).length > 0) {
+    if (ia_no_disponible) {
+      toast.warning('IA no disponible — revisa los datos manualmente antes de guardar');
+    } else if (Object.keys(ocrDatos).length > 0) {
       toast.success('Datos extraídos del ticket — revisa antes de guardar');
     } else {
       toast.warning('No se pudieron extraer datos automáticamente del ticket');
@@ -156,16 +144,12 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   };
 
   const checkDuplicado = () => {
-    // Prioridad 1: Si hay código QR/fiscal, buscar duplicado exacto por ese código
     if (form.codigo_validacion_fiscal) {
       const dupPorQr = notasExistentes.find(n =>
-        n.codigo_validacion_fiscal === form.codigo_validacion_fiscal &&
-        n.estado !== 'rechazada'
+        n.codigo_validacion_fiscal === form.codigo_validacion_fiscal && n.estado !== 'rechazada'
       );
       if (dupPorQr) return { ...dupPorQr, esDuplicadoFiscal: true };
     }
-    
-    // Prioridad 2: Firma compuesta tradicional (NIF + Importe + Fecha + 1 min)
     if (!form.fecha_documento || !form.nombre_comercio || !form.importe) return null;
     return notasExistentes.find(n =>
       n.fecha_documento === form.fecha_documento &&
@@ -182,11 +166,9 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       setShowDupAlert(true);
       return;
     }
-
     const { numero_nota, numero_secuencia } = await generarNumeroNota();
     const hoy = format(new Date(), 'yyyy-MM-dd');
     const conceptoFinal = esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto del mes anterior'}` : form.concepto;
-
     createMutation.mutate({
       numero_nota,
       numero_secuencia,
@@ -211,6 +193,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null,
       es_posible_duplicado: !!dup,
       duplicado_confirmado: !!posibleDup,
+      ia_no_disponible: iaNoDispo,
       ...extraFields,
     });
   };
@@ -228,14 +211,16 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       toast.error('Debes justificar por qué este gasto se registra con retraso');
       return;
     }
-
-    // Si no hay obra asignada, mostrar modal bloqueante
+    // Si IA no disponible y no ha confirmado → mostrar AlertDialog bloqueante
+    if (iaNoDispo && !confirmadoSinIA) {
+      setShowConfirmSinIA(true);
+      return;
+    }
     if (!form.obra_id) {
       setPendingSave(true);
       setShowObraModal(true);
       return;
     }
-
     doGuardar();
   };
 
@@ -243,61 +228,36 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     setForm(f => ({ ...f, obra_id, obra_name, obra_tipo }));
     setShowObraModal(false);
     setPendingSave(false);
-    
-    // Validar que tenemos operario_id
-    if (!operarioEfectivo?.id) {
-      toast.error('No hay operario vinculado a tu usuario. Contacta con administración.');
-      return;
-    }
-    
-    // Validar justificación si es tardío
-    if (esGastoTardio && !form.justificacion_tardia?.trim()) {
-      toast.error('Debes justificar por qué este gasto se registra con retraso');
-      return;
-    }
-    
-    // Guardar con la obra asignada directamente
+    if (!operarioEfectivo?.id) { toast.error('No hay operario vinculado.'); return; }
+    if (esGastoTardio && !form.justificacion_tardia?.trim()) { toast.error('Debes justificar el retraso.'); return; }
     const dup = checkDuplicado();
     const { numero_nota, numero_secuencia } = await generarNumeroNota();
     const hoy = format(new Date(), 'yyyy-MM-dd');
     const conceptoFinal = esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto del mes anterior'}` : form.concepto;
     createMutation.mutate({
-      numero_nota,
-      numero_secuencia,
+      numero_nota, numero_secuencia,
       operario_id: operarioEfectivo.id,
       operario_name: operarioEfectivo.name || operarioEfectivo.full_name,
-      categoria: form.categoria,
-      concepto: conceptoFinal,
+      categoria: form.categoria, concepto: conceptoFinal,
       importe: parseFloat(form.importe),
-      nif_comercio: form.nif_comercio,
-      nombre_comercio: form.nombre_comercio,
-      fecha_documento: form.fecha_documento || hoy,
-      fecha_creacion_real: hoy,
-      obra_id,
-      obra_name,
-      obra_tipo,
-      estado: 'pendiente',
-      archivos,
-      ocr_raw: ocrRaw,
-      ocr_status: ocrRaw ? 'procesado' : 'pendiente',
+      nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio,
+      fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy,
+      obra_id, obra_name, obra_tipo,
+      estado: 'pendiente', archivos,
+      ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'pendiente',
       codigo_validacion_fiscal: form.codigo_validacion_fiscal || null,
       es_gasto_tardio: esGastoTardio,
       justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null,
-      es_posible_duplicado: !!dup,
-      duplicado_confirmado: false,
-      aviso_obra_mostrado: true,
-      sin_obra: false,
+      es_posible_duplicado: !!dup, duplicado_confirmado: false,
+      ia_no_disponible: iaNoDispo,
+      aviso_obra_mostrado: true, sin_obra: false,
     });
   };
 
   const handleContinuarSinObra = () => {
     setShowObraModal(false);
     setPendingSave(false);
-    doGuardar({
-      sin_obra: true,
-      sin_obra_timestamp: new Date().toISOString(),
-      aviso_obra_mostrado: true,
-    });
+    doGuardar({ sin_obra: true, sin_obra_timestamp: new Date().toISOString(), aviso_obra_mostrado: true });
   };
 
   return (
@@ -315,45 +275,59 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
             </DialogTitle>
           </DialogHeader>
 
-          {/* PASO 1: CAPTURA */}
           {paso === 'captura' && (
-            <TicketCapture
-              onDone={handleTicketDone}
-              onSkip={() => setPaso('formulario')}
-            />
+            <TicketCapture onDone={handleTicketDone} onSkip={() => setPaso('formulario')} />
           )}
 
-          {/* PASO 2: FORMULARIO */}
           {paso === 'formulario' && (
-            <div className="space-y-4 py-2 relative">
-              {/* Selector de operario — solo admins */}
+            <div className="space-y-4 py-2">
+              {/* Banner IA no disponible */}
+              {iaNoDispo && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg">
+                  <div className="flex items-start gap-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Extracción automática no disponible</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                        Los campos no se han pre-rellenado. Revisa y completa todos los datos manualmente antes de guardar.
+                      </p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={confirmadoSinIA}
+                      onChange={e => setConfirmadoSinIA(e.target.checked)}
+                      className="rounded border-amber-400"
+                    />
+                    <span className="text-xs font-medium text-amber-800 dark:text-amber-300">He revisado y completado todos los datos manualmente</span>
+                  </label>
+                </div>
+              )}
+
+              {/* Selector operario — solo admins */}
               {isAdmin && operarios.length > 0 && (
                 <div className="space-y-1.5 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
                   <Label className="text-xs flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
                     <UserCheck className="w-3.5 h-3.5" /> Asignar a operario
                   </Label>
-                  <MobileSelect
-                    value={operarioSeleccionado || ''}
-                    onValueChange={v => setOperarioSeleccionado(v || null)}
-                    placeholder={`${operario?.name || 'Operario propio'} (por defecto)`}
-                  >
+                  <MobileSelect value={operarioSeleccionado || ''} onValueChange={v => setOperarioSeleccionado(v || null)} placeholder={`${operario?.name || 'Operario propio'} (por defecto)`}>
                     {operarios.filter(op => op.active !== false).map(op => (
                       <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
                     ))}
                   </MobileSelect>
-                  {operarioSeleccionado && (
-                    <p className="text-xs text-blue-600">✓ En nombre de: <strong>{operarioEfectivo?.name}</strong></p>
-                  )}
+                  {operarioSeleccionado && <p className="text-xs text-blue-600">✓ En nombre de: <strong>{operarioEfectivo?.name}</strong></p>}
                 </div>
               )}
 
-              {/* Thumbnail ticket + opción de repetir */}
+              {/* Thumbnail ticket */}
               {ticketPreview ? (
                 <div className="flex items-center gap-3 p-2 bg-muted/40 rounded-lg border">
                   <img src={ticketPreview} alt="ticket" className="w-14 h-14 object-cover rounded-lg border shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate">{archivos[0]?.nombre || 'Ticket'}</p>
                     {ocrRaw && <p className="text-xs text-green-600">✓ Datos extraídos automáticamente</p>}
+                    {iaNoDispo && <p className="text-xs text-amber-600">⚠ Sin extracción automática</p>}
                   </div>
                   <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => setPaso('captura')}>
                     <RefreshCw className="w-3.5 h-3.5" />
@@ -363,16 +337,6 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
                 <Button variant="outline" size="sm" className="gap-1.5 w-full" onClick={() => setPaso('captura')}>
                   <Image className="w-3.5 h-3.5" /> Añadir imagen del ticket
                 </Button>
-              )}
-
-              {archivos.length > 1 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {archivos.slice(1).map((a, i) => (
-                    <span key={i} className="inline-flex items-center gap-1 bg-accent text-accent-foreground text-xs px-2 py-1 rounded-full">
-                      <FileCheck className="w-3 h-3" /> {a.nombre}
-                    </span>
-                  ))}
-                </div>
               )}
 
               {/* Fecha documento */}
@@ -442,14 +406,13 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
                     <Clock className="w-3.5 h-3.5" /> Gasto con más de 30 días
                   </Label>
                   <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
-                    Este gasto se registrará como "pendiente de contabilizar". Explica brevemente el motivo del retraso.
+                    Este gasto se registrará como "pendiente de contabilizar". Explica el motivo del retraso.
                   </p>
                   <Input
                     placeholder="Ej: Olvidé subir el ticket del mes pasado..."
                     value={form.justificacion_tardia}
                     onChange={e => setField('justificacion_tardia', e.target.value)}
                     className="border-amber-300 focus:border-amber-500"
-                    required
                   />
                 </div>
               )}
@@ -474,35 +437,47 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         onContinuarSinObra={handleContinuarSinObra}
       />
 
+      {/* AlertDialog bloqueante — IA no disponible sin confirmación */}
+      <AlertDialog open={showConfirmSinIA} onOpenChange={setShowConfirmSinIA}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Datos sin verificación automática
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              La IA no pudo extraer datos de este ticket. Los campos pueden estar incompletos o incorrectos.<br /><br />
+              <strong>¿Confirmas que has revisado y completado todos los campos manualmente?</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowConfirmSinIA(false)}>Volver a revisar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmadoSinIA(true); setShowConfirmSinIA(false); handleSubmit(); }}>
+              Sí, he revisado los datos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Alerta duplicado */}
       <AlertDialog open={showDupAlert} onOpenChange={setShowDupAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" /> 
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
               {posibleDup?.esDuplicadoFiscal ? 'Duplicado exacto detectado (QR)' : 'Posible duplicado detectado'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {posibleDup?.esDuplicadoFiscal ? (
-                <>
-                  Este ticket tiene el <strong>mismo código de validación fiscal (QR)</strong> que un registro existente:<br />
-                  <strong>{posibleDup?.numero_nota}</strong> — {posibleDup?.concepto}<br />
-                  <span className="text-xs text-red-600 mt-1 block">⚠️ Los códigos QR son únicos por transacción. ¿Estás seguro de que no es un duplicado?</span>
-                </>
+                <>Este ticket tiene el <strong>mismo código QR fiscal</strong> que <strong>{posibleDup?.numero_nota}</strong>.<br /><span className="text-xs text-red-600">⚠️ Los códigos QR son únicos por transacción.</span></>
               ) : (
-                <>
-                  Ya existe un registro con el mismo día, comercio e importe:<br />
-                  <strong>{posibleDup?.numero_nota}</strong> — {posibleDup?.concepto}<br />
-                  ¿Confirmas que este gasto es diferente?
-                </>
+                <>Ya existe un registro con el mismo día, comercio e importe:<br /><strong>{posibleDup?.numero_nota}</strong> — {posibleDup?.concepto}<br />¿Confirmas que este gasto es diferente?</>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => { setPosibleDup(null); setShowDupAlert(false); }}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setShowDupAlert(false); handleSubmit(); }}>
-              Sí, continuar
-            </AlertDialogAction>
+            <AlertDialogAction onClick={() => { setShowDupAlert(false); handleSubmit(); }}>Sí, continuar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,54 +1,50 @@
 /**
  * TicketCapture — paso 1 del flujo de creación de registro de gasto.
- * Detecta si es móvil/tablet y ofrece opciones adaptadas.
- * En móvil: "Hacer foto" (cámara directa) y "Subir desde galería".
- * En escritorio: "Capturar con webcam" (getUserMedia) y "Subir archivo".
- * Tras captura/subida, llama a onDone({ file_url, archivo, ocrDatos }).
+ *
+ * FLUJO OCR:
+ * 1. Captura/subida de imagen (cámara, galería, webcam, archivo)
+ * 2. Subida a Google Drive (si disponible)
+ * 3. FASE 1 OCR: extracción de texto bruto del documento
+ * 4. FASE 2 IA: análisis y estructuración de los datos OCR
+ *
+ * Si la IA (fase 2) no está disponible, se pasa ia_no_disponible: true
+ * al formulario para que muestre el aviso y pida confirmación al usuario.
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Camera, Upload, Image, SkipForward, Loader2, CheckCircle2, AlertCircle, RefreshCw, ScanLine } from 'lucide-react';
+import { Camera, Upload, Image, SkipForward, Loader2, CheckCircle2, AlertCircle, RefreshCw, ScanLine, FileSearch, Brain, AlertTriangle } from 'lucide-react';
 
 const isMobile = () => 'ontouchstart' in window || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
 export default function TicketCapture({ onDone, onSkip }) {
-  const [estado, setEstado] = useState('idle'); // idle | uploading | ocr | ok | error | webcam
+  const [estado, setEstado] = useState('idle'); // idle | uploading | ocr | ia | ok | sin_ia | error | webcam
   const [mensaje, setMensaje] = useState('');
   const [preview, setPreview] = useState(null);
   const [stream, setStream] = useState(null);
-  const [permisoCamara, setPermisoCamara] = useState('indeterminado'); // 'concedido' | 'denegado' | 'indeterminado'
+  const [permisoCamara, setPermisoCamara] = useState('indeterminado');
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // Detectar permisos de cámara al montar
   useEffect(() => {
     const checkPermiso = async () => {
       try {
-        if (!navigator.permissions) {
-          setPermisoCamara('indeterminado');
-          return;
-        }
+        if (!navigator.permissions) { setPermisoCamara('indeterminado'); return; }
         const result = await navigator.permissions.query({ name: 'camera' });
         setPermisoCamara(result.state);
         result.onchange = () => setPermisoCamara(result.state);
-      } catch {
-        setPermisoCamara('indeterminado');
-      }
+      } catch { setPermisoCamara('indeterminado'); }
     };
     checkPermiso();
   }, []);
-
 
   const procesarArchivo = useCallback(async (file) => {
     setEstado('uploading');
     setMensaje('Subiendo ticket...');
     setPreview(URL.createObjectURL(file));
     try {
-      // Convert file to base64
+      // 1. Convertir a base64
       const base64 = await fileToBase64(file);
-
-      // Intentar subir a Google Drive
       let file_url = null;
       let driveOk = false;
       let archivo = {
@@ -59,6 +55,7 @@ export default function TicketCapture({ onDone, onSkip }) {
         storage: 'local',
       };
 
+      // 2. Subir a Drive
       try {
         const res = await base44.functions.invoke('uploadFileToGdrive', {
           file: base64,
@@ -76,35 +73,73 @@ export default function TicketCapture({ onDone, onSkip }) {
         };
       } catch { /* Drive no disponible */ }
 
-      setEstado('ocr');
-      setMensaje(driveOk ? 'Extrayendo datos con IA...' : 'Imagen guardada (sin extracción automática — sin conexión a Drive)');
+      // 3. OCR + IA (2 fases)
       let ocrDatos = {};
-      if (driveOk) {
+      let ia_no_disponible = false;
+      let ocr_texto_bruto = '';
+
+      if (driveOk && file_url) {
+        setEstado('ocr');
+        setMensaje('Leyendo documento (OCR)...');
         try {
-          const ocrRes = await base44.functions.invoke('procesarOcrNota', { file_url, file_tipo: file.type });
-          if (ocrRes.data?.success && ocrRes.data?.datos) ocrDatos = ocrRes.data.datos;
-        } catch { /* OCR no disponible — continuar sin datos */ }
+          const ocrRes = await base44.functions.invoke('procesarOcrNota', {
+            file_url,
+            file_tipo: file.type,
+          });
+          const resultado = ocrRes.data;
+
+          if (resultado?.ocr_disponible || resultado?.datos?.ocr_raw) {
+            ocr_texto_bruto = resultado?.datos?.ocr_raw || '';
+          }
+
+          if (resultado?.ia_disponible && resultado?.datos) {
+            setEstado('ia');
+            setMensaje('Analizando con IA...');
+            await new Promise(r => setTimeout(r, 600));
+            ocrDatos = resultado.datos;
+            ia_no_disponible = false;
+          } else if (resultado?.ocr_disponible === false && !resultado?.ia_disponible) {
+            ia_no_disponible = true;
+          } else {
+            ia_no_disponible = true;
+            ocrDatos = resultado?.datos || {};
+          }
+        } catch {
+          ia_no_disponible = true;
+        }
+      } else {
+        ia_no_disponible = true;
       }
 
-      setEstado('ok');
-      setMensaje(driveOk ? 'Imagen procesada' : 'Imagen guardada localmente');
-      onDone({ file_url: file_url || base64, archivo, ocrDatos });
+      if (ia_no_disponible) {
+        setEstado('sin_ia');
+        setMensaje('IA no disponible — revisa los datos manualmente');
+      } else {
+        setEstado('ok');
+        setMensaje(`Datos extraídos (confianza: ${ocrDatos.confianza || 'media'})`);
+      }
+
+      onDone({
+        file_url: file_url || base64,
+        archivo,
+        ocrDatos,
+        ia_no_disponible,
+        ocr_texto_bruto,
+      });
     } catch (e) {
       setEstado('error');
       setMensaje('Error al procesar el ticket: ' + (e.message || ''));
     }
   }, [onDone]);
 
-  const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
-  };
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
 
-  // ── WEBCAM ──
+  // WEBCAM
   const startWebcam = async () => {
     setEstado('webcam');
     try {
@@ -147,13 +182,12 @@ export default function TicketCapture({ onDone, onSkip }) {
 
   const mobile = isMobile();
 
-  // ── WEBCAM VIEW ──
+  // WEBCAM VIEW
   if (estado === 'webcam') {
     return (
       <div className="space-y-3">
         <div className="relative w-full rounded-xl border bg-black overflow-hidden">
           <video ref={videoRef} autoPlay playsInline className="w-full aspect-video object-cover" />
-          {/* Guía de encuadre */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute inset-8 border-2 border-white/50 rounded-lg">
               <div className="absolute top-0 left-1/4 w-1/2 h-4 border-t-4 border-l-4 border-r-4 border-primary rounded-t-lg" />
@@ -163,7 +197,7 @@ export default function TicketCapture({ onDone, onSkip }) {
             </div>
             <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full flex items-center gap-1.5">
               <ScanLine className="w-3 h-3" />
-              Encuarda el documento dentro del marco
+              Encuadra el documento dentro del marco
             </div>
           </div>
         </div>
@@ -178,18 +212,49 @@ export default function TicketCapture({ onDone, onSkip }) {
     );
   }
 
-  // ── PROCESANDO ──
-  if (estado === 'uploading' || estado === 'ocr') {
+  // PROCESANDO
+  if (estado === 'uploading' || estado === 'ocr' || estado === 'ia') {
+    const iconos = {
+      uploading: <Loader2 className="w-8 h-8 text-primary animate-spin" />,
+      ocr: <FileSearch className="w-8 h-8 text-blue-500 animate-pulse" />,
+      ia: <Brain className="w-8 h-8 text-purple-500 animate-pulse" />,
+    };
     return (
       <div className="flex flex-col items-center gap-3 py-8">
         {preview && <img src={preview} alt="ticket" className="w-32 h-32 object-cover rounded-xl border shadow" />}
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        {iconos[estado]}
         <p className="text-sm font-medium text-primary">{mensaje}</p>
+        <div className="flex gap-1.5 text-xs text-muted-foreground">
+          <span className={estado === 'uploading' ? 'font-bold text-primary' : 'opacity-40'}>① Subida</span>
+          <span className="opacity-40">→</span>
+          <span className={estado === 'ocr' ? 'font-bold text-blue-500' : 'opacity-40'}>② OCR</span>
+          <span className="opacity-40">→</span>
+          <span className={estado === 'ia' ? 'font-bold text-purple-500' : 'opacity-40'}>③ IA</span>
+        </div>
       </div>
     );
   }
 
-  // ── OK ──
+  // SIN IA
+  if (estado === 'sin_ia') {
+    return (
+      <div className="flex flex-col items-center gap-3 py-4">
+        {preview && <img src={preview} alt="ticket" className="w-32 h-32 object-cover rounded-xl border shadow" />}
+        <div className="flex items-center gap-2 text-amber-600">
+          <AlertTriangle className="w-5 h-5" />
+          <span className="text-sm font-medium">IA no disponible</span>
+        </div>
+        <p className="text-xs text-muted-foreground text-center px-4">
+          El ticket se ha subido pero no se pudieron extraer datos automáticamente. Revisa y rellena los campos manualmente.
+        </p>
+        <Button variant="outline" size="sm" onClick={reset} className="gap-1.5">
+          <RefreshCw className="w-3.5 h-3.5" /> Reintentar
+        </Button>
+      </div>
+    );
+  }
+
+  // OK
   if (estado === 'ok') {
     return (
       <div className="flex flex-col items-center gap-3 py-4">
@@ -205,7 +270,7 @@ export default function TicketCapture({ onDone, onSkip }) {
     );
   }
 
-  // ── ERROR ──
+  // ERROR
   if (estado === 'error') {
     return (
       <div className="flex flex-col items-center gap-3 py-4">
@@ -216,12 +281,11 @@ export default function TicketCapture({ onDone, onSkip }) {
     );
   }
 
-  // ── IDLE ──
+  // IDLE
   return (
     <div className="space-y-3">
       <p className="text-sm font-semibold text-center text-muted-foreground">Captura el ticket o factura</p>
 
-      {/* Banner de permisos */}
       {permisoCamara === 'denegado' && (
         <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
@@ -234,21 +298,13 @@ export default function TicketCapture({ onDone, onSkip }) {
 
       {mobile ? (
         <div className="grid grid-cols-2 gap-3">
-          {/* Cámara directa — label nativo para compatibilidad iOS/Android dentro de Dialog */}
-          <label
-            htmlFor="ticket-camera-input"
-            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer"
-          >
+          <label htmlFor="ticket-camera-input" className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer">
             <Camera className="w-8 h-8 text-primary" />
             <span className="text-xs font-semibold text-primary">Hacer foto</span>
           </label>
           <input id="ticket-camera-input" type="file" accept="image/*" capture="environment" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) procesarArchivo(f); e.target.value = ''; }} />
 
-          {/* Galería */}
-          <label
-            htmlFor="ticket-gallery-input"
-            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-accent/30 transition-colors cursor-pointer"
-          >
+          <label htmlFor="ticket-gallery-input" className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-accent/30 transition-colors cursor-pointer">
             <Image className="w-8 h-8 text-muted-foreground" />
             <span className="text-xs font-semibold text-muted-foreground">Galería</span>
           </label>
@@ -256,21 +312,13 @@ export default function TicketCapture({ onDone, onSkip }) {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          {/* Webcam */}
-          <button
-            onClick={startWebcam}
-            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors"
-          >
+          <button onClick={startWebcam} className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors">
             <Camera className="w-8 h-8 text-primary" />
             <span className="text-xs font-semibold text-primary">Capturar con webcam</span>
           </button>
           <canvas ref={canvasRef} className="hidden" />
 
-          {/* Subir archivo */}
-          <label
-            htmlFor="desktop-file-input"
-            className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-accent/30 transition-colors cursor-pointer"
-          >
+          <label htmlFor="desktop-file-input" className="flex flex-col items-center gap-2 p-5 rounded-xl border-2 border-dashed border-border hover:border-primary/40 hover:bg-accent/30 transition-colors cursor-pointer">
             <Upload className="w-8 h-8 text-muted-foreground" />
             <span className="text-xs font-semibold text-muted-foreground">Subir archivo</span>
           </label>
