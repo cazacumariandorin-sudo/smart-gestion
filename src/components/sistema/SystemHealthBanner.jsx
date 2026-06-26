@@ -47,10 +47,10 @@ export default function SystemHealthBanner() {
 
   if (!esGerencia || !ultimoCheck) return null;
 
-  const esOk = ultimoCheck.estado_global === 'ok';
   const yaReconocido = ultimoCheck.reconocida_por_gerencia;
+  if (yaReconocido || dismissedLocal) return null;
 
-  if (esOk && (yaReconocido || dismissedLocal)) return null;
+  const esOk = ultimoCheck.estado_global === 'ok';
 
   return (
     <div className={`fixed top-0 left-0 right-0 z-[60] px-4 py-2.5 shadow text-white ${
@@ -83,16 +83,15 @@ export default function SystemHealthBanner() {
             <RefreshCw className={`w-3 h-3 mr-1 ${comprobarAhoraMutation.isPending ? 'animate-spin' : ''}`} />
             Comprobar ahora
           </Button>
-          {esOk && (
-            <Button
-              size="sm"
-              className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
-              onClick={() => reconocerMutation.mutate(ultimoCheck.id)}
-            >
-              <X className="w-3 h-3 mr-1" />
-              Entendido
-            </Button>
-          )}
+          <Button
+            size="sm"
+            className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+            onClick={() => reconocerMutation.mutate(ultimoCheck.id)}
+            disabled={reconocerMutation.isPending}
+          >
+            <X className="w-3 h-3 mr-1" />
+            Entendido
+          </Button>
         </div>
       </div>
     </div>
