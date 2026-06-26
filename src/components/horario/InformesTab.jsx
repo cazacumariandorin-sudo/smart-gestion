@@ -71,15 +71,28 @@ export default function InformesTab() {
     ? (operarios.find(o => o.user_email === user?.email) || operarios.find(o => o.email === user?.email))
     : null;
 
-  const filtered = useMemo(() => fichajes.filter(f => {
-    // control_horario y operario solo ven sus propios registros
-    if (isControlHorarioOnly || isOperarioRole) {
-      if (!myOperario || f.operario_id !== myOperario.id) return false;
+  const filtered = useMemo(() => {
+    // 1. Deduplicar por operario_id + date — conservar el que tenga hora_salida o más horas
+    const dedup = {};
+    for (const f of fichajes) {
+      const key = `${f.operario_id}||${f.date}`;
+      const prev = dedup[key];
+      if (!prev) { dedup[key] = f; continue; }
+      const score = (f) => (f.hora_salida ? 2 : 0) + (f.horas_trabajadas > 0 ? 1 : 0) + (f.notas ? 1 : 0);
+      if (score(f) > score(prev)) dedup[key] = f;
     }
-    const mOp = opFilter === 'all' || f.operario_id === opFilter;
-    const mMonth = !monthFilter || f.date?.startsWith(monthFilter);
-    return mOp && mMonth;
-  }), [fichajes, opFilter, monthFilter, isControlHorarioOnly, isOperarioRole, myOperario]);
+    const deduplicated = Object.values(dedup);
+
+    // 2. Filtrar
+    return deduplicated.filter(f => {
+      if (isControlHorarioOnly || isOperarioRole) {
+        if (!myOperario || f.operario_id !== myOperario.id) return false;
+      }
+      const mOp = opFilter === 'all' || f.operario_id === opFilter;
+      const mMonth = !monthFilter || f.date?.startsWith(monthFilter);
+      return mOp && mMonth;
+    });
+  }, [fichajes, opFilter, monthFilter, isControlHorarioOnly, isOperarioRole, myOperario]);
 
   const byOperario = useMemo(() => {
     const map = {};
