@@ -7,16 +7,11 @@ import { Badge } from '@/components/ui/badge';
 export default function TareasButton({ onClick }) {
   const { data: tareas = [], isLoading } = useQuery({
     queryKey: ['tareas_admin_count'],
-    queryFn: () => base44.entities.AsistenteTarea.filter({
-      data: {
-        estado: { $in: ['pendiente', 'en_curso'] },
-        solo_gerencia: true
-      }
-    }),
+    queryFn: () => base44.entities.AsistenteTarea.filter({ estado: 'pendiente' }, '-created_date', 50),
     staleTime: 30000,
   });
 
-  const pendientes = tareas.filter(t => t.data.estado === 'pendiente').length;
+  const pendientes = tareas.filter(t => t.estado === 'pendiente').length;
 
   return (
     <Button

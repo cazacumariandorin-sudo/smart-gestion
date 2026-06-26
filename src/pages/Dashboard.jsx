@@ -134,41 +134,47 @@ export default function Dashboard() {
 
   const [activeHub, setActiveHub] = useState(null);
 
+  const [reloading, setReloading] = useState(false);
+
+  const handleReload = () => {
+    setReloading(true);
+    toast.info('Recargando aplicación…', { id: 'reload', duration: 2000 });
+    setTimeout(() => window.location.reload(), 500);
+  };
+
   const [auditando, setAuditando] = useState(false);
 
   const handleAuditoriaIdentidad = async () => {
     try {
       setAuditando(true);
+      toast.info('Ejecutando auditoría de identidad…', { id: 'auditoria' });
       const res = await base44.functions.invoke('sincronizarTodoElSistema', {});
-      if (res.data.success) {
+      if (res.data?.success) {
         const r = res.data.resumen;
         toast.success('Auditoría completada', {
-          description: `${r.registros_actualizados} registros actualizados · ${r.alertas_obra_huerfana} alertas de obra`
+          id: 'auditoria',
+          description: [
+            r.operarios_normalizados > 0 ? `${r.operarios_normalizados} operarios normalizados` : null,
+            r.ids_generados > 0 ? `${r.ids_generados} IDs generados` : null,
+            r.registros_actualizados > 0 ? `${r.registros_actualizados} registros actualizados` : null,
+            r.alertas_obra_huerfana > 0 ? `⚠ ${r.alertas_obra_huerfana} obras huérfanas` : null,
+          ].filter(Boolean).join(' · ') || 'Sin cambios necesarios',
+          duration: 6000,
+        });
+        queryClient.invalidateQueries();
+      } else {
+        toast.warning('Auditoría sin cambios', {
+          id: 'auditoria',
+          description: res.data?.message || 'El sistema ya estaba sincronizado',
         });
       }
     } catch (error) {
-      toast.error('Error en auditoría', { description: error.message });
+      toast.error('Error en auditoría', {
+        id: 'auditoria',
+        description: error.message?.includes('403') ? 'Solo el administrador puede ejecutar esta función' : error.message,
+      });
     } finally {
       setAuditando(false);
-    }
-  };
-
-  const [auditandoObras, setAuditandoObras] = useState(false);
-
-  const handleAuditoriaObras = async () => {
-    try {
-      setAuditandoObras(true);
-      const res = await base44.functions.invoke('sincronizarObrasEnCaliente', {});
-      if (res.data.success) {
-        const r = res.data.resumen;
-        toast.success('Auditoría de Obras completada', {
-          description: `${r.obras_procesadas} obras · ${r.ids_generados} IDs generados · ${r.duplicados_detectados} duplicados detectados`
-        });
-      }
-    } catch (error) {
-      toast.error('Error en auditoría de obras', { description: error.message });
-    } finally {
-      setAuditandoObras(false);
     }
   };
 
@@ -253,43 +259,32 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAuditoriaIdentidad}
+              disabled={auditando}
+              className="gap-2 h-9 px-3 text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-400"
+              title="Auditoría de Identidad — normaliza operarios y propaga IDs"
+            >
+              <ShieldCheck className={`w-3.5 h-3.5 ${auditando ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{auditando ? 'Auditando...' : 'Auditoría'}</span>
+            </Button>
+          )}
           {isTrioAdmin && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleAuditoriaIdentidad}
-                disabled={auditando}
-                className="gap-2 h-9 px-3 text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-400"
-                title="Ejecutar Auditoría de Identidad (Regla de Oro)"
-              >
-                <ShieldCheck className={`w-3.5 h-3.5 ${auditando ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{auditando ? 'Auditando...' : 'Auditoría'}</span>
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleAuditoriaObras}
-                disabled={auditandoObras}
-                className="gap-2 h-9 px-3 text-purple-700 border-purple-300 hover:bg-purple-50 dark:text-purple-400"
-                title="Ejecutar Auditoría de Obras (IDs y Duplicados)"
-              >
-                <HardHat className={`w-3.5 h-3.5 ${auditandoObras ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{auditandoObras ? 'Auditando...' : 'Obras'}</span>
-              </Button>
-              <TareasButton onClick={() => setPanelTareas(tareasAdmin)} />
-            </>
+            <TareasButton onClick={() => setPanelTareas(tareasAdmin)} />
           )}
           <Button
             size="sm"
             variant="outline"
-            onClick={onRefresh}
-            disabled={refreshing}
+            onClick={handleReload}
+            disabled={reloading}
             className="gap-2 h-9 px-4"
-            title="Actualizar datos"
+            title="Recargar la aplicación completamente"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Actualizar</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${reloading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{reloading ? 'Recargando...' : 'Actualizar'}</span>
           </Button>
           <Badge variant="outline" className={cn('text-xs font-semibold px-2.5 py-1', roleCfg.className)}>{roleCfg.label}</Badge>
         </div>
