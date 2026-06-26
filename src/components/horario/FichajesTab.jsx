@@ -6,7 +6,8 @@ import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { calcularHoras } from '@/lib/horasUtils';
 import { recalcularPrevision } from '@/hooks/useRecalcularPrevision';
 import { useConsolidarJornada } from '@/hooks/useConsolidarJornada';
-import { Plus, Search, Trash2, Pencil, Save, Loader2, Clock, ChevronDown, ChevronUp, ClipboardList } from 'lucide-react';
+import { Plus, Search, Trash2, Pencil, Save, Loader2, Clock, ChevronDown, ChevronUp, ClipboardList, AlertTriangle } from 'lucide-react';
+import DuplicadosFichajesModal from '@/components/horario/DuplicadosFichajesModal';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ export default function FichajesTab() {
   const [form, setForm] = useState(empty);
   const [apuntes, setApuntes] = useState([]); // apuntes del fichaje en edición/creación
   const [expandedId, setExpandedId] = useState(null); // fichaje expandido para ver apuntes
+  const [dupModalOpen, setDupModalOpen] = useState(false);
 
   const { data: fichajes = [], isLoading } = useQuery({ queryKey: ['fichajes'], queryFn: () => base44.entities.Fichaje.list('-date', 500) });
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
@@ -201,6 +203,11 @@ export default function FichajesTab() {
             {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
           </MobileSelect>
         )}
+        {canSeeAll && (
+          <Button variant="outline" onClick={() => setDupModalOpen(true)} className="gap-2 shrink-0 border-amber-300 text-amber-700 hover:bg-amber-50">
+            <AlertTriangle className="w-4 h-4" /> Duplicados
+          </Button>
+        )}
         <Button onClick={() => open_()} className="gap-2 shrink-0">
           <Plus className="w-4 h-4" /> Nuevo Fichaje
         </Button>
@@ -310,6 +317,12 @@ export default function FichajesTab() {
           })}
         </div>
       )}
+
+      <DuplicadosFichajesModal
+        open={dupModalOpen}
+        onOpenChange={setDupModalOpen}
+        fichajes={fichajes}
+      />
 
       {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) close_(); }}>
