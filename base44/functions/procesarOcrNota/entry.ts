@@ -1,11 +1,9 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * OCR en 2 fases para tickets y facturas de gasto.
- *
- * FASE 1 — OCR puro: extrae el texto bruto del documento (imagen/PDF).
- * FASE 2 — Análisis IA: analiza el texto bruto para estructurar los datos.
- * Si FASE 2 falla, devuelve resultado parcial con ia_disponible: false.
+ * procesarOcrNota — 2 fases independientes.
+ * body.fase = 'ocr'  → extrae texto bruto del documento
+ * body.fase = 'ia'   → recibe ocr_raw y estructura los datos
  */
 Deno.serve(async (req) => {
   try {
@@ -13,82 +11,59 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { file_url, file_tipo } = await req.json();
-    if (!file_url) return Response.json({ error: 'file_url requerido' }, { status: 400 });
+    const body = await req.json();
+    const { fase, file_url, ocr_raw } = body;
 
-    if (file_url.startsWith('data:')) {
-      return Response.json({
-        success: false,
-        error: 'La imagen no se subió a almacenamiento accesible. Verifica la conexión a Google Drive.',
-        ia_disponible: false,
-        ocr_disponible: false,
-      }, { status: 422 });
-    }
+    if (!fase) return Response.json({ error: 'fase requerido: ocr | ia' }, { status: 400 });
 
-    // ■■ FASE 1: OCR RAW ■■
-    let ocr_raw = '';
-    let fase1_ok = false;
-    try {
-      const ocr_result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Eres un motor OCR. Tu única tarea es transcribir EXACTAMENTE todo el texto visible en este documento/imagen.
+    if (fase === 'ocr') {
+      if (!file_url) return Response.json({ error: 'file_url requerido' }, { status: 400 });
+      if (file_url.startsWith('data:')) {
+        return Response.json({ success: false, fase: 'ocr', error: 'Imagen no en Drive accesible' }, { status: 422 });
+      }
+
+      const texto = await base44.integrations.Core.InvokeLLM({
+        prompt: `Eres un motor OCR. Transcribe EXACTAMENTE todo el texto visible en este documento, línea por línea.
 REGLAS:
-- Copia el texto tal como aparece, línea por línea, sin reformatear
-- Si ves un código QR o código de barras, escribe su contenido decodificado entre [QR: ...] o [BARCODE: ...]
-- No interpretes, no resumas, no estructures. Solo transcribe.
-- Si hay tablas, represéntalas con espacios o tabulaciones
-Devuelve solo el texto extraído, sin comentarios adicionales.`,
+- Copia el texto tal como aparece, sin reformatear ni interpretar
+- Si ves un código QR o código de barras, escribe su contenido entre [QR: ...] o [BARCODE: ...]
+- Si hay tablas, usa espacios para alinear columnas
+- No resumas, no interpretes, no estructures. Solo transcribe.
+Devuelve únicamente el texto extraído, sin comentarios adicionales.`,
         file_urls: [file_url],
       });
-      ocr_raw = typeof ocr_result === 'string' ? ocr_result : JSON.stringify(ocr_result);
-      fase1_ok = ocr_raw.trim().length > 0;
-    } catch (e) {
-      return Response.json({
-        success: false,
-        error: 'OCR no disponible: ' + e.message,
-        ia_disponible: false,
-        ocr_disponible: false,
-        ocr_raw: '',
-      });
+
+      const textoStr = typeof texto === 'string' ? texto : JSON.stringify(texto);
+      if (!textoStr || textoStr.trim().length < 5) {
+        return Response.json({ success: false, fase: 'ocr', error: 'No se pudo extraer texto legible' });
+      }
+      return Response.json({ success: true, fase: 'ocr', ocr_raw: textoStr.trim() });
     }
 
-    // ■■ FASE 2: ANÁLISIS IA ■■
-    let datos_estructurados = null;
-    let ia_disponible = false;
-    let error_ia = '';
-    try {
-      const ia_result = await base44.integrations.Core.InvokeLLM({
+    if (fase === 'ia') {
+      if (!ocr_raw) return Response.json({ error: 'ocr_raw requerido' }, { status: 400 });
+
+      const resultado = await base44.integrations.Core.InvokeLLM({
         prompt: `Eres un sistema de análisis de facturas y tickets de gasto empresarial en España.
-Se te proporciona el texto extraído por OCR de un documento. Analiza este texto y extrae los datos estructurados.
-Si algo no está claro en el texto OCR, usa también la imagen del documento para confirmarlo.
+Se te proporciona el texto extraído por OCR. Analiza y extrae los datos estructurados.
 
 TEXTO OCR:
 ${ocr_raw}
 
-Devuelve un JSON con esta estructura exacta (usa null para los campos que no puedas determinar):
+Devuelve JSON con esta estructura exacta (null para campos no determinables):
 {
-  "concepto": "descripción del gasto o producto/servicio principal",
+  "concepto": "descripción del gasto",
   "importe": 0.00,
-  "nif_comercio": "NIF o CIF del comercio (sin espacios, ej: B12345678)",
-  "nombre_comercio": "nombre del establecimiento o empresa",
+  "nif_comercio": "NIF/CIF sin espacios",
+  "nombre_comercio": "nombre del establecimiento",
   "fecha_documento": "YYYY-MM-DD",
   "categoria_sugerida": "material|combustible|peaje|parking|comida|otros",
   "confianza": "alta|media|baja",
-  "codigo_validacion_fiscal": "contenido del QR fiscal si existe, o null",
-  "detalles_adicionales": "información relevante adicional o null",
-  "mejoras_aplicadas": "breve descripción de qué corrigió o mejoró la IA respecto al OCR crudo",
-  "ocr_raw": "${ocr_raw.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"
+  "codigo_validacion_fiscal": "contenido QR si existe o null",
+  "mejoras_aplicadas": "qué mejoró la IA respecto al OCR crudo",
+  "campos_inciertos": ["campos con baja confianza"]
 }
-
-Criterios de categoría:
-- material: compras de materiales, herramientas, suministros
-- combustible: gasolineras, carburante, adblue
-- peaje: autopistas, peajes, túneles
-- parking: aparcamientos
-- comida: restaurantes, bares, supermercados (si es para trabajadores en obra)
-- otros: cualquier otro tipo de gasto
-
-Para importe usa número decimal sin símbolo €. Confianza alta = todos los datos claros, media = alguna duda, baja = datos ambiguos.`,
-        file_urls: [file_url],
+Para importe: número decimal sin €. Si hay varios, usa el TOTAL.`,
         response_json_schema: {
           type: 'object',
           properties: {
@@ -100,32 +75,18 @@ Para importe usa número decimal sin símbolo €. Confianza alta = todos los da
             categoria_sugerida: { type: 'string' },
             confianza: { type: 'string' },
             codigo_validacion_fiscal: { type: 'string' },
-            detalles_adicionales: { type: 'string' },
             mejoras_aplicadas: { type: 'string' },
-            ocr_raw: { type: 'string' },
+            campos_inciertos: { type: 'array', items: { type: 'string' } },
           },
         },
       });
-      datos_estructurados = ia_result;
-      // Asegurar que ocr_raw siempre está presente
-      if (datos_estructurados && !datos_estructurados.ocr_raw) {
-        datos_estructurados.ocr_raw = ocr_raw;
-      }
-      ia_disponible = true;
-    } catch (e) {
-      error_ia = e.message;
-      // IA falló pero OCR OK: devolver texto bruto para que el usuario rellene manualmente
-      datos_estructurados = { ocr_raw };
+
+      return Response.json({ success: true, fase: 'ia', datos: resultado });
     }
 
-    return Response.json({
-      success: true,
-      ocr_disponible: fase1_ok,
-      ia_disponible,
-      error_ia: error_ia || undefined,
-      datos: datos_estructurados,
-    });
+    return Response.json({ error: `fase desconocida: ${fase}` }, { status: 400 });
+
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 });
