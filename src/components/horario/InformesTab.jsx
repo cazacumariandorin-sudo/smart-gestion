@@ -3,9 +3,10 @@ import { useUserRole } from '@/lib/useUserRole';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { groupByWeek, groupByMonth } from '@/lib/horasUtils';
-import { Download, BarChart3, User, Calendar, Table } from 'lucide-react';
+import { Download, BarChart3, User, Calendar, Table, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import InformeTableView from './InformeTableView';
+import CalendarioHorarioView from './CalendarioHorarioView';
 import { Card } from '@/components/ui/card';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Input } from '@/components/ui/input';
@@ -55,7 +56,7 @@ function drawTable(doc, headers, rows, startY, margin = 14) {
 }
 
 export default function InformesTab() {
-  const [mode, setMode] = useState('mes'); // 'mes' por defecto para que el operario vea datos útiles
+  const [mode, setMode] = useState('calendario'); // 'mes' por defecto para que el operario vea datos útiles
   const [opFilter, setOpFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
 
@@ -227,12 +228,13 @@ export default function InformesTab() {
       {/* Mode selector always visible */}
       <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-6">
         <MobileSelect value={mode} onValueChange={setMode} placeholder="Vista" triggerClassName="w-full sm:w-44">
+          <MobileSelectItem value="calendario">Calendario</MobileSelectItem>
           <MobileSelectItem value="tabla">Vista Tabla</MobileSelectItem>
           <MobileSelectItem value="mes">Por Mes</MobileSelectItem>
           <MobileSelectItem value="semana">Por Semana</MobileSelectItem>
           <MobileSelectItem value="operario">Por Operario</MobileSelectItem>
         </MobileSelect>
-        {mode !== 'tabla' && <>
+        {(mode !== 'tabla' && mode !== 'calendario') && <>
           <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-full sm:w-40" />
           {canSeeAll && (
             <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
@@ -249,7 +251,9 @@ export default function InformesTab() {
         </>}
       </div>
 
-      {mode === 'tabla' ? <InformeTableView /> : (
+      {mode === 'calendario' ? (
+        <CalendarioHorarioView fichajes={filtered} canSeeAll={canSeeAll} />
+      ) : mode === 'tabla' ? <InformeTableView /> : (
         <>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <Card className="p-4 text-center">
