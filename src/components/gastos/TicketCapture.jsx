@@ -46,7 +46,7 @@ export default function TicketCapture({ onCaptured, onSkip }) {
       } catch { archivo.storage = 'local_only'; }
       setEstado('ok');
       setMensaje(archivo.storage === 'local_only' ? 'Guardado localmente (sin Drive)' : 'Ticket subido ✓');
-      onCaptured({ file_url, archivo, preview: previewUrl });
+      onCaptured({ file_url, file_base64: base64, archivo, preview: previewUrl });
     } catch (e) {
       setEstado('error');
       setMensaje('Error al subir: ' + (e.message || ''));
