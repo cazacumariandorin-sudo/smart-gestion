@@ -1,0 +1,103 @@
+{
+  "type": "object",
+  "properties": {
+    "entidad_tipo": {
+      "type": "string",
+      "description": "Tipo de entidad propietaria del archivo (RegistroGasto, FotoProyecto, WorkPhoto...)"
+    },
+    "entidad_id": {
+      "type": "string",
+      "description": "ID del registro al que pertenece el archivo"
+    },
+    "campo_archivo": {
+      "type": "string",
+      "description": "Campo dentro de la entidad donde se guarda la URL (ej: archivos[0].url, foto_url)"
+    },
+    "base44_url": {
+      "type": "string",
+      "description": "URL actual en Base44 CDN (fallback temporal mientras Drive no disponible)"
+    },
+    "ruta_drive": {
+      "type": "string",
+      "description": "Ruta destino en Google Drive (ej: Notas_Gastos/2026/06)"
+    },
+    "nombre_archivo": {
+      "type": "string",
+      "description": "Nombre del archivo en Drive"
+    },
+    "mime_type": {
+      "type": "string",
+      "description": "Tipo MIME del archivo (image/jpeg, application/pdf...)"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "subiendo",
+        "completado",
+        "error"
+      ],
+      "default": "pendiente",
+      "description": "Estado actual de la sincronizaci\u00f3n"
+    },
+    "intentos": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de intentos de subida fallidos"
+    },
+    "error_mensaje": {
+      "type": "string",
+      "description": "Mensaje de error del \u00faltimo intento fallido"
+    },
+    "drive_file_id": {
+      "type": "string",
+      "description": "ID del archivo en Drive (disponible tras sincronizaci\u00f3n exitosa)"
+    },
+    "drive_url": {
+      "type": "string",
+      "description": "URL final en Drive (disponible tras sincronizaci\u00f3n exitosa)"
+    },
+    "subido_por_email": {
+      "type": "string",
+      "description": "Email del usuario que subi\u00f3 el archivo"
+    },
+    "tamano_bytes": {
+      "type": "number",
+      "description": "Tama\u00f1o aproximado del archivo en bytes"
+    }
+  },
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "required": [],
+  "name": "ArchivoSyncPendiente"
+}

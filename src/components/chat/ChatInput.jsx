@@ -42,7 +42,13 @@ export default function ChatInput({ onSend, disabled, replyMsg, onCancelReply })
     try {
       const uploaded = [];
       for (const file of files) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
+          file_base64: file,
+          ruta_drive: 'Chat/Adjuntos',
+          entidad_tipo: 'ChatMensaje',
+          entidad_id: null,
+        });
+        const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
         uploaded.push({ nombre: file.name, url: file_url, tipo: file.type, size_bytes: file.size });
       }
       setAdjuntos(prev => [...prev, ...uploaded]);

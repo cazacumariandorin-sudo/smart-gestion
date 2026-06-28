@@ -93,7 +93,13 @@ export default function Orders() {
     setOcrFile(file);
     setOcrLoading(true);
     setOcrDone(false);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
+      file_base64: file,
+      ruta_drive: 'Pedidos',
+      entidad_tipo: 'Order',
+      entidad_id: null,
+    });
+    const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
     const result = await base44.integrations.Core.InvokeLLM({
       prompt: `Extrae todos los datos del siguiente documento de pedido/albarán/factura de compra.
 Devuelve un JSON con exactamente esta estructura:
@@ -204,7 +210,13 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
 
   const handleFileUpload = async (file) => {
     setUploadingFile(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
+      file_base64: file,
+      ruta_drive: 'Pedidos',
+      entidad_tipo: 'Order',
+      entidad_id: null,
+    });
+    const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
     const ext = file.name.split('.').pop()?.toLowerCase();
     setUploadedFiles(prev => [...prev, { name: file.name, url: file_url, type: ext }]);
     setUploadingFile(false);

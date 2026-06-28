@@ -96,7 +96,13 @@ export default function ObraMaterialesPanel({ obra }) {
   // OCR from file/photo
   const handleOcrUpload = async (file) => {
     setUploading(true); setOcrDone(false);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
+      file_base64: file,
+      ruta_drive: 'Obras/Materiales',
+      entidad_tipo: 'ObraMaterial',
+      entidad_id: null,
+    });
+    const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
     set('file_url', file_url);
     setUploading(false);
     setOcrLoading(true);
@@ -518,7 +524,13 @@ Extrae los datos y devuelve un JSON con:
                       onChange={async e => {
                         if (!e.target.files[0]) return;
                         setUploading(true);
-                        const { file_url } = await base44.integrations.Core.UploadFile({ file: e.target.files[0] });
+                        const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
+                          file_base64: e.target.files[0],
+                          ruta_drive: 'Obras/Materiales',
+                          entidad_tipo: 'ObraMaterial',
+                          entidad_id: null,
+                        });
+                        const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
                         set('file_url', file_url);
                         setUploading(false);
                         toast.success('Archivo adjuntado');

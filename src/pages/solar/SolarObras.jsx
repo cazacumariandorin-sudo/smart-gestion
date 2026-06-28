@@ -104,7 +104,13 @@ export default function SolarObras() {
     setOcrFile(file);
     setOcrLoading(true);
     setOcrDone(false);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
+      file_base64: file,
+      ruta_drive: 'Obras_Solar/Documentos',
+      entidad_tipo: 'SolarObra',
+      entidad_id: null,
+    });
+    const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
     const data = await base44.integrations.Core.InvokeLLM({
       prompt: `Extrae los datos del siguiente documento de obra/instalación solar o presupuesto.
 Devuelve un JSON con esta estructura:
@@ -160,7 +166,13 @@ Si un campo no aparece, déjalo como null o cadena vacía.`,
 
   const handleFileUpload = async (file) => {
     setUploadingFile(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
+      file_base64: file,
+      ruta_drive: 'Obras_Solar/Documentos',
+      entidad_tipo: 'SolarObra',
+      entidad_id: null,
+    });
+    const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
     const ext = file.name.split('.').pop()?.toLowerCase();
     setUploadedFiles(prev => [...prev, { name: file.name, url: file_url, type: ext }]);
     setUploadingFile(false);

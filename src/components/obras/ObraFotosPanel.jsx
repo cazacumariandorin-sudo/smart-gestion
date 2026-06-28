@@ -54,7 +54,13 @@ export default function ObraFotosPanel({ obra }) {
   const handleUpload = async () => {
     if (!pendingFile) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: pendingFile });
+    const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
+      file_base64: pendingFile,
+      ruta_drive: `Obras/${obra?.name || 'Sin_Obra'}/Fotos`,
+      entidad_tipo: 'FotoProyecto',
+      entidad_id: null,
+    });
+    const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
     const now = new Date();
     await base44.entities.FotoProyecto.create({
       foto_url: file_url,

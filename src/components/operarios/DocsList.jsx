@@ -148,7 +148,13 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
   const handleFileUpload = async (file) => {
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
+        file_base64: file,
+        ruta_drive: 'Operarios/Documentos',
+        entidad_tipo: 'OperarioDoc',
+        entidad_id: null,
+      });
+      const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
       set('file_url', file_url);
       toast.success('Archivo subido correctamente');
     } catch (e) {
@@ -169,7 +175,13 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
       const blob = await res.blob();
       const file = new File([blob], 'firma.png', { type: 'image/png' });
 
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
+        file_base64: file,
+        ruta_drive: 'Operarios/Firmas',
+        entidad_tipo: 'OperarioDoc',
+        entidad_id: signingDoc.id,
+      });
+      const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
 
       await updateM.mutateAsync({
         id: signingDoc.id,
