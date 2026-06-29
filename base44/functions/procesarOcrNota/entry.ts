@@ -18,47 +18,24 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { fase, file_url, file_base64, ocr_raw } = body;
+    const { fase, cdn_url, file_url, ocr_raw } = body;
 
     if (!fase) return Response.json({ error: 'fase requerido: ocr | ia' }, { status: 400 });
 
     // ── FASE OCR ─────────────────────────────────────────────────────────────
     if (fase === 'ocr') {
-      if (!file_url && !file_base64) {
-        return Response.json({ error: 'file_url o file_base64 requerido' }, { status: 400 });
+      // cdn_url: URL de Base44 CDN, siempre pública y accesible por InvokeLLM
+      // file_url: fallback (solo si no hay cdn_url y es URL pública)
+      const urlParaOcr = cdn_url || file_url;
+
+      if (!urlParaOcr) {
+        return Response.json({ error: 'cdn_url requerido para OCR' }, { status: 400 });
       }
-
-      const esDriveUrl = file_url && (
-        file_url.includes('drive.google.com') ||
-        file_url.includes('docs.google.com')
-      );
-      const esDataUrl = file_url && file_url.startsWith('data:');
-
-      let urlAccesible = null;
-
-      if (file_base64) {
-        // Siempre preferir base64 → subir a CDN de Base44
-        try {
-          const uploaded = await base44.integrations.Core.UploadFile({ file: file_base64 });
-          urlAccesible = uploaded.file_url;
-        } catch (e) {
-          return Response.json({
-            success: false, fase: 'ocr',
-            error: 'No se pudo subir imagen a CDN para OCR: ' + e.message,
-          });
-        }
-      } else if (!esDriveUrl && !esDataUrl && file_url) {
-        // URL ya es pública (Base44 CDN, S3, etc.) — usar directamente
-        urlAccesible = file_url;
-      } else if (esDriveUrl || esDataUrl) {
+      if (urlParaOcr.startsWith('data:') || urlParaOcr.includes('drive.google.com')) {
         return Response.json({
           success: false, fase: 'ocr',
-          error: 'La imagen está en Drive o es local. Pasa file_base64 para que el OCR pueda procesarla.',
+          error: 'URL no accesible para OCR. Usa cdn_url (Base44 CDN) en lugar de Drive o base64.',
         }, { status: 422 });
-      }
-
-      if (!urlAccesible) {
-        return Response.json({ success: false, fase: 'ocr', error: 'No hay URL accesible para OCR' });
       }
 
       const texto = await base44.integrations.Core.InvokeLLM({
@@ -73,7 +50,7 @@ REGLAS ESTRICTAS:
 - NO resumas, NO interpretes, NO omitas nada. Solo transcribe.
 
 Devuelve únicamente el texto transcrito, sin ningún comentario adicional.`,
-        file_urls: [urlAccesible],
+        file_urls: [urlParaOcr],
       });
 
       const textoStr = typeof texto === 'string' ? texto : JSON.stringify(texto);

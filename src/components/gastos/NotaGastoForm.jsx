@@ -34,22 +34,22 @@ async function generarNumeroNota() {
   }
 }
 
-function PanelProcesamiento({ fileUrl, fileBase64, archivo, preview, onContinuar, onCambiarImagen }) {
+function PanelProcesamiento({ fileUrl, cdnUrl, archivo, preview, onContinuar, onCambiarImagen }) {
   const [ocrEstado, setOcrEstado] = useState('idle');
   const [iaEstado, setIaEstado] = useState('idle');
   const [ocrTexto, setOcrTexto] = useState('');
   const [iaDatos, setIaDatos] = useState(null);
   const [ocrExpandido, setOcrExpandido] = useState(false);
-  const tieneImagenAccesible = !!(fileBase64 || (fileUrl && !fileUrl.startsWith('data:') && !fileUrl.includes('drive.google.com')));
+  // cdnUrl es siempre una URL pública de Base44 CDN, accesible por InvokeLLM
+  const urlParaOcr = cdnUrl || fileUrl;
+  const ocrDisponible = !!(urlParaOcr && !urlParaOcr.startsWith('data:') && !urlParaOcr.includes('drive.google.com'));
   const CONFIANZA_COLOR = { alta: 'text-emerald-600', media: 'text-amber-600', baja: 'text-red-500' };
 
   const ejecutarOcr = async () => {
-    if (!tieneImagenAccesible && !fileBase64) { toast.error('No hay imagen disponible para OCR'); return; }
+    if (!ocrDisponible) { toast.error('OCR no disponible: imagen no accesible. Vuelve a capturar el ticket.'); return; }
     setOcrEstado('cargando');
     try {
-      const params = { fase: 'ocr', file_url: fileUrl };
-      if (fileBase64) params.file_base64 = fileBase64;
-      const res = await base44.functions.invoke('procesarOcrNota', params);
+      const res = await base44.functions.invoke('procesarOcrNota', { fase: 'ocr', cdn_url: urlParaOcr });
       if (res.data?.success && res.data?.ocr_raw) {
         setOcrTexto(res.data.ocr_raw); setOcrEstado('ok'); setOcrExpandido(true);
       } else { setOcrEstado('error'); toast.error('OCR sin resultado: ' + (res.data?.error || 'ilegible')); }
@@ -74,7 +74,7 @@ function PanelProcesamiento({ fileUrl, fileBase64, archivo, preview, onContinuar
           : <div className="w-14 h-14 rounded-lg border bg-muted flex items-center justify-center shrink-0"><FileText className="w-6 h-6 text-muted-foreground" /></div>}
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold truncate">{archivo?.nombre || 'Documento'}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">{tieneImagenAccesible || fileBase64 ? '✓ Imagen lista — OCR disponible' : '⚠ Sin imagen — OCR no disponible'}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{ocrDisponible ? '✓ Imagen en CDN — OCR disponible' : '⚠ Imagen no accesible — vuelve a capturar'}</p>
         </div>
         <Button size="sm" variant="ghost" onClick={onCambiarImagen} className="h-8 gap-1 shrink-0 text-muted-foreground">
           <RefreshCw className="w-3.5 h-3.5" /> Cambiar
@@ -92,7 +92,7 @@ function PanelProcesamiento({ fileUrl, fileBase64, archivo, preview, onContinuar
               <p className="text-[10px] text-muted-foreground">Lee el texto del documento tal como aparece</p>
             </div>
           </div>
-          <Button size="sm" onClick={ejecutarOcr} disabled={ocrEstado === 'cargando' || (!tieneImagenAccesible && !fileBase64)} className={cn('h-8 gap-1.5 shrink-0', ocrEstado === 'ok' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : '')}>
+          <Button size="sm" onClick={ejecutarOcr} disabled={ocrEstado === 'cargando' || !ocrDisponible} className={cn('h-8 gap-1.5 shrink-0', ocrEstado === 'ok' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : '')}>
             {ocrEstado === 'cargando' ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Leyendo…</> : ocrEstado === 'ok' ? <><CheckCircle2 className="w-3.5 h-3.5" /> Repetir</> : <><ScanLine className="w-3.5 h-3.5" /> Ejecutar OCR</>}
           </Button>
         </div>
@@ -191,7 +191,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const esGastoTardio = useMemo(() => { if (!form.fecha_documento) return false; return Math.floor((Date.now() - new Date(form.fecha_documento)) / 86400000) > 30; }, [form.fecha_documento]);
 
-  const handleCaptured = ({ file_url, file_base64, archivo, preview }) => { setCaptureData({ file_url, file_base64, archivo, preview }); setArchivos([archivo]); setPaso('proceso'); };
+  const handleCaptured = ({ file_url, cdn_url_para_llm, archivo, preview }) => { setCaptureData({ file_url, cdn_url_para_llm, archivo, preview }); setArchivos([archivo]); setPaso('proceso'); };
   const handleContinuarConDatos = ({ ocrTexto, iaDatos }) => {
     if (ocrTexto) setOcrRaw(ocrTexto);
     if (iaDatos) {
@@ -260,7 +260,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
           </DialogHeader>
 
           {paso === 'captura' && <TicketCapture onCaptured={handleCaptured} onSkip={() => setPaso('formulario')} />}
-          {paso === 'proceso' && captureData && <PanelProcesamiento fileUrl={captureData.file_url} fileBase64={captureData.file_base64} archivo={captureData.archivo} preview={captureData.preview} onContinuar={handleContinuarConDatos} onCambiarImagen={() => { setCaptureData(null); setPaso('captura'); }} />}
+          {paso === 'proceso' && captureData && <PanelProcesamiento fileUrl={captureData.file_url} cdnUrl={captureData.cdn_url_para_llm} archivo={captureData.archivo} preview={captureData.preview} onContinuar={handleContinuarConDatos} onCambiarImagen={() => { setCaptureData(null); setPaso('captura'); }} />}
 
           {paso === 'formulario' && (
             <div className="space-y-4 py-2">

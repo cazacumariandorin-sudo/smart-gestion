@@ -36,17 +36,42 @@ export default function TicketCapture({ onCaptured, onSkip }) {
         const r = new FileReader(); r.readAsDataURL(file);
         r.onload = () => res(r.result); r.onerror = rej;
       });
+      setMensaje('Subiendo archivo…');
+      const hoy = new Date();
+      const yyyy = hoy.getFullYear();
+      const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+
       let file_url = base64;
+      let cdn_url_para_llm = base64;
       let archivo = { url: base64, nombre: file.name, tipo: file.type, fecha_subida: new Date().toISOString(), storage: 'local' };
+
       try {
-        setMensaje('Guardando en Drive…');
-        const res = await base44.functions.invoke('uploadFileToGdrive', { file: base64, folder_path: 'Notas_Gastos' });
+        const res = await base44.functions.invoke('subirArchivoConFallback', {
+          file_base64: base64,
+          ruta_drive: `Notas_Gastos/${yyyy}/${mm}`,
+          nombre: file.name,
+          entidad_tipo: 'RegistroGasto',
+          entidad_id: null,
+        });
         file_url = res.data.file_url;
-        archivo = { url: file_url, nombre: file.name, tipo: file.type, fecha_subida: new Date().toISOString(), storage: res.data.storage, drive_file_id: res.data.drive_file_id };
-      } catch { archivo.storage = 'local_only'; }
+        cdn_url_para_llm = res.data.cdn_url_para_llm || res.data.file_url;
+        archivo = {
+          url: file_url,
+          nombre: file.name,
+          tipo: file.type,
+          fecha_subida: new Date().toISOString(),
+          storage: res.data.storage,
+          drive_file_id: res.data.drive_file_id || null,
+          cdn_url: cdn_url_para_llm,
+        };
+      } catch {
+        archivo.storage = 'local_only';
+      }
+
       setEstado('ok');
-      setMensaje(archivo.storage === 'local_only' ? 'Guardado localmente (sin Drive)' : 'Ticket subido ✓');
-      onCaptured({ file_url, file_base64: base64, archivo, preview: previewUrl });
+      const storageLabel = archivo.storage === 'googledrive' ? 'Drive ✓' : archivo.storage === 'pending_drive_sync' ? 'CDN ✓ (Drive pendiente)' : 'Local';
+      setMensaje(`Ticket guardado — ${storageLabel}`);
+      onCaptured({ file_url, cdn_url_para_llm, archivo, preview: previewUrl });
     } catch (e) {
       setEstado('error');
       setMensaje('Error al subir: ' + (e.message || ''));
