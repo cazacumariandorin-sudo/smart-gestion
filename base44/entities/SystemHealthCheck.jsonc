@@ -118,9 +118,18 @@
       ]
     },
     "update": {
-      "user_condition": {
-        "role": "gerencia"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
     },
     "delete": {
       "user_condition": {
