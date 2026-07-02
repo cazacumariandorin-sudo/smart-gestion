@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
@@ -86,7 +86,7 @@ function OperarioGroup({ operario, notas, onVerNota, isOpen, onToggle }) {
 
 export default function NotasGastos() {
   const { user } = useAuth();
-  const { isAdmin, isOperario, isGerencia, isDirComercial } = useUserRole();
+  const { isAdmin, isOperario, isGerencia, isDirComercial, isJefeObra, role } = useUserRole();
   const [searchParams] = useSearchParams();
   const vistaAdmin = searchParams.get('vista') === 'admin' && (isAdmin || isGerencia || isDirComercial);
   const { getTecnicoName, tecnicos } = useTecnicoName();
@@ -124,6 +124,12 @@ export default function NotasGastos() {
     queryKey: ['obras'],
     queryFn: () => base44.entities.Obra.list(),
   });
+  const { data: solarObrasRaw = [] } = useQuery({
+    queryKey: ['solar_obras_gastos'],
+    queryFn: () => base44.entities.SolarObra.list('name', 200),
+    enabled: isAdmin || isGerencia || isDirComercial || isJefeObra,
+  });
+  const todasObras = [...obrasRaw, ...solarObrasRaw.map(o => ({ ...o, _tipo: 'solar' }))];
 
   const operarioActual = {
     id: operarioId || user?.id,
@@ -132,7 +138,7 @@ export default function NotasGastos() {
   };
   
   // Verificar si puede crear: técnicos siempre pueden, admins/gerencia también
-  const puedeCrearRegistro = isOperario || isAdmin || isGerencia || !!miTecnico?.id;
+  const puedeCrearRegistro = isOperario || isAdmin || isGerencia || isDirComercial || isJefeObra || (role === 'operario');
 
   const notas = notasRaw.filter(n => {
     // Si no es vista admin ni admin/gerencia, mostrar solo las propias
@@ -164,6 +170,14 @@ export default function NotasGastos() {
     }
     operariosConNotas[opId].notas.push(nota);
   });
+
+  // Auto-expandir si solo hay 1 operario (p.ej. operario viendo sus propios gastos)
+  useEffect(() => {
+    const ids = Object.keys(operariosConNotas);
+    if (ids.length === 1 && !operarioAbierto) {
+      setOperarioAbierto(ids[0]);
+    }
+  }, [Object.keys(operariosConNotas).join(',')]);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -220,7 +234,7 @@ export default function NotasGastos() {
         </MobileSelect>
         <MobileSelect value={filtroObra} onValueChange={setFiltroObra} placeholder="Obra" triggerClassName="w-40">
           <MobileSelectItem value="todas">Todas las obras</MobileSelectItem>
-          {obrasRaw.map(obra => (
+          {todasObras.map(obra => (
             <MobileSelectItem key={obra.id} value={obra.id}>{obra.name}</MobileSelectItem>
           ))}
         </MobileSelect>

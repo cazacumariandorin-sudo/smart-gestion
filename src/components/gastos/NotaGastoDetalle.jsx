@@ -327,6 +327,19 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                 </Button>
               )}
 
+              {/* Operario: enviar borrador a revisión */}
+              {esPropioCreador && nota?.estado === 'borrador' && (
+                <Button
+                  size="sm"
+                  onClick={() => cambiarEstado('pendiente')}
+                  className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  Enviar a revisión
+                </Button>
+              )}
+
               {/* Aprobar gasto — gerencia, dir_comercial, admin — solo si pendiente */}
               {canManage && nota.estado === 'pendiente' && (
                 <Button size="sm" variant="outline" className="gap-1 text-amber-700 border-amber-300" onClick={() => cambiarEstado('aprobado_gerencia', { aprobado_por: user?.email, fecha_aprobacion: new Date().toISOString() })} disabled={loading}>
