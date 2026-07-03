@@ -10,8 +10,11 @@ import { Label } from '@/components/ui/label';
 import {
   User, Mail, Shield, LogOut, Trash2, ChevronRight, HelpCircle,
   FileText, Scale, Info, Phone, Briefcase, Pencil, Save, X, Hash, ShieldCheck, Link2, Cloud, Loader2,
+  Mic, MicOff,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useTecnicoName } from '@/hooks/useTecnicoName';
+import { isMicDesactivado } from '@/hooks/useSpeechInput';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -49,6 +52,19 @@ export default function Profile() {
   const [gdriveDialog, setGdriveDialog] = useState(false);
   const appVersion = '1.0.05';
   const CONNECTOR_ID = '69dfc310ad25fc28aa873104'; // SIMANTEC DRIVE  APP
+  const [micDesactivado, setMicDesactivado] = useState(() => isMicDesactivado());
+
+  const toggleMic = () => {
+    if (micDesactivado) {
+      try { localStorage.removeItem('smartgestion_voz_desactivada'); } catch {}
+      setMicDesactivado(false);
+      toast.success('Micrófono reactivado — los botones de voz volverán a aparecer');
+    } else {
+      try { localStorage.setItem('smartgestion_voz_desactivada', 'true'); } catch {}
+      setMicDesactivado(true);
+      toast.info('Micrófono desactivado en la app');
+    }
+  };
 
   const handleConnectGdrive = async () => {
     try {
@@ -315,6 +331,35 @@ export default function Profile() {
                 Se recomienda activar la <strong>autenticación en 2 pasos (2FA)</strong> desde la configuración de tu cuenta de Google o Apple para mayor seguridad.
               </p>
             </div>
+          </div>
+        </Card>
+
+        {/* Preferencia de dictado por voz */}
+        <Card className="mb-4 p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              {micDesactivado
+                ? <MicOff className="w-4 h-4 text-muted-foreground" />
+                : <Mic className="w-4 h-4 text-primary" />}
+              <div>
+                <p className="text-sm font-medium">Dictado por voz</p>
+                <p className="text-xs text-muted-foreground">
+                  {micDesactivado ? 'Desactivado — los botones de micrófono están ocultos' : 'Activo — pulsa el icono 🎤 en cualquier campo para dictar'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={toggleMic}
+              className={cn(
+                'relative w-11 h-6 rounded-full transition-colors shrink-0',
+                micDesactivado ? 'bg-muted' : 'bg-primary'
+              )}
+            >
+              <span className={cn(
+                'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                micDesactivado ? 'left-0.5' : 'left-5'
+              )} />
+            </button>
           </div>
         </Card>
 
