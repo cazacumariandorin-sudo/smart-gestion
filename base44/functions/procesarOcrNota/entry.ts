@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { fase, file_base64, ocr_raw: ocr_raw_input } = body;
+    const { fase, cdn_url, file_base64, ocr_raw: ocr_raw_input } = body;
 
     // ── FASE IA SOLA (re-análisis de texto ya extraído) ──────────────────────
     if (fase === 'ia') {
@@ -34,22 +34,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── FASE AUTO (por defecto) — base64 → CDN → OCR → IA ───────────────────
-    if (!file_base64) {
-      return Response.json({ error: 'file_base64 requerido' }, { status: 400 });
+    // ── FASE AUTO (por defecto) — recibe cdn_url ya subida desde el frontend ─
+    // La URL CDN viene del frontend (Core.UploadFile desde el navegador).
+    // Si viene file_base64 como fallback, se sube aquí.
+    let urlParaOcr = cdn_url;
+
+    if (!urlParaOcr && file_base64) {
+      try {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: file_base64 });
+        urlParaOcr = file_url;
+      } catch (e) {
+        return Response.json({ success: false, needs_manual: true, error: 'No se pudo procesar: ' + e.message });
+      }
     }
 
-    // PASO 1: Subir a CDN de Base44 (internamente, sin pasar por el frontend)
-    let cdn_url: string;
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: file_base64 });
-      cdn_url = file_url;
-    } catch (e) {
-      return Response.json({
-        success: false,
-        needs_manual: true,
-        error: 'No se pudo procesar el archivo: ' + e.message,
-      });
+    if (!urlParaOcr) {
+      return Response.json({ error: 'cdn_url o file_base64 requerido' }, { status: 400 });
+    }
+
+    if (urlParaOcr.startsWith('data:') || urlParaOcr.includes('drive.google.com')) {
+      return Response.json({ success: false, needs_manual: true, error: 'URL no accesible para OCR' });
     }
 
     // PASO 2: OCR — extraer texto bruto
@@ -67,7 +71,7 @@ REGLAS:
 - No resumas, no interpretes, no omitas nada
 
 Devuelve únicamente el texto transcrito, sin comentarios.`,
-        file_urls: [cdn_url],
+        file_urls: [urlParaOcr],
       });
       const textoStr = typeof texto === 'string' ? texto : JSON.stringify(texto);
       if (textoStr && textoStr.trim().length >= 5) {
@@ -82,7 +86,7 @@ Devuelve únicamente el texto transcrito, sin comentarios.`,
       return Response.json({
         success: false,
         needs_manual: true,
-        cdn_url,
+        cdn_url: urlParaOcr,
         error: 'No se pudo extraer texto del documento. Verifica que la imagen es legible.',
       });
     }
@@ -103,7 +107,7 @@ Devuelve únicamente el texto transcrito, sin comentarios.`,
       ocr_ok: true,
       datos,
       ia_ok,
-      cdn_url,
+      cdn_url: urlParaOcr,
       // Si IA falló, el frontend muestra el texto OCR para revisión manual
       message: ia_ok
         ? `Datos extraídos (confianza: ${datos?.confianza || 'media'})`

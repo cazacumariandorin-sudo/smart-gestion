@@ -1,19 +1,55 @@
 /**
- * TicketCapture v4 — captura y OCR+IA en un solo paso.
- * Llama directamente a procesarOcrNota con file_base64.
- * No depende de URLs de Drive ni cadenas frágiles.
- * onDone({ ocrDatos, ocr_raw, needs_manual, preview, archivo, cdn_url })
+ * TicketCapture v5 — arquitectura definitiva.
+ *
+ * FLUJO:
+ *   1. Capturar archivo (cámara / galería / webcam / archivo)
+ *   2. Comprimir imagen en canvas (max 1280px, JPEG 0.82) → ~300KB
+ *   3. base44.integrations.Core.UploadFile() desde el frontend → CDN URL
+ *   4. Enviar CDN URL (no base64) a procesarOcrNota → OCR + IA
+ *   5. Subida a Drive en background (no bloquea OCR)
+ *
+ * Sin payloads grandes. Sin dependencia de URLs de Drive para OCR.
  */
 import { useState, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Camera, Upload, Image, SkipForward, Loader2, CheckCircle2, AlertCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import {
+  Camera, Upload, Image, SkipForward,
+  Loader2, CheckCircle2, AlertCircle, RefreshCw, AlertTriangle,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const isMobile = () => 'ontouchstart' in window || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+const isMobile = () =>
+  'ontouchstart' in window || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+const MAX_SIZE = 1280;
+const JPEG_QUALITY = 0.82;
+
+/** Comprime imagen a max 1280px manteniendo ratio. Retorna base64 comprimido. */
+async function comprimirImagen(file) {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const { width, height } = img;
+      const escala = Math.min(1, MAX_SIZE / Math.max(width, height));
+      const w = Math.round(width * escala);
+      const h = Math.round(height * escala);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
 
 export default function TicketCapture({ onDone, onSkip }) {
-  const [fase, setFase] = useState('idle'); // idle | subiendo | ocr | ok | sin_ocr | error | webcam
+  const [fase, setFase] = useState('idle');
   const [mensaje, setMensaje] = useState('');
   const [preview, setPreview] = useState(null);
   const [stream, setStream] = useState(null);
@@ -22,27 +58,45 @@ export default function TicketCapture({ onDone, onSkip }) {
 
   const procesarArchivo = useCallback(async (file) => {
     setFase('subiendo');
-    setMensaje('Preparando archivo…');
+    setMensaje('Comprimiendo imagen…');
     const previewUrl = URL.createObjectURL(file);
     setPreview(previewUrl);
 
     try {
-      // Convertir a base64
-      const base64 = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.readAsDataURL(file);
-        r.onload = () => res(r.result);
-        r.onerror = rej;
-      });
+      // 1. Comprimir (solo imágenes; PDFs pasan directamente)
+      let base64;
+      const esImagen = file.type.startsWith('image/');
+      if (esImagen) {
+        setMensaje('Optimizando imagen…');
+        base64 = await comprimirImagen(file);
+      } else {
+        base64 = await new Promise((res, rej) => {
+          const r = new FileReader();
+          r.readAsDataURL(file);
+          r.onload = () => res(r.result);
+          r.onerror = rej;
+        });
+      }
+
+      // 2. Subir a CDN de Base44 desde el frontend (URL siempre pública para InvokeLLM)
+      setMensaje('Subiendo a servidor…');
+      let cdnUrl;
+      try {
+        const uploadResult = await base44.integrations.Core.UploadFile({ file: base64 });
+        cdnUrl = uploadResult.file_url;
+      } catch (e) {
+        throw new Error('No se pudo subir el archivo: ' + e.message);
+      }
 
       const archivo = {
+        url: cdnUrl,
         nombre: file.name,
         tipo: file.type,
         fecha_subida: new Date().toISOString(),
-        storage: 'procesando',
+        storage: 'base44_cdn',
       };
 
-      // Subida a Drive en background (no bloquea OCR)
+      // 3. Subir a Drive en background (no bloquea el OCR)
       const yyyy = new Date().getFullYear();
       const mm = String(new Date().getMonth() + 1).padStart(2, '0');
       base44.functions.invoke('subirArchivoConFallback', {
@@ -52,50 +106,47 @@ export default function TicketCapture({ onDone, onSkip }) {
         entidad_tipo: 'RegistroGasto',
         entidad_id: null,
       }).then(res => {
-        archivo.url = res.data?.file_url || base64;
-        archivo.storage = res.data?.storage || 'base44_only';
-        archivo.drive_file_id = res.data?.drive_file_id || null;
-        archivo.cdn_url = res.data?.cdn_url_para_llm || null;
+        if (res.data?.file_url) archivo.url = res.data.file_url;
+        if (res.data?.storage) archivo.storage = res.data.storage;
+        if (res.data?.drive_file_id) archivo.drive_file_id = res.data.drive_file_id;
       }).catch(() => {
-        archivo.url = base64;
-        archivo.storage = 'local_only';
+        // Drive falló, el CDN ya tiene el archivo — no pasa nada
       });
 
-      // OCR + IA directamente con base64 (no espera Drive)
+      // 4. OCR + IA usando la CDN URL (payload pequeño: solo una URL)
       setFase('ocr');
-      setMensaje('Leyendo documento (OCR + IA)…');
+      setMensaje('Analizando con OCR + IA…');
 
       const res = await base44.functions.invoke('procesarOcrNota', {
-        file_base64: base64,
+        cdn_url: cdnUrl,
       });
 
       const resultado = res.data;
 
       if (resultado?.success && resultado?.datos) {
         setFase('ok');
-        setMensaje(`Datos extraídos ✓ — confianza ${resultado.datos.confianza || 'media'}`);
+        setMensaje(`✓ Datos extraídos — confianza ${resultado.datos?.confianza || 'media'}`);
         onDone({
           ocrDatos: resultado.datos,
           ocr_raw: resultado.ocr_raw || '',
           needs_manual: false,
           preview: previewUrl,
           archivo,
-          cdn_url: resultado.cdn_url,
+          cdn_url: cdnUrl,
         });
-      } else if (resultado?.ocr_raw && !resultado?.ia_ok) {
-        // OCR ok pero IA falló
+      } else if (resultado?.ocr_raw) {
+        // OCR OK pero IA falló — usuario revisa texto OCR
         setFase('sin_ocr');
-        setMensaje('OCR completado — revisa los datos manualmente');
+        setMensaje('OCR completado — revisa los datos en el formulario');
         onDone({
           ocrDatos: null,
           ocr_raw: resultado.ocr_raw,
           needs_manual: true,
           preview: previewUrl,
           archivo,
-          cdn_url: resultado.cdn_url,
+          cdn_url: cdnUrl,
         });
       } else {
-        // Todo falló
         setFase('sin_ocr');
         setMensaje('No se pudo leer el documento — introduce los datos manualmente');
         onDone({
@@ -104,39 +155,63 @@ export default function TicketCapture({ onDone, onSkip }) {
           needs_manual: true,
           preview: previewUrl,
           archivo,
-          cdn_url: null,
+          cdn_url: cdnUrl,
         });
       }
     } catch (e) {
       setFase('error');
-      setMensaje('Error al procesar: ' + (e.message || ''));
+      setMensaje('Error: ' + (e.message || 'Inténtalo de nuevo'));
     }
   }, [onDone]);
 
+  // Webcam
   const startWebcam = async () => {
     setFase('webcam');
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } });
+      const s = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+      });
       setStream(s);
       if (videoRef.current) videoRef.current.srcObject = s;
-    } catch { setFase('error'); setMensaje('No se pudo acceder a la cámara'); }
+    } catch {
+      setFase('error');
+      setMensaje('No se pudo acceder a la cámara');
+    }
   };
 
   const captureFrame = () => {
-    const video = videoRef.current; const canvas = canvasRef.current;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
     if (!video || !canvas) return;
-    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
-    stream?.getTracks().forEach(t => t.stop()); setStream(null);
-    canvas.toBlob(blob => {
-      if (blob) procesarArchivo(new File([blob], 'foto-ticket.jpg', { type: 'image/jpeg' }));
-    }, 'image/jpeg', 0.9);
+    stream?.getTracks().forEach(t => t.stop());
+    setStream(null);
+    canvas.toBlob(
+      blob => {
+        if (blob) procesarArchivo(new File([blob], 'foto-ticket.jpg', { type: 'image/jpeg' }));
+      },
+      'image/jpeg',
+      0.9
+    );
   };
 
-  const stopWebcam = () => { stream?.getTracks().forEach(t => t.stop()); setStream(null); setFase('idle'); };
-  const reset = () => { setFase('idle'); setMensaje(''); setPreview(null); stream?.getTracks().forEach(t => t.stop()); setStream(null); };
+  const stopWebcam = () => {
+    stream?.getTracks().forEach(t => t.stop());
+    setStream(null);
+    setFase('idle');
+  };
 
-  // Webcam view
+  const reset = () => {
+    setFase('idle');
+    setMensaje('');
+    setPreview(null);
+    stream?.getTracks().forEach(t => t.stop());
+    setStream(null);
+  };
+
+  // ── WEBCAM ────────────────────────────────────────────────────────────────
   if (fase === 'webcam') {
     return (
       <div className="space-y-3">
@@ -150,42 +225,56 @@ export default function TicketCapture({ onDone, onSkip }) {
               <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-lg" />
             </div>
           </div>
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+          <p className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full whitespace-nowrap">
             Encuadra el ticket dentro del marco
-          </div>
+          </p>
         </div>
         <canvas ref={canvasRef} className="hidden" />
         <div className="flex gap-2">
-          <Button onClick={captureFrame} className="flex-1 gap-2"><Camera className="w-4 h-4" /> Capturar foto</Button>
+          <Button onClick={captureFrame} className="flex-1 gap-2">
+            <Camera className="w-4 h-4" /> Capturar foto
+          </Button>
           <Button variant="outline" onClick={stopWebcam}>Cancelar</Button>
         </div>
       </div>
     );
   }
 
-  // Procesando
+  // ── PROCESANDO ────────────────────────────────────────────────────────────
   if (fase === 'subiendo' || fase === 'ocr') {
-    const pasos = [
-      { key: 'subiendo', label: 'Preparando archivo', done: fase === 'ocr' },
-      { key: 'ocr', label: 'Analizando con OCR + IA', done: false, active: fase === 'ocr' },
-    ];
     return (
       <div className="flex flex-col items-center gap-4 py-6">
-        {preview && <img src={preview} alt="ticket" className="w-24 h-24 object-cover rounded-xl border shadow-sm" />}
+        {preview && (
+          <img src={preview} alt="ticket" className="w-24 h-24 object-cover rounded-xl border shadow-sm" />
+        )}
         <div className="w-full space-y-2">
-          {pasos.map(p => (
-            <div key={p.key} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm', p.done ? 'text-emerald-600' : p.active ? 'text-primary font-medium bg-primary/5' : 'text-muted-foreground')}>
-              {p.done ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : p.active ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <div className="w-4 h-4 rounded-full border-2 border-muted shrink-0" />}
-              {p.label}
-            </div>
-          ))}
+          {[
+            { key: 'subiendo', label: 'Optimizando y subiendo imagen' },
+            { key: 'ocr', label: 'Analizando con OCR + IA' },
+          ].map((p) => {
+            const done = (p.key === 'subiendo' && fase === 'ocr');
+            const active = fase === p.key;
+            return (
+              <div key={p.key} className={cn(
+                'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm',
+                done ? 'text-emerald-600' : active ? 'text-primary font-medium bg-primary/5' : 'text-muted-foreground'
+              )}>
+                {done
+                  ? <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  : active
+                  ? <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  : <div className="w-4 h-4 rounded-full border-2 border-muted shrink-0" />}
+                {p.label}
+              </div>
+            );
+          })}
         </div>
         <p className="text-xs text-muted-foreground">{mensaje}</p>
       </div>
     );
   }
 
-  // Completado con éxito
+  // ── OK ────────────────────────────────────────────────────────────────────
   if (fase === 'ok') {
     return (
       <div className="flex flex-col items-center gap-3 py-4">
@@ -201,7 +290,7 @@ export default function TicketCapture({ onDone, onSkip }) {
     );
   }
 
-  // Sin OCR / datos manuales
+  // ── SIN OCR ───────────────────────────────────────────────────────────────
   if (fase === 'sin_ocr') {
     return (
       <div className="flex flex-col items-center gap-3 py-4">
@@ -211,7 +300,9 @@ export default function TicketCapture({ onDone, onSkip }) {
             <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
             <div>
               <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{mensaje}</p>
-              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">Continúa al formulario para introducir los datos del ticket.</p>
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
+                Puedes continuar e introducir los datos del ticket manualmente.
+              </p>
             </div>
           </div>
         </div>
@@ -222,7 +313,7 @@ export default function TicketCapture({ onDone, onSkip }) {
     );
   }
 
-  // Error
+  // ── ERROR ─────────────────────────────────────────────────────────────────
   if (fase === 'error') {
     return (
       <div className="flex flex-col items-center gap-3 py-6">
@@ -233,12 +324,15 @@ export default function TicketCapture({ onDone, onSkip }) {
     );
   }
 
-  // Idle — selector de origen
+  // ── IDLE — selector ───────────────────────────────────────────────────────
   const mobile = isMobile();
   return (
     <div className="space-y-3">
       <p className="text-xs text-center text-muted-foreground font-medium">
-        Fotografía el ticket o sube el documento (JPEG, PNG, PDF)
+        Fotografía el ticket o sube el documento
+      </p>
+      <p className="text-[10px] text-center text-muted-foreground">
+        JPEG · PNG · PDF · Word · Excel
       </p>
       {mobile ? (
         <div className="grid grid-cols-2 gap-3">
