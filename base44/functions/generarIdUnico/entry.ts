@@ -76,7 +76,11 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { entidad, record_id, campo_id, anio_override } = await req.json();
+    const body = await req.json();
+    // Soporta llamada directa {entidad, record_id} y payload de automatización de entidad {event, data}
+    const entidad = body.entidad || body.event?.entity_name;
+    const record_id = body.record_id || body.event?.entity_id;
+    const { campo_id, anio_override } = body;
 
     if (!entidad || !record_id) {
       return Response.json({ error: 'entidad y record_id son requeridos' }, { status: 400 });
