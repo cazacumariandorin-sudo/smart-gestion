@@ -1,49 +1,83 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Camera, Upload, SkipForward, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Camera, Upload, SkipForward, Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
+
+/** Comprime imagen a max 800px ancho/alto, calidad JPEG 60%. Resultado: ~80-120KB. */
+async function comprimirParaOcr(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const original = e.target.result;
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const MAX = 800;
+          const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { resolve(original); return; }
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/jpeg', 0.60);
+          resolve(compressed);
+        } catch {
+          resolve(original);
+        }
+      };
+      img.onerror = () => resolve(original);
+      img.src = original;
+    };
+    reader.onerror = () => resolve(null);
+  });
+}
 
 export default function TicketCapture({ onDone, onSkip }) {
-  const [estado, setEstado] = useState('idle'); // idle | loading | ok | error
+  const [estado, setEstado] = useState('idle');
   const [preview, setPreview] = useState(null);
-  const [errorMsg, setErrorMsg] = useState('');
 
   const procesar = async (file) => {
     if (!file) return;
     setEstado('loading');
     setPreview(URL.createObjectURL(file));
-    setErrorMsg('');
 
     try {
-      // Paso 1: leer como base64 (igual que Drawings.jsx y Manuales.jsx)
-      const fileData = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+      // 1. Comprimir imagen (800px, 60% calidad → ~80-120KB)
+      const base64 = await comprimirParaOcr(file);
+      if (!base64) throw new Error('No se pudo leer el archivo');
+
+      // 2. Enviar base64 al backend para OCR+IA
+      //    El backend sube a CDN internamente y usa esa URL con InvokeLLM
+      const res = await base44.functions.invoke('procesarOcrNota', {
+        file_base64: base64,
+        file_nombre: file.name,
+        file_tipo: file.type,
       });
 
-      // Paso 2: subir a CDN Base44 (patrón idéntico al de Drawings.jsx)
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: fileData });
-
-      if (!file_url) throw new Error('Sin URL del servidor');
-
-      // Paso 3: OCR + IA con la CDN URL
-      const res = await base44.functions.invoke('procesarOcrNota', { cdn_url: file_url });
       const r = res?.data;
 
+      // Siempre avanzar al formulario (con o sin datos OCR)
       setEstado('ok');
       onDone({
-        cdn_url: file_url,
-        archivo: { url: file_url, nombre: file.name, tipo: file.type, storage: 'base44_cdn' },
+        cdn_url: r?.cdn_url || null,
+        archivo: {
+          url: r?.cdn_url || null,
+          nombre: file.name,
+          tipo: file.type,
+          storage: r?.cdn_url ? 'base44_cdn' : 'local',
+        },
         preview: URL.createObjectURL(file),
         ocrDatos: r?.datos || null,
         ocr_raw: r?.ocr_raw || '',
         needs_manual: !r?.success || !r?.datos,
       });
 
-    } catch (err) {
-      // Cualquier error → formulario manual (nunca bloquear al usuario)
+    } catch {
+      // Cualquier error → formulario manual
       setEstado('ok');
       onDone({
         cdn_url: null,
@@ -56,14 +90,17 @@ export default function TicketCapture({ onDone, onSkip }) {
     }
   };
 
-  const reset = () => { setEstado('idle'); setPreview(null); setErrorMsg(''); };
+  const reset = () => { setEstado('idle'); setPreview(null); };
 
   if (estado === 'loading') {
     return (
       <div className="flex flex-col items-center gap-4 py-8">
         {preview && <img src={preview} alt="" className="w-24 h-24 object-cover rounded-xl border shadow-sm" />}
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        <p className="text-sm text-muted-foreground">Procesando ticket con OCR + IA…</p>
+        <p className="text-sm text-muted-foreground text-center">
+          Comprimiendo y analizando ticket…<br/>
+          <span className="text-xs opacity-60">OCR + IA (puede tardar 10-15 seg.)</span>
+        </p>
       </div>
     );
   }
@@ -83,31 +120,10 @@ export default function TicketCapture({ onDone, onSkip }) {
     );
   }
 
-  if (estado === 'error') {
-    return (
-      <div className="flex flex-col items-center gap-3 py-6">
-        <AlertCircle className="w-8 h-8 text-red-500" />
-        <p className="text-sm text-center text-muted-foreground">
-          No se pudo procesar el ticket.<br />Puedes continuar e introducir los datos manualmente.
-        </p>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={reset}>Reintentar</Button>
-          <Button size="sm" onClick={() => onDone({ cdn_url: null, archivo: null, preview, ocrDatos: null, ocr_raw: '', needs_manual: true })}>
-            Continuar manual
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // idle
   const isMobile = 'ontouchstart' in window;
   return (
     <div className="space-y-4 py-2">
-      <p className="text-sm text-center text-muted-foreground">
-        Fotografía o sube el ticket / factura
-      </p>
-
+      <p className="text-sm text-center text-muted-foreground">Fotografía o sube el ticket / factura</p>
       {isMobile ? (
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors">
@@ -134,7 +150,6 @@ export default function TicketCapture({ onDone, onSkip }) {
             onChange={e => { const f = e.target.files?.[0]; if (f) procesar(f); e.target.value = ''; }} />
         </label>
       )}
-
       <Button variant="ghost" size="sm" onClick={onSkip} className="w-full gap-1.5 text-muted-foreground text-xs">
         <SkipForward className="w-3.5 h-3.5" /> Saltar — rellenar manualmente
       </Button>
