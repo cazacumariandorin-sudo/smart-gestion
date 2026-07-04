@@ -74,6 +74,7 @@ export default function TicketCapture({ onDone, onSkip }) {
         ocrDatos: r?.datos || null,
         ocr_raw: r?.ocr_raw || '',
         needs_manual: !r?.success || !r?.datos,
+        debug_error: r?.error || null,
       });
 
     } catch {
