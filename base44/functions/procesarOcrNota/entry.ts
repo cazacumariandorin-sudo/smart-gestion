@@ -29,33 +29,55 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, needs_manual: true, error: 'file_base64 requerido' });
     }
 
-    // 1. Subir a CDN desde el backend (esta URL SÍ es accesible por InvokeLLM)
-    let cdn_url;
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: file_base64 });
-      cdn_url = file_url;
-    } catch (e) {
-      return Response.json({ success: false, needs_manual: true, error: 'Upload fallido: ' + e.message });
-    }
+    const OCR_PROMPT = `Eres un motor OCR para tickets y facturas en España. Transcribe EXACTAMENTE todo el texto visible en este documento, línea por línea. Incluye todos los números (importes, fechas, NIFs, teléfonos). No interpretes, no resumas. Solo transcribe el texto tal como aparece.`;
 
-    if (!cdn_url) {
-      return Response.json({ success: false, needs_manual: true, error: 'Sin URL de almacenamiento' });
-    }
-
-    // 2. OCR — extraer texto del documento
     let ocr_raw = '';
+    let cdn_url = null;
+    const debug_steps: string[] = [];
+
+    // ESTRATEGIA A: data URL directa a InvokeLLM (sin upload)
     try {
       const texto = await base44.integrations.Core.InvokeLLM({
-        prompt: `Eres un motor OCR para tickets y facturas en España. Transcribe EXACTAMENTE todo el texto visible en este documento, línea por línea. Incluye todos los números (importes, fechas, NIFs, teléfonos). No interpretes, no resumas. Solo transcribe el texto tal como aparece.`,
-        file_urls: [cdn_url],
+        prompt: OCR_PROMPT,
+        file_urls: [file_base64],
       });
       ocr_raw = (typeof texto === 'string' ? texto : JSON.stringify(texto)).trim();
-    } catch (e) {
-      return Response.json({ success: false, needs_manual: true, cdn_url, error: 'OCR fallido: ' + e.message });
+      debug_steps.push('A_dataurl:ok');
+    } catch (eA) {
+      debug_steps.push('A_dataurl:fail:' + String(eA.message).slice(0, 60));
+
+      // ESTRATEGIA B: upload backend → CDN URL → InvokeLLM
+      try {
+        const uploadResult = await base44.integrations.Core.UploadFile({ file: file_base64 });
+        cdn_url = uploadResult?.file_url || null;
+        debug_steps.push('B_upload:' + (cdn_url ? 'ok:' + cdn_url.slice(0, 40) : 'null'));
+
+        if (cdn_url) {
+          const texto2 = await base44.integrations.Core.InvokeLLM({
+            prompt: OCR_PROMPT,
+            file_urls: [cdn_url],
+          });
+          ocr_raw = (typeof texto2 === 'string' ? texto2 : JSON.stringify(texto2)).trim();
+          debug_steps.push('B_invokellm:ok');
+        }
+      } catch (eB) {
+        debug_steps.push('B_cdnurl:fail:' + String(eB.message).slice(0, 60));
+        return Response.json({
+          success: false,
+          needs_manual: true,
+          cdn_url,
+          error: debug_steps.join(' | '),
+        });
+      }
     }
 
     if (!ocr_raw || ocr_raw.length < 5) {
-      return Response.json({ success: false, needs_manual: true, cdn_url, error: 'Documento ilegible' });
+      return Response.json({
+        success: false,
+        needs_manual: true,
+        cdn_url,
+        error: 'Ilegible. Pasos: ' + debug_steps.join(' | '),
+      });
     }
 
     // 3. Análisis IA — estructurar los datos extraídos
