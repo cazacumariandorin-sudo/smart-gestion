@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     return Response.json({ success: ia_ok, ocr_raw, datos, ia_ok, needs_manual: !ia_ok });
 
   } catch (error) {
-    return Response.json({ success: false, needs_manual: true, error: error.message }, { status: 500 });
+    return Response.json({ success: false, needs_manual: true, error: error.message });
   }
 });
 

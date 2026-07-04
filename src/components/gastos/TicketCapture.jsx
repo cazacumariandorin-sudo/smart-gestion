@@ -43,10 +43,16 @@ export default function TicketCapture({ onDone, onSkip }) {
       });
 
     } catch (err) {
-      setEstado('error');
-      // Mostrar solo los primeros 100 chars del error para evitar base64 en UI
-      const msg = (err?.message || 'Error desconocido').slice(0, 100);
-      setErrorMsg(msg);
+      // Cualquier error → formulario manual (nunca bloquear al usuario)
+      setEstado('ok');
+      onDone({
+        cdn_url: null,
+        archivo: { url: null, nombre: file?.name || 'ticket', tipo: file?.type || 'image/jpeg', storage: 'error' },
+        preview: preview,
+        ocrDatos: null,
+        ocr_raw: '',
+        needs_manual: true,
+      });
     }
   };
 
