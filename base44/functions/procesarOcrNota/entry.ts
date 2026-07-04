@@ -1,18 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * procesarOcrNota — OCR + IA en un único paso robusto.
- *
- * FLUJO:
- *   1. Recibe file_base64 directamente del frontend
- *   2. Sube a Base44 CDN internamente (Core.UploadFile)
- *   3. Ejecuta OCR con la URL CDN (siempre accesible por InvokeLLM)
- *   4. Ejecuta análisis IA sobre el texto OCR
- *   5. Devuelve { ocr_raw, datos, cdn_url, ia_ok }
- *
- * Si la IA falla, devuelve ocr_raw para que el usuario revise manualmente.
- * Si el OCR falla, devuelve needs_manual:true.
- * body.fase = 'ia' sigue disponible para re-analizar texto OCR ya existente.
+ * procesarOcrNota — implementación mínima y robusta.
+ * Recibe cdn_url (URL pública de Base44 CDN) y ejecuta OCR + IA.
  */
 Deno.serve(async (req) => {
   try {
@@ -21,146 +11,90 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { fase, cdn_url, file_base64, ocr_raw: ocr_raw_input } = body;
+    const { cdn_url, ocr_raw: ocr_input, fase } = body;
 
-    // ── FASE IA SOLA (re-análisis de texto ya extraído) ──────────────────────
-    if (fase === 'ia') {
-      if (!ocr_raw_input) return Response.json({ error: 'ocr_raw requerido' }, { status: 400 });
+    // Fase IA: re-analizar texto OCR ya existente
+    if (fase === 'ia' && ocr_input) {
       try {
-        const datos = await analizarConIA(base44, ocr_raw_input);
-        return Response.json({ success: true, fase: 'ia', datos, ia_ok: true });
+        const datos = await analizarIA(base44, ocr_input);
+        return Response.json({ success: true, datos, ia_ok: true });
       } catch (e) {
-        return Response.json({ success: false, fase: 'ia', ia_ok: false, error: e.message });
+        return Response.json({ success: false, ia_ok: false, error: e.message });
       }
     }
 
-    // ── FASE AUTO (por defecto) — recibe cdn_url ya subida desde el frontend ─
-    // La URL CDN viene del frontend (Core.UploadFile desde el navegador).
-    // Si viene file_base64 como fallback, se sube aquí.
-    let urlParaOcr = cdn_url;
-
-    if (!urlParaOcr && file_base64) {
-      try {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: file_base64 });
-        urlParaOcr = file_url;
-      } catch (e) {
-        return Response.json({ success: false, needs_manual: true, error: 'No se pudo procesar: ' + e.message });
-      }
+    // Fase OCR+IA automático (por defecto)
+    if (!cdn_url) {
+      return Response.json({ success: false, needs_manual: true, error: 'cdn_url requerido' });
     }
 
-    if (!urlParaOcr) {
-      return Response.json({ error: 'cdn_url o file_base64 requerido' }, { status: 400 });
+    // Validar que es una URL accesible (no Drive, no base64)
+    if (cdn_url.startsWith('data:') || cdn_url.includes('drive.google.com')) {
+      return Response.json({ success: false, needs_manual: true, error: 'URL no accesible' });
     }
 
-    if (urlParaOcr.startsWith('data:') || urlParaOcr.includes('drive.google.com')) {
-      return Response.json({ success: false, needs_manual: true, error: 'URL no accesible para OCR' });
-    }
-
-    // PASO 2: OCR — extraer texto bruto
+    // OCR
     let ocr_raw = '';
-    let ocr_ok = false;
     try {
       const texto = await base44.integrations.Core.InvokeLLM({
-        prompt: `Eres un motor OCR especializado en tickets y facturas españolas. Transcribe EXACTAMENTE todo el texto visible en este documento, línea por línea.
-
-REGLAS:
-- Copia el texto TAL COMO APARECE, sin reformatear ni interpretar
-- Si ves código QR o código de barras, escríbelo entre [QR: ...] o [BARCODE: ...]  
-- Si hay tablas, usa espacios para representarlas
-- Incluye TODOS los números: importes, fechas, NIFs, teléfonos
-- No resumas, no interpretes, no omitas nada
-
-Devuelve únicamente el texto transcrito, sin comentarios.`,
-        file_urls: [urlParaOcr],
+        prompt: `Eres un motor OCR para tickets y facturas en España. Transcribe EXACTAMENTE todo el texto visible en este documento, línea por línea. Incluye todos los números (importes, fechas, NIFs). No interpretes, no resumas. Solo transcribe.`,
+        file_urls: [cdn_url],
       });
-      const textoStr = typeof texto === 'string' ? texto : JSON.stringify(texto);
-      if (textoStr && textoStr.trim().length >= 5) {
-        ocr_raw = textoStr.trim();
-        ocr_ok = true;
-      }
-    } catch (_) {
-      ocr_ok = false;
+      ocr_raw = (typeof texto === 'string' ? texto : JSON.stringify(texto)).trim();
+    } catch (e) {
+      return Response.json({ success: false, needs_manual: true, ocr_raw: '', error: 'OCR fallido: ' + e.message });
     }
 
-    if (!ocr_ok) {
-      return Response.json({
-        success: false,
-        needs_manual: true,
-        cdn_url: urlParaOcr,
-        error: 'No se pudo extraer texto del documento. Verifica que la imagen es legible.',
-      });
+    if (!ocr_raw || ocr_raw.length < 5) {
+      return Response.json({ success: false, needs_manual: true, ocr_raw: '', error: 'Documento ilegible' });
     }
 
-    // PASO 3: Análisis IA — estructurar los datos
+    // IA
     let datos = null;
     let ia_ok = false;
     try {
-      datos = await analizarConIA(base44, ocr_raw);
+      datos = await analizarIA(base44, ocr_raw);
       ia_ok = true;
     } catch (_) {
       ia_ok = false;
     }
 
-    return Response.json({
-      success: true,
-      ocr_raw,
-      ocr_ok: true,
-      datos,
-      ia_ok,
-      cdn_url: urlParaOcr,
-      // Si IA falló, el frontend muestra el texto OCR para revisión manual
-      message: ia_ok
-        ? `Datos extraídos (confianza: ${datos?.confianza || 'media'})`
-        : 'OCR completado. La IA no pudo estructurar los datos — revisa el texto.',
-    });
+    return Response.json({ success: ia_ok, ocr_raw, datos, ia_ok, needs_manual: !ia_ok });
 
   } catch (error) {
     return Response.json({ success: false, needs_manual: true, error: error.message }, { status: 500 });
   }
 });
 
-async function analizarConIA(base44: any, ocr_raw: string): Promise<any> {
+async function analizarIA(base44: any, ocr_raw: string) {
   return await base44.integrations.Core.InvokeLLM({
-    prompt: `Eres un sistema de análisis de facturas y tickets de gasto empresarial en España.
-Analiza este texto OCR y extrae los datos estructurados.
+    prompt: `Analiza este texto OCR de un ticket/factura español y extrae los datos en JSON.
 
-TEXTO OCR:
+TEXTO:
 ${ocr_raw}
 
-INSTRUCCIONES:
-- "importe": TOTAL final del ticket (no base imponible, no subtotales)
-- "fecha_documento": formato YYYY-MM-DD
-- "nif_comercio": CIF/NIF del COMERCIO (no del cliente)
-- "categoria_sugerida": comida|combustible|material|peaje|parking|otros
-- "confianza": alta (todos claros) | media (alguna duda) | baja (ambiguos)
-- null para campos no determinables
-
-Devuelve ÚNICAMENTE el JSON:
+Devuelve SOLO este JSON (null para campos no encontrados):
 {
-  "concepto": "descripción corta del gasto",
+  "concepto": "descripción del gasto",
   "importe": 0.00,
-  "nif_comercio": null,
   "nombre_comercio": "nombre del establecimiento",
+  "nif_comercio": null,
   "fecha_documento": "YYYY-MM-DD",
-  "categoria_sugerida": "comida",
-  "confianza": "alta",
-  "codigo_validacion_fiscal": null,
-  "mejoras_aplicadas": "qué detectó/corrigió la IA",
-  "campos_inciertos": []
-}`,
+  "categoria_sugerida": "comida|combustible|material|peaje|parking|otros",
+  "confianza": "alta|media|baja"
+}
+
+Para importe usa el TOTAL final. Para fecha usa formato YYYY-MM-DD.`,
     response_json_schema: {
       type: 'object',
       properties: {
         concepto: { type: 'string' },
         importe: { type: 'number' },
-        nif_comercio: { type: 'string' },
         nombre_comercio: { type: 'string' },
+        nif_comercio: { type: 'string' },
         fecha_documento: { type: 'string' },
         categoria_sugerida: { type: 'string' },
         confianza: { type: 'string' },
-        codigo_validacion_fiscal: { type: 'string' },
-        mejoras_aplicadas: { type: 'string' },
-        campos_inciertos: { type: 'array', items: { type: 'string' } },
       },
     },
   });
