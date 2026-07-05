@@ -14,19 +14,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { file_base64, file_tipo } = body;
 
-    // ── FASE IA SOLA (re-analizar texto ya existente) ─────────────────────
-    if (fase === 'ia' && ocr_input) {
-      try {
-        const datos = await analizarIA(base44, ocr_input);
-        return Response.json({ success: true, datos, ia_ok: true });
-      } catch (e) {
-        return Response.json({ success: false, ia_ok: false, error: e.message });
-      }
-    }
-
-    // ── FASE AUTO: base64 → CDN (backend) → OCR → IA ─────────────────────
     if (!file_base64) {
-      return Response.json({ success: false, needs_manual: true, error: 'file_base64 requerido' });
+      return Response.json({ success: false, ocr_raw: '', error: 'file_base64 requerido' });
     }
 
     // Extraer base64 puro (sin prefijo data:image/...;base64,)
