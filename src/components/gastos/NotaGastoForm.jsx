@@ -40,6 +40,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [ocrRaw, setOcrRaw] = useState('');
   const [captureData, setCaptureData] = useState(null);
   const [iaNoDispo, setIaNoDispo] = useState(false);
+  const [debugOcrError, setDebugOcrError] = useState('');
   const [showDupAlert, setShowDupAlert] = useState(false);
   const [posibleDup, setPosibleDup] = useState(null);
   const [operarioSeleccionado, setOperarioSeleccionado] = useState(null);
@@ -65,7 +66,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const esGastoTardio = useMemo(() => { if (!form.fecha_documento) return false; return Math.floor((Date.now() - new Date(form.fecha_documento)) / 86400000) > 30; }, [form.fecha_documento]);
 
-  const handleDone = ({ ocrDatos, ocr_raw, needs_manual, preview, archivo, cdn_url }) => {
+  const handleDone = ({ ocrDatos, ocr_raw, needs_manual, preview, archivo, cdn_url, debug_error }) => {
+    if (debug_error) setDebugOcrError(debug_error);
     setCaptureData({ preview, archivo, cdn_url });
     setArchivos([{ ...archivo, url: archivo.url || cdn_url }]);
     setOcrRaw(ocr_raw || '');
@@ -174,6 +176,12 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
                         <details className="mt-1">
                           <summary className="text-[11px] text-amber-600 cursor-pointer">Ver texto extraído del ticket</summary>
                           <pre className="text-[10px] text-muted-foreground mt-1 bg-background/60 rounded p-2 max-h-28 overflow-y-auto whitespace-pre-wrap">{ocrRaw}</pre>
+                        </details>
+                      )}
+                      {debugOcrError && (
+                        <details className="mt-1" open>
+                          <summary className="text-[10px] text-red-500 cursor-pointer">⚠ Error OCR (diagnóstico)</summary>
+                          <pre className="text-[9px] text-red-600 mt-1 bg-red-50 dark:bg-red-950/20 rounded p-1.5 whitespace-pre-wrap break-all max-h-24 overflow-y-auto">{debugOcrError}</pre>
                         </details>
                       )}
                     </div>
