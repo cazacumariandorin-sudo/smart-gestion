@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { file_base64, file_nombre, file_tipo, fase, ocr_raw: ocr_input } = body;
+    const { file_base64, file_tipo } = body;
 
     // ── FASE IA SOLA (re-analizar texto ya existente) ─────────────────────
     if (fase === 'ia' && ocr_input) {
