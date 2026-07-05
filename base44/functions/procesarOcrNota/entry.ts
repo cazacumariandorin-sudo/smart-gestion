@@ -29,53 +29,56 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, needs_manual: true, error: 'file_base64 requerido' });
     }
 
+    // Extraer base64 puro (sin prefijo data:image/...;base64,)
+    const base64puro = file_base64.includes(',') ? file_base64.split(',')[1] : file_base64;
+    const mimeType = file_base64.startsWith('data:') 
+      ? file_base64.split(';')[0].split(':')[1] 
+      : (file_tipo || 'image/jpeg');
+
     const OCR_PROMPT = `Eres un motor OCR para tickets y facturas en España. Transcribe EXACTAMENTE todo el texto visible en este documento, línea por línea. Incluye todos los números (importes, fechas, NIFs, teléfonos). No interpretes, no resumas. Solo transcribe el texto tal como aparece.`;
 
     let ocr_raw = '';
-    let cdn_url = null;
     const debug_steps: string[] = [];
 
-    // ESTRATEGIA A: data URL directa a InvokeLLM (sin upload)
+    // InvokeLLM con base64 en formato nativo Anthropic (messages array)
+    // No requiere upload ni URL pública — base64 directo a la API
     try {
       const texto = await base44.integrations.Core.InvokeLLM({
-        prompt: OCR_PROMPT,
-        file_urls: [file_base64],
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: mimeType,
+                  data: base64puro,
+                },
+              },
+              {
+                type: 'text',
+                text: OCR_PROMPT,
+              },
+            ],
+          },
+        ],
       });
-      ocr_raw = (typeof texto === 'string' ? texto : JSON.stringify(texto)).trim();
-      debug_steps.push('A_dataurl:ok');
-    } catch (eA) {
-      debug_steps.push('A_dataurl:fail:' + String(eA.message).slice(0, 60));
-
-      // ESTRATEGIA B: upload backend → CDN URL → InvokeLLM
-      try {
-        const uploadResult = await base44.integrations.Core.UploadFile({ file: file_base64 });
-        cdn_url = uploadResult?.file_url || null;
-        debug_steps.push('B_upload:' + (cdn_url ? 'ok:' + cdn_url.slice(0, 40) : 'null'));
-
-        if (cdn_url) {
-          const texto2 = await base44.integrations.Core.InvokeLLM({
-            prompt: OCR_PROMPT,
-            file_urls: [cdn_url],
-          });
-          ocr_raw = (typeof texto2 === 'string' ? texto2 : JSON.stringify(texto2)).trim();
-          debug_steps.push('B_invokellm:ok');
-        }
-      } catch (eB) {
-        debug_steps.push('B_cdnurl:fail:' + String(eB.message).slice(0, 60));
-        return Response.json({
-          success: false,
-          needs_manual: true,
-          cdn_url,
-          error: debug_steps.join(' | '),
-        });
-      }
+      ocr_raw = (typeof texto === 'string' ? texto : (texto?.content?.[0]?.text || JSON.stringify(texto))).trim();
+      debug_steps.push('messages_base64:ok');
+    } catch (eMsg) {
+      debug_steps.push('messages_base64:fail:' + String(eMsg.message).slice(0, 80));
+      return Response.json({
+        success: false,
+        needs_manual: true,
+        error: debug_steps.join(' | '),
+      });
     }
 
     if (!ocr_raw || ocr_raw.length < 5) {
       return Response.json({
         success: false,
         needs_manual: true,
-        cdn_url,
         error: 'Ilegible. Pasos: ' + debug_steps.join(' | '),
       });
     }
