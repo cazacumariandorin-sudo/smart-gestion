@@ -1,9 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * procesarOcrNota — recibe file_base64 comprimido del frontend.
- * Sube a CDN internamente (URL accesible por InvokeLLM) → OCR → IA.
- * El upload desde el backend genera URLs que la API de Anthropic SÍ puede acceder.
+ * procesarOcrNota — OCR puro sin IA.
+ * Recibe file_base64 comprimido y extrae texto con InvokeLLM (messages/base64).
+ * No hace análisis IA. Devuelve ocr_raw para que el usuario rellene el formulario.
  */
 Deno.serve(async (req) => {
   try {

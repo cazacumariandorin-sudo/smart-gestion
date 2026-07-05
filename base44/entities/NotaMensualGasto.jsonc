@@ -1,0 +1,133 @@
+{
+  "properties": {
+    "aprobado_por": {
+      "type": "string"
+    },
+    "ciclo_mes": {
+      "description": "Mes del ciclo YYYY-MM",
+      "type": "string"
+    },
+    "estado": {
+      "default": "borrador",
+      "enum": [
+        "borrador",
+        "enviada",
+        "aprobada",
+        "en_contabilidad",
+        "pagada",
+        "rechazada"
+      ],
+      "type": "string"
+    },
+    "fecha_aprobacion": {
+      "type": "string"
+    },
+    "fecha_cierre": {
+      "format": "date",
+      "type": "string"
+    },
+    "fecha_pago": {
+      "type": "string"
+    },
+    "importe_adelanto": {
+      "default": 0,
+      "description": "Adelanto recibido ese mes",
+      "type": "number"
+    },
+    "metodo_pago": {
+      "enum": [
+        "transferencia",
+        "efectivo",
+        "tarjeta_empresa",
+        "sepa"
+      ],
+      "type": "string"
+    },
+    "notas_gerencia": {
+      "type": "string"
+    },
+    "operario_id": {
+      "type": "string"
+    },
+    "operario_name": {
+      "type": "string"
+    },
+    "pagado_por": {
+      "type": "string"
+    },
+    "registros_ids": {
+      "description": "IDs de RegistroGasto incluidos",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "saldo_pendiente": {
+      "default": 0,
+      "description": "total_importe - importe_adelanto",
+      "type": "number"
+    },
+    "total_importe": {
+      "default": 0,
+      "type": "number"
+    },
+    "total_registros": {
+      "default": 0,
+      "type": "number"
+    }
+  },
+  "required": [
+    "ciclo_mes",
+    "operario_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    }
+  },
+  "type": "object",
+  "name": "NotaMensualGasto"
+}
