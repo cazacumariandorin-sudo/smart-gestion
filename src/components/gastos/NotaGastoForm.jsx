@@ -66,23 +66,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const esGastoTardio = useMemo(() => { if (!form.fecha_documento) return false; return Math.floor((Date.now() - new Date(form.fecha_documento)) / 86400000) > 30; }, [form.fecha_documento]);
 
-  const handleDone = ({ ocrDatos, ocr_raw, needs_manual, preview, archivo, cdn_url, debug_error }) => {
-    if (debug_error) setDebugOcrError(debug_error);
-    setCaptureData({ preview, archivo, cdn_url });
-    setArchivos([{ ...archivo, url: archivo.url || cdn_url }]);
-    setOcrRaw(ocr_raw || '');
-    // Pre-rellenar formulario con datos IA si disponibles
-    if (ocrDatos && !needs_manual) {
-      if (ocrDatos.concepto) setField('concepto', ocrDatos.concepto);
-      if (ocrDatos.importe) setField('importe', String(ocrDatos.importe));
-      if (ocrDatos.nif_comercio) setField('nif_comercio', ocrDatos.nif_comercio);
-      if (ocrDatos.nombre_comercio) setField('nombre_comercio', ocrDatos.nombre_comercio);
-      if (ocrDatos.fecha_documento) setField('fecha_documento', ocrDatos.fecha_documento);
-      if (ocrDatos.categoria_sugerida) setField('categoria', ocrDatos.categoria_sugerida);
-      if (ocrDatos.codigo_validacion_fiscal) setField('codigo_validacion_fiscal', ocrDatos.codigo_validacion_fiscal);
-    }
-    setIaNoDispo(!!needs_manual);
-    setPaso('formulario'); // saltar directamente al formulario, sin paso intermedio
+  const handleDone = ({ ocr_raw, ocr_ok, preview, archivo, error_ocr }) => {
+    setOcrRaw(ocr_raw || ''); setIaNoDispo(!ocr_ok); setCaptureData({ preview, archivo }); setArchivos(archivo ? [archivo] : []); setPaso('formulario');
   };
 
   const checkDuplicado = () => {
