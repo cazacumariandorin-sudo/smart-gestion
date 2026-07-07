@@ -17,6 +17,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import CalendarioObras from '@/components/informe/CalendarioObras';
@@ -56,6 +60,7 @@ export default function InformeObras() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [focusObra, setFocusObra] = useState(null);
+  const [conflictInfo, setConflictInfo] = useState(null); // { mensaje, prevision_existente, data }
 
   // ── Data ──
   const { data: previsiones = [], isLoading, refetch } = useQuery({
@@ -150,16 +155,12 @@ export default function InformeObras() {
         });
 
         if (res.data.conflicto) {
-          toast.warning(res.data.mensaje || 'Conflicto detectado - Gerencia validará');
-          // Crear previsión igualmente pero marcar para validación
-          createM.mutate({ ...data, requiere_validacion: true });
+          setConflictInfo({ mensaje: res.data.mensaje, prevision_existente: res.data.prevision_existente, data });
           return;
         }
       } catch (err) {
         if (err.response?.status === 409) {
-          // Conflicto confirmado
-          toast.warning('Pendiente de confirmación por gerencia');
-          createM.mutate({ ...data, requiere_validacion: true, conflicto_info: err.response.data.prevision_existente });
+          setConflictInfo({ mensaje: 'Ya existe una previsión activa para otro cliente en esta fecha.', prevision_existente: err.response.data.prevision_existente, data });
           return;
         }
         // Error inesperado - continuar sin validación
@@ -168,6 +169,12 @@ export default function InformeObras() {
     }
 
     editing ? updateM.mutate({ id: editing.id, d: data }) : createM.mutate(data);
+  };
+
+  const confirmConflicto = () => {
+    if (!conflictInfo) return;
+    createM.mutate({ ...conflictInfo.data, requiere_validacion: true, conflicto_info: conflictInfo.prevision_existente });
+    setConflictInfo(null);
   };
 
   const handleMonthChange = (dir) => {
@@ -257,6 +264,7 @@ export default function InformeObras() {
             obras={obras}
             canEdit={canEditPrevision}
             onEditPrevision={handleEditPrevisionFromCalendar}
+            onDeletePrevision={canEditPrevision ? (id => deleteM.mutateAsync(id)) : undefined}
           />
         )
       )}
@@ -391,6 +399,28 @@ export default function InformeObras() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmación de conflicto de previsión — requiere validación gerencia/administración */}
+      <AlertDialog open={!!conflictInfo} onOpenChange={(o) => !o && setConflictInfo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conflicto de previsión detectado</AlertDialogTitle>
+            <AlertDialogDescription>
+              {conflictInfo?.mensaje || 'Ya existe una previsión para esta obra y fecha con otro cliente.'}
+              {conflictInfo?.prevision_existente && (
+                <span className="block mt-2 text-xs">
+                  Previsión existente: <strong>{conflictInfo.prevision_existente.obra_name}</strong> — Cliente: {conflictInfo.prevision_existente.client_name} — Fecha: {conflictInfo.prevision_existente.fecha_inicio}
+                </span>
+              )}
+              <span className="block mt-2">¿Deseas crear igualmente esta previsión? Quedará marcada para validación de gerencia/administración.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmConflicto}>Crear y enviar a validación</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

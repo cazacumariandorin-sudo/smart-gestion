@@ -117,7 +117,7 @@ const STATUS_OPTIONS = [
   { value: 'cancelada',   label: 'Cancelada' },
 ];
 
-function FormularioEdicion({ prevision, onSave, onCancel, isSaving }) {
+function FormularioEdicion({ prevision, onSave, onCancel, isSaving, onDelete, isDeleting }) {
   const [form, setForm] = useState({
     fecha_inicio:            prevision.fecha_inicio || '',
     fecha_fin:               prevision.fecha_fin    || '',
@@ -211,37 +211,55 @@ function FormularioEdicion({ prevision, onSave, onCancel, isSaving }) {
       </div>
 
       {/* Botones acción */}
-      <div className="flex gap-2 justify-end pt-1">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 text-xs"
-          onClick={onCancel}
-          disabled={isSaving}
-        >
-          Cancelar
-        </Button>
-        <Button
-          size="sm"
-          className="h-7 text-xs gap-1"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
-          {isSaving
-            ? <><Loader2 className="w-3 h-3 animate-spin" /> Guardando…</>
-            : <><Save className="w-3 h-3" /> Guardar cambios</>
-          }
-        </Button>
+      <div className="flex gap-2 justify-between pt-1">
+        {onDelete && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
+            onClick={() => {
+              if (window.confirm('¿Eliminar esta previsión de obra? Esta acción no se puede deshacer.')) {
+                onDelete(prevision.id);
+              }
+            }}
+            disabled={isSaving || isDeleting}
+          >
+            {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />} Eliminar
+          </Button>
+        )}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={onCancel}
+            disabled={isSaving || isDeleting}
+          >
+            Cancelar
+          </Button>
+          <Button
+            size="sm"
+            className="h-7 text-xs gap-1"
+            onClick={handleSave}
+            disabled={isSaving || isDeleting}
+          >
+            {isSaving
+              ? <><Loader2 className="w-3 h-3 animate-spin" /> Guardando…</>
+              : <><Save className="w-3 h-3" /> Guardar cambios</>
+            }
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
 
 // ── Panel de detalle del día ──────────────────────────────────────────────────
-function PanelDetalle({ day, registros, obras, onClose, onSaveApunte, canEdit, onEditPrevision }) {
+function PanelDetalle({ day, registros, obras, onClose, onSaveApunte, canEdit, onEditPrevision, onDeletePrevision }) {
   const [showForm, setShowForm]       = useState(false);
   const [editingId, setEditingId]     = useState(null); // id de la previsión en edición
   const [isSaving, setIsSaving]       = useState(false);
+  const [deletingId, setDeletingId]   = useState(null);
 
   const handleSaveEdit = async (payload) => {
     setIsSaving(true);
@@ -249,6 +267,16 @@ function PanelDetalle({ day, registros, obras, onClose, onSaveApunte, canEdit, o
       await onEditPrevision(payload);
     } finally {
       setIsSaving(false);
+      setEditingId(null);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    setDeletingId(id);
+    try {
+      await onDeletePrevision(id);
+    } finally {
+      setDeletingId(null);
       setEditingId(null);
     }
   };
@@ -350,6 +378,8 @@ function PanelDetalle({ day, registros, obras, onClose, onSaveApunte, canEdit, o
                       onSave={handleSaveEdit}
                       onCancel={() => setEditingId(null)}
                       isSaving={isSaving}
+                      onDelete={onDeletePrevision ? handleDelete : undefined}
+                      isDeleting={deletingId === r.id}
                     />
                   ) : (
                     <Button
@@ -372,7 +402,7 @@ function PanelDetalle({ day, registros, obras, onClose, onSaveApunte, canEdit, o
 }
 
 // ── Calendario mensual principal ──────────────────────────────────────────────
-export default function CalendarioObras({ previsiones, month, onMonthChange, obras, canEdit = false, onEditPrevision }) {
+export default function CalendarioObras({ previsiones, month, onMonthChange, obras, canEdit = false, onEditPrevision, onDeletePrevision }) {
   const isMobile = useIsMobile();
   const [selectedDay, setSelectedDay] = useState(null);
   const [extraRegistros, setExtraRegistros] = useState([]); // apuntes añadidos inline
@@ -561,6 +591,7 @@ export default function CalendarioObras({ previsiones, month, onMonthChange, obr
                 onSaveApunte={handleSaveApunte}
                 canEdit={canEdit}
                 onEditPrevision={onEditPrevision}
+                onDeletePrevision={onDeletePrevision}
               />
             )}
           </SheetContent>
@@ -575,6 +606,7 @@ export default function CalendarioObras({ previsiones, month, onMonthChange, obr
             onSaveApunte={handleSaveApunte}
             canEdit={canEdit}
             onEditPrevision={onEditPrevision}
+            onDeletePrevision={onDeletePrevision}
           />
         )
       )}
