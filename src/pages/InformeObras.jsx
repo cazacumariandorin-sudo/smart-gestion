@@ -23,6 +23,7 @@ import CalendarioObras from '@/components/informe/CalendarioObras';
 import GanttObras from '@/components/informe/GanttObras';
 import FiltrosEstadoObra from '@/components/informe/FiltrosEstadoObra';
 import PrevisionObraCard from '@/components/informe/PrevisionObraCard';
+import { useUserRole } from '@/lib/useUserRole';
 
 const STATUS_CFG = {
   planificada: { label: 'Planificada' },
@@ -46,6 +47,8 @@ const VISTAS = [
 
 export default function InformeObras() {
   const qc = useQueryClient();
+  const { isAdmin, isGerencia } = useUserRole();
+  const canEditPrevision = isAdmin || isGerencia;
   const [view, setView] = useState('calendario'); // vista calendario por defecto
   const [month, setMonth] = useState(new Date());
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
@@ -176,6 +179,10 @@ export default function InformeObras() {
     setViewMenuOpen(false);
   };
 
+  const handleEditPrevisionFromCalendar = ({ id, data }) => {
+    updateM.mutate({ id, d: data });
+  };
+
   const isPending = createM.isPending || updateM.isPending;
   const currentVista = VISTAS.find(v => v.value === view) || VISTAS[0];
   const CurrentIcon = currentVista.icon;
@@ -248,6 +255,8 @@ export default function InformeObras() {
             month={month}
             onMonthChange={handleMonthChange}
             obras={obras}
+            canEdit={canEditPrevision}
+            onEditPrevision={handleEditPrevisionFromCalendar}
           />
         )
       )}

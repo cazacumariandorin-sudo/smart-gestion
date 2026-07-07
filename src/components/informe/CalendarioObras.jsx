@@ -10,7 +10,7 @@ import {
   eachDayOfInterval, isSameMonth, isToday, format, getDay, parseISO, isWithinInterval,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { X, Plus, Save, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { X, Plus, Save, Pencil, ChevronLeft, ChevronRight, CalendarDays, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -109,9 +109,150 @@ function FormularioApunte({ fecha, obras, onSave, onCancel }) {
   );
 }
 
+// ── Formulario de edición inline de previsión ─────────────────────────────────
+const STATUS_OPTIONS = [
+  { value: 'planificada', label: 'Planificada' },
+  { value: 'en_curso',    label: 'En curso' },
+  { value: 'completada',  label: 'Completada' },
+  { value: 'cancelada',   label: 'Cancelada' },
+];
+
+function FormularioEdicion({ prevision, onSave, onCancel, isSaving }) {
+  const [form, setForm] = useState({
+    fecha_inicio:            prevision.fecha_inicio || '',
+    fecha_fin:               prevision.fecha_fin    || '',
+    status:                  prevision.status       || 'planificada',
+    horas_totales_previstas: prevision.horas_totales_previstas ?? '',
+    notas:                   prevision.notas        || '',
+  });
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const handleSave = () => {
+    if (!form.fecha_inicio) { alert('La fecha de inicio es obligatoria.'); return; }
+    onSave({
+      id: prevision.id,
+      data: {
+        ...form,
+        horas_totales_previstas: form.horas_totales_previstas !== ''
+          ? parseFloat(form.horas_totales_previstas)
+          : null,
+      },
+    });
+  };
+
+  return (
+    <div className="mt-3 p-3 border border-dashed border-primary/50 rounded-xl bg-primary/5 space-y-2.5">
+      <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
+        <Pencil className="w-3 h-3" /> Editando previsión: {prevision.obra_name}
+      </p>
+
+      <div className="grid grid-cols-2 gap-2">
+        {/* Fecha inicio */}
+        <div className="space-y-1">
+          <Label className="text-xs">Fecha inicio *</Label>
+          <Input
+            type="date"
+            value={form.fecha_inicio}
+            onChange={e => set('fecha_inicio', e.target.value)}
+            className="h-8 text-xs"
+          />
+        </div>
+
+        {/* Fecha fin */}
+        <div className="space-y-1">
+          <Label className="text-xs">Fecha fin</Label>
+          <Input
+            type="date"
+            value={form.fecha_fin}
+            onChange={e => set('fecha_fin', e.target.value)}
+            className="h-8 text-xs"
+          />
+        </div>
+
+        {/* Estado */}
+        <div className="space-y-1">
+          <Label className="text-xs">Estado</Label>
+          <select
+            className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            value={form.status}
+            onChange={e => set('status', e.target.value)}
+          >
+            {STATUS_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Horas previstas */}
+        <div className="space-y-1">
+          <Label className="text-xs">Horas previstas</Label>
+          <Input
+            type="number"
+            min="0"
+            step="0.5"
+            placeholder="0"
+            value={form.horas_totales_previstas}
+            onChange={e => set('horas_totales_previstas', e.target.value)}
+            className="h-8 text-xs"
+          />
+        </div>
+
+        {/* Notas — ocupa las 2 columnas */}
+        <div className="space-y-1 col-span-2">
+          <Label className="text-xs">Notas / Observaciones</Label>
+          <Textarea
+            placeholder="Observaciones sobre esta previsión..."
+            value={form.notas}
+            onChange={e => set('notas', e.target.value)}
+            rows={2}
+            className="text-xs"
+          />
+        </div>
+      </div>
+
+      {/* Botones acción */}
+      <div className="flex gap-2 justify-end pt-1">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={onCancel}
+          disabled={isSaving}
+        >
+          Cancelar
+        </Button>
+        <Button
+          size="sm"
+          className="h-7 text-xs gap-1"
+          onClick={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving
+            ? <><Loader2 className="w-3 h-3 animate-spin" /> Guardando…</>
+            : <><Save className="w-3 h-3" /> Guardar cambios</>
+          }
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ── Panel de detalle del día ──────────────────────────────────────────────────
-function PanelDetalle({ day, registros, obras, onClose, onSaveApunte }) {
-  const [showForm, setShowForm] = useState(false);
+function PanelDetalle({ day, registros, obras, onClose, onSaveApunte, canEdit, onEditPrevision }) {
+  const [showForm, setShowForm]       = useState(false);
+  const [editingId, setEditingId]     = useState(null); // id de la previsión en edición
+  const [isSaving, setIsSaving]       = useState(false);
+
+  const handleSaveEdit = async (payload) => {
+    setIsSaving(true);
+    try {
+      await onEditPrevision(payload);
+    } finally {
+      setIsSaving(false);
+      setEditingId(null);
+    }
+  };
+
   if (!day) return null;
 
   const ahora = new Date();
@@ -198,6 +339,30 @@ function PanelDetalle({ day, registros, obras, onClose, onSaveApunte }) {
                 </div>
                 {r.notas && <div className="col-span-2"><span className="text-muted-foreground">Notas:</span> <span className="italic">{r.notas}</span></div>}
               </div>
+
+              {/* Botón Editar — solo para admin/gerencia y solo en registros
+                  de tipo previsión que vienen de la entidad (tienen id real) */}
+              {canEdit && r.id && !r.id.toString().startsWith('extra_') && (
+                <div className="mt-2 pt-2 border-t border-border/40">
+                  {editingId === r.id ? (
+                    <FormularioEdicion
+                      prevision={r}
+                      onSave={handleSaveEdit}
+                      onCancel={() => setEditingId(null)}
+                      isSaving={isSaving}
+                    />
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-[10px] gap-1 text-muted-foreground hover:text-primary"
+                      onClick={() => setEditingId(r.id)}
+                    >
+                      <Pencil className="w-2.5 h-2.5" /> Editar previsión
+                    </Button>
+                  )}
+                </div>
+              )}
             </Card>
           );
         })}
@@ -207,7 +372,7 @@ function PanelDetalle({ day, registros, obras, onClose, onSaveApunte }) {
 }
 
 // ── Calendario mensual principal ──────────────────────────────────────────────
-export default function CalendarioObras({ previsiones, month, onMonthChange, obras }) {
+export default function CalendarioObras({ previsiones, month, onMonthChange, obras, canEdit = false, onEditPrevision }) {
   const isMobile = useIsMobile();
   const [selectedDay, setSelectedDay] = useState(null);
   const [extraRegistros, setExtraRegistros] = useState([]); // apuntes añadidos inline
@@ -394,6 +559,8 @@ export default function CalendarioObras({ previsiones, month, onMonthChange, obr
                 obras={obras}
                 onClose={() => setSelectedDay(null)}
                 onSaveApunte={handleSaveApunte}
+                canEdit={canEdit}
+                onEditPrevision={onEditPrevision}
               />
             )}
           </SheetContent>
@@ -406,6 +573,8 @@ export default function CalendarioObras({ previsiones, month, onMonthChange, obr
             obras={obras}
             onClose={() => setSelectedDay(null)}
             onSaveApunte={handleSaveApunte}
+            canEdit={canEdit}
+            onEditPrevision={onEditPrevision}
           />
         )
       )}
