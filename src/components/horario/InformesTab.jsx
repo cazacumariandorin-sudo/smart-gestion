@@ -327,11 +327,13 @@ export default function InformesTab() {
   const filtered = useMemo(() => fichajes.filter(f => {
     if ((isControlHorarioOnly || isOperarioRole) && (!myOperario || f.operario_id !== myOperario.id)) return false;
     if (mode === 'calendario') {
+      // En modo calendario NO filtrar por mes aquí:
+      // CalendarioHorarioView tiene sus propias flechas de navegación y filtra
+      // internamente. Pre-filtrar aquí dejaba vacíos los meses anteriores.
       if (opFilter !== 'all' && f.operario_id !== opFilter) return false;
-      if (monthFilter && !f.date?.startsWith(monthFilter)) return false;
     }
     return true;
-  }), [fichajes, opFilter, monthFilter, mode, isControlHorarioOnly, isOperarioRole, myOperario]);
+  }), [fichajes, opFilter, mode, isControlHorarioOnly, isOperarioRole, myOperario]);
 
   const generatePDF = () => {
     const doc = new jsPDF();
