@@ -119,6 +119,7 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
   const createM = useMutation({
     mutationFn: d => base44.entities.OperarioDoc.create(d),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['operario_docs'] }); close_(); toast.success('Documento guardado'); },
+    onError: (e) => toast.error('Error al guardar el documento: ' + (e.message || 'Sin permisos')),
   });
   const updateM = useMutation({
     mutationFn: ({ id, d }) => base44.entities.OperarioDoc.update(id, d),
@@ -145,20 +146,31 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
     setForm(p => ({ ...p, obra_id: id, obra_name: ob?.name || '' }));
   };
 
+  const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+      reader.readAsDataURL(file);
+    });
+
   const handleFileUpload = async (file) => {
     setUploading(true);
     try {
+      const base64 = await fileToBase64(file);
       const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
-        file_base64: file,
+        file_base64: base64,
+        nombre: file.name,
         ruta_drive: 'Operarios/Documentos',
         entidad_tipo: 'OperarioDoc',
         entidad_id: null,
       });
       const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
+      if (!file_url) throw new Error('No se recibió URL del archivo');
       set('file_url', file_url);
       toast.success('Archivo subido correctamente');
     } catch (e) {
-      toast.error('Error al subir: ' + e.message);
+      toast.error('Error al subir el archivo: ' + (e.message || 'error desconocido'));
     } finally {
       setUploading(false);
     }
@@ -171,12 +183,9 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
     if (!signingDoc) return;
     setSavingSig(true);
     try {
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      const file = new File([blob], 'firma.png', { type: 'image/png' });
-
       const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
-        file_base64: file,
+        file_base64: dataUrl,
+        nombre: `firma_${signingDoc.id}.png`,
         ruta_drive: 'Operarios/Firmas',
         entidad_tipo: 'OperarioDoc',
         entidad_id: signingDoc.id,
@@ -215,8 +224,8 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
       {/* Filters row */}
       <div className="flex flex-wrap gap-2 mb-4 items-center">
         {!defaultOperarioId && (
-          <MobileSelect value={operarioFilter} onValueChange={setOperarioFilter} placeholder="Operario" triggerClassName="w-48">
-            <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
+          <MobileSelect value={operarioFilter} onValueChange={setOperarioFilter} placeholder="Técnico" triggerClassName="w-48">
+            <MobileSelectItem value="all">Todos los técnicos</MobileSelectItem>
             {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
           </MobileSelect>
         )}
@@ -228,7 +237,7 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
             <Building2 className="w-3.5 h-3.5" /> Doc. Obra
           </Button>
           <Button onClick={() => open_('doc_operario')} size="sm" className="gap-1.5">
-            <User className="w-3.5 h-3.5" /> Doc. Operario
+            <User className="w-3.5 h-3.5" /> Doc. Técnico
           </Button>
         </div>
       </div>
@@ -311,7 +320,7 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {form.tipo === 'doc_empresa' ? '📋 Nuevo Doc. Empresa' : form.tipo === 'doc_obra' ? '🏗️ Nuevo Doc. Obra' : '👤 Nuevo Doc. Operario'}
+              {form.tipo === 'doc_empresa' ? '📋 Nuevo Doc. Empresa' : form.tipo === 'doc_obra' ? '🏗️ Nuevo Doc. Obra' : '👤 Nuevo Doc. Técnico'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -324,8 +333,8 @@ export default function DocsList({ operarios = [], obras = [], defaultOperarioId
               </MobileSelect>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Operario *</Label>
-              <MobileSelect value={form.operario_id} onValueChange={handleOperarioChange} placeholder="Seleccionar operario...">
+              <Label className="text-xs">Técnico *</Label>
+              <MobileSelect value={form.operario_id} onValueChange={handleOperarioChange} placeholder="Seleccionar técnico...">
                 {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
               </MobileSelect>
             </div>
