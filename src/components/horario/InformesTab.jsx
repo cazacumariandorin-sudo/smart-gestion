@@ -53,7 +53,7 @@ export function calcularMinutosFichaje(f) {
 export function useFichajesShared() {
   return useQuery({
     queryKey: ['fichajes_shared'],
-    queryFn: () => base44.entities.Fichaje.list('-date', 2000),
+    queryFn: () => base44.entities.Fichaje.list('-date', 5000),
     staleTime: 30_000,
   });
 }
