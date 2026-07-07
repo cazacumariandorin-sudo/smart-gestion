@@ -5,7 +5,8 @@ import FichajesTab from '@/components/horario/FichajesTab';
 import InformesTab from '@/components/horario/InformesTab';
 import AlarmasTab from '@/components/horario/AlarmasTab';
 import ApuntesTab from '@/components/horario/ApuntesTab';
-import { Clock, BarChart3, Bell, ClipboardList } from 'lucide-react';
+import CierreForzadoPanel from '@/components/horario/CierreForzadoPanel';
+import { Clock, BarChart3, Bell, ClipboardList, Zap } from 'lucide-react';
 import { useAlarmas } from '@/hooks/useAlarmas';
 import { useTabState } from '@/hooks/useTabState';
 import { useUserRole } from '@/lib/useUserRole';
@@ -13,6 +14,8 @@ import { useUserRole } from '@/lib/useUserRole';
 export default function ControlHorario() {
   const { isAdmin, isJefeObra, role } = useUserRole();
   const isOperario = role === 'operario';
+  const isGerencia = role === 'gerencia';
+  const showCierreForzado = isAdmin || isGerencia;
   const showAlarmas = isAdmin; // Alarmas solo para admin (RLS)
   const showApuntes = isAdmin || isJefeObra || isOperario; // Operario puede ver sus apuntes
 
@@ -41,6 +44,7 @@ export default function ControlHorario() {
             { value: 'informes', label: 'Informes',  icon: BarChart3,    color: 'bg-teal-500 hover:bg-teal-600 border-teal-600 shadow-teal-200', show: true },
             { value: 'apuntes',  label: 'Apuntes',   icon: ClipboardList,color: 'bg-indigo-500 hover:bg-indigo-600 border-indigo-600 shadow-indigo-200', show: showApuntes },
             { value: 'alarmas',  label: 'Alarmas',   icon: Bell,         color: 'bg-rose-500 hover:bg-rose-600 border-rose-600 shadow-rose-200', show: showAlarmas },
+            { value: 'cierre-forzado', label: 'Cierre Forzado', icon: Zap, color: 'bg-amber-500 hover:bg-amber-600 border-amber-600 shadow-amber-200', show: showCierreForzado },
           ].filter(t => t.show).map(({ value, label, icon: Icon, color }) => (
             <button
               key={value}
@@ -62,12 +66,18 @@ export default function ControlHorario() {
           <TabsTrigger value="informes" />
           <TabsTrigger value="apuntes" />
           <TabsTrigger value="alarmas" />
+          {showCierreForzado && <TabsTrigger value="cierre-forzado" />}
         </TabsList>
 
         <TabsContent value="fichajes"><FichajesTab /></TabsContent>
         <TabsContent value="informes"><InformesTab /></TabsContent>
         <TabsContent value="apuntes"><ApuntesTab /></TabsContent>
         <TabsContent value="alarmas"><AlarmasTab /></TabsContent>
+        {showCierreForzado && (
+          <TabsContent value="cierre-forzado">
+            <CierreForzadoPanel />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
