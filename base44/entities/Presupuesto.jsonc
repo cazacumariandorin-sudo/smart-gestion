@@ -138,6 +138,11 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
+          }
         }
       ]
     },
