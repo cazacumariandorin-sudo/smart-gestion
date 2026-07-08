@@ -210,6 +210,11 @@
         },
         {
           "user_condition": {
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "user_condition": {
             "role": "control_horario"
           }
         },
