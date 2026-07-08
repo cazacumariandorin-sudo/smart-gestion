@@ -17,7 +17,7 @@ export default function ControlHorario() {
   const isGerencia = role === 'gerencia';
   const showCierreForzado = isAdmin || isGerencia;
   const showAlarmas = isAdmin; // Alarmas solo para admin (RLS)
-  const showApuntes = isAdmin || isJefeObra || isOperario; // Operario puede ver sus apuntes
+  const showApuntes = isAdmin || isJefeObra || isOperario || role === 'técnico'; // Operario/técnico pueden ver sus apuntes
 
   const { data: alarmas = [] } = useQuery({
     queryKey: ['alarmas'],
