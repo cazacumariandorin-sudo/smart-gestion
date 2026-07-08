@@ -13,6 +13,7 @@ import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
+import { useUserRole } from '@/lib/useUserRole';
 
 const EMPTY_FORM = {
   operario_id: '',
@@ -29,6 +30,8 @@ const EMPTY_FORM = {
 
 export default function ApuntesHorario() {
   const queryClient = useQueryClient();
+  const { role } = useUserRole();
+  const isTecnicoRole = role === 'técnico';
   const [search, setSearch] = useState('');
   const [filterOperario, setFilterOperario] = useState('');
   const [filterObra, setFilterObra] = useState('');
@@ -46,6 +49,14 @@ export default function ApuntesHorario() {
     queryKey: ['apuntes-horario'],
     queryFn: () => base44.entities.ApunteHorario.list('-date', 200),
   });
+
+  // Técnico: solo puede ver y crear sus propios apuntes
+  const { data: misOperarios = [] } = useQuery({
+    queryKey: ['mi-operario-apuntes', currentUser?.email],
+    queryFn: () => base44.entities.Operario.filter({ user_email: currentUser.email }),
+    enabled: isTecnicoRole && !!currentUser?.email,
+  });
+  const miOperario = misOperarios[0];
 
   const { data: operarios = [] } = useQuery({
     queryKey: ['operarios-list'],
@@ -88,10 +99,11 @@ export default function ApuntesHorario() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['apuntes-horario'] }),
   });
 
-  const allOperarios = [...new Set(apuntes.map(a => a.operario_name).filter(Boolean))];
-  const allObras = [...new Set(apuntes.map(a => a.obra_name).filter(Boolean))];
+  const apuntesVisibles = isTecnicoRole ? apuntes.filter(a => a.operario_id === miOperario?.id) : apuntes;
+  const allOperarios = [...new Set(apuntesVisibles.map(a => a.operario_name).filter(Boolean))];
+  const allObras = [...new Set(apuntesVisibles.map(a => a.obra_name).filter(Boolean))];
 
-  const filtrados = apuntes.filter(a => {
+  const filtrados = apuntesVisibles.filter(a => {
     const matchSearch = !search || a.concepto?.toLowerCase().includes(search.toLowerCase());
     const matchOp = !filterOperario || a.operario_name === filterOperario;
     const matchObra = !filterObra || a.obra_name === filterObra;
@@ -119,7 +131,10 @@ export default function ApuntesHorario() {
           <h1 className="text-2xl font-bold">Apuntes de Trabajo</h1>
           <Badge variant="outline" className="text-xs">{filtrados.length} apuntes</Badge>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} size="sm">
+        <Button onClick={() => {
+          if (isTecnicoRole && miOperario) setForm(f => ({ ...f, operario_id: miOperario.id, operario_name: miOperario.name }));
+          setShowForm(!showForm);
+        }} size="sm">
           <Plus className="w-4 h-4 mr-1" /> Nuevo apunte
         </Button>
       </div>
@@ -132,9 +147,13 @@ export default function ApuntesHorario() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Operario *</label>
-                <MobileSelect value={form.operario_id} onValueChange={handleOperarioChange} placeholder="Seleccionar...">
-                  {operarios.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
-                </MobileSelect>
+                {isTecnicoRole ? (
+                  <div className="h-10 flex items-center px-3 bg-muted rounded-md text-sm">{miOperario?.name || 'Mi perfil'}</div>
+                ) : (
+                  <MobileSelect value={form.operario_id} onValueChange={handleOperarioChange} placeholder="Seleccionar...">
+                    {operarios.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
+                  </MobileSelect>
+                )}
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Fecha *</label>
@@ -191,7 +210,7 @@ export default function ApuntesHorario() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar concepto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        {allOperarios.length > 0 && (
+        {!isTecnicoRole && allOperarios.length > 0 && (
           <MobileSelect value={filterOperario} onValueChange={setFilterOperario} placeholder="Todos los operarios" triggerClassName="min-w-[160px]">
             <MobileSelectItem value="">Todos los operarios</MobileSelectItem>
             {allOperarios.map(op => <MobileSelectItem key={op} value={op}>{op}</MobileSelectItem>)}
@@ -255,10 +274,12 @@ export default function ApuntesHorario() {
                     {a.total != null ? a.total.toFixed(2) + ' €' : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      onClick={() => deleteMutation.mutate(a.id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    {(!isTecnicoRole || a.operario_id === miOperario?.id) && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => deleteMutation.mutate(a.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}

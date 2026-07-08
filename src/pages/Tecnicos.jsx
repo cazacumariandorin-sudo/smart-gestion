@@ -34,10 +34,11 @@ const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true,
 
 export default function Tecnicos() {
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra, isGerencia, role } = useUserRole();
+  const { isAdmin, isJefeObra, isGerencia, role, user } = useUserRole();
   const showUserCol = isAdmin || isGerencia;
   const canCreate = isAdmin || isGerencia || role === 'director_comercial';
   const canDelete = isAdmin;
+  const isTecnicoRole = role === 'técnico';
   const defaultTab = typeof window !== 'undefined' && typeof window.location !== 'undefined' && window.location.pathname.includes('documentacion') ? 'documentacion' : 'tecnicos';
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [search, setSearch] = useState('');
@@ -108,7 +109,10 @@ export default function Tecnicos() {
   };
   const isPending = createM.isPending || updateM.isPending;
 
-  const filtered = tecnicos.filter(op => {
+  const miOperario = tecnicos.find(op => op.user_email === user?.email);
+  const visibleTecnicos = isTecnicoRole ? tecnicos.filter(op => op.id === miOperario?.id) : tecnicos;
+
+  const filtered = visibleTecnicos.filter(op => {
     const q = search.toLowerCase();
     return !search || op.name?.toLowerCase().includes(q) || op.dni?.toLowerCase().includes(q) || op.email?.toLowerCase().includes(q);
   });
@@ -117,7 +121,7 @@ export default function Tecnicos() {
     <div className="max-w-6xl mx-auto">
       <PageHeader
         title="Técnicos"
-        subtitle={`${tecnicos.length} técnicos registrados`}
+        subtitle={isTecnicoRole ? 'Mi perfil' : `${visibleTecnicos.length} técnicos registrados`}
         hideBack={true}
         actions={canCreate && (
           <div className="flex gap-2">
@@ -264,7 +268,11 @@ export default function Tecnicos() {
           </TabsContent>
 
           <TabsContent value="documentacion">
-            <DocsList operarios={tecnicos} obras={obras} />
+            <DocsList
+              operarios={isTecnicoRole ? visibleTecnicos : tecnicos}
+              obras={obras}
+              defaultOperarioId={isTecnicoRole ? (miOperario?.id || '') : ''}
+            />
           </TabsContent>
         </Tabs>
       </div>

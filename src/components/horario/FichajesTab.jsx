@@ -30,7 +30,7 @@ const empty = { operario_id: '', operario_name: '', date: new Date().toISOString
 export default function FichajesTab() {
   const qc = useQueryClient();
   const { isAdmin, isJefeObra, isControlHorarioOnly, isGerencia, user } = useUserRole();
-  const isOpRole = user?.role === 'operario' || user?.role === 'control_horario';
+  const isOpRole = user?.role === 'operario' || user?.role === 'control_horario' || user?.role === 'técnico';
   const canEditExitTime = isAdmin || isGerencia || isOpRole;
   const canSeeAll = isAdmin || isGerencia; // solo admin ve todos; jefe_obra, control_horario y operario solo ven los suyos
   const [search, setSearch] = useState('');
@@ -89,7 +89,7 @@ export default function FichajesTab() {
 
   // Para control_horario Y operario: buscar su propio Operario vinculado
   // IMPORTANTE: debe declararse ANTES de open_() para evitar crash por uso antes de declaración
-  const isOperarioRole = user?.role === 'operario';
+  const isOperarioRole = user?.role === 'operario' || user?.role === 'técnico';
   const myOperario = (isControlHorarioOnly || isOperarioRole)
     ? (
         operarios.find(o => o.user_email === user?.email) ||
@@ -148,7 +148,7 @@ export default function FichajesTab() {
   // Autoload operario for operario/control_horario roles
   useEffect(() => {
     if (!user?.email) return;
-    if (user.role !== 'operario' && user.role !== 'control_horario') return;
+    if (user.role !== 'operario' && user.role !== 'control_horario' && user.role !== 'técnico') return;
     
     base44.entities.Operario
       .filter({ user_email: user.email })

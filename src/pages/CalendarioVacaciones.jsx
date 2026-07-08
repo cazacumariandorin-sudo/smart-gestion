@@ -41,7 +41,7 @@ const emptyForm = {
 export default function CalendarioVacaciones() {
   const qc = useQueryClient();
   const { role, user } = useUserRole();
-  const isOperarioRole = role === 'operario' || role === 'control_horario';
+  const isOperarioRole = role === 'operario' || role === 'control_horario' || role === 'técnico';
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);

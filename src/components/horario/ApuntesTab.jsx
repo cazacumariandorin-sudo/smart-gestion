@@ -77,6 +77,7 @@ export default function ApuntesTab() {
   const [yearFilter, setYearFilter] = useState(String(new Date().getFullYear()));
   const [opFilter, setOpFilter] = useState('all');
   const { user } = useAuth();
+  const isTecnicoRole = user?.role === 'técnico';
 
   const { data: apuntes = [], isLoading } = useQuery({
     queryKey: ['apuntes'],
@@ -98,7 +99,11 @@ export default function ApuntesTab() {
   const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.ApunteHorario.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['apuntes'] }); close_(); } });
   const deleteM = useMutation({ mutationFn: id => base44.entities.ApunteHorario.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['apuntes'] }) });
 
-  const open_ = (a = null) => { setEditing(a); setForm(a ? { ...a } : emptyForm); setDialogOpen(true); };
+  const open_ = (a = null) => {
+    setEditing(a);
+    setForm(a ? { ...a } : (isTecnicoRole && miOperario ? { ...emptyForm, operario_id: miOperario.id, operario_name: miOperario.name } : emptyForm));
+    setDialogOpen(true);
+  };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyForm); };
   const set = (k, v) => setForm(p => {
     const next = { ...p, [k]: v };
@@ -122,7 +127,7 @@ export default function ApuntesTab() {
   // Autoload operario for operario/control_horario roles
   useEffect(() => {
     if (!user?.email) return;
-    if (user.role !== 'operario' && user.role !== 'control_horario') return;
+    if (user.role !== 'operario' && user.role !== 'control_horario' && user.role !== 'técnico') return;
     
     base44.entities.Operario
       .filter({ user_email: user.email })
@@ -148,12 +153,16 @@ export default function ApuntesTab() {
     editing ? updateM.mutate({ id: editing.id, d: data }) : createM.mutate(data);
   };
 
+  // Técnico: solo su propio operario
+  const miOperario = isTecnicoRole ? operarios.find(o => o.user_email === user?.email) : null;
+
   // Filter
   const filtered = useMemo(() => apuntes.filter(a => {
     const mOp = opFilter === 'all' || a.operario_id === opFilter;
-    if (period === 'anual') return mOp && a.date?.startsWith(yearFilter);
-    return mOp && a.date?.startsWith(monthFilter);
-  }), [apuntes, opFilter, period, monthFilter, yearFilter]);
+    const mMine = !isTecnicoRole || a.operario_id === miOperario?.id;
+    if (period === 'anual') return mOp && mMine && a.date?.startsWith(yearFilter);
+    return mOp && mMine && a.date?.startsWith(monthFilter);
+  }), [apuntes, opFilter, period, monthFilter, yearFilter, isTecnicoRole, miOperario]);
 
   // Group by period
   const grouped = useMemo(() => {
@@ -265,10 +274,12 @@ export default function ApuntesTab() {
         ) : (
           <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-full sm:w-40" />
         )}
-        <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
-          <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
-          {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
-        </MobileSelect>
+        {!isTecnicoRole && (
+          <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
+            <MobileSelectItem value="all">Todos los operarios</MobileSelectItem>
+            {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+          </MobileSelect>
+        )}
         <Button onClick={() => open_()} className="gap-2 shrink-0">
           <Plus className="w-4 h-4" /> Nuevo Apunte
         </Button>
@@ -396,9 +407,13 @@ export default function ApuntesTab() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5 col-span-2">
                 <Label className="text-xs">Operario *</Label>
-                <MobileSelect value={form.operario_id} onValueChange={handleOpChange} placeholder="Seleccionar...">
-                  {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
-                </MobileSelect>
+                {isTecnicoRole ? (
+                  <div className="h-10 flex items-center px-3 bg-muted rounded-md text-sm">{miOperario?.name || 'Mi perfil'}</div>
+                ) : (
+                  <MobileSelect value={form.operario_id} onValueChange={handleOpChange} placeholder="Seleccionar...">
+                    {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
+                  </MobileSelect>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Fecha *</Label>
