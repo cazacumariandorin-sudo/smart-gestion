@@ -20,6 +20,7 @@ import { useMicrophonePreference } from '@/hooks/useMicrophonePreference';
 import { useNetworkInfo } from '@/hooks/useNetworkInfo';
 import { useBackButton } from '@/hooks/useBackButton';
 import MicrophoneBanner from '@/components/layout/MicrophoneBanner';
+import ActiveRoleIndicator from '@/components/layout/ActiveRoleIndicator';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 
@@ -167,6 +168,7 @@ export default function AppLayout() {
         </main>
       </div>
       <DemoWatermark />
+      <ActiveRoleIndicator />
       <MobileNav />
 
       {/* Botón flotante Asistente IA — condicionado a BD */}
