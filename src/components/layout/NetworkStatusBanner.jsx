@@ -12,9 +12,9 @@ const STYLE_BY_TYPE = {
 };
 
 export default function NetworkStatusBanner() {
-  const { effectiveType, downlink, rtt, isSlowNetwork } = useNetworkInfo();
+  const { effectiveType, downlink, rtt, isSlowNetwork, isVoLTECall } = useNetworkInfo();
   const [expanded, setExpanded] = useState(false);
-  const cfg = STYLE_BY_TYPE[effectiveType] || STYLE_BY_TYPE['4g'];
+  const cfg = isVoLTECall ? { dot: 'bg-orange-500', label: '4G + VoLTE' } : (STYLE_BY_TYPE[effectiveType] || STYLE_BY_TYPE['4g']);
 
   return (
     <div className="w-full bg-muted/40 border-b border-border">
@@ -25,13 +25,16 @@ export default function NetworkStatusBanner() {
         <span className={cn('w-1.5 h-1.5 rounded-full', cfg.dot)} />
         <Wifi className="w-3 h-3" />
         <span className="font-semibold">{cfg.label}</span>
+        {isVoLTECall && <span className="text-orange-600 font-medium">(Llamada activa)</span>}
         {isSlowNetwork && <AlertTriangle className="w-3 h-3 text-amber-500" />}
         {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
       </button>
       {expanded && (
         <div className="px-3 pb-1.5 text-[10px] text-muted-foreground text-center space-y-0.5">
           {downlink != null && <p>Velocidad estimada: {downlink} Mbps{rtt != null ? ` · RTT ${rtt}ms` : ''}</p>}
-          {isSlowNetwork && <p className="text-amber-600 font-medium">Conexión lenta. Algunos datos pueden tardar más</p>}
+          {rtt != null && rtt > 100 && <p>Latencia: {rtt}ms</p>}
+          {isVoLTECall && <p className="text-orange-600 font-medium">Datos ralentizados. Espera después de la llamada</p>}
+          {!isVoLTECall && isSlowNetwork && <p className="text-amber-600 font-medium">Conexión lenta. Algunos datos pueden tardar más</p>}
         </div>
       )}
     </div>

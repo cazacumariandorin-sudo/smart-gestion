@@ -17,6 +17,7 @@ import OnboardingModal from '@/components/OnboardingModal';
 import ReglasDeOroAlert from '@/components/gobernanza/ReglasDeOroAlert';
 import { base44 } from '@/api/base44Client';
 import { useMicrophonePreference } from '@/hooks/useMicrophonePreference';
+import { useNetworkInfo } from '@/hooks/useNetworkInfo';
 import MicrophoneBanner from '@/components/layout/MicrophoneBanner';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,21 @@ export default function AppLayout() {
   const { isMicDisabled, disableMic, enableMic } = useMicrophonePreference();
   const [micRestartKey, setMicRestartKey] = useState(0);
   const { toast } = useToast();
+  const { isVoLTECall } = useNetworkInfo();
+  const volteAlertedRef = useRef(false);
+
+  // Alerta puntual de degradación por llamada VoLTE (desaparece cuando el RTT vuelve a la normalidad)
+  useEffect(() => {
+    if (isVoLTECall && !volteAlertedRef.current) {
+      volteAlertedRef.current = true;
+      toast({
+        title: 'Se detectó una llamada activa',
+        description: 'Algunos datos pueden tardar más.',
+      });
+    } else if (!isVoLTECall) {
+      volteAlertedRef.current = false;
+    }
+  }, [isVoLTECall, toast]);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});

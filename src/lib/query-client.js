@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
-import { getTimeoutByNetwork } from '@/hooks/useNetworkInfo';
+import { getTimeoutByNetwork, getTimeoutByRtt } from '@/hooks/useNetworkInfo';
 
 /**
  * Instancia global de QueryClient con configuración optimizada para app con offline support
@@ -45,8 +45,9 @@ if (import.meta.env.DEV) {
 
 /**
  * Timeout recomendado (ms) según la red actual — úsalo en llamadas fetch/AbortController.
+ * getTimeoutByRtt reacciona a degradación puntual (p.ej. VoLTE) leyendo el RTT en el momento.
  */
-export { getTimeoutByNetwork };
+export { getTimeoutByNetwork, getTimeoutByRtt };
 
 /**
  * Reset de cache (útil para logout)
