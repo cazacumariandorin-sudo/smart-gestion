@@ -159,6 +159,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
           "data.client_id": "{{user.client_id}}"
         },
         {
