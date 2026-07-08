@@ -102,7 +102,10 @@ export default function Tecnicos() {
   };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(empty); };
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
-  const handleSave = () => editing ? updateM.mutate({ id: editing.id, d: form }) : createM.mutate(form);
+  const handleSave = () => {
+    const d = { ...form, coste_hora: form.coste_hora === '' ? undefined : form.coste_hora };
+    editing ? updateM.mutate({ id: editing.id, d }) : createM.mutate(d);
+  };
   const isPending = createM.isPending || updateM.isPending;
 
   const filtered = tecnicos.filter(op => {
