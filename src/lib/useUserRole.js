@@ -29,6 +29,7 @@ export function useUserRole() {
   const isDemo = role === 'usuario_demo';
   const isGerencia = role === 'gerencia' || isAdmin;
   const isJefeObra = role === 'jefe_obra' || isAdmin;
+  const isTecnico = role === 'técnico' || isAdmin;
   const isOperario = role === 'operario' || isAdmin;
   const isControlHorario = role === 'control_horario' || isAdmin;
   const isControlHorarioOnly = role === 'control_horario' && !isAdmin;
@@ -50,7 +51,7 @@ export function useUserRole() {
     const perms = {
       director_comercial: ALL_MODULES.filter(m => !['datos-sensibles', 'admin-backup'].includes(m)),
       jefe_obra:        ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'obras-civiles', 'solar', 'materials', 'drawings', 'manuales', 'informe-obras', 'operarios', 'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos', 'apuntes-horario', 'calendario-vacaciones', 'control-horario'],
-      'técnico':        ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'obras-civiles', 'solar', 'materials', 'drawings', 'manuales', 'informe-obras', 'operarios', 'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos', 'apuntes-horario', 'calendario-vacaciones', 'control-horario'],
+      'técnico':        ['dashboard', 'work-orders', 'clients', 'control-horario', 'orders', 'obras', 'obras-civiles', 'materials', 'drawings', 'manuales', 'calendario-vacaciones', 'photos', 'notas-gastos', 'vehiculos', 'chat', 'galeria-fotos', 'apuntes-horario', 'reports', 'flota', 'nominas', 'informe-obras'],
       operario:         ['dashboard', 'work-orders', 'clients', 'control-horario', 'orders', 'obras', 'obras-civiles', 'materials', 'drawings', 'manuales', 'calendario-vacaciones', 'photos', 'notas-gastos', 'vehiculos', 'chat', 'galeria-fotos', 'apuntes-horario', 'reports', 'flota', 'nominas', 'informe-obras'],
       gerencia:         ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'obras-civiles', 'solar', 'materials', 'drawings', 'manuales', 'informe-obras', 'operarios', 'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos', 'apuntes-horario', 'calendario-vacaciones', 'control-horario', 'solar-pedidos', 'users', 'datos-sensibles', 'inventario', 'fabricantes', 'demo-users', 'admin-backup', 'nominas', 'presupuestos'],
       control_horario:  ['dashboard', 'control-horario', 'work-orders', 'chat'],
@@ -60,5 +61,5 @@ export function useUserRole() {
     return (perms[role] || []).includes(module);
   };
 
-  return { user, role, isAdmin, isDemo, isDemoExpired, isGerencia, isJefeObra, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, canAccess, isLoading: isLoadingAuth, isSimulating, simulatedRole };
+  return { user, role, isAdmin, isDemo, isDemoExpired, isGerencia, isJefeObra, isTecnico, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, canAccess, isLoading: isLoadingAuth, isSimulating, simulatedRole };
 }
