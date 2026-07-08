@@ -17,6 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DocsList from '@/components/operarios/DocsList';
 import QueryErrorFallback from '@/components/QueryErrorFallback';
+import { toast } from 'sonner';
 
 const CATEGORIAS = [
   { value: 'oficial_primera', label: 'Oficial Primera' },
@@ -69,14 +70,17 @@ export default function Tecnicos() {
   const createM = useMutation({
     mutationFn: d => base44.entities.Operario.create(d),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); close_(); },
+    onError: (err) => toast.error(`No se pudo crear el técnico: ${err.message || 'error desconocido'}`),
   });
   const updateM = useMutation({
     mutationFn: ({ id, d }) => base44.entities.Operario.update(id, d),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); close_(); },
+    onError: (err) => toast.error(`No se pudo guardar la vinculación: ${err.message || 'error desconocido'}`),
   });
   const deleteM = useMutation({
     mutationFn: id => base44.entities.Operario.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tecnicos'] }),
+    onError: (err) => toast.error(`No se pudo eliminar: ${err.message || 'error desconocido'}`),
   });
 
   const open_ = (op = null) => {
