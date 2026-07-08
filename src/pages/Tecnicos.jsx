@@ -33,9 +33,9 @@ const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true,
 
 export default function Tecnicos() {
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra, role } = useUserRole();
-  const showUserCol = isAdmin;
-  const canCreate = isAdmin || role === 'director_comercial';
+  const { isAdmin, isJefeObra, isGerencia, role } = useUserRole();
+  const showUserCol = isAdmin || isGerencia;
+  const canCreate = isAdmin || isGerencia || role === 'director_comercial';
   const canDelete = isAdmin;
   const defaultTab = typeof window !== 'undefined' && typeof window.location !== 'undefined' && window.location.pathname.includes('documentacion') ? 'documentacion' : 'tecnicos';
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -309,7 +309,7 @@ export default function Tecnicos() {
                 <Input type="number" value={form.coste_hora} onChange={e => set('coste_hora', parseFloat(e.target.value) || '')} placeholder="0.00" min="0" step="0.5" />
               </div>
             </div>
-            {isAdmin && (
+            {(isAdmin || isGerencia) && (
               <div className="space-y-1.5 pt-1 border-t border-border mt-1">
                 <Label className="text-xs flex items-center gap-1.5">
                   <Link2 className="w-3.5 h-3.5 text-primary" /> Usuario de la app vinculado
