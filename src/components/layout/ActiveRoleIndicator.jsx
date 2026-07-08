@@ -13,7 +13,7 @@ export default function ActiveRoleIndicator() {
     <div
       className={cn(
         'fixed z-40 flex items-center gap-1 rounded-full border px-2.5 py-1 shadow-md text-[10px] font-bold pointer-events-none',
-        'bottom-[calc(64px+env(safe-area-inset-bottom,0px)+8px)] md:bottom-3 left-3',
+        'top-[calc(env(safe-area-inset-top,0px)+8px)] right-3',
         cfg.className
       )}
     >
