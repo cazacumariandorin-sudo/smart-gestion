@@ -16,6 +16,7 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { HUBS, isHubVisible } from '@/lib/hubs';
 import HubSheet from '@/components/dashboard/HubSheet';
+import PageTopBar from '@/components/layout/PageTopBar';
 
 const QUICK_ACCESS = [
   {
@@ -289,6 +290,8 @@ export default function Dashboard() {
           <Badge variant="outline" className={cn('text-xs font-semibold px-2.5 py-1', roleCfg.className)}>{roleCfg.label}</Badge>
         </div>
       </div>
+
+      <PageTopBar />
 
       {/* Alertas de fichaje */}
       <NotificacionesFichaje />

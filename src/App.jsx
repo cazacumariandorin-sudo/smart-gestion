@@ -10,7 +10,6 @@ import { processOfflineQueue, getQueue } from '@/utils/offlineQueue';
 import { preloadOfflineCache } from '@/hooks/useOfflineCache';
 import { recalcularPrevision } from '@/hooks/useRecalcularPrevision';
 import { useNetworkInfo } from '@/hooks/useNetworkInfo';
-import NetworkStatusBanner from '@/components/layout/NetworkStatusBanner';
 import { base44 } from '@/api/base44Client';
 import { I18nProvider } from './lib/i18n';
 import PageNotFound from './lib/PageNotFound';
@@ -310,12 +309,7 @@ const AuthenticatedApp = () => {
     }
   }
 
-  return (
-    <>
-      <NetworkStatusBanner />
-      <AnimatedRoutes />
-    </>
-  );
+  return <AnimatedRoutes />;
 };
 
 function App() {

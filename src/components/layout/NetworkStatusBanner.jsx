@@ -16,6 +16,9 @@ export default function NetworkStatusBanner() {
   const [expanded, setExpanded] = useState(false);
   const cfg = isVoLTECall ? { dot: 'bg-orange-500', label: '4G + VoLTE' } : (STYLE_BY_TYPE[effectiveType] || STYLE_BY_TYPE['4g']);
 
+  // En 4G normal no hay nada relevante que mostrar — ahorra espacio
+  if (effectiveType === '4g' && !isSlowNetwork && !isVoLTECall) return null;
+
   return (
     <div className="w-full bg-muted/40 border-b border-border">
       <button
