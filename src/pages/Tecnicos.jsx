@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DocsList from '@/components/operarios/DocsList';
+import QueryErrorFallback from '@/components/QueryErrorFallback';
 
 const CATEGORIAS = [
   { value: 'oficial_primera', label: 'Oficial Primera' },
@@ -50,7 +51,7 @@ export default function Tecnicos() {
   }, [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
-  const { data: tecnicos = [], isLoading } = useQuery({
+  const { data: tecnicos = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ['tecnicos'],
     queryFn: () => base44.entities.Operario.list('name', 200),
   });
@@ -163,20 +164,23 @@ export default function Tecnicos() {
               />
             </div>
 
-            {isLoading ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {[1, 2, 3].map(i => <div key={i} className="h-36 rounded-xl bg-muted animate-pulse" />)}
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="text-center py-16 border border-dashed rounded-xl">
-                <User className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground mb-3">No hay técnicos registrados</p>
-                {canCreate && (
-                  <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2">
-                    <Plus className="w-3.5 h-3.5" /> Añadir técnico
-                  </Button>
+            {isLoading || isError || filtered.length === 0 ? (
+              <>
+                <QueryErrorFallback
+                  isLoading={isLoading}
+                  error={isError ? error : null}
+                  isEmpty={!isLoading && !isError && filtered.length === 0}
+                  retryFn={refetch}
+                  emptyMessage="No hay técnicos registrados"
+                />
+                {!isLoading && !isError && filtered.length === 0 && canCreate && (
+                  <div className="text-center -mt-6">
+                    <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2">
+                      <Plus className="w-3.5 h-3.5" /> Añadir técnico
+                    </Button>
+                  </div>
                 )}
-              </div>
+              </>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {filtered.map(op => (

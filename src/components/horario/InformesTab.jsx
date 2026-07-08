@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 import CalendarioHorarioView from './CalendarioHorarioView';
+import QueryErrorFallback from '@/components/QueryErrorFallback';
 
 // ── helpers compartidos ──────────────────────────────────────────────────────
 
@@ -314,7 +315,7 @@ export default function InformesTab() {
   const canSeeAll = isAdmin || isJefeObra;
   const isOperarioRole = role === 'operario';
 
-  const { data: fichajes = [] } = useFichajesShared();
+  const { data: fichajes = [], isLoading: fichajesLoading, isError: fichajesError, error: fichajesErrorObj, refetch: refetchFichajes } = useFichajesShared();
   const { data: operarios = [] } = useQuery({
     queryKey: ['operarios'],
     queryFn: () => base44.entities.Operario.list('name', 200),
@@ -422,9 +423,15 @@ export default function InformesTab() {
         )}
       </div>
 
-      {mode === 'calendario' && <CalendarioHorarioView fichajes={filtered} canSeeAll={canSeeAll} />}
-      {mode === 'tabla' && <TablaView fichajes={fichajes} />}
-      {mode === 'duplicados' && isAdmin && <DuplicadosView fichajes={fichajes} />}
+      {fichajesLoading || fichajesError ? (
+        <QueryErrorFallback isLoading={fichajesLoading} error={fichajesError ? fichajesErrorObj : null} retryFn={refetchFichajes} />
+      ) : (
+        <>
+          {mode === 'calendario' && <CalendarioHorarioView fichajes={filtered} canSeeAll={canSeeAll} />}
+          {mode === 'tabla' && <TablaView fichajes={fichajes} />}
+          {mode === 'duplicados' && isAdmin && <DuplicadosView fichajes={fichajes} />}
+        </>
+      )}
     </div>
   );
 }

@@ -21,6 +21,7 @@ import { es } from 'date-fns/locale';
 import ObraMaterialesPanel from '@/components/obras/ObraMaterialesPanel';
 import ObraFotosPanel from '@/components/obras/ObraFotosPanel';
 import ObraSeguimientoPanel from '@/components/obras/ObraSeguimientoPanel';
+import QueryErrorFallback from '@/components/QueryErrorFallback';
 
 const STATUS_CFG = {
   activa: { label: 'Activa', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -55,7 +56,7 @@ export default function ObrasCiviles() {
   }, [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
 
-  const { data: obras = [], isLoading } = useQuery({
+  const { data: obras = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ['obras-civiles'],
     queryFn: () => base44.entities.Obra.list('-start_date', 300),
   });
@@ -118,16 +119,21 @@ export default function ObrasCiviles() {
         </MobileSelect>
       </div>
 
-      {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[1,2,3].map(i => <div key={i} className="h-44 rounded-xl bg-muted animate-pulse" />)}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16 border border-dashed rounded-xl">
-          <Building2 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground mb-3">No hay obras civiles registradas</p>
-          {canCreate && <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2"><Plus className="w-3.5 h-3.5" /> Nueva Obra</Button>}
-        </div>
+      {isLoading || isError || filtered.length === 0 ? (
+        <>
+          <QueryErrorFallback
+            isLoading={isLoading}
+            error={isError ? error : null}
+            isEmpty={!isLoading && !isError && filtered.length === 0}
+            retryFn={refetch}
+            emptyMessage="No hay obras civiles registradas"
+          />
+          {!isLoading && !isError && filtered.length === 0 && canCreate && (
+            <div className="text-center -mt-6">
+              <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2"><Plus className="w-3.5 h-3.5" /> Nueva Obra</Button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map(o => {

@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import QueryErrorFallback from '@/components/QueryErrorFallback';
 
 const UNITS = ['m', 'm²', 'm³', 'ud', 'kg', 'l', 'h', 'ml', 'tn'];
 const emptyApunte = { concepto: '', unidad: 'ud', cantidad: '', precio_unitario: '', total: '' };
@@ -42,7 +43,7 @@ export default function FichajesTab() {
   const [expandedId, setExpandedId] = useState(null); // fichaje expandido para ver apuntes
   const [dupModalOpen, setDupModalOpen] = useState(false);
 
-  const { data: fichajes = [], isLoading } = useQuery({ queryKey: ['fichajes'], queryFn: () => base44.entities.Fichaje.list('-date', 500) });
+  const { data: fichajes = [], isLoading, isError, error, refetch } = useQuery({ queryKey: ['fichajes'], queryFn: () => base44.entities.Fichaje.list('-date', 500) });
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
   const { data: allApuntes = [] } = useQuery({ queryKey: ['apuntes'], queryFn: () => base44.entities.ApunteHorario.list('-date', 1000) });
 
@@ -228,13 +229,14 @@ export default function FichajesTab() {
       </Card>
 
       {/* List */}
-      {isLoading ? (
-        <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-12 border border-dashed rounded-xl">
-          <Clock className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No hay fichajes para este período</p>
-        </div>
+      {isLoading || isError || filtered.length === 0 ? (
+        <QueryErrorFallback
+          isLoading={isLoading}
+          error={isError ? error : null}
+          isEmpty={!isLoading && !isError && filtered.length === 0}
+          retryFn={refetch}
+          emptyMessage="No hay fichajes para este período"
+        />
       ) : (
         <div className="space-y-2">
           {filtered.map(f => {
