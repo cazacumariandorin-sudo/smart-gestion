@@ -117,7 +117,8 @@ const STATUS_OPTIONS = [
   { value: 'cancelada',   label: 'Cancelada' },
 ];
 
-function FormularioEdicion({ prevision, onSave, onCancel, isSaving, onDelete, isDeleting }) {
+function FormularioEdicion({ prevision, onSave, onCancel, isSaving, onDelete, isDeleting, esRangoMultidia }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [form, setForm] = useState({
     fecha_inicio:            prevision.fecha_inicio || '',
     fecha_fin:               prevision.fecha_fin    || '',
@@ -211,45 +212,72 @@ function FormularioEdicion({ prevision, onSave, onCancel, isSaving, onDelete, is
       </div>
 
       {/* Botones acción */}
-      <div className="flex gap-2 justify-between pt-1">
-        {onDelete && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
-            onClick={() => {
-              if (window.confirm('¿Eliminar esta previsión de obra? Esta acción no se puede deshacer.')) {
-                onDelete(prevision.id);
-              }
-            }}
-            disabled={isSaving || isDeleting}
-          >
-            {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />} Eliminar
-          </Button>
-        )}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={onCancel}
-            disabled={isSaving || isDeleting}
-          >
-            Cancelar
-          </Button>
-          <Button
-            size="sm"
-            className="h-7 text-xs gap-1"
-            onClick={handleSave}
-            disabled={isSaving || isDeleting}
-          >
-            {isSaving
-              ? <><Loader2 className="w-3 h-3 animate-spin" /> Guardando…</>
-              : <><Save className="w-3 h-3" /> Guardar cambios</>
-            }
-          </Button>
+      {confirmDelete ? (
+        <div className="p-2.5 border border-destructive/40 rounded-lg bg-destructive/5 space-y-2">
+          <p className="text-[11px] font-medium text-destructive">¿Qué deseas eliminar?</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[11px]"
+              onClick={() => { setConfirmDelete(false); onDelete('dia'); }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null} Solo este día
+            </Button>
+            {esRangoMultidia && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-[11px] text-destructive hover:text-destructive"
+                onClick={() => { setConfirmDelete(false); onDelete('todo'); }}
+                disabled={isDeleting}
+              >
+                Todo el periodo
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => setConfirmDelete(false)} disabled={isDeleting}>
+              Cancelar
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex gap-2 justify-between pt-1">
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
+              onClick={() => setConfirmDelete(true)}
+              disabled={isSaving || isDeleting}
+            >
+              <X className="w-3 h-3" /> Eliminar
+            </Button>
+          )}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={onCancel}
+              disabled={isSaving || isDeleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              className="h-7 text-xs gap-1"
+              onClick={handleSave}
+              disabled={isSaving || isDeleting}
+            >
+              {isSaving
+                ? <><Loader2 className="w-3 h-3 animate-spin" /> Guardando…</>
+                : <><Save className="w-3 h-3" /> Guardar cambios</>
+              }
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -271,10 +299,10 @@ function PanelDetalle({ day, registros, obras, onClose, onSaveApunte, canEdit, o
     }
   };
 
-  const handleDelete = async (id) => {
-    setDeletingId(id);
+  const handleDelete = async (prevision, modo) => {
+    setDeletingId(prevision.id);
     try {
-      await onDeletePrevision(id);
+      await onDeletePrevision(prevision, format(day, 'yyyy-MM-dd'), modo);
     } finally {
       setDeletingId(null);
       setEditingId(null);
@@ -378,8 +406,9 @@ function PanelDetalle({ day, registros, obras, onClose, onSaveApunte, canEdit, o
                       onSave={handleSaveEdit}
                       onCancel={() => setEditingId(null)}
                       isSaving={isSaving}
-                      onDelete={onDeletePrevision ? handleDelete : undefined}
+                      onDelete={onDeletePrevision ? (modo) => handleDelete(r, modo) : undefined}
                       isDeleting={deletingId === r.id}
+                      esRangoMultidia={!!(r.fecha_fin && r.fecha_inicio && r.fecha_fin !== r.fecha_inicio)}
                     />
                   ) : (
                     <Button
@@ -443,9 +472,8 @@ export default function CalendarioObras({ previsiones, month, onMonthChange, obr
   const getRegistrosDia = (day) => {
     const ds = format(day, 'yyyy-MM-dd');
     const prevs = (allIndex[ds] || []).map(p => ({
-      id: p.id,
+      ...p,
       tipo: p._tipo || 'prevision',
-      obra_name: p.obra_name,
       desc: p.notas || p.descripcion || '',
       resp: p.responsable || '—',
       hora: '—',

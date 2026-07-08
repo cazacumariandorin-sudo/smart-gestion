@@ -6,6 +6,7 @@ import { useUserRole } from '@/lib/useUserRole';
 const roleLabels = {
   admin: 'Administrador',
   jefe_obra: 'Jefe de Obra',
+  'técnico': 'Técnico',
   operario: 'Operario',
   control_horario: 'Control Horario',
   cliente_obra: 'Cliente Obra',

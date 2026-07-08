@@ -30,6 +30,13 @@ const ROLES = [
     dot: 'bg-teal-500',
   },
   {
+    key: 'técnico',
+    label: 'Técnico',
+    desc: 'Obras, informe, partes, personas y flota — sin datos sensibles ni económico completo.',
+    color: 'bg-cyan-100 text-cyan-700 border-cyan-200',
+    dot: 'bg-cyan-500',
+  },
+  {
     key: 'operario',
     label: 'Operario',
     desc: 'Control horario, partes propios, materiales y gastos propios.',

@@ -7,7 +7,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { addMonths, subMonths } from 'date-fns';
+import { addMonths, subMonths, addDays, subDays, format, parseISO } from 'date-fns';
 import {
   Plus, Building2, CalendarDays, LayoutList, Loader2, Save, X, Users, ChevronDown,
 } from 'lucide-react';
@@ -190,6 +190,29 @@ export default function InformeObras() {
     updateM.mutate({ id, d: data });
   };
 
+  // Elimina solo el día seleccionado (recortando o dividiendo el rango) o toda la previsión
+  const handleDeletePrevisionFromCalendar = async (prevision, diaISO, modo) => {
+    if (modo === 'todo') {
+      await deleteM.mutateAsync(prevision.id);
+      return;
+    }
+    const inicio = prevision.fecha_inicio;
+    const fin = prevision.fecha_fin || prevision.fecha_inicio;
+    if (inicio === fin) {
+      // Previsión de un solo día → eliminar por completo
+      await deleteM.mutateAsync(prevision.id);
+    } else if (diaISO === inicio) {
+      await updateM.mutateAsync({ id: prevision.id, d: { fecha_inicio: format(addDays(parseISO(inicio), 1), 'yyyy-MM-dd') } });
+    } else if (diaISO === fin) {
+      await updateM.mutateAsync({ id: prevision.id, d: { fecha_fin: format(subDays(parseISO(fin), 1), 'yyyy-MM-dd') } });
+    } else {
+      // Día intermedio → dividir la previsión en dos tramos
+      const { id, created_date, updated_date, created_by_id, ...resto } = prevision;
+      await updateM.mutateAsync({ id, d: { fecha_fin: format(subDays(parseISO(diaISO), 1), 'yyyy-MM-dd') } });
+      await createM.mutateAsync({ ...resto, fecha_inicio: format(addDays(parseISO(diaISO), 1), 'yyyy-MM-dd'), fecha_fin: fin });
+    }
+  };
+
   const isPending = createM.isPending || updateM.isPending;
   const currentVista = VISTAS.find(v => v.value === view) || VISTAS[0];
   const CurrentIcon = currentVista.icon;
@@ -264,7 +287,7 @@ export default function InformeObras() {
             obras={obras}
             canEdit={canEditPrevision}
             onEditPrevision={handleEditPrevisionFromCalendar}
-            onDeletePrevision={canEditPrevision ? (id => deleteM.mutateAsync(id)) : undefined}
+            onDeletePrevision={canEditPrevision ? handleDeletePrevisionFromCalendar : undefined}
           />
         )
       )}
