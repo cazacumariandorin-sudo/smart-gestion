@@ -20,18 +20,6 @@ import PageTopBar from '@/components/layout/PageTopBar';
 
 const QUICK_ACCESS = [
   {
-    id: 'chat',
-    label: 'Chat',
-    icon: MessageSquare,
-    color: 'text-emerald-800',
-    iconBg: 'bg-emerald-600',
-    bg: 'bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/50 dark:to-emerald-950/40',
-    border: 'border-emerald-300 dark:border-emerald-700',
-    watermark: null,
-    module: 'chat',
-    items: [{ label: 'Chat', path: '/chat', icon: MessageSquare }],
-  },
-  {
     id: 'galeria',
     label: 'Foto Obra',
     icon: Images,
@@ -50,6 +38,7 @@ const DASHBOARD_META = {
   personas: { watermark: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-teal-100 to-teal-50 dark:from-teal-900/50 dark:to-teal-950/40', border: 'border-teal-300 dark:border-teal-700', iconBg: 'bg-teal-600', color: 'text-teal-800' },
   economico: { watermark: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/50 dark:to-amber-950/40', border: 'border-amber-300 dark:border-amber-700', iconBg: 'bg-amber-500', color: 'text-amber-800' },
   flota: { watermark: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/50 dark:to-blue-950/40', border: 'border-blue-300 dark:border-blue-700', iconBg: 'bg-blue-600', color: 'text-blue-800' },
+  chat: { watermark: null, bg: 'bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/50 dark:to-emerald-950/40', border: 'border-emerald-300 dark:border-emerald-700', iconBg: 'bg-emerald-600', color: 'text-emerald-800' },
   documental: { watermark: 'https://images.unsplash.com/photo-1568219656418-15c329312bf1?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/50 dark:to-orange-950/40', border: 'border-orange-300 dark:border-orange-700', iconBg: 'bg-orange-500', color: 'text-orange-800' },
   sistema: { watermark: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-900/50 dark:to-slate-950/40', border: 'border-slate-300 dark:border-slate-700', iconBg: 'bg-slate-600', color: 'text-slate-800' },
 };

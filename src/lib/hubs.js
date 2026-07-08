@@ -105,6 +105,19 @@ export const HUBS = [
     ],
   },
   {
+    id: 'chat',
+    label: 'Chat',
+    icon: MessageSquare,
+    color: 'text-emerald-600',
+    activeBg: 'bg-emerald-50 dark:bg-emerald-950/40',
+    borderColor: 'border-emerald-400',
+    module: 'chat',
+    roleRestricted: null,
+    items: [
+      { label: 'Chat', path: '/chat', icon: MessageSquare, module: 'chat' },
+    ],
+  },
+  {
     id: 'flota',
     label: 'Flota & Movilidad',
     icon: Car,
@@ -145,7 +158,6 @@ export const HUBS = [
     module: 'users',
     roleRestricted: ['admin', 'gerencia'],
     items: [
-      { label: 'Chat', path: '/chat', icon: MessageSquare, module: 'chat' },
       { label: 'Usuarios', path: '/users', icon: Users, module: 'users' },
       { label: 'Demos', path: '/demo-users', icon: FlaskConical, module: 'users' },
       { label: 'Invitaciones', path: '/invitaciones-demo', icon: Link2, module: 'users' },
