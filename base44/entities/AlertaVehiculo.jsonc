@@ -49,7 +49,12 @@
         "filtros_fecha",
         "ac_revision",
         "velocidad_exceso",
-        "mantenimiento_general"
+        "mantenimiento_general",
+        "averia_motor",
+        "averia_frenos",
+        "averia_electrica",
+        "testigo_panel",
+        "otra_incidencia"
       ],
       "type": "string"
     },
@@ -74,6 +79,10 @@
     },
     "vehiculo_modelo": {
       "description": "Modelo del veh\u00edculo",
+      "type": "string"
+    },
+    "reportada_por_nombre": {
+      "description": "Nombre de quien report\u00f3 la incidencia (para aver\u00edas reportadas manualmente)",
       "type": "string"
     }
   },
@@ -110,6 +119,11 @@
           "user_condition": {
             "role": "operario"
           }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
+          }
         }
       ]
     },
@@ -133,6 +147,11 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
           }
         },
         {
