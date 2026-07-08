@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import { getTimeoutByNetwork } from '@/hooks/useNetworkInfo';
 
 /**
  * Instancia global de QueryClient con configuración optimizada para app con offline support
@@ -12,8 +13,9 @@ export const queryClientInstance = new QueryClient({
       // No refetchar cuando la red recupera conexión (lo maneja App.tsx)
       refetchOnReconnect: false,
       
-      // Reintentar 1 vez en caso de error
-      retry: 1,
+      // Reintentar hasta 3 veces con backoff exponencial (máx. 30s), adaptado a la red
+      retry: 3,
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
       
       // Tiempo máximo que los datos se consideran fresh (5 min)
       staleTime: 5 * 60 * 1000,
@@ -40,6 +42,11 @@ if (import.meta.env.DEV) {
     return context;
   };
 }
+
+/**
+ * Timeout recomendado (ms) según la red actual — úsalo en llamadas fetch/AbortController.
+ */
+export { getTimeoutByNetwork };
 
 /**
  * Reset de cache (útil para logout)
