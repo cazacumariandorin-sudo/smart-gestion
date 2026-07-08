@@ -16,6 +16,10 @@ import AsistentePanel from '@/components/asistente/AsistentePanel';
 import OnboardingModal from '@/components/OnboardingModal';
 import ReglasDeOroAlert from '@/components/gobernanza/ReglasDeOroAlert';
 import { base44 } from '@/api/base44Client';
+import { useMicrophonePreference } from '@/hooks/useMicrophonePreference';
+import MicrophoneBanner from '@/components/layout/MicrophoneBanner';
+import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
 
 function ScrollRestorer() {
   useScrollRestoration();
@@ -33,6 +37,9 @@ export default function AppLayout() {
   const [voiceActive, setVoiceActive] = useState(false);
   const [asistenteConfig, setAsistenteConfig] = useState(null);
   const recognitionRef = useRef(null);
+  const { isMicDisabled, disableMic, enableMic } = useMicrophonePreference();
+  const [micRestartKey, setMicRestartKey] = useState(0);
+  const { toast } = useToast();
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -59,6 +66,7 @@ export default function AppLayout() {
 
   // Reconocimiento de voz continuo — escucha "hola compañero"
   useEffect(() => {
+    if (isMicDisabled) return;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
@@ -96,7 +104,30 @@ export default function AppLayout() {
       recognition.onend = null;
       try { recognition.stop(); } catch (_) {}
     };
-  }, []);
+  }, [isMicDisabled, micRestartKey]);
+
+  const handleAsistenteClick = () => {
+    if (isMicDisabled) {
+      toast({
+        title: 'Micrófono desactivado',
+        description: '¿Activarlo?',
+        action: (
+          <Button
+            size="sm"
+            onClick={() => {
+              enableMic();
+              setMicRestartKey(k => k + 1);
+            }}
+          >
+            Activar
+          </Button>
+        ),
+      });
+      setAsistenteOpen(true);
+      return;
+    }
+    setAsistenteOpen(true);
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -122,17 +153,21 @@ export default function AppLayout() {
 
       {/* Botón flotante Asistente IA — condicionado a BD */}
       {asistenteConfig?.asistente_activo !== false && <button
-        onClick={() => setAsistenteOpen(true)}
+        onClick={handleAsistenteClick}
         className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 rounded-full bg-gradient-to-br from-slate-800 to-blue-700 shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
         title={voiceActive ? 'Asistente SMART IA · Di "hola compañero" para activar' : 'Asistente SMART IA'}
       >
         <Bot className="w-5 h-5 text-white" />
-        {voiceActive && (
+        {voiceActive && !isMicDisabled && (
           <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-background flex items-center justify-center">
             <Mic className="w-2 h-2 text-white" />
           </span>
         )}
       </button>}
+
+      {voiceActive && !isMicDisabled && (
+        <MicrophoneBanner onDisable={(days) => disableMic(days)} />
+      )}
 
       <AsistentePanel
         open={asistenteOpen}
