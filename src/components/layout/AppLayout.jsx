@@ -18,6 +18,7 @@ import ReglasDeOroAlert from '@/components/gobernanza/ReglasDeOroAlert';
 import { base44 } from '@/api/base44Client';
 import { useMicrophonePreference } from '@/hooks/useMicrophonePreference';
 import { useNetworkInfo } from '@/hooks/useNetworkInfo';
+import { useBackButton } from '@/hooks/useBackButton';
 import MicrophoneBanner from '@/components/layout/MicrophoneBanner';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ export default function AppLayout() {
   const [micRestartKey, setMicRestartKey] = useState(0);
   const { toast } = useToast();
   const { isVoLTECall } = useNetworkInfo();
+  useBackButton(); // ESC vuelve atrás en cualquier pantalla
   const volteAlertedRef = useRef(false);
 
   // Alerta puntual de degradación por llamada VoLTE (desaparece cuando el RTT vuelve a la normalidad)

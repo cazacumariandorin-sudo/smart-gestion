@@ -1,5 +1,6 @@
-import { Loader2, WifiOff, RefreshCw, Inbox } from 'lucide-react';
+import { Loader2, WifiOff, RefreshCw, Inbox, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useBackButton } from '@/hooks/useBackButton';
 
 /**
  * Estado unificado para consultas: loading / error / vacío.
@@ -7,6 +8,8 @@ import { Button } from '@/components/ui/button';
  * Si ninguno de los 3 estados aplica, no renderiza nada (deja pasar el contenido normal).
  */
 export default function QueryErrorFallback({ isLoading, error, isEmpty, retryFn, emptyMessage = 'No hay datos disponibles' }) {
+  const { handleBack } = useBackButton();
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -18,15 +21,20 @@ export default function QueryErrorFallback({ isLoading, error, isEmpty, retryFn,
 
   if (error) {
     return (
-      <div className="text-center py-12 border border-dashed border-destructive/40 rounded-xl bg-destructive/5">
-        <WifiOff className="w-9 h-9 text-destructive mx-auto mb-3" />
+      <div className="text-center py-12 border border-dashed border-destructive/40 rounded-xl bg-slate-50 dark:bg-slate-900/40">
+        <AlertTriangle className="w-9 h-9 text-destructive mx-auto mb-3" />
         <p className="text-sm font-semibold text-destructive mb-1">No se pudieron cargar los datos</p>
         <p className="text-xs text-muted-foreground mb-4">{error?.message || 'Error de conexión. Comprueba tu red e inténtalo de nuevo.'}</p>
-        {retryFn && (
-          <Button variant="outline" size="sm" onClick={retryFn} className="gap-2">
-            <RefreshCw className="w-3.5 h-3.5" /> Reintentar
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          {retryFn && (
+            <Button variant="outline" size="sm" onClick={retryFn} className="gap-2">
+              <RefreshCw className="w-3.5 h-3.5" /> Reintentar
+            </Button>
+          )}
+          <Button variant="default" size="sm" onClick={handleBack} className="gap-2">
+            <WifiOff className="w-3.5 h-3.5" /> Volver
           </Button>
-        )}
+        </div>
       </div>
     );
   }

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export default function PageHeader({ title, subtitle, onBack, backTo, actions, className, hideBack = false }) {
+export default function PageHeader({ title, subtitle, onBack, backTo, actions, className, hideBack = false, isLoading = false }) {
   const navigate = useNavigate();
 
   const handleBack = () => {
@@ -18,18 +18,23 @@ export default function PageHeader({ title, subtitle, onBack, backTo, actions, c
 
   return (
     <div className={cn(
-      'sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-border',
+      'sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border',
       className
     )}
     style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
+      {isLoading && (
+        <div className="h-0.5 w-full bg-primary/20 overflow-hidden">
+          <div className="h-full w-1/3 bg-primary animate-[progress-slide_1s_ease-in-out_infinite]" />
+        </div>
+      )}
       <div className="flex items-center gap-1 px-3 h-14 max-w-3xl mx-auto lg:max-w-5xl">
         {!hideBack && (
           <Button
             variant="ghost"
             size="icon"
             onClick={handleBack}
-            className="shrink-0 h-10 w-10 rounded-full"
+            className="shrink-0 h-10 w-10 rounded-full relative z-10"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
