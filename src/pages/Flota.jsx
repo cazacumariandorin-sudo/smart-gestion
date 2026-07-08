@@ -6,7 +6,9 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
-import { Car, Plus, Edit2, Trash2, Bell, BellOff, AlertTriangle, CheckCircle2, Clock, Wrench, Loader2, ChevronDown, ChevronUp, Route, MapPin, Fuel } from 'lucide-react';
+import { Car, Plus, Edit2, Trash2, Bell, BellOff, AlertTriangle, CheckCircle2, Clock, Wrench, Loader2, ChevronDown, ChevronUp, Route, MapPin, Fuel, Siren } from 'lucide-react';
+import ReportarAveriaDialog from '@/components/flota/ReportarAveriaDialog';
+import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,6 +51,11 @@ const TIPO_ALERTA_LABELS = {
   ac_revision: 'Revisión A/C',
   velocidad_exceso: 'Exceso velocidad',
   mantenimiento_general: 'Mantenimiento',
+  averia_motor: 'Avería de motor',
+  averia_frenos: 'Avería de frenos',
+  averia_electrica: 'Avería eléctrica',
+  testigo_panel: 'Testigo en el panel',
+  otra_incidencia: 'Otra incidencia',
 };
 
 function diasHasta(fechaStr) {
@@ -98,7 +105,7 @@ function FormField({ label, id, type = 'text', value, onChange, placeholder, hin
   );
 }
 
-function VehiculoCard({ v, onEdit, onDelete, isAdmin }) {
+function VehiculoCard({ v, onEdit, onDelete, isAdmin, onReportarAveria }) {
   const [expanded, setExpanded] = useState(false);
   const itvDias = diasHasta(v.itv_fecha);
   const aceiteDias = diasHasta(v.aceite_fecha);
@@ -131,6 +138,9 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin }) {
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-orange-500 hover:text-orange-600" title="Reportar avería" onClick={() => onReportarAveria(v)}>
+            <Siren className="w-4 h-4" />
+          </Button>
           {v.alertas_activas ? <Bell className="w-4 h-4 text-primary" /> : <BellOff className="w-4 h-4 text-muted-foreground" />}
           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setExpanded(e => !e)}>
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -178,11 +188,13 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin }) {
 
 export default function Flota() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const { isAdmin, isGerencia } = useUserRole();
   const [flotaTab, setFlotaTab] = useState('vehiculos');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [averiaVehiculo, setAveriaVehiculo] = useState(null);
 
   const onRefresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['vehiculos'] });
@@ -209,6 +221,41 @@ export default function Flota() {
   const resolverAlertaMutation = useMutation({
     mutationFn: (id) => base44.entities.AlertaVehiculo.update(id, { resuelta: true }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['alertas-vehiculo'] }),
+  });
+
+  const reportarAveriaMutation = useMutation({
+    mutationFn: async ({ tipo, urgencia, descripcion }) => {
+      const v = averiaVehiculo;
+      await base44.entities.AlertaVehiculo.create({
+        vehiculo_id: v.id,
+        vehiculo_matricula: v.matricula,
+        vehiculo_modelo: v.modelo,
+        tipo,
+        urgencia,
+        descripcion,
+        fecha: new Date().toISOString().split('T')[0],
+        km_actuales: v.km_actuales || undefined,
+        reportada_por_nombre: user?.full_name || user?.email || '',
+      });
+      await base44.entities.AsistenteTarea.create({
+        titulo: `Avería reportada — ${v.matricula} (${v.modelo})`,
+        descripcion,
+        tipo: 'alerta',
+        prioridad: urgencia === 'critica' ? 'urgente' : urgencia === 'alta' ? 'alta' : urgencia === 'media' ? 'media' : 'baja',
+        entidad_relacionada_tipo: 'Vehiculo',
+        entidad_relacionada_id: v.id,
+        creada_por: 'usuario',
+        solo_gerencia: true,
+        modulo: 'flota',
+        origen_solicitud: user?.full_name || user?.email || '',
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['alertas-vehiculo'] });
+      setAveriaVehiculo(null);
+      toast.success('Avería reportada. Gerencia y administración han sido avisadas.');
+    },
+    onError: () => toast.error('Error al reportar la avería'),
   });
 
   const setF = (field) => (val) => setForm(f => ({ ...f, [field]: val }));
@@ -331,7 +378,7 @@ export default function Flota() {
             ) : (
               <div className="space-y-3">
                 {vehiculos.map(v => (
-                  <VehiculoCard key={v.id} v={v} onEdit={handleEdit} onDelete={(id) => deleteMutation.mutate(id)} isAdmin={isAdmin} />
+                  <VehiculoCard key={v.id} v={v} onEdit={handleEdit} onDelete={(id) => deleteMutation.mutate(id)} isAdmin={isAdmin} onReportarAveria={setAveriaVehiculo} />
                 ))}
               </div>
             )}
@@ -525,6 +572,14 @@ export default function Flota() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ReportarAveriaDialog
+        vehiculo={averiaVehiculo}
+        open={!!averiaVehiculo}
+        onOpenChange={(o) => { if (!o) setAveriaVehiculo(null); }}
+        onSubmit={(data) => reportarAveriaMutation.mutate(data)}
+        isSubmitting={reportarAveriaMutation.isPending}
+      />
     </div>
   );
 }
