@@ -1,0 +1,130 @@
+{
+  "name": "NetworkTelemetry",
+  "type": "object",
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento del evento"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Hash an\u00f3nimo del usuario (SHA-256 del email), nunca el email"
+    },
+    "device_type": {
+      "type": "string",
+      "enum": [
+        "mobile",
+        "tablet",
+        "desktop"
+      ]
+    },
+    "os": {
+      "type": "string",
+      "enum": [
+        "iOS",
+        "Android",
+        "Windows",
+        "Mac",
+        "Linux",
+        "unknown"
+      ]
+    },
+    "effective_type": {
+      "type": "string",
+      "enum": [
+        "4g",
+        "3g",
+        "2g",
+        "slow-2g"
+      ]
+    },
+    "downlink_mbps": {
+      "type": "number"
+    },
+    "rtt_ms": {
+      "type": "number"
+    },
+    "is_volte_active": {
+      "type": "boolean",
+      "default": false
+    },
+    "location_region": {
+      "type": "string",
+      "default": "unknown"
+    },
+    "hour_of_day": {
+      "type": "integer"
+    },
+    "day_of_week": {
+      "type": "integer"
+    },
+    "module_accessed": {
+      "type": "string"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "list",
+        "read",
+        "create",
+        "update"
+      ]
+    },
+    "query_duration_ms": {
+      "type": "number"
+    },
+    "query_size_bytes": {
+      "type": "number"
+    },
+    "success": {
+      "type": "boolean",
+      "default": true
+    },
+    "error_type": {
+      "type": "string",
+      "enum": [
+        "timeout",
+        "network",
+        "parse",
+        "rls",
+        "null"
+      ],
+      "default": "null"
+    },
+    "retry_count": {
+      "type": "integer",
+      "default": 0
+    }
+  },
+  "required": [
+    "timestamp"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

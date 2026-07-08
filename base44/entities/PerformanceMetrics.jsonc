@@ -1,0 +1,102 @@
+{
+  "name": "PerformanceMetrics",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "D\u00eda del agregado"
+    },
+    "effective_type": {
+      "type": "string",
+      "enum": [
+        "4g",
+        "3g",
+        "2g",
+        "slow-2g"
+      ]
+    },
+    "region": {
+      "type": "string",
+      "default": "unknown"
+    },
+    "module": {
+      "type": "string"
+    },
+    "avg_query_duration_ms": {
+      "type": "number"
+    },
+    "p95_query_duration_ms": {
+      "type": "number"
+    },
+    "p99_query_duration_ms": {
+      "type": "number"
+    },
+    "success_rate": {
+      "type": "number",
+      "description": "% de queries exitosas"
+    },
+    "timeout_rate": {
+      "type": "number"
+    },
+    "network_error_rate": {
+      "type": "number"
+    },
+    "avg_downlink_mbps": {
+      "type": "number"
+    },
+    "avg_rtt_ms": {
+      "type": "number"
+    },
+    "users_active": {
+      "type": "integer"
+    },
+    "volte_active_percent": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "date",
+    "module"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
