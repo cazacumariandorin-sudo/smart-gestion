@@ -82,6 +82,11 @@
           "user_condition": {
             "role": "control_horario"
           }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
+          }
         }
       ]
     },
@@ -105,6 +110,16 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
           }
         },
         {
