@@ -71,7 +71,21 @@
   ],
   "rls": {
     "create": {
-      "created_by": "{{user.email}}"
+      "$or": [
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
     },
     "read": {
       "$or": [
@@ -98,6 +112,16 @@
         {
           "user_condition": {
             "role": "control_horario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
           }
         },
         {
