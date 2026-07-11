@@ -82,9 +82,28 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
+          }
+        }
+      ]
     },
     "delete": {
       "user_condition": {
@@ -124,6 +143,21 @@
           "user_condition": {
             "role": "gerencia"
           }
+        },
+        {
+          "$and": [
+            {
+              "created_by": "{{user.email}}"
+            },
+            {
+              "data.estado": {
+                "$in": [
+                  "borrador",
+                  "enviada"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
