@@ -17,6 +17,7 @@ import NotaGastoForm from '@/components/gastos/NotaGastoForm';
 import NotaGastoCard from '@/components/gastos/NotaGastoCard';
 import NotaGastoDetalle from '@/components/gastos/NotaGastoDetalle';
 import InformeGastos from '@/components/gastos/InformeGastos';
+import ResumenPeriodoGastos from '@/components/gastos/ResumenPeriodoGastos';
 import { useAuth } from '@/lib/AuthContext';
 import { useTecnicoName } from '@/hooks/useTecnicoName';
 
@@ -209,6 +210,15 @@ export default function NotasGastos() {
       />
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="p-4 sm:p-6 lg:p-8">
+
+      {!vistaAdmin && tab !== 'informe' && (
+        <ResumenPeriodoGastos
+          operario={operarioActual}
+          notas={notasRaw}
+          isAdmin={isAdmin}
+          onPeriodosCerrados={() => qc.invalidateQueries({ queryKey: ['notas_gasto'] })}
+        />
+      )}
 
       {tab === 'informe' && (
         <div className="mb-6">
