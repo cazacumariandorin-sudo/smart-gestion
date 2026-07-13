@@ -88,6 +88,7 @@ function OperarioGroup({ operario, notas, onVerNota, isOpen, onToggle }) {
 export default function NotasGastos() {
   const { user } = useAuth();
   const { isAdmin, isOperario, isGerencia, isDirComercial, isJefeObra, role } = useUserRole();
+  const isTecnico = role === 'técnico';
   const [searchParams] = useSearchParams();
   const vistaAdmin = searchParams.get('vista') === 'admin' && (isAdmin || isGerencia || isDirComercial);
   const { getTecnicoName, tecnicos } = useTecnicoName();
@@ -139,13 +140,14 @@ export default function NotasGastos() {
   };
   
   // Verificar si puede crear: técnicos siempre pueden, admins/gerencia también
-  const puedeCrearRegistro = isOperario || isAdmin || isGerencia || isDirComercial || isJefeObra || (role === 'operario');
+  const puedeCrearRegistro = isOperario || isTecnico || isAdmin || isGerencia || isDirComercial || isJefeObra;
 
   const notas = notasRaw.filter(n => {
     // Si no es vista admin ni admin/gerencia, mostrar solo las propias
-    if (!vistaAdmin && !isAdmin && !isGerencia && !isDirComercial) {
+    if (!vistaAdmin && !isAdmin && !isGerencia && !isDirComercial && !isTecnico) {
       if (n.created_by !== user?.email && n.operario_id !== operarioId) return false;
     }
+    if (isTecnico && n.created_by !== user?.email && n.operario_id !== operarioId) return false;
     const txt = busqueda.toLowerCase();
     const matchBusq = !txt || (n.numero_nota || '').toLowerCase().includes(txt) ||
       (n.nombre_comercio || '').toLowerCase().includes(txt) ||
