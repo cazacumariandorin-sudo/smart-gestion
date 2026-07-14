@@ -2,6 +2,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query'
+import GlobalLoadingBar from '@/components/GlobalLoadingBar';
+import { setupGlobalErrorHandling } from '@/lib/errorHandler';
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -314,11 +316,16 @@ const AuthenticatedApp = () => {
 };
 
 function App() {
+  useEffect(() => {
+    setupGlobalErrorHandling();
+  }, []);
+
   return (
     <AuthProvider>
       <I18nProvider>
         <QueryClientProvider client={queryClientInstance}>
           <Router>
+            <GlobalLoadingBar />
             <ThemeDetector />
             <DeviceCapabilityDetector />
             <OfflineQueueProcessor />
