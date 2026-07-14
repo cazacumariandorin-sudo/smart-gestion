@@ -62,6 +62,7 @@ const SimuladorRoles = lazy(() => import('./pages/SimuladorRoles'));
 const DiagnosticoTecnico = lazy(() => import('./pages/DiagnosticoTecnico'));
 const DiagnosticoOperario = lazy(() => import('./pages/DiagnosticoOperario'));
 const DiagnosticoDuplicacion = lazy(() => import('./pages/DiagnosticoDuplicacion'));
+const DiagnosticoConexion = lazy(() => import('./pages/DiagnosticoConexion'));
 const VinculacionPage = lazy(() => import('./pages/Vinculacion'));
 const AnalisisSeguridad = lazy(() => import('./pages/AnalisysSeguridad'));
 const Nominas = lazy(() => import('./pages/Nominas'));
@@ -243,6 +244,7 @@ function AnimatedRoutes() {
             <Route path="/simulador-roles" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><SimuladorRoles /></Suspense></ProtectedRoute>} />
             <Route path="/diagnostico-tecnico" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DiagnosticoTecnico /></Suspense></ProtectedRoute>} />
             <Route path="/diagnostico-duplicacion" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DiagnosticoDuplicacion /></Suspense></ProtectedRoute>} />
+            <Route path="/diagnostico-conexion" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><DiagnosticoConexion /></Suspense></ProtectedRoute>} />
             <Route path="/vinculacion" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><VinculacionPage /></Suspense></ProtectedRoute>} />
             <Route path="/analisis-seguridad" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><AnalisisSeguridad /></Suspense></ProtectedRoute>} />
             <Route path="/nominas" element={<ProtectedRoute module="nominas"><Suspense fallback={<PageLoader />}><Nominas /></Suspense></ProtectedRoute>} />

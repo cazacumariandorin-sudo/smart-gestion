@@ -56,5 +56,10 @@ export function useNetworkInfo() {
 }
 
 export function getTimeoutByNetwork() {
-  return buildInfo(null).timeout;
+  try {
+    return buildInfo(null).timeout;
+  } catch (e) {
+    console.warn('[Network] Error calculando timeout, usando fallback:', e.message);
+    return 15000;  // Fallback seguro para navegadores sin Network API
+  }
 }
