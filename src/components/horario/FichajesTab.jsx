@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
+import NetworkStatusBanner from '@/components/layout/NetworkStatusBanner';
 import { calcularHoras } from '@/lib/horasUtils';
 import { recalcularPrevision } from '@/hooks/useRecalcularPrevision';
 import { useConsolidarJornada } from '@/hooks/useConsolidarJornada';
@@ -190,7 +191,9 @@ export default function FichajesTab() {
   };
 
   return (
-    <div>
+    <div className="flex flex-col gap-0">
+      <NetworkStatusBanner />
+      <div className="flex flex-col gap-4 p-4">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
@@ -467,6 +470,7 @@ export default function FichajesTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
