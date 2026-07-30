@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useUserRole } from '@/lib/useUserRole';
+import { useAuth } from '@/lib/AuthContext';
 
 const CATEGORIAS = ['parte_trabajo', 'obra', 'nota_gastos', 'presupuesto', 'averia'];
 const CAT_LABELS = {
@@ -33,6 +34,7 @@ const CAT_COLORS = {
 export default function GaleriaFotos() {
   const qc = useQueryClient();
   const { isOperario } = useUserRole();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [filterOperario, setFilterOperario] = useState('');
@@ -128,13 +130,19 @@ export default function GaleriaFotos() {
         file_url = data.foto_url;
       }
       
+      const now = new Date();
       return base44.entities.FotoProyecto.create({
         titulo: data.titulo,
         descripcion: data.descripcion,
         categoria: data.categoria,
+        proyecto_id: data.proyecto_name || 'sin_proyecto',
         proyecto_name: data.proyecto_name,
+        proyecto_tipo: 'obra',
+        operario_id: user?.id || 'desconocido',
+        operario_name: user?.full_name || user?.email || 'Desconocido',
         foto_url: file_url,
-        fecha_foto: new Date().toISOString().split('T')[0],
+        fecha_foto: now.toISOString().split('T')[0],
+        hora_foto: now.toTimeString().slice(0, 5),
         storage,
         drive_file_id,
       });
