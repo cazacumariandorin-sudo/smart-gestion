@@ -84,6 +84,8 @@ export default function GaleriaFotos() {
     categoria: 'obra',
     proyecto_name: '',
     foto_url: '',
+    storage: '',
+    drive_file_id: '',
   });
 
   const { data: fotos = [], isLoading } = useQuery({
@@ -109,27 +111,6 @@ export default function GaleriaFotos() {
 
   const uploadMutation = useMutation({
     mutationFn: async (data) => {
-      let file_url;
-      let drive_file_id;
-      let storage = 'local';
-      
-      if (data.file) {
-        // Convert file to base64
-        const base64 = await fileToBase64(data.file);
-        
-        // Upload to Google Drive (if connected) or local storage
-        const res = await base44.functions.invoke('uploadFileToGdrive', { 
-          file: base64, 
-          folder_path: 'Obras' 
-        });
-        
-        file_url = res.data.file_url;
-        storage = res.data.storage;
-        drive_file_id = res.data.drive_file_id;
-      } else {
-        file_url = data.foto_url;
-      }
-      
       const now = new Date();
       return base44.entities.FotoProyecto.create({
         titulo: data.titulo,
@@ -140,17 +121,17 @@ export default function GaleriaFotos() {
         proyecto_tipo: 'obra',
         operario_id: user?.id || 'desconocido',
         operario_name: user?.full_name || user?.email || 'Desconocido',
-        foto_url: file_url,
+        foto_url: data.foto_url,
         fecha_foto: now.toISOString().split('T')[0],
         hora_foto: now.toTimeString().slice(0, 5),
-        storage,
-        drive_file_id,
+        storage: data.storage,
+        drive_file_id: data.drive_file_id,
       });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['fotos-proyecto'] });
       setUploadDialogOpen(false);
-      setUploadForm({ titulo: '', descripcion: '', categoria: 'obra', proyecto_name: '', foto_url: '' });
+      setUploadForm({ titulo: '', descripcion: '', categoria: 'obra', proyecto_name: '', foto_url: '', storage: '', drive_file_id: '' });
     },
   });
 
@@ -158,11 +139,18 @@ export default function GaleriaFotos() {
     setUploading(true);
     try {
       const base64 = await fileToBase64(file);
-      const res = await base44.functions.invoke('uploadFileToGdrive', { 
-        file: base64, 
-        folder_path: 'Obras' 
+      const now = new Date();
+      const res = await base44.functions.invoke('subirArchivoConFallback', {
+        file_base64: base64,
+        ruta_drive: `Fotos_Proyecto/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`,
+        entidad_tipo: 'FotoProyecto',
       });
-      setUploadForm(p => ({ ...p, foto_url: res.data.file_url }));
+      setUploadForm(p => ({
+        ...p,
+        foto_url: res.data.file_url,
+        storage: res.data.storage,
+        drive_file_id: res.data.drive_file_id,
+      }));
     } finally {
       setUploading(false);
     }
