@@ -1,0 +1,187 @@
+{
+  "name": "ParteDiarioObra",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (Obra o SolarObra)"
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra"
+    },
+    "obra_tipo": {
+      "type": "string",
+      "enum": [
+        "obra_civil",
+        "solar",
+        "oficina",
+        "almacen",
+        "otro"
+      ],
+      "default": "obra_civil"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la jornada"
+    },
+    "tecnico_id": {
+      "type": "string",
+      "description": "ID del t\u00e9cnico que crea el parte"
+    },
+    "tecnico_name": {
+      "type": "string",
+      "description": "Nombre del t\u00e9cnico que crea el parte"
+    },
+    "tecnicos_adicionales": {
+      "type": "array",
+      "description": "Otros t\u00e9cnicos/operarios que trabajaron en la misma jornada",
+      "items": {
+        "type": "object",
+        "properties": {
+          "operario_id": {
+            "type": "string"
+          },
+          "operario_name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "trabajos_realizados": {
+      "type": "string",
+      "description": "Resumen de los trabajos realizados y progreso de la obra en la jornada"
+    },
+    "materiales_necesarios": {
+      "type": "string",
+      "description": "Materiales utilizados o necesarios en la jornada"
+    },
+    "trabajos_pendientes": {
+      "type": "string",
+      "description": "Trabajos pendientes para la pr\u00f3xima visita"
+    },
+    "fotos": {
+      "type": "array",
+      "description": "Fotos adjuntas como evidencia",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "storage": {
+            "type": "string"
+          },
+          "drive_file_id": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "obra_name",
+    "fecha",
+    "tecnico_id",
+    "tecnico_name",
+    "trabajos_realizados"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}

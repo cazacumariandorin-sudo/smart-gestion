@@ -66,6 +66,7 @@ export const HUBS = [
       { label: 'Clientes', path: '/clients', icon: Users, module: 'clients' },
       { label: 'Solar', path: '/solar', icon: Sun, module: 'solar' },
       { label: 'Partes', path: '/work-orders', icon: ClipboardList, module: 'work-orders' },
+      { label: 'Parte diario', path: '/parte-diario', icon: ClipboardCheck, module: 'parte-diario' },
       { label: 'Informe', path: '/informe-obras', icon: BarChart2, module: 'informe-obras' },
     ],
   },
