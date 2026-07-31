@@ -192,6 +192,17 @@ Alerta al usuario sobre estas incidencias si son relevantes para su consulta. Re
     const claudeMessages = (messages || []).map(m => ({ role: m.role, content: m.content }));
     if (claudeMessages.length === 0) claudeMessages.push({ role: 'user', content: 'Hola' });
 
+    // ── Respaldo si Claude falla en tiempo real (caída, rate limit, timeout) ──
+    const fallbackInvokeLLM = async () => {
+      const ultimoMensaje = claudeMessages[claudeMessages.length - 1];
+      const prompt = typeof ultimoMensaje?.content === 'string' ? ultimoMensaje.content : 'Hola';
+      const resp = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt,
+        system_prompt: systemPrompt + '\n\nNOTA: La IA primaria no está disponible ahora mismo, estás respondiendo en modo respaldo sin acceso a herramientas en tiempo real. Avisa brevemente al usuario de esto si es relevante.',
+      });
+      return Response.json({ reply: resp, role: 'assistant', modo_respaldo: true });
+    };
+
     // ── Bucle agéntico ────────────────────────────────────────────────────────
     let iteraciones = 0;
     const MAX_ITER = 5;
@@ -199,13 +210,18 @@ Alerta al usuario sobre estas incidencias si son relevantes para su consulta. Re
     while (iteraciones < MAX_ITER) {
       iteraciones++;
 
-      const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2048,
-        system: systemPrompt,
-        tools,
-        messages: claudeMessages,
-      });
+      let response;
+      try {
+        response = await anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 2048,
+          system: systemPrompt,
+          tools,
+          messages: claudeMessages,
+        });
+      } catch (claudeError) {
+        return await fallbackInvokeLLM();
+      }
 
       if (response.stop_reason === 'end_turn') {
         const textBlock = response.content.find(b => b.type === 'text');
