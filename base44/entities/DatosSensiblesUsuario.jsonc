@@ -20,23 +20,23 @@
     },
     "dni_nie": {
       "type": "string",
-      "description": "DNI o NIE del trabajador"
+      "description": "DNI o NIE del trabajador \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "num_afiliacion_ss": {
       "type": "string",
-      "description": "N\u00famero de afiliaci\u00f3n a la Seguridad Social"
+      "description": "N\u00famero de afiliaci\u00f3n a la Seguridad Social \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "cuenta_bancaria_iban": {
       "type": "string",
-      "description": "IBAN o n\u00famero de cuenta bancaria para n\u00f3mina"
+      "description": "IBAN o n\u00famero de cuenta bancaria para n\u00f3mina \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "coste_hora": {
-      "type": "number",
-      "description": "Coste por hora en EUR (para rentabilidad de proyectos). Solo visible para admin/gerencia."
+      "type": "string",
+      "description": "Coste por hora en EUR \u2014 almacenado cifrado (AES-256-GCM). Solo visible para admin/gerencia tras descifrar."
     },
     "salario_bruto_mensual": {
-      "type": "number",
-      "description": "Salario bruto mensual en EUR"
+      "type": "string",
+      "description": "Salario bruto mensual en EUR \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "categoria_laboral": {
       "type": "string",
@@ -91,7 +91,7 @@
     },
     "notas_confidenciales": {
       "type": "string",
-      "description": "Notas internas de gerencia (solo admin/gerencia pueden leer)"
+      "description": "Notas internas de gerencia \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "migrado_desde_operario": {
       "type": "boolean",

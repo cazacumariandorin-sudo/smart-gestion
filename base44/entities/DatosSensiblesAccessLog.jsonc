@@ -1,0 +1,84 @@
+{
+  "name": "DatosSensiblesAccessLog",
+  "type": "object",
+  "properties": {
+    "entidad_tipo": {
+      "type": "string",
+      "enum": [
+        "usuario",
+        "cliente"
+      ]
+    },
+    "registro_id": {
+      "type": "string",
+      "description": "ID del registro DatosSensiblesUsuario/Cliente accedido"
+    },
+    "registro_nombre": {
+      "type": "string",
+      "description": "Nombre/email desnormalizado para lectura r\u00e1pida del log"
+    },
+    "accion": {
+      "type": "string",
+      "enum": [
+        "ver_detalle",
+        "crear",
+        "editar"
+      ],
+      "default": "ver_detalle"
+    },
+    "usuario_email": {
+      "type": "string",
+      "description": "Email del usuario que accedi\u00f3/descifr\u00f3 el dato"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "entidad_tipo",
+    "registro_id",
+    "usuario_email",
+    "fecha"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

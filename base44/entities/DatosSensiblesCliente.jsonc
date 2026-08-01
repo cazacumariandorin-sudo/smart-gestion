@@ -12,19 +12,19 @@
     },
     "numero_cuenta_bancaria": {
       "type": "string",
-      "description": "IBAN o n\u00famero de cuenta para transferencias"
+      "description": "IBAN o n\u00famero de cuenta para transferencias \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "datos_fiscales": {
       "type": "string",
-      "description": "Informaci\u00f3n fiscal sensible (domicilio fiscal, etc.)"
+      "description": "Informaci\u00f3n fiscal sensible (domicilio fiscal, etc.) \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "contacto_principal_personal": {
       "type": "string",
-      "description": "Tel\u00e9fono/email personal del contacto principal"
+      "description": "Tel\u00e9fono/email personal del contacto principal \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "precio_especial": {
-      "type": "number",
-      "description": "Descuento o precio especial negociado"
+      "type": "string",
+      "description": "Descuento o precio especial negociado \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "condiciones_pago": {
       "type": "string",
@@ -32,7 +32,7 @@
     },
     "notas_confidenciales": {
       "type": "string",
-      "description": "Notas internas sobre el cliente (situaci\u00f3n financiera, etc.)"
+      "description": "Notas internas sobre el cliente \u2014 almacenado cifrado (AES-256-GCM)"
     }
   },
   "required": [

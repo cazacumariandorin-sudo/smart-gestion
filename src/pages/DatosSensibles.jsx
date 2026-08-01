@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Edit, Trash2, Lock, Eye, EyeOff, Loader2, Play, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Lock, Eye, EyeOff, Loader2, Play, AlertTriangle, CheckCircle2, RefreshCw, ShieldCheck, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -12,6 +12,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import PageHeader from '@/components/layout/PageHeader';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const emptyUsuario = {
   user_email: '', user_id: '', operario_id: '', operario_name: '',
@@ -25,6 +27,11 @@ const emptyCliente = {
   condiciones_pago: '', notas_confidenciales: ''
 };
 
+const SENSITIVE_FIELDS = {
+  usuarios: ['dni_nie', 'num_afiliacion_ss', 'cuenta_bancaria_iban', 'coste_hora', 'salario_bruto_mensual', 'notas_confidenciales'],
+  clientes: ['numero_cuenta_bancaria', 'datos_fiscales', 'contacto_principal_personal', 'precio_especial', 'notas_confidenciales'],
+};
+
 export default function DatosSensibles() {
   const qc = useQueryClient();
   const [tab, setTab] = useState('usuarios');
@@ -33,6 +40,9 @@ export default function DatosSensibles() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyUsuario);
   const [showSensitive, setShowSensitive] = useState({});
+  const [decryptedCache, setDecryptedCache] = useState({});
+  const [decrypting, setDecrypting] = useState({});
+  const [encrypting, setEncrypting] = useState(false);
   const [migrationResult, setMigrationResult] = useState(null);
   const [migrationPreview, setMigrationPreview] = useState(null);
 
@@ -46,9 +56,10 @@ export default function DatosSensibles() {
     queryFn: () => base44.entities.DatosSensiblesCliente.list('-created_date', 200)
   });
 
-  const { data: operarios = [] } = useQuery({
-    queryKey: ['operarios_dsu'],
-    queryFn: () => base44.entities.Operario.list('name', 200)
+  const { data: accessLogs = [] } = useQuery({
+    queryKey: ['datos_sensibles_access_logs'],
+    queryFn: () => base44.entities.DatosSensiblesAccessLog.list('-fecha', 50),
+    enabled: tab === 'auditoria',
   });
 
   const createM = useMutation({
@@ -58,7 +69,11 @@ export default function DatosSensibles() {
 
   const updateM = useMutation({
     mutationFn: ({ id, d }) => tab === 'usuarios' ? base44.entities.DatosSensiblesUsuario.update(id, d) : base44.entities.DatosSensiblesCliente.update(id, d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: tab === 'usuarios' ? ['datos_sensibles_usuarios'] : ['datos_sensibles_clientes'] }); close_(); }
+    onSuccess: (_r, vars) => {
+      qc.invalidateQueries({ queryKey: tab === 'usuarios' ? ['datos_sensibles_usuarios'] : ['datos_sensibles_clientes'] });
+      setDecryptedCache(p => { const n = { ...p }; delete n[vars.id]; return n; });
+      close_();
+    }
   });
 
   const deleteM = useMutation({
@@ -80,52 +95,79 @@ export default function DatosSensibles() {
     }
   });
 
-  const open_ = (item = null) => {
+  const decryptItem = async (item) => {
+    if (decryptedCache[item.id]) return decryptedCache[item.id];
+    setDecrypting(p => ({ ...p, [item.id]: true }));
+    try {
+      const sensitiveKeys = SENSITIVE_FIELDS[tab];
+      const fields = {};
+      sensitiveKeys.forEach(k => { fields[k] = item[k] || ''; });
+      const nombre = tab === 'usuarios' ? item.user_email : item.cliente_nombre;
+      const res = await base44.functions.invoke('datosSensiblesCrypto', {
+        action: 'decrypt', tipo: tab === 'usuarios' ? 'usuario' : 'cliente',
+        registro_id: item.id, registro_nombre: nombre, fields,
+      });
+      setDecryptedCache(p => ({ ...p, [item.id]: res.data.decrypted }));
+      return res.data.decrypted;
+    } finally {
+      setDecrypting(p => ({ ...p, [item.id]: false }));
+    }
+  };
+
+  const toggleSensitive = async (item) => {
+    if (showSensitive[item.id]) { setShowSensitive(p => ({ ...p, [item.id]: false })); return; }
+    await decryptItem(item);
+    setShowSensitive(p => ({ ...p, [item.id]: true }));
+  };
+
+  const open_ = async (item = null) => {
     setEditing(item);
     if (item) {
+      const decrypted = await decryptItem(item);
       setForm(tab === 'usuarios' ? {
         user_email: item.user_email || '', user_id: item.user_id || '',
         operario_id: item.operario_id || '', operario_name: item.operario_name || '',
-        dni_nie: item.dni_nie || '', num_afiliacion_ss: item.num_afiliacion_ss || '',
-        cuenta_bancaria_iban: item.cuenta_bancaria_iban || '',
-        coste_hora: item.coste_hora || '', salario_bruto_mensual: item.salario_bruto_mensual || '',
+        dni_nie: decrypted.dni_nie || '', num_afiliacion_ss: decrypted.num_afiliacion_ss || '',
+        cuenta_bancaria_iban: decrypted.cuenta_bancaria_iban || '',
+        coste_hora: decrypted.coste_hora || '', salario_bruto_mensual: decrypted.salario_bruto_mensual || '',
         categoria_laboral: item.categoria_laboral || '', fecha_alta_empresa: item.fecha_alta_empresa || '',
-        notas_confidenciales: item.notas_confidenciales || ''
+        notas_confidenciales: decrypted.notas_confidenciales || ''
       } : {
         cliente_id: item.cliente_id || '', cliente_nombre: item.cliente_nombre || '',
-        numero_cuenta_bancaria: item.numero_cuenta_bancaria || '',
-        datos_fiscales: item.datos_fiscales || '', contacto_principal_personal: item.contacto_principal_personal || '',
-        precio_especial: item.precio_especial || '', condiciones_pago: item.condiciones_pago || '',
-        notas_confidenciales: item.notas_confidenciales || ''
+        numero_cuenta_bancaria: decrypted.numero_cuenta_bancaria || '',
+        datos_fiscales: decrypted.datos_fiscales || '', contacto_principal_personal: decrypted.contacto_principal_personal || '',
+        precio_especial: decrypted.precio_especial || '', condiciones_pago: item.condiciones_pago || '',
+        notas_confidenciales: decrypted.notas_confidenciales || ''
       });
     } else {
       setForm(tab === 'usuarios' ? emptyUsuario : emptyCliente);
     }
-    setShowSensitive({});
     setDialogOpen(true);
   };
 
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(tab === 'usuarios' ? emptyUsuario : emptyCliente); };
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
-  const handleSave = () => {
-    if (tab === 'usuarios') {
-      if (!form.user_email) return;
-      const payload = { ...form };
-      if (payload.coste_hora) payload.coste_hora = parseFloat(payload.coste_hora);
-      if (payload.salario_bruto_mensual) payload.salario_bruto_mensual = parseFloat(payload.salario_bruto_mensual);
-      editing ? updateM.mutate({ id: editing.id, d: payload }) : createM.mutate(payload);
-    } else {
-      if (!form.cliente_id || !form.cliente_nombre) return;
-      const payload = { ...form };
-      if (payload.precio_especial) payload.precio_especial = parseFloat(payload.precio_especial);
-      editing ? updateM.mutate({ id: editing.id, d: payload }) : createM.mutate(payload);
+  const handleSave = async () => {
+    if (tab === 'usuarios' && !form.user_email) return;
+    if (tab === 'clientes' && (!form.cliente_id || !form.cliente_nombre)) return;
+    setEncrypting(true);
+    try {
+      const sensitiveKeys = SENSITIVE_FIELDS[tab];
+      const fields = {};
+      sensitiveKeys.forEach(k => { fields[k] = form[k] ?? ''; });
+      const res = await base44.functions.invoke('datosSensiblesCrypto', { action: 'encrypt', fields });
+      const payload = { ...form, ...res.data.encrypted };
+      if (editing) updateM.mutate({ id: editing.id, d: payload });
+      else createM.mutate(payload);
+    } finally {
+      setEncrypting(false);
     }
   };
 
   const filteredUsuarios = useMemo(() => {
     const q = search.toLowerCase();
-    return usuarios.filter(u => u.user_email?.toLowerCase().includes(q) || u.operario_name?.toLowerCase().includes(q) || u.dni_nie?.toLowerCase().includes(q));
+    return usuarios.filter(u => u.user_email?.toLowerCase().includes(q) || u.operario_name?.toLowerCase().includes(q));
   }, [usuarios, search]);
 
   const filteredClientes = useMemo(() => {
@@ -133,13 +175,15 @@ export default function DatosSensibles() {
     return clientes.filter(c => c.cliente_nombre?.toLowerCase().includes(q) || c.cliente_id?.toLowerCase().includes(q));
   }, [clientes, search]);
 
-  const toggleSensitive = (id) => setShowSensitive(p => ({ ...p, [id]: !p[id] }));
+  const dv = (item, field, suffix = '') => {
+    const val = decryptedCache[item.id]?.[field];
+    return val ? `${val}${suffix}` : '';
+  };
 
-  const MaskField = ({ value, id, show }) => {
+  const MaskField = ({ value, show }) => {
+    if (!show) return <span className="text-muted-foreground text-sm flex items-center gap-1"><Lock className="w-3.5 h-3.5" /> Protegido</span>;
     if (!value) return <span className="text-muted-foreground text-sm">—</span>;
-    return show
-      ? <span className="font-mono text-xs break-all">{value}</span>
-      : <span className="text-muted-foreground text-sm flex items-center gap-1"><Lock className="w-3.5 h-3.5" /> Protegido</span>;
+    return <span className="font-mono text-xs break-all">{value}</span>;
   };
 
   const resumen = migrationPreview?.resumen || migrationResult?.resumen;
@@ -149,16 +193,25 @@ export default function DatosSensibles() {
     <div className="max-w-5xl mx-auto">
       <PageHeader
         title="Datos Sensibles"
-        subtitle="Gestión encriptada de información confidencial — Solo Admin"
+        subtitle="Cifrado AES-256-GCM + auditoría de accesos — Solo Admin"
         backTo="/users"
         actions={
-          <Button onClick={() => open_()} className="gap-2 h-9">
-            <Plus className="w-4 h-4" /> Nuevo
-          </Button>
+          tab !== 'auditoria' && (
+            <Button onClick={() => open_()} className="gap-2 h-9">
+              <Plus className="w-4 h-4" /> Nuevo
+            </Button>
+          )
         }
       />
 
       <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+
+        <Card className="p-3 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+          <p className="text-xs text-emerald-700 dark:text-emerald-400">
+            Los campos sensibles se cifran (AES-256-GCM) antes de guardarse y se descifran solo bajo demanda; cada descifrado queda registrado en Auditoría.
+          </p>
+        </Card>
 
         {/* ── Panel de Migración Fase 0 ───────────────────────────────────── */}
         <Card className="p-4 border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
@@ -224,16 +277,17 @@ export default function DatosSensibles() {
 
         {/* ── Tabs principal ──────────────────────────────────────────────── */}
         <Tabs value={tab} onValueChange={v => { setTab(v); setSearch(''); }}>
-          <TabsList className="grid w-full max-w-xs grid-cols-2">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
             <TabsTrigger value="usuarios">Técnicos / Usuarios</TabsTrigger>
             <TabsTrigger value="clientes">Clientes</TabsTrigger>
+            <TabsTrigger value="auditoria">Auditoría</TabsTrigger>
           </TabsList>
 
           {/* ── TAB USUARIOS ── */}
           <TabsContent value="usuarios" className="mt-6 space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar por email, nombre o DNI..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+              <Input placeholder="Buscar por email o nombre..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
             </div>
 
             {usuariosLoading ? (
@@ -259,8 +313,8 @@ export default function DatosSensibles() {
                         {u.categoria_laboral && <Badge variant="outline" className="text-[10px] mt-1">{u.categoria_laboral}</Badge>}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleSensitive(u.id)}>
-                          {showSensitive[u.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleSensitive(u)} disabled={decrypting[u.id]}>
+                          {decrypting[u.id] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : showSensitive[u.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => open_(u)}><Edit className="w-3.5 h-3.5" /></Button>
                         <AlertDialog>
@@ -280,25 +334,27 @@ export default function DatosSensibles() {
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
                         <p className="text-muted-foreground mb-1">DNI / NIE</p>
-                        <MaskField value={u.dni_nie} id={u.id} show={showSensitive[u.id]} />
+                        <MaskField value={dv(u, 'dni_nie')} show={showSensitive[u.id]} />
                       </div>
                       <div>
                         <p className="text-muted-foreground mb-1">Coste/hora</p>
-                        <MaskField value={u.coste_hora ? `${u.coste_hora} €/h` : ''} id={u.id} show={showSensitive[u.id]} />
+                        <MaskField value={dv(u, 'coste_hora', ' €/h')} show={showSensitive[u.id]} />
                       </div>
                       <div>
                         <p className="text-muted-foreground mb-1">Salario Bruto</p>
-                        <MaskField value={u.salario_bruto_mensual ? `${u.salario_bruto_mensual} €/mes` : ''} id={u.id} show={showSensitive[u.id]} />
+                        <MaskField value={dv(u, 'salario_bruto_mensual', ' €/mes')} show={showSensitive[u.id]} />
                       </div>
                       <div>
                         <p className="text-muted-foreground mb-1">Afiliación SS</p>
-                        <MaskField value={u.num_afiliacion_ss} id={u.id} show={showSensitive[u.id]} />
+                        <MaskField value={dv(u, 'num_afiliacion_ss')} show={showSensitive[u.id]} />
                       </div>
                       <div className="col-span-2">
                         <p className="text-muted-foreground mb-1">IBAN</p>
-                        <MaskField value={u.cuenta_bancaria_iban} id={u.id} show={showSensitive[u.id]} />
+                        <MaskField value={dv(u, 'cuenta_bancaria_iban')} show={showSensitive[u.id]} />
                       </div>
-                      {u.notas_confidenciales && <div className="col-span-2"><p className="text-muted-foreground mb-1">Notas internas</p><p className="text-xs italic text-foreground line-clamp-2">{u.notas_confidenciales}</p></div>}
+                      {showSensitive[u.id] && dv(u, 'notas_confidenciales') && (
+                        <div className="col-span-2"><p className="text-muted-foreground mb-1">Notas internas</p><p className="text-xs italic text-foreground line-clamp-2">{dv(u, 'notas_confidenciales')}</p></div>
+                      )}
                     </div>
                   </Card>
                 ))}
@@ -333,8 +389,8 @@ export default function DatosSensibles() {
                         <p className="text-xs text-muted-foreground mt-1">ID: {c.cliente_id}</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleSensitive(c.id)}>
-                          {showSensitive[c.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleSensitive(c)} disabled={decrypting[c.id]}>
+                          {decrypting[c.id] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : showSensitive[c.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => open_(c)}><Edit className="w-3.5 h-3.5" /></Button>
                         <AlertDialog>
@@ -354,21 +410,43 @@ export default function DatosSensibles() {
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
                         <p className="text-muted-foreground mb-1">Precio Especial</p>
-                        <MaskField value={c.precio_especial ? `${c.precio_especial} €` : ''} id={c.id} show={showSensitive[c.id]} />
+                        <MaskField value={dv(c, 'precio_especial', ' €')} show={showSensitive[c.id]} />
                       </div>
                       <div>
                         <p className="text-muted-foreground mb-1">Contacto Personal</p>
-                        <MaskField value={c.contacto_principal_personal} id={c.id} show={showSensitive[c.id]} />
+                        <MaskField value={dv(c, 'contacto_principal_personal')} show={showSensitive[c.id]} />
                       </div>
                       <div className="col-span-2">
                         <p className="text-muted-foreground mb-1">Cuenta Bancaria</p>
-                        <MaskField value={c.numero_cuenta_bancaria} id={c.id} show={showSensitive[c.id]} />
+                        <MaskField value={dv(c, 'numero_cuenta_bancaria')} show={showSensitive[c.id]} />
                       </div>
-                      {c.notas_confidenciales && <div className="col-span-2"><p className="text-muted-foreground mb-1">Notas</p><p className="text-xs italic text-foreground line-clamp-2">{c.notas_confidenciales}</p></div>}
+                      {showSensitive[c.id] && dv(c, 'notas_confidenciales') && (
+                        <div className="col-span-2"><p className="text-muted-foreground mb-1">Notas</p><p className="text-xs italic text-foreground line-clamp-2">{dv(c, 'notas_confidenciales')}</p></div>
+                      )}
                     </div>
                   </Card>
                 ))}
               </div>
+            )}
+          </TabsContent>
+
+          {/* ── TAB AUDITORÍA ── */}
+          <TabsContent value="auditoria" className="mt-6 space-y-2">
+            {accessLogs.length === 0 ? (
+              <div className="text-center py-12 border border-dashed rounded-xl">
+                <History className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">Todavía no hay accesos registrados</p>
+              </div>
+            ) : (
+              accessLogs.map(log => (
+                <Card key={log.id} className="p-3 flex items-center justify-between gap-3 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{log.registro_nombre || log.registro_id}</p>
+                    <p className="text-xs text-muted-foreground">{log.usuario_email} · {log.entidad_tipo}</p>
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0">{format(new Date(log.fecha), 'dd MMM HH:mm', { locale: es })}</span>
+                </Card>
+              ))
             )}
           </TabsContent>
         </Tabs>
@@ -476,11 +554,11 @@ export default function DatosSensibles() {
               disabled={
                 (tab === 'usuarios' && !form.user_email) ||
                 (tab === 'clientes' && (!form.cliente_id || !form.cliente_nombre)) ||
-                createM.isPending || updateM.isPending
+                encrypting || createM.isPending || updateM.isPending
               }
               className="gap-2 min-w-28"
             >
-              {createM.isPending || updateM.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar'}
+              {(encrypting || createM.isPending || updateM.isPending) ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar'}
             </Button>
           </DialogFooter>
         </DialogContent>
