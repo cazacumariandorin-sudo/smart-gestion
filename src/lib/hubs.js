@@ -97,6 +97,7 @@ export const HUBS = [
     module: 'notas-gastos',
     roleRestricted: null,
     items: [
+      { label: 'Dashboard', path: '/economico-dashboard', icon: BarChart2, module: 'economico-dashboard' },
       { label: 'Mis Gastos', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
       { label: 'Gestión Gastos', path: '/notas-gastos?vista=admin', icon: ClipboardCheck, module: 'notas-gastos', roles: ['admin', 'gerencia', 'director_comercial'] },
       { label: 'Pedidos', path: '/orders', icon: CreditCard, module: 'orders' },

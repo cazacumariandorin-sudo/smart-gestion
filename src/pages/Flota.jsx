@@ -8,6 +8,7 @@ import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { Car, Plus, Edit2, Trash2, Bell, BellOff, AlertTriangle, CheckCircle2, Clock, Wrench, Loader2, ChevronDown, ChevronUp, Route, MapPin, Fuel, Siren } from 'lucide-react';
 import ReportarAveriaDialog from '@/components/flota/ReportarAveriaDialog';
+import CostesFlotaProyecto from '@/components/flota/CostesFlotaProyecto';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -337,6 +338,7 @@ export default function Flota() {
               { value: 'vehiculos', label: `Vehículos (${vehiculos.length})`, icon: Car,   color: 'bg-blue-500 hover:bg-blue-600 border-blue-600 shadow-blue-200' },
               { value: 'viajes',    label: `Viajes (${viajes.length})`,       icon: Route, color: 'bg-teal-500 hover:bg-teal-600 border-teal-600 shadow-teal-200' },
               { value: 'alertas',   label: alertasPendientes.length > 0 ? `Alertas (${alertasPendientes.length})` : 'Alertas', icon: Bell,  color: alertasPendientes.length > 0 ? 'bg-red-500 hover:bg-red-600 border-red-600 shadow-red-200' : 'bg-slate-500 hover:bg-slate-600 border-slate-600 shadow-slate-200' },
+              ...((isAdmin || isGerencia) ? [{ value: 'costes', label: 'Costes por proyecto', icon: Fuel, color: 'bg-amber-500 hover:bg-amber-600 border-amber-600 shadow-amber-200' }] : []),
             ].map(({ value, label, icon: Icon, color }) => (
               <button
                 key={value}
@@ -357,6 +359,7 @@ export default function Flota() {
             <TabsTrigger value="vehiculos" />
             <TabsTrigger value="viajes" />
             <TabsTrigger value="alertas" />
+            <TabsTrigger value="costes" />
           </TabsList>
 
           {/* TAB VEHÍCULOS */}
@@ -479,6 +482,13 @@ export default function Flota() {
               </div>
             )}
           </TabsContent>
+
+          {/* TAB COSTES POR PROYECTO */}
+          {(isAdmin || isGerencia) && (
+            <TabsContent value="costes">
+              <CostesFlotaProyecto viajes={viajes} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
