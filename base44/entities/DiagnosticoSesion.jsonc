@@ -1,0 +1,206 @@
+{
+  "name": "DiagnosticoSesion",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email del usuario que report\u00f3 / sufri\u00f3 el error"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID del usuario"
+    },
+    "user_role": {
+      "type": "string",
+      "description": "Rol del usuario (admin, gerencia, t\u00e9cnico, operario...)"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "error_auto",
+        "pantalla_blanca",
+        "reporte_manual",
+        "timeout_red",
+        "crash_js",
+        "rechazo_promesa"
+      ],
+      "default": "error_auto",
+      "description": "Tipo de incidente diagnosticado"
+    },
+    "severidad": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "error",
+        "critico"
+      ],
+      "default": "error"
+    },
+    "mensaje_error": {
+      "type": "string",
+      "description": "Mensaje t\u00e9cnico del error / excepci\u00f3n"
+    },
+    "stack_trace": {
+      "type": "string",
+      "description": "Traza completa del error (primeras N l\u00edneas)"
+    },
+    "ruta": {
+      "type": "string",
+      "description": "window.location.pathname donde ocurri\u00f3"
+    },
+    "ruta_completa": {
+      "type": "string",
+      "description": "window.location.href completa"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User-Agent completo del navegador / dispositivo"
+    },
+    "navegador": {
+      "type": "string",
+      "description": "Navegador parseado (Chrome, Safari...)"
+    },
+    "sistema_operativo": {
+      "type": "string",
+      "description": "SO parseado (Android 12, iOS 17...)"
+    },
+    "dispositivo_modelo": {
+      "type": "string",
+      "description": "Modelo de dispositivo si se puede detectar"
+    },
+    "resolucion_pantalla": {
+      "type": "string",
+      "description": "Resoluci\u00f3n de pantalla (ancho x alto)"
+    },
+    "viewport": {
+      "type": "string",
+      "description": "Tama\u00f1o del viewport (ancho x alto)"
+    },
+    "nivel_bateria": {
+      "type": "number",
+      "description": "Nivel de bater\u00eda (0-1) si est\u00e1 disponible"
+    },
+    "cargando_bateria": {
+      "type": "boolean",
+      "description": "Si el dispositivo est\u00e1 cargando"
+    },
+    "calidad_red": {
+      "type": "string",
+      "description": "Tipo de conexi\u00f3n efectiva (4g, 3g, 2g, slow-2g)"
+    },
+    "downlink_mbps": {
+      "type": "number",
+      "description": "Velocidad de bajada estimada (Mbps)"
+    },
+    "rtt_ms": {
+      "type": "number",
+      "description": "Round-trip time (ms)"
+    },
+    "online": {
+      "type": "boolean",
+      "description": "Si el navegador reporta estar online"
+    },
+    "ultima_accion": {
+      "type": "string",
+      "description": "\u00daltima acci\u00f3n registrada antes del fallo"
+    },
+    "historial_navegacion": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "\u00daltimas rutas visitadas antes del error"
+    },
+    "notas_usuario": {
+      "type": "string",
+      "description": "Descripci\u00f3n del fallo escrita por el usuario (en reportes manuales)"
+    },
+    "pasos_reproducir": {
+      "type": "string",
+      "description": "Pasos para reproducir (en reportes manuales)"
+    },
+    "cookies_habilitadas": {
+      "type": "boolean",
+      "description": "Si las cookies est\u00e1n habilitadas en el navegador"
+    },
+    "memoria_uso_mb": {
+      "type": "number",
+      "description": "Memoria usada (MB) si performance.memory est\u00e1 disponible"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "nuevo",
+        "revisado",
+        "en_proceso",
+        "resuelto",
+        "ignorado"
+      ],
+      "default": "nuevo",
+      "description": "Estado de triaje del incidente"
+    },
+    "comentario_soporte": {
+      "type": "string",
+      "description": "Notas internas del equipo de soporte/IT"
+    },
+    "revisado_por": {
+      "type": "string",
+      "description": "Email del responsable que revis\u00f3 el incidente"
+    },
+    "fecha_revision": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "user_email",
+    "tipo",
+    "ruta"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    }
+  }
+}

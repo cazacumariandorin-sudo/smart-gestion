@@ -3,7 +3,7 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query'
 import GlobalLoadingBar from '@/components/GlobalLoadingBar';
-import { setupGlobalErrorHandling } from '@/lib/errorHandler';
+import { setupGlobalErrorHandling, setCurrentUserForDiag } from '@/lib/errorHandler';
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -70,6 +70,7 @@ const Presupuestos = lazy(() => import('./pages/Presupuestos'));
 const ReglasDeOro = lazy(() => import('./pages/ReglasDeOro'));
 const ParteDiario = lazy(() => import('./pages/ParteDiario'));
 const EconomicoDashboard = lazy(() => import('./pages/EconomicoDashboard'));
+const DiagnosticoApp = lazy(() => import('./pages/DiagnosticoApp'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -254,6 +255,7 @@ function AnimatedRoutes() {
             <Route path="/sistema/reglas-de-oro" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><ReglasDeOro /></Suspense></ProtectedRoute>} />
             <Route path="/parte-diario" element={<ProtectedRoute module="parte-diario"><Suspense fallback={<PageLoader />}><ParteDiario /></Suspense></ProtectedRoute>} />
             <Route path="/economico-dashboard" element={<ProtectedRoute module="economico-dashboard"><Suspense fallback={<PageLoader />}><EconomicoDashboard /></Suspense></ProtectedRoute>} />
+            <Route path="/diagnostico-app" element={<ProtectedRoute><Suspense fallback={<PageLoader />}><DiagnosticoApp /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
 
@@ -299,8 +301,12 @@ function AnimatedRoutes() {
 }
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
   useNetworkInfo(); // detección de red disponible para toda la app (timeouts adaptativos)
+
+  useEffect(() => {
+    if (user) setCurrentUserForDiag(user);
+  }, [user]);
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (

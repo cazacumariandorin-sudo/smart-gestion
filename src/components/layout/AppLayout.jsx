@@ -23,6 +23,7 @@ import MicrophoneBanner from '@/components/layout/MicrophoneBanner';
 import ActiveRoleIndicator from '@/components/layout/ActiveRoleIndicator';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
+import ReportarFalloButton from '@/components/diagnostico/ReportarFalloButton';
 
 function ScrollRestorer() {
   useScrollRestoration();
@@ -204,6 +205,9 @@ export default function AppLayout() {
 
       {/* Alerta discreta de Reglas de Oro — solo Admin/Gerencia */}
       <ReglasDeOroAlert role={authUser?.role} />
+
+      {/* Botón global de reporte de fallos para cualquier usuario */}
+      <ReportarFalloButton />
     </div>
   );
 }
