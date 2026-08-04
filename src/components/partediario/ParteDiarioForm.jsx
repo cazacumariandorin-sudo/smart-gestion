@@ -11,34 +11,80 @@ import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import ParteFotosInput from './ParteFotosInput';
 import ParteTecnicosAdicionales from './ParteTecnicosAdicionales';
+import SignatureCanvas from '@/components/workorders/SignatureCanvas';
 
-export default function ParteDiarioForm({ onSuccess, onCancel }) {
+export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [obra, setObra] = useState({ obra_id: null, obra_name: '', obra_tipo: 'otro' });
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
-  const [trabajosRealizados, setTrabajosRealizados] = useState('');
-  const [materialesNecesarios, setMaterialesNecesarios] = useState('');
-  const [trabajosPendientes, setTrabajosPendientes] = useState('');
-  const [fotos, setFotos] = useState([]);
-  const [tecnicosAdicionales, setTecnicosAdicionales] = useState([]);
+  const [obra, setObra] = useState(
+    editing
+      ? { obra_id: editing.obra_id, obra_name: editing.obra_name, obra_tipo: editing.obra_tipo || 'otro' }
+      : { obra_id: null, obra_name: '', obra_tipo: 'otro' }
+  );
+  const [fecha, setFecha] = useState(editing?.fecha || new Date().toISOString().split('T')[0]);
+  const [trabajosRealizados, setTrabajosRealizados] = useState(editing?.trabajos_realizados || '');
+  const [materialesNecesarios, setMaterialesNecesarios] = useState(editing?.materiales_necesarios || '');
+  const [trabajosPendientes, setTrabajosPendientes] = useState(editing?.trabajos_pendientes || '');
+  const [fotos, setFotos] = useState(editing?.fotos || []);
+  const [tecnicosAdicionales, setTecnicosAdicionales] = useState(editing?.tecnicos_adicionales || []);
+  const [firmaUrl, setFirmaUrl] = useState(editing?.firma_url || '');
 
-  const mutation = useMutation({
-    mutationFn: () => base44.entities.ParteDiarioObra.create({
+  const buildPayload = () => {
+    const firmaNueva = !!firmaUrl && firmaUrl !== (editing?.firma_url || '');
+    return {
       obra_id: obra.obra_id,
       obra_name: obra.obra_name,
       obra_tipo: obra.obra_tipo,
       fecha,
-      tecnico_id: user?.id,
-      tecnico_name: user?.full_name || user?.email,
+      tecnico_id: editing?.tecnico_id || user?.id,
+      tecnico_name: editing?.tecnico_name || user?.full_name || user?.email,
       tecnicos_adicionales: tecnicosAdicionales,
       trabajos_realizados: trabajosRealizados,
       materiales_necesarios: materialesNecesarios,
       trabajos_pendientes: trabajosPendientes,
       fotos,
-    }),
+      firma_url: firmaUrl,
+      ...(firmaNueva ? { firmado_por: user?.email, fecha_firma: new Date().toISOString() } : {}),
+    };
+  };
+
+  const replicateFotosToGallery = (parteId) => {
+    const hora = `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+    fotos.forEach(f => {
+      if (!f?.url) return;
+      base44.entities.FotoProyecto.create({
+        foto_url: f.url,
+        categoria: 'parte_trabajo',
+        proyecto_id: obra.obra_id,
+        proyecto_name: obra.obra_name,
+        proyecto_tipo: obra.obra_tipo === 'solar' ? 'solar' : 'obra',
+        referencia_id: parteId,
+        referencia_nombre: `Parte Diario ${fecha}`,
+        operario_id: user?.id,
+        operario_name: user?.full_name || user?.email,
+        fecha_foto: fecha,
+        hora_foto: hora,
+        fecha_hora_subida: new Date().toISOString(),
+        titulo: `Parte ${obra.obra_name || ''} ${fecha}`,
+      }).catch(() => {});
+    });
+  };
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const payload = buildPayload();
+      if (editing) {
+        return base44.entities.ParteDiarioObra.update(editing.id, payload);
+      }
+      const creado = await base44.entities.ParteDiarioObra.create(payload);
+      // Replicar fotos del nuevo parte a la Galería de Fotos (clasificadas por obra/cliente)
+      replicateFotosToGallery(creado.id);
+      return creado;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['partes-diarios'] });
+      qc.invalidateQueries({ queryKey: ['fotos-proyecto'] });
+      qc.invalidateQueries({ queryKey: ['fotos'] });
       onSuccess?.();
     },
   });
@@ -49,7 +95,7 @@ export default function ParteDiarioForm({ onSuccess, onCancel }) {
     <div className="space-y-4">
       <div className="space-y-1.5">
         <Label className="text-xs">Obra *</Label>
-        <ObraSelectorObras value={obra} onChange={setObra} />
+        <ObraSelectorObras value={obra} onChange={setObra} disabled={!!editing} />
       </div>
 
       <div className="space-y-1.5">
@@ -60,7 +106,7 @@ export default function ParteDiarioForm({ onSuccess, onCancel }) {
       <div className="space-y-1.5">
         <Label className="text-xs">¿Otros técnicos en la jornada?</Label>
         <ParteTecnicosAdicionales
-          tecnicoActualId={user?.id}
+          tecnicoActualId={editing?.tecnico_id || user?.id}
           seleccionados={tecnicosAdicionales}
           onChange={setTecnicosAdicionales}
         />
@@ -93,12 +139,18 @@ export default function ParteDiarioForm({ onSuccess, onCancel }) {
       <div className="space-y-1.5">
         <Label className="text-xs">Fotos</Label>
         <ParteFotosInput fotos={fotos} onChange={setFotos} />
+        <p className="text-[10px] text-muted-foreground">Las fotos también se replican en la Galería de Fotos (clasificadas por obra/cliente).</p>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">Firma del técnico</Label>
+        <SignatureCanvas label="Firma" value={firmaUrl} onChange={setFirmaUrl} />
       </div>
 
       <div className="flex gap-2 pt-2">
         <Button variant="outline" onClick={onCancel} className="flex-1">Cancelar</Button>
         <Button onClick={() => mutation.mutate()} disabled={!puedeGuardar || mutation.isPending} className="flex-1 gap-2">
-          {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar parte'}
+          {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : editing ? 'Guardar cambios' : 'Guardar parte'}
         </Button>
       </div>
     </div>
