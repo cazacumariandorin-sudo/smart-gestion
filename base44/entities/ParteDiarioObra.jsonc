@@ -63,7 +63,7 @@
     },
     "fotos": {
       "type": "array",
-      "description": "Fotos adjuntas como evidencia",
+      "description": "Fotos adjuntas como evidencia (tambi\u00e9n se replican en FotoProyecto/Galer\u00eda clasificadas por obra/cliente)",
       "items": {
         "type": "object",
         "properties": {
@@ -78,6 +78,42 @@
           }
         }
       }
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "cerrado"
+      ],
+      "default": "borrador",
+      "description": "Borrador: editable por t\u00e9cnico/gerencia. Cerrado: solo gerencia/admin puede reabrirlo para edici\u00f3n."
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si el parte est\u00e1 activo. Inactivo = archivado (solo visible para gerencia/admin con el toggle 'mostrar inactivas')."
+    },
+    "firma_url": {
+      "type": "string",
+      "description": "Data URL o URL de la firma manuscrita del parte"
+    },
+    "firmado_por": {
+      "type": "string",
+      "description": "Email del usuario que firm\u00f3 el parte"
+    },
+    "fecha_firma": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la firma"
+    },
+    "cerrado_por": {
+      "type": "string",
+      "description": "Email del usuario que cerr\u00f3 el parte"
+    },
+    "fecha_cierre": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora en que se cerr\u00f3 el parte"
     }
   },
   "required": [
@@ -177,9 +213,6 @@
           "user_condition": {
             "role": "gerencia"
           }
-        },
-        {
-          "created_by": "{{user.email}}"
         }
       ]
     }
