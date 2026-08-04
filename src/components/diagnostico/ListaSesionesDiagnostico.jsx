@@ -41,11 +41,33 @@ export default function ListaSesionesDiagnostico({ sesiones, loading, onSelect, 
   const [busqueda, setBusqueda] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
+  const [filtroUsuario, setFiltroUsuario] = useState('');
+
+  const PENDIENTES = ['nuevo', 'en_proceso', 'revisado'];
+
+  // Usuarios con sus conteos de errores pendientes (no resueltos/ignorados)
+  const usuariosConErrores = useMemo(() => {
+    const mapa = new Map();
+    sesiones.forEach(s => {
+      if (s.estado === 'resuelto' || s.estado === 'ignorado') return;
+      const email = s.user_email || 'anónimo';
+      if (!mapa.has(email)) mapa.set(email, { email, pendientes: 0, total: 0 });
+      mapa.get(email).pendientes += PENDIENTES.includes(s.estado) ? 1 : 0;
+      mapa.get(email).total += 1;
+    });
+    return Array.from(mapa.values()).sort((a, b) => b.pendientes - a.pendientes);
+  }, [sesiones]);
+
+  const totalPendientes = usuariosConErrores.reduce((acc, u) => acc + u.pendientes, 0);
 
   const filtradas = useMemo(() => {
     return sesiones.filter(s => {
       if (filtroTipo && s.tipo !== filtroTipo) return false;
       if (filtroEstado && s.estado !== filtroEstado) return false;
+      if (filtroUsuario) {
+        const email = s.user_email || 'anónimo';
+        if (email !== filtroUsuario) return false;
+      }
       if (busqueda) {
         const q = busqueda.toLowerCase();
         const texto = `${s.user_email} ${s.mensaje_error} ${s.ruta} ${s.navegador} ${s.sistema_operativo}`.toLowerCase();
@@ -53,7 +75,7 @@ export default function ListaSesionesDiagnostico({ sesiones, loading, onSelect, 
       }
       return true;
     });
-  }, [sesiones, busqueda, filtroTipo, filtroEstado]);
+  }, [sesiones, busqueda, filtroTipo, filtroEstado, filtroUsuario]);
 
   const tipos = [...new Set(sesiones.map(s => s.tipo))];
   const estados = ['nuevo', 'revisado', 'en_proceso', 'resuelto', 'ignorado'];
@@ -88,6 +110,18 @@ export default function ListaSesionesDiagnostico({ sesiones, loading, onSelect, 
 
       {/* Filtros */}
       <div className="flex gap-2 flex-wrap">
+        <select
+          value={filtroUsuario}
+          onChange={(e) => setFiltroUsuario(e.target.value)}
+          className="text-xs h-8 rounded-md border border-input bg-background px-2 flex-1 min-w-[140px]"
+        >
+          <option value="">Todos los usuarios ({totalPendientes} pend.)</option>
+          {usuariosConErrores.map(u => (
+            <option key={u.email} value={u.email}>
+              {u.email} ({u.pendientes} pend.)
+            </option>
+          ))}
+        </select>
         <select
           value={filtroTipo}
           onChange={(e) => setFiltroTipo(e.target.value)}
