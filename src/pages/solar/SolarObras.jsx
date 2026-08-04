@@ -179,7 +179,7 @@ Si un campo no aparece, déjalo como null o cadena vacía.`,
     toast.success('Archivo subido');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const data = {
       ...form,
       budget: form.budget ? parseFloat(form.budget) : null,
@@ -187,8 +187,24 @@ Si un campo no aparece, déjalo como null o cadena vacía.`,
       num_paneles: form.num_paneles ? parseInt(form.num_paneles) : null,
       attached_files: uploadedFiles,
     };
-    if (editing) updateM.mutate({ id: editing.id, d: data });
-    else createM.mutate(data);
+    const newName = (form.name || '').trim();
+    const oldName = editing?.name;
+    if (editing) {
+      try {
+        await updateM.mutateAsync({ id: editing.id, d: data });
+        // Si cambió el nombre, sincroniza en documentos, partes, materiales y fotos
+        if (oldName && newName && oldName.trim() !== newName) {
+          base44.functions.invoke('propagarRenameObra', {
+            obra_id: editing.id, obra_tipo: 'solar', nuevo_nombre: newName,
+          }).then((r) => {
+            const total = r?.data?.total_modificados || 0;
+            if (total > 0) toast.success(`Nombre sincronizado en ${total} registros relacionados (documentos, partes, fotos)`);
+          }).catch(() => toast.error('No se pudo sincronizar el nombre en los registros relacionados'));
+        }
+      } catch (_) { /* onError del mutation ya gestiona el error */ }
+    } else {
+      createM.mutate(data);
+    }
   };
 
   const filtered = obras.filter(o => {

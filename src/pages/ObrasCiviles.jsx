@@ -22,6 +22,7 @@ import ObraMaterialesPanel from '@/components/obras/ObraMaterialesPanel';
 import ObraFotosPanel from '@/components/obras/ObraFotosPanel';
 import ObraSeguimientoPanel from '@/components/obras/ObraSeguimientoPanel';
 import QueryErrorFallback from '@/components/QueryErrorFallback';
+import { toast } from 'sonner';
 
 const STATUS_CFG = {
   activa: { label: 'Activa', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -83,9 +84,26 @@ export default function ObrasCiviles() {
     setForm(p => ({ ...p, client_id: id, client_name: c?.name || '' }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const data = { ...form, budget: parseFloat(form.budget) || 0, type: 'civil' };
-    editing ? updateM.mutate({ id: editing.id, d: data }) : createM.mutate(data);
+    const newName = (form.name || '').trim();
+    const oldName = editing?.name;
+    if (editing) {
+      try {
+        await updateM.mutateAsync({ id: editing.id, d: data });
+        // Si cambió el nombre, sincroniza en documentos, partes, materiales y fotos
+        if (oldName && newName && oldName.trim() !== newName) {
+          base44.functions.invoke('propagarRenameObra', {
+            obra_id: editing.id, obra_tipo: 'obra', nuevo_nombre: newName,
+          }).then((r) => {
+            const total = r?.data?.total_modificados || 0;
+            if (total > 0) toast.success(`Nombre sincronizado en ${total} registros relacionados (documentos, partes, fotos)`);
+          }).catch(() => toast.error('No se pudo sincronizar el nombre en los registros relacionados'));
+        }
+      } catch (_) { /* onError del mutation ya gestiona el error */ }
+    } else {
+      createM.mutate(data);
+    }
   };
 
   const isPending = createM.isPending || updateM.isPending;
