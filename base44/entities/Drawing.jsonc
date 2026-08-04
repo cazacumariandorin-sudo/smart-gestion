@@ -70,6 +70,16 @@
         },
         {
           "user_condition": {
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "usuario_demo"
           }
         }
@@ -142,6 +152,30 @@
           "$and": [
             {
               "user_condition": {
+                "role": "t\u00e9cnico"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "operario"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
                 "role": "usuario_demo"
               }
             },
@@ -158,6 +192,35 @@
           "user_condition": {
             "role": "admin"
           }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "t\u00e9cnico"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "operario"
+              }
+            },
+            {
+              "created_by": "{{user.email}}"
+            }
+          ]
         },
         {
           "$and": [
