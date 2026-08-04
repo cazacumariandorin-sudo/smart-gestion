@@ -37,9 +37,14 @@ export function MobileSelect({
 }) {
   const [open, setOpen] = useState(false);
 
-  // Collect items from children - filter out empty/undefined values AND separator items (starting with __)
+  // Collect items from children - filter out empty/undefined values, separadores (__sep),
+  // cabeceras no seleccionables (__header) y cualquier item marcado como disabled.
+  // Esto evita que lascabeceras se rendericen como botones clicables y bloqueen la selección de obra (bug "pantalla blanca" en técnicos).
   const items = Children.toArray(children)
-    .filter(c => isValidElement(c) && c.props.value && c.props.value !== '' && !c.props.value.startsWith('__sep'))
+    .filter(c => isValidElement(c) && c.props.value && c.props.value !== ''
+      && !c.props.value.startsWith('__sep')
+      && !c.props.value.startsWith('__header')
+      && !c.props.disabled)
     .map(c => ({ value: c.props.value, label: c.props.children, className: c.props.className }));
 
   const selectedLabel = items.find(i => i.value === value)?.label ?? placeholder;
@@ -101,6 +106,7 @@ export function MobileSelect({
       <AnimatePresence>
         {open && (
           <motion.div
+            key="mobile-select-bottomsheet"
             className="fixed inset-0 z-50 flex flex-col justify-end"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
