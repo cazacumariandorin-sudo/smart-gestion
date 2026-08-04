@@ -72,8 +72,17 @@ export default async function(req) {
     }
 
     // ---- Actualizar sesión (estado/comentario) ----
+    // Si el estado se cambia a "resuelto", se elimina automáticamente la sesión
+    // (no tiene sentido mantener registros ya resueltos en el panel de diagnóstico)
     if (action === 'update_sesion') {
       if (!body.sesion_id) return Response.json({ error: 'sesion_id requerido' }, { status: 400 });
+
+      // Estado resuelto → borrar el registro
+      if (body.estado === 'resuelto') {
+        await sr.entities.DiagnosticoSesion.delete(body.sesion_id);
+        return Response.json({ ok: true, eliminada: true });
+      }
+
       const update = {};
       if (body.estado) update.estado = body.estado;
       if (body.comentario_soporte !== undefined) update.comentario_soporte = body.comentario_soporte;

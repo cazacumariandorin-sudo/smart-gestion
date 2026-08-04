@@ -46,9 +46,14 @@ export default function DiagnosticoApp() {
 
   const actualizarSesionMutation = useMutation({
     mutationFn: (payload) => LLAMAR('update_sesion', payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['diag-sesiones'] });
-      toast({ title: 'Sesión actualizada ✓' });
+      if (data?.eliminada) {
+        setSesionSel(null);
+        toast({ title: 'Incidente resuelto y eliminado ✓', description: 'La sesión se borró automáticamente al marcarla como resuelta.' });
+      } else {
+        toast({ title: 'Sesión actualizada ✓' });
+      }
     },
     onError: (e) => toast({ variant: 'destructive', title: 'Error', description: e.message })
   });
