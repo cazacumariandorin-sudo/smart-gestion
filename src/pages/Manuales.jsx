@@ -30,10 +30,13 @@ function fileIcon(fileType) {
 
 export default function Manuales() {
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra, isOperario, isGerencia, role } = useUserRole();
-  // Admin, jefe_obra, director_comercial y operario pueden crear manuales
-  const canCreate = isAdmin || isJefeObra || role === 'director_comercial' || isOperario;
-  const canDelete = isAdmin || isJefeObra;
+  const { isAdmin, isJefeObra, isOperario, isGerencia, isTecnico, role, user } = useUserRole();
+  // Admin, jefe_obra, director_comercial, técnicos y operarios pueden crear manuales
+  // (los técnicos también pueden subir manuales/actualizaciones a la obra donde trabajan)
+  const canCreate = isAdmin || isJefeObra || role === 'director_comercial' || isOperario || isTecnico;
+  // Un usuario puede eliminar sus propias subidas
+  const isOwnDoc = (m) => !!m?.created_by && m.created_by === user?.email;
+  const canDelete = (m) => isAdmin || isJefeObra || isOwnDoc(m);
   const [search, setSearch] = useState('');
   const [clientFilter, setClientFilter] = useState('all');
   const [obraFilter, setObraFilter] = useState('all');

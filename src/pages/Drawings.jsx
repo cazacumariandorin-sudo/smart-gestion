@@ -68,10 +68,13 @@ function FileViewer({ url, title }) {
 export default function Drawings() {
   const { t } = useI18n();
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra, isGerencia, isOperario, role } = useUserRole();
-  // Admin, jefe_obra, gerencia, director_comercial y operario pueden crear/editar planos
-  const canCreate = isAdmin || isJefeObra || isGerencia || role === 'director_comercial';
-  const canDelete = isAdmin || isJefeObra;
+  const { isAdmin, isJefeObra, isGerencia, isOperario, isTecnico, role, user } = useUserRole();
+  // Admin, jefe_obra, gerencia, director_comercial, técnicos y operarios pueden crear/editar planos
+  // (los técnicos también pueden subir planos/actualizaciones a la obra donde trabajan)
+  const canCreate = isAdmin || isJefeObra || isGerencia || role === 'director_comercial' || isTecnico || isOperario;
+  // Un usuario puede eliminar sus propias subidas; el resto solo admins/jefes
+  const isOwnDoc = (d) => !!d?.created_by && d.created_by === user?.email;
+  const canDelete = (d) => isAdmin || isJefeObra || isGerencia || isOwnDoc(d);
 
   const onRefresh = useCallback(() => qc.invalidateQueries({ queryKey: ['drawings'] }), [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
