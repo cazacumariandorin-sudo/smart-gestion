@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Smartphone, Wifi, Battery, Monitor, Code, MessageSquareText, History, ClipboardList } from 'lucide-react';
+import { X, Smartphone, Wifi, Battery, Monitor, Code, MessageSquareText, History, ClipboardList, Download, Copy, Check, Sparkles } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,6 +33,7 @@ function FilaDato({ icon: Icon, label, value }) {
 export default function DetalleSesionDiagnostico({ sesion, onClose, onUpdate, puedeEditar }) {
   const [estadoLocal, setEstadoLocal] = useState(sesion?.estado || 'nuevo');
   const [comentario, setComentario] = useState('');
+  const [copiado, setCopiado] = useState(false);
 
   useEffect(() => {
     if (sesion) {
@@ -42,6 +43,104 @@ export default function DetalleSesionDiagnostico({ sesion, onClose, onUpdate, pu
   }, [sesion]);
 
   if (!sesion) return null;
+
+  // Construye un resumen MarkDown con todos los datos del incidente, listo para pegar en un agente IA
+  const buildResumenIA = () => {
+    const s = sesion;
+    const L = [];
+    L.push('# 📋 Resumen de incidente — SIMANTEC Diagnóstico');
+    L.push('');
+    L.push(`- **ID:** ${s.id}`);
+    L.push(`- **Fecha:** ${new Date(s.created_date).toLocaleString('es-ES')}`);
+    L.push(`- **Severidad:** ${s.severidad || '—'}`);
+    L.push(`- **Estado:** ${s.estado || '—'}`);
+    L.push('');
+    L.push('## 👤 Usuario');
+    L.push(`- Email: ${s.user_email || '—'}`);
+    L.push(`- Rol: ${s.user_role || '—'}`);
+    L.push(`- User ID: ${s.user_id || '—'}`);
+    L.push('');
+    L.push('## 📍 Contexto');
+    L.push(`- Ruta: ${s.ruta || '—'}`);
+    L.push(`- Ruta completa: ${s.ruta_completa || '—'}`);
+    L.push(`- Última acción: ${s.ultima_accion || '—'}`);
+    L.push('');
+    L.push('## 💥 Error');
+    L.push('```');
+    L.push(s.mensaje_error || '—');
+    L.push('```');
+    if (s.stack_trace) {
+      L.push('### Stack trace');
+      L.push('```');
+      L.push(s.stack_trace);
+      L.push('```');
+    }
+    L.push('');
+    L.push('## 💻 Dispositivo');
+    L.push(`- Navegador: ${s.navegador || '—'}`);
+    L.push(`- SO: ${s.sistema_operativo || '—'}`);
+    L.push(`- Modelo: ${s.dispositivo_modelo || '—'}`);
+    L.push(`- Resolución: ${s.resolucion_pantalla || '—'}`);
+    L.push(`- Viewport: ${s.viewport || '—'}`);
+    L.push(`- User-Agent: ${s.user_agent || '—'}`);
+    L.push(`- Batería: ${s.nivel_bateria !== null && s.nivel_bateria !== undefined ? Math.round(s.nivel_bateria * 100) + '%' : '—'}`);
+    L.push(`- Cargando: ${s.cargando_bateria ? 'sí' : 'no'}`);
+    L.push('');
+    L.push('## 🌐 Red');
+    L.push(`- Calidad: ${s.calidad_red || '—'}`);
+    L.push(`- Downlink: ${s.downlink_mbps ?? '—'} Mbps`);
+    L.push(`- RTT: ${s.rtt_ms ?? '—'} ms`);
+    L.push(`- Online: ${s.online ? 'sí' : 'no'}`);
+    L.push(`- Memoria JS: ${s.memoria_uso_mb ?? '—'} MB`);
+    L.push(`- Cookies habilitadas: ${s.cookies_habilitadas ? 'sí' : 'no'}`);
+    L.push('');
+    if (s.notas_usuario) {
+      L.push('## 📝 Reporte del usuario');
+      L.push(s.notas_usuario);
+      L.push('');
+    }
+    if (s.pasos_reproducir) {
+      L.push('## 🔁 Pasos para reproducir');
+      L.push(s.pasos_reproducir);
+      L.push('');
+    }
+    if (s.historial_navegacion?.length) {
+      L.push('## 🧭 Historial reciente');
+      s.historial_navegacion.forEach((h, i) => L.push(`${i + 1}. ${h}`));
+      L.push('');
+    }
+    if (s.comentario_soporte) {
+      L.push('## 🛠️ Comentario de soporte');
+      L.push(s.comentario_soporte);
+      L.push('');
+    }
+    L.push('---');
+    L.push('_Generado por SIMANTEC Diagnóstico_');
+    return L.join('\n');
+  };
+
+  const handleCopiar = async () => {
+    try {
+      await navigator.clipboard.writeText(buildResumenIA());
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      // fallback: seleccionar en textarea oculto no disponible → usar descarga
+      handleDescargar();
+    }
+  };
+
+  const handleDescargar = () => {
+    const blob = new Blob([buildResumenIA()], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `incidente-${(sesion.id || 'sesion').slice(0, 12)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const handleGuardar = () => {
     onUpdate?.({
@@ -178,8 +277,20 @@ export default function DetalleSesionDiagnostico({ sesion, onClose, onUpdate, pu
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}><X className="w-4 h-4" /> Cerrar</Button>
+        <DialogFooter className="flex-col sm:flex-col gap-2">
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground -mt-1">
+            <Sparkles className="w-3 h-3" /> Exporta el resumen completo para pegarlo en un agente IA
+          </div>
+          <div className="flex gap-2 w-full">
+            <Button variant="secondary" onClick={handleCopiar} className="flex-1 gap-1.5">
+              {copiado ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {copiado ? 'Copiado ✓' : 'Copiar resumen IA'}
+            </Button>
+            <Button variant="secondary" onClick={handleDescargar} className="flex-1 gap-1.5">
+              <Download className="w-4 h-4" /> Descargar .md
+            </Button>
+          </div>
+          <Button variant="outline" onClick={onClose} className="w-full"><X className="w-4 h-4" /> Cerrar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
