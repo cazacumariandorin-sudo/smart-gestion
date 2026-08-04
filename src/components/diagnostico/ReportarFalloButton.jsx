@@ -54,14 +54,13 @@ export default function ReportarFalloButton() {
       <button
         onClick={() => setOpen(true)}
         title="Reportar un fallo (captura datos de tu dispositivo)"
-        className="fixed bottom-3 right-3 z-30 w-10 h-10 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition"
+        className="fixed bottom-20 right-20 md:bottom-6 md:right-20 z-30 w-10 h-10 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition"
         aria-label="Reportar un fallo"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
       >
         <Bug className="w-5 h-5" />
       </button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setNotas(''); setPasos(''); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
