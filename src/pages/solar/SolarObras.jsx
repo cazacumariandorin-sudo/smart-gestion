@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useUserRole } from '@/lib/useUserRole';
 import { toast } from 'sonner';
 import {
   Plus, Search, Pencil, Trash2, Zap, Loader2, Save, X,
   ChevronDown, ChevronUp, Phone, User, Upload, FileText,
-  ExternalLink, Sparkles, CheckCircle2
+  ExternalLink, Sparkles, CheckCircle2, Power
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +44,8 @@ const emptyForm = {
 
 export default function SolarObras() {
   const qc = useQueryClient();
+  const { isAdmin, isGerencia } = useUserRole();
+  const podeToggleActivo = isAdmin || isGerencia;
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -81,6 +84,11 @@ export default function SolarObras() {
   const deleteM = useMutation({
     mutationFn: id => base44.entities.SolarObra.delete(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['solar_obras'] }); toast.success('Obra eliminada'); },
+  });
+  const toggleActivoM = useMutation({
+    mutationFn: ({ id, value }) => base44.entities.SolarObra.update(id, { activo: value }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['solar_obras'] }); qc.invalidateQueries({ queryKey: ['obras-activas-map-solar'] }); },
+    onError: () => toast.error('No se pudo cambiar el estado de la obra'),
   });
 
   const open_ = (o = null) => {
@@ -266,6 +274,7 @@ Si un campo no aparece, déjalo como null o cadena vacía.`,
                         {o.code && <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{o.code}</span>}
                         <h3 className="font-semibold text-sm">{o.name}</h3>
                         <Badge variant="outline" className={`${cfg.className} text-[10px]`}>{cfg.label}</Badge>
+                        {o.activo === false && <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-700 border-amber-200">Inactiva</Badge>}
                         {o.attached_files?.length > 0 && (
                           <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-600 border-blue-200">
                             <FileText className="w-2.5 h-2.5 mr-1" />{o.attached_files.length} archivo{o.attached_files.length > 1 ? 's' : ''}
@@ -282,6 +291,17 @@ Si un campo no aparece, déjalo como null o cadena vacía.`,
                       {o.address && <p className="text-xs text-muted-foreground mt-0.5">{o.address}</p>}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      {podeToggleActivo && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-7 w-7 ${o.activo === false ? 'text-amber-500' : 'text-emerald-600'}`}
+                          title={o.activo === false ? 'Reactivar obra' : 'Marcar obra inactiva (oculta sus documentos)'}
+                          onClick={() => toggleActivoM.mutate({ id: o.id, value: o.activo === false })}
+                        >
+                          <Power className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(o)}><Pencil className="w-3 h-3" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setExpandedId(isExpanded ? null : o.id)}>
                         {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}

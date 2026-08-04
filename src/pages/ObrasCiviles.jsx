@@ -5,7 +5,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
-import { Plus, Search, Pencil, Trash2, Building2, Save, Loader2, Calendar, Euro, Package, X, Camera, BarChart3 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Building2, Save, Loader2, Calendar, Euro, Package, X, Camera, BarChart3, Power } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -74,6 +74,13 @@ export default function ObrasCiviles() {
   const createM = useMutation({ mutationFn: d => base44.entities.Obra.create(d), onSuccess: (rec) => { asignarId(rec.id); close_(); } });
   const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Obra.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['obras-civiles'] }); close_(); } });
   const deleteM = useMutation({ mutationFn: id => base44.entities.Obra.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['obras-civiles'] }) });
+
+  // Toggle Activa/Inactiva (solo para admins/gerencia). OCulta/muestra docs asociados en fotos/planos/manuales/partes.
+  const toggleActivoM = useMutation({
+    mutationFn: ({ id, value }) => base44.entities.Obra.update(id, { activo: value }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['obras-civiles'] }); qc.invalidateQueries({ queryKey: ['obras-activas-map-civil'] }); },
+    onError: () => toast.error('No se pudo cambiar el estado de la obra'),
+  });
 
   const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, budget: o.budget || '' } : empty); setDialogOpen(true); };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(empty); };
@@ -165,8 +172,20 @@ export default function ObrasCiviles() {
                       {o.code && <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{o.code}</span>}
                     </div>
                     <Badge variant="outline" className={`text-[10px] ${sc.className}`}>{sc.label}</Badge>
-                  </div>
+                    {o.activo === false && <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-700 border-amber-200">Inactiva</Badge>}
+                    </div>
                   <div className="flex gap-1 ml-2" onClick={e => e.stopPropagation()}>
+                    {(isAdmin || isGerencia) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-7 w-7 ${o.activo === false ? 'text-amber-500' : 'text-emerald-600'}`}
+                        title={o.activo === false ? 'Reactivar obra' : 'Marcar obra inactiva (oculta sus documentos)'}
+                        onClick={() => toggleActivoM.mutate({ id: o.id, value: o.activo === false })}
+                      >
+                        <Power className="w-3 h-3" />
+                      </Button>
+                    )}
                     {canCreate && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(o)}><Pencil className="w-3 h-3" /></Button>}
                     {canDelete && <AlertDialog>
                       <AlertDialogTrigger asChild>

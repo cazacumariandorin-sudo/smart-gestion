@@ -5,8 +5,10 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { useI18n } from '@/lib/i18n';
-import { Plus, Search, Pencil, Trash2, FileImage, Upload, Loader2, Save, ExternalLink, ChevronRight, ChevronDown, File, FileText, Link2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, FileImage, Upload, Loader2, Save, ExternalLink, File, FileText, Link2, AlertTriangle, EyeOff, Eye } from 'lucide-react';
 import ReasignarDocModal from '@/components/documentos/ReasignarDocModal';
+import ClientObraTree from '@/components/documentos/ClientObraTree';
+import { useObrasActivasMap, esItemVisible } from '@/hooks/useObrasActivasMap';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -102,8 +104,11 @@ export default function Drawings() {
   const [form, setForm] = useState(empty);
   const [uploading, setUploading] = useState(false);
   const [viewerDoc, setViewerDoc] = useState(null);
-  const [expandedClients, setExpandedClients] = useState({});
+  const [mostrarInactivas, setMostrarInactivas] = useState(false);
   const [reasignarDoc, setReasignarDoc] = useState(null);
+
+  const obrasMap = useObrasActivasMap();
+  const puedeVerInactivas = isAdmin || isGerencia;
 
   const { data: drawings = [], isLoading } = useQuery({ queryKey: ['drawings'], queryFn: () => base44.entities.Drawing.list('-date', 500) });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
@@ -148,16 +153,17 @@ export default function Drawings() {
     else createM.mutate(form);
   };
 
-  const filtered = drawings.filter(d => {
+  const filtered = useMemo(() => drawings.filter(d => {
     const q = search.toLowerCase();
     const matchQ = !search || d.title?.toLowerCase().includes(q) || d.reference?.toLowerCase().includes(q) || d.obra_name?.toLowerCase().includes(q);
     const matchC = clientFilter === 'all' || d.client_id === clientFilter;
     const matchO = obraFilter === 'all' || d.obra_id === obraFilter;
     const matchY = yearFilter === 'all' || d.date?.startsWith(yearFilter);
-    return matchQ && matchC && matchO && matchY;
-  });
+    const matchActiva = esItemVisible(d, obrasMap, mostrarInactivas);
+    return matchQ && matchC && matchO && matchY && matchActiva;
+  }), [drawings, search, clientFilter, obraFilter, yearFilter, obrasMap, mostrarInactivas]);
 
-  // Group by client → project
+  // Group by client → project (con flag activo por obra)
   const grouped = useMemo(() => {
     const map = {};
     filtered.forEach(d => {
@@ -166,13 +172,12 @@ export default function Drawings() {
       if (!map[cKey]) map[cKey] = { name: cName, projects: {} };
       const pKey = d.obra_id || d.obra_name || '__no_project__';
       const pName = d.obra_name || 'Sin obra';
-      if (!map[cKey].projects[pKey]) map[cKey].projects[pKey] = { name: pName, drawings: [] };
-      map[cKey].projects[pKey].drawings.push(d);
+      if (!map[cKey].projects[pKey]) map[cKey].projects[pKey] = { name: pName, items: [], activo: d.obra_id ? obrasMap[d.obra_id]?.activo : undefined };
+      map[cKey].projects[pKey].items.push(d);
     });
     return map;
-  }, [filtered]);
+  }, [filtered, obrasMap]);
 
-  const toggleClient = (k) => setExpandedClients(p => ({ ...p, [k]: !p[k] }));
   const isPending = createM.isPending || updateM.isPending;
 
   return (
@@ -209,6 +214,19 @@ export default function Drawings() {
           <MobileSelectItem value="all">Todos</MobileSelectItem>
           {uniqueYears.map(y => <MobileSelectItem key={y} value={y}>{y}</MobileSelectItem>)}
         </MobileSelect>
+        {puedeVerInactivas && (
+          <Button
+            type="button"
+            variant={mostrarInactivas ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setMostrarInactivas(v => !v)}
+            className="gap-1.5 shrink-0"
+            title="Mostrar/ocultar documentos de obras inactivas"
+          >
+            {mostrarInactivas ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{mostrarInactivas ? 'Inactivas visibles' : 'Inactivas ocultas'}</span>
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -220,82 +238,55 @@ export default function Drawings() {
           {canCreate && <Button variant="outline" size="sm" onClick={() => open_()} className="gap-2"><Plus className="w-3.5 h-3.5" /> Nuevo Documento</Button>}
         </div>
       ) : (
-        <div className="space-y-4">
-          {Object.entries(grouped).map(([cKey, cData]) => {
-            const isExpanded = expandedClients[cKey] !== false; // expanded by default
+        <ClientObraTree
+          grouped={grouped}
+          defaultExpanded={!!search}
+          renderItem={(d) => {
+            const ft = getFileType(d.file_url);
             return (
-              <Card key={cKey} className="overflow-hidden">
-                <button
-                  className="w-full flex items-center justify-between px-5 py-3 hover:bg-muted/40 transition-colors"
-                  onClick={() => toggleClient(cKey)}
-                >
+              <div key={d.id} className={`flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/40 group ${!d.client_id && !d.obra_id ? 'bg-amber-50/60' : ''}`}>
+                <div className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${ft ? fileTypeColor[ft] : 'bg-gray-100 text-gray-600'}`}>
+                  {ft ? fileTypeLabel[ft] : '—'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium leading-snug break-words">{d.title}</p>
+                    {!d.client_id && !d.obra_id && <span title="Sin obra ni cliente asignado"><AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" /></span>}
+                  </div>
                   <div className="flex items-center gap-2">
-                    {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                    <span className="font-semibold text-sm">{cData.name}</span>
-                    <Badge variant="outline" className="text-[10px]">{Object.values(cData.projects).reduce((s, p) => s + p.drawings.length, 0)} docs</Badge>
+                    {d.reference && <span className="text-[10px] font-mono text-muted-foreground">{d.reference}</span>}
+                    {d.version && <span className="text-[10px] text-muted-foreground">v{d.version}</span>}
+                    {d.date && <span className="text-[10px] text-muted-foreground">{format(parseISO(d.date), 'd MMM yyyy', { locale: es })}</span>}
                   </div>
-                </button>
-
-                {isExpanded && (
-                  <div className="border-t border-border">
-                    {Object.entries(cData.projects).map(([pKey, pData]) => (
-                      <div key={pKey} className="px-5 py-3 border-b border-border/50 last:border-0">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{pData.name}</p>
-                        <div className="space-y-1.5">
-                          {pData.drawings.map(d => {
-                            const ft = getFileType(d.file_url);
-                            return (
-                              <div key={d.id} className={`flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/40 group ${!d.client_id && !d.obra_id ? 'bg-amber-50/60' : ''}`}>
-                                     <div className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${ft ? fileTypeColor[ft] : 'bg-gray-100 text-gray-600'}`}>
-                                       {ft ? fileTypeLabel[ft] : '—'}
-                                     </div>
-                                     <div className="flex-1 min-w-0">
-                                       <div className="flex items-center gap-1.5">
-                                         <p className="text-sm font-medium leading-snug break-words">{d.title}</p>
-                                         {!d.client_id && !d.obra_id && <span title="Sin obra ni cliente asignado"><AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" /></span>}
-                                       </div>
-                                       <div className="flex items-center gap-2">
-                                         {d.reference && <span className="text-[10px] font-mono text-muted-foreground">{d.reference}</span>}
-                                         {d.version && <span className="text-[10px] text-muted-foreground">v{d.version}</span>}
-                                         {d.date && <span className="text-[10px] text-muted-foreground">{format(parseISO(d.date), 'd MMM yyyy', { locale: es })}</span>}
-                                       </div>
-                                     </div>
-                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                       {d.file_url && (
-                                         <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setViewerDoc(d)}>
-                                           <ExternalLink className="w-3 h-3" /> Ver
-                                         </Button>
-                                       )}
-                                       {(isAdmin || isGerencia) && (
-                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Reasignar obra/cliente" onClick={() => setReasignarDoc(d)}>
-                                           <Link2 className="w-3 h-3" />
-                                         </Button>
-                                       )}
-                                       {canCreate && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(d)}><Pencil className="w-3 h-3" /></Button>}
-                                       {canDelete(d) && (
-                                       <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader><AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle><AlertDialogDescription>"{d.title}" será eliminado.</AlertDialogDescription></AlertDialogHeader>
-                                        <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteM.mutate(d.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction></AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {d.file_url && (
+                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setViewerDoc(d)}>
+                      <ExternalLink className="w-3 h-3" /> Ver
+                    </Button>
+                  )}
+                  {(isAdmin || isGerencia) && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Reasignar obra/cliente" onClick={() => setReasignarDoc(d)}>
+                      <Link2 className="w-3 h-3" />
+                    </Button>
+                  )}
+                  {canCreate && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(d)}><Pencil className="w-3 h-3" /></Button>}
+                  {canDelete(d) && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle><AlertDialogDescription>"{d.title}" será eliminado.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteM.mutate(d.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction></AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              </div>
             );
-          })}
-        </div>
+          }}
+        />
       )}
 
       {/* Document Viewer Dialog */}

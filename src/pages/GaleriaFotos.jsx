@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Image, Search, X, ZoomIn, Filter, Plus, Upload, Loader2, Download, Share2 } from 'lucide-react';
+import { Image, Search, X, ZoomIn, Filter, Plus, Upload, Loader2, Download, Share2, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -14,6 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useUserRole } from '@/lib/useUserRole';
 import { useAuth } from '@/lib/AuthContext';
+import ClientObraTree from '@/components/documentos/ClientObraTree';
+import { useObrasActivasMap, esItemVisible } from '@/hooks/useObrasActivasMap';
 
 const CATEGORIAS = ['parte_trabajo', 'obra', 'nota_gastos', 'presupuesto', 'averia'];
 const CAT_LABELS = {
@@ -33,7 +35,7 @@ const CAT_COLORS = {
 
 export default function GaleriaFotos() {
   const qc = useQueryClient();
-  const { isOperario } = useUserRole();
+  const { isOperario, isAdmin, isGerencia } = useUserRole();
   const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
@@ -42,6 +44,10 @@ export default function GaleriaFotos() {
   const [selectedFoto, setSelectedFoto] = useState(null);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [descargando, setDescargando] = useState(false);
+  const [mostrarInactivas, setMostrarInactivas] = useState(false);
+
+  const obrasMap = useObrasActivasMap();
+  const puedeVerInactivas = isAdmin || isGerencia;
 
   const handleDescargar = async (foto) => {
     setDescargando(true);
@@ -106,8 +112,26 @@ export default function GaleriaFotos() {
     const matchCat = !filterCat || f.categoria === filterCat;
     const matchOp = !filterOperario || f.operario_name === filterOperario;
     const matchObra = !filterObra || f.proyecto_name === filterObra;
-    return matchSearch && matchCat && matchOp && matchObra;
+    const matchActiva = esItemVisible({ proyecto_id: f.proyecto_id }, obrasMap, mostrarInactivas);
+    return matchSearch && matchCat && matchOp && matchObra && matchActiva;
   });
+
+  // Group by client → project. Las fotos usan `proyecto_id`/`proyecto_name`.
+  const groupedFotos = (() => {
+    const map = {};
+    // Cross-reference: para foto.proyecto_id encuéntrala en obrasMap para obtener client_id/client_name
+    filtradas.forEach(f => {
+      const obr = f.proyecto_id ? obrasMap[f.proyecto_id] : null;
+      const cKey = obr?.client_id || '__no_client__';
+      const cName = obr?.client_name || 'Sin cliente';
+      if (!map[cKey]) map[cKey] = { name: cName, projects: {} };
+      const pKey = f.proyecto_id || f.proyecto_name || '__no_project__';
+      const pName = f.proyecto_name || 'Sin obra';
+      if (!map[cKey].projects[pKey]) map[cKey].projects[pKey] = { name: pName, items: [], activo: f.proyecto_id ? obrasMap[f.proyecto_id]?.activo : undefined };
+      map[cKey].projects[pKey].items.push(f);
+    });
+    return map;
+  })();
 
   const uploadMutation = useMutation({
     mutationFn: async (data) => {
@@ -220,6 +244,19 @@ export default function GaleriaFotos() {
             {obras.map(ob => <MobileSelectItem key={ob} value={ob}>{ob}</MobileSelectItem>)}
           </MobileSelect>
         )}
+        {puedeVerInactivas && (
+          <Button
+            type="button"
+            variant={mostrarInactivas ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setMostrarInactivas(v => !v)}
+            className="gap-1.5 shrink-0"
+            title="Mostrar/ocultar fotos de obras inactivas"
+          >
+            {mostrarInactivas ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{mostrarInactivas ? 'Inactivas visibles' : 'Inactivas ocultas'}</span>
+          </Button>
+        )}
         {(filterCat || filterOperario || filterObra || search) && (
           <Button variant="ghost" size="sm" onClick={() => { setFilterCat(''); setFilterOperario(''); setFilterObra(''); setSearch(''); }}>
             <X className="w-3.5 h-3.5 mr-1" /> Limpiar
@@ -227,39 +264,48 @@ export default function GaleriaFotos() {
         )}
       </div>
 
-      {/* Grid */}
+      {/* Grid agrupado por cliente → obra (colapsable) */}
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Cargando fotos...</div>
       ) : filtradas.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Image className="w-10 h-10 mx-auto mb-2 opacity-30" />
-          <p>No hay fotos que coincidan con los filtros</p>
+          <p>No hay fotos que coincidan con los filtros{mostrarInactivas ? '' : ' (o están en obras inactivas)'}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          {filtradas.map(foto => (
-            <div
-              key={foto.id}
-              className="group relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer hover:shadow-lg transition-all"
-              onClick={() => setSelectedFoto(foto)}
-            >
-              <img
-                src={foto.foto_url}
-                alt={foto.titulo || 'Foto'}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                onError={e => { e.target.style.display = 'none'; }}
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent">
-                {foto.categoria && (
-                  <Badge className={cn('text-[9px] px-1 py-0', CAT_COLORS[foto.categoria])}>{CAT_LABELS[foto.categoria]}</Badge>
-                )}
-              </div>
+        <ClientObraTree
+          grouped={groupedFotos}
+          defaultExpanded={!!search}
+          renderProjectBadge={(pKey, p) => (
+            <span className="text-[10px] text-muted-foreground hidden sm:inline">· foto{p.items.length !== 1 ? 's' : ''}</span>
+          )}
+          renderGroup={(items) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {items.map(foto => (
+                <div
+                  key={foto.id}
+                  className="group relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer hover:shadow-lg transition-all"
+                  onClick={() => setSelectedFoto(foto)}
+                >
+                  <img
+                    src={foto.foto_url}
+                    alt={foto.titulo || 'Foto'}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={e => { e.target.style.display = 'none'; }}
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                    <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent">
+                    {foto.categoria && (
+                      <Badge className={cn('text-[9px] px-1 py-0', CAT_COLORS[foto.categoria])}>{CAT_LABELS[foto.categoria]}</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        />
       )}
 
       {/* Modal detalle */}

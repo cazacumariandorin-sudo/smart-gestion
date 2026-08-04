@@ -4,8 +4,10 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
-import { Plus, Search, Trash2, BookOpen, Save, Loader2, Upload, FileText, Table, File, Languages, Eye, Download, Link2 } from 'lucide-react';
+import { Plus, Search, Trash2, BookOpen, Save, Loader2, Upload, FileText, Table, File, Languages, Eye, Download, Link2, EyeOff } from 'lucide-react';
 import ReasignarDocModal from '@/components/documentos/ReasignarDocModal';
+import ClientObraTree from '@/components/documentos/ClientObraTree';
+import { useObrasActivasMap, esItemVisible } from '@/hooks/useObrasActivasMap';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -61,6 +63,10 @@ export default function Manuales() {
   const [uploading, setUploading] = useState(false);
   const [translating, setTranslating] = useState(null);
   const [reasignarDoc, setReasignarDoc] = useState(null);
+  const [mostrarInactivas, setMostrarInactivas] = useState(false);
+
+  const obrasMap = useObrasActivasMap();
+  const puedeVerInactivas = isAdmin || isGerencia;
 
   const { data: manuales = [], isLoading, refetch: refetchManuales } = useQuery({ queryKey: ['manuales'], queryFn: () => base44.entities.Manual.list('-date', 300) });
 
@@ -131,22 +137,23 @@ export default function Manuales() {
     const matchC = clientFilter === 'all' || m.client_id === clientFilter;
     const matchO = obraFilter === 'all' || m.obra_id === obraFilter;
     const matchF = fabricanteFilter === 'all' || m.fabricante_id === fabricanteFilter;
-    return matchQ && matchC && matchO && matchF;
-  }), [manuales, search, clientFilter, obraFilter, fabricanteFilter]);
+    const matchActiva = esItemVisible(m, obrasMap, mostrarInactivas);
+    return matchQ && matchC && matchO && matchF && matchActiva;
+  }), [manuales, search, clientFilter, obraFilter, fabricanteFilter, obrasMap, mostrarInactivas]);
 
   const grouped = useMemo(() => {
     const map = {};
     filtered.forEach(m => {
       const ck = m.client_id || '_sin_cliente';
       const cn = m.client_name || 'Sin cliente';
-      if (!map[ck]) map[ck] = { client_name: cn, obras: {} };
-      const ok = m.obra_id || '_sin_obra';
+      if (!map[ck]) map[ck] = { name: cn, projects: {} };
+      const ok = m.obra_id || m.obra_name || '_sin_obra';
       const on = m.obra_name || 'Sin obra';
-      if (!map[ck].obras[ok]) map[ck].obras[ok] = { obra_name: on, items: [] };
-      map[ck].obras[ok].items.push(m);
+      if (!map[ck].projects[ok]) map[ck].projects[ok] = { name: on, items: [], activo: m.obra_id ? obrasMap[m.obra_id]?.activo : undefined };
+      map[ck].projects[ok].items.push(m);
     });
-    return Object.values(map);
-  }, [filtered]);
+    return map;
+  }, [filtered, obrasMap]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
@@ -182,80 +189,79 @@ export default function Manuales() {
           <MobileSelectItem value="all">Todos los fabricantes</MobileSelectItem>
           {fabricantes.map(f => <MobileSelectItem key={f.id} value={f.id}>{f.name}</MobileSelectItem>)}
         </MobileSelect>
+        {puedeVerInactivas && (
+          <Button
+            type="button"
+            variant={mostrarInactivas ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setMostrarInactivas(v => !v)}
+            className="gap-1.5 shrink-0"
+            title="Mostrar/ocultar manuales de obras inactivas"
+          >
+            {mostrarInactivas ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{mostrarInactivas ? 'Inactivas visibles' : 'Inactivas ocultas'}</span>
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
         <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />)}</div>
-      ) : grouped.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="text-center py-16 border border-dashed rounded-xl">
           <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground mb-3">No hay manuales registrados</p>
+          <p className="text-sm text-muted-foreground mb-3">No hay manuales registrados{mostrarInactivas ? '' : ' (o están en obras inactivas)'}</p>
           {canCreate && <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)} className="gap-2"><Plus className="w-3.5 h-3.5" /> Añadir manual</Button>}
         </div>
       ) : (
-        <div className="space-y-6">
-          {grouped.map(group => (
-            <div key={group.client_name}>
-              <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-primary inline-block" />{group.client_name}
-              </h2>
-              <div className="space-y-4 ml-4">
-                {Object.values(group.obras).map(obra => (
-                  <div key={obra.obra_name}>
-                    <p className="text-xs font-semibold text-muted-foreground mb-2">{obra.obra_name}</p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {obra.items.map(m => (
-                        <Card key={m.id} className="p-4 flex items-center gap-3">
-                          <div className="shrink-0">{fileIcon(m.file_type)}</div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium leading-snug break-words">{m.title}</p>
-                            <div className="flex items-center gap-2 flex-wrap mt-1">
-                              {m.categoria && <Badge variant="outline" className="text-[10px]">{m.categoria}</Badge>}
-                              {m.version && <span className="text-[10px] text-muted-foreground">v{m.version}</span>}
-                              {m.date && <span className="text-[10px] text-muted-foreground">{format(parseISO(m.date), 'd MMM yyyy', { locale: es })}</span>}
-                            </div>
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            {m.file_url && (
-                              <>
-                                <a href={m.file_url} target="_blank" rel="noopener noreferrer" title="Ver documento">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7"><Eye className="w-3.5 h-3.5" /></Button>
-                                </a>
-                                <a href={m.file_url} download={m.title || 'documento'} title="Descargar">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Download className="w-3.5 h-3.5" /></Button>
-                                </a>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Traducir al español" onClick={() => translateDoc(m)} disabled={translating === m.id}>
-                                  {translating === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Languages className="w-3.5 h-3.5" />}
-                                </Button>
-                              </>
-                            )}
-                            {(isAdmin || isGerencia) && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Reasignar obra/cliente" onClick={() => setReasignarDoc(m)}>
-                                <Link2 className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
-                            {canDelete(m) && <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader><AlertDialogTitle>¿Eliminar manual?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription></AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => deleteM.mutate(m.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>}
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+        <ClientObraTree
+          grouped={grouped}
+          defaultExpanded={!!search}
+          renderItem={(m) => (
+            <Card key={m.id} className="p-4 flex items-center gap-3">
+              <div className="shrink-0">{fileIcon(m.file_type)}</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium leading-snug break-words">{m.title}</p>
+                <div className="flex items-center gap-2 flex-wrap mt-1">
+                  {m.categoria && <Badge variant="outline" className="text-[10px]">{m.categoria}</Badge>}
+                  {m.version && <span className="text-[10px] text-muted-foreground">v{m.version}</span>}
+                  {m.date && <span className="text-[10px] text-muted-foreground">{format(parseISO(m.date), 'd MMM yyyy', { locale: es })}</span>}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+              <div className="flex gap-1 shrink-0">
+                {m.file_url && (
+                  <>
+                    <a href={m.file_url} target="_blank" rel="noopener noreferrer" title="Ver documento">
+                      <Button variant="ghost" size="icon" className="h-7 w-7"><Eye className="w-3.5 h-3.5" /></Button>
+                    </a>
+                    <a href={m.file_url} download={m.title || 'documento'} title="Descargar">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Download className="w-3.5 h-3.5" /></Button>
+                    </a>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Traducir al español" onClick={() => translateDoc(m)} disabled={translating === m.id}>
+                      {translating === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Languages className="w-3.5 h-3.5" />}
+                    </Button>
+                  </>
+                )}
+                {(isAdmin || isGerencia) && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Reasignar obra/cliente" onClick={() => setReasignarDoc(m)}>
+                    <Link2 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+                {canDelete(m) && <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader><AlertDialogTitle>¿Eliminar manual?</AlertDialogTitle><AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteM.mutate(m.id)} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>}
+              </div>
+            </Card>
+          )}
+        />
       )}
 
       {/* Reasignar Modal */}
