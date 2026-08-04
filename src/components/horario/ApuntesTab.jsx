@@ -77,7 +77,8 @@ export default function ApuntesTab() {
   const [yearFilter, setYearFilter] = useState(String(new Date().getFullYear()));
   const [opFilter, setOpFilter] = useState('all');
   const { user } = useAuth();
-  const isTecnicoRole = user?.role === 'técnico';
+  // Roles restringidos: ven y totalizan solo SUS apuntes
+  const isTecnicoRole = ['operario', 'control_horario', 'técnico', 'usuario_demo', 'cliente_obra'].includes(user?.role);
 
   const { data: apuntes = [], isLoading } = useQuery({
     queryKey: ['apuntes'],
@@ -127,7 +128,7 @@ export default function ApuntesTab() {
   // Autoload operario for operario/control_horario roles
   useEffect(() => {
     if (!user?.email) return;
-    if (user.role !== 'operario' && user.role !== 'control_horario' && user.role !== 'técnico') return;
+    if (!['operario', 'control_horario', 'técnico', 'usuario_demo', 'cliente_obra'].includes(user.role)) return;
     
     base44.entities.Operario
       .filter({ user_email: user.email })

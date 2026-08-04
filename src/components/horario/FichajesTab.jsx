@@ -31,9 +31,11 @@ const empty = { operario_id: '', operario_name: '', date: new Date().toISOString
 export default function FichajesTab() {
   const qc = useQueryClient();
   const { isAdmin, isJefeObra, isControlHorarioOnly, isGerencia, user } = useUserRole();
-  const isOpRole = user?.role === 'operario' || user?.role === 'control_horario' || user?.role === 'técnico';
+  // Roles restringidos: solo ven y totalizan SUS registros y SUS horas del mes vigente
+  const isOwnDataOnly = ['operario', 'control_horario', 'técnico', 'usuario_demo', 'cliente_obra'].includes(user?.role);
+  const isOpRole = isOwnDataOnly;
   const canEditExitTime = isAdmin || isGerencia || isOpRole;
-  const canSeeAll = isAdmin || isGerencia; // solo admin ve todos; jefe_obra, control_horario y operario solo ven los suyos
+  const canSeeAll = isAdmin || isGerencia; // admin/gerencia ven agregados; los demás solo los suyos
   const [search, setSearch] = useState('');
   const [opFilter, setOpFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
@@ -51,9 +53,7 @@ export default function FichajesTab() {
   // Consolidar fichajes con apuntes usando el hook de anclaje virtual
   const { jornadasConsolidadas } = useConsolidarJornada(fichajes, allApuntes);
   
-  // Calcular totales derivados de las jornadas consolidadas
-  const totalHoras = jornadasConsolidadas.reduce((acc, j) => acc + (j.horas_trabajadas || 0), 0);
-  const totalImporte = jornadasConsolidadas.reduce((acc, j) => acc + (j.total_importe || 0), 0);
+  // Totales se calculan tras filtrar (más abajo) para respetar el alcance por usuario
 
   const createM = useOptimisticMutation(
     async (d) => {
@@ -88,10 +88,9 @@ export default function FichajesTab() {
   const deleteM = useMutation({ mutationFn: id => base44.entities.Fichaje.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['fichajes'] }) });
   const deleteApunteM = useMutation({ mutationFn: id => base44.entities.ApunteHorario.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['apuntes'] }) });
 
-  // Para control_horario Y operario: buscar su propio Operario vinculado
-  // IMPORTANTE: debe declararse ANTES de open_() para evitar crash por uso antes de declaración
-  const isOperarioRole = user?.role === 'operario' || user?.role === 'técnico';
-  const myOperario = (isControlHorarioOnly || isOperarioRole)
+  // Para roles restringidos, buscar su propio Operario vinculado.
+  // Debe declararse antes de open_() para evitar uso antes de declaración.
+  const myOperario = isOwnDataOnly
     ? (
         operarios.find(o => o.user_email === user?.email) ||
         operarios.find(o => o.email === user?.email) ||
@@ -103,7 +102,7 @@ export default function FichajesTab() {
     setEditing(f);
     if (f) {
       setForm({ ...f });
-    } else if (isControlHorarioOnly || isOperarioRole) {
+    } else if (isOwnDataOnly) {
       setForm({
         ...empty,
         operario_id: myOperario?.id || '',
@@ -149,7 +148,7 @@ export default function FichajesTab() {
   // Autoload operario for operario/control_horario roles
   useEffect(() => {
     if (!user?.email) return;
-    if (user.role !== 'operario' && user.role !== 'control_horario' && user.role !== 'técnico') return;
+    if (!['operario', 'control_horario', 'técnico', 'usuario_demo', 'cliente_obra'].includes(user.role)) return;
     
     base44.entities.Operario
       .filter({ user_email: user.email })
@@ -169,8 +168,8 @@ export default function FichajesTab() {
   }, [user?.email, user?.role]);
 
   const filtered = jornadasConsolidadas.filter(f => {
-    // control_horario y operario solo ven sus propios fichajes
-    if (isControlHorarioOnly || isOperarioRole) {
+    // Roles restringidos (técnico, operario, control_horario, demo, cliente) solo ven SUS fichajes
+    if (isOwnDataOnly) {
       if (!myOperario || f.operario_id !== myOperario.id) return false;
     }
     const q = search.toLowerCase();
@@ -179,6 +178,10 @@ export default function FichajesTab() {
     const mMonth = !monthFilter || f.date?.startsWith(monthFilter);
     return mQ && mOp && mMonth;
   });
+
+  // Totales del conjunto filtrado: para roles restringidos = solo sus registros y horas del mes vigente
+  const totalHoras = filtered.reduce((acc, j) => acc + (j.horas_trabajadas || 0), 0);
+  const totalImporte = filtered.reduce((acc, j) => acc + (j.total_importe || 0), 0);
 
   // Get apuntes linked to a fichaje (ya viene del hook de consolidación)
   const getApuntesForFichaje = (f) => f.apuntes_asociados || f.apuntes || [];
