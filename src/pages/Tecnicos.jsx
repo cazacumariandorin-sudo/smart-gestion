@@ -5,7 +5,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
-import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, FileText, Link2, CheckCircle2, BadgeCheck } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, FileText, Link2, CheckCircle2, BadgeCheck, UserCheck, UserX, EyeOff } from 'lucide-react';
 import AltaUnificadaDialog from '@/components/tecnicos/AltaUnificadaDialog';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,7 @@ export default function Tecnicos() {
   const defaultTab = typeof window !== 'undefined' && typeof window.location !== 'undefined' && window.location.pathname.includes('documentacion') ? 'documentacion' : 'tecnicos';
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [search, setSearch] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [altaUnificadaOpen, setAltaUnificadaOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -83,6 +84,11 @@ export default function Tecnicos() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tecnicos'] }),
     onError: (err) => toast.error(`No se pudo eliminar: ${err.message || 'error desconocido'}`),
   });
+  const toggleM = useMutation({
+    mutationFn: ({ id, active }) => base44.entities.Operario.update(id, { active }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tecnicos'] }),
+    onError: (err) => toast.error(`No se pudo cambiar el estado: ${err.message || 'error desconocido'}`),
+  });
 
   const open_ = (op = null) => {
     setEditing(op);
@@ -113,6 +119,7 @@ export default function Tecnicos() {
   const visibleTecnicos = isTecnicoRole ? tecnicos.filter(op => op.id === miOperario?.id) : tecnicos;
 
   const filtered = visibleTecnicos.filter(op => {
+    if (!showInactive && op.active === false) return false;
     const q = search.toLowerCase();
     return !search || op.name?.toLowerCase().includes(q) || op.dni?.toLowerCase().includes(q) || op.email?.toLowerCase().includes(q);
   });
@@ -165,14 +172,28 @@ export default function Tecnicos() {
           </TabsList>
 
           <TabsContent value="tecnicos">
-            <div className="relative mb-6">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar técnico..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-9"
-              />
+            <div className="flex gap-3 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar técnico..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              {(isAdmin || isGerencia) && (
+                <Button
+                  variant={showInactive ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setShowInactive(v => !v)}
+                  className="gap-2 shrink-0"
+                  title={showInactive ? 'Ocultando inactivos' : 'Mostrar inactivos'}
+                >
+                  <EyeOff className="w-4 h-4" />
+                  <span className="hidden sm:inline">{showInactive ? 'Ver activos' : 'Ver inactivos'}</span>
+                </Button>
+              )}
             </div>
 
             {isLoading || isError || filtered.length === 0 ? (
@@ -198,13 +219,30 @@ export default function Tecnicos() {
                   <Card key={op.id} className="p-5 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm truncate">{op.name}</h3>
+                        <div className="flex items-center gap-1.5">
+                          <h3 className="font-semibold text-sm truncate">{op.name}</h3>
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${op.active === false ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                            {op.active === false ? 'Inactivo' : 'Activo'}
+                          </span>
+                        </div>
                         {op.num_empleado && (
                           <span className="inline-block text-[10px] font-mono bg-primary/10 text-primary rounded px-1.5 py-0.5 mt-0.5">{op.num_empleado}</span>
                         )}
                         {op.role && <p className="text-xs text-muted-foreground mt-0.5">{op.role}</p>}
                       </div>
                       <div className="flex gap-1 ml-2">
+                        {(isAdmin || isGerencia) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-7 w-7 ${op.active === false ? 'text-green-600 hover:text-green-700' : 'text-amber-600 hover:text-amber-700'}`}
+                            title={op.active === false ? 'Reactivar técnico' : 'Desactivar técnico'}
+                            disabled={toggleM.isPending}
+                            onClick={() => toggleM.mutate({ id: op.id, active: op.active === false })}
+                          >
+                            {op.active === false ? <UserCheck className="w-3 h-3" /> : <UserX className="w-3 h-3" />}
+                          </Button>
+                        )}
                         {canCreate && (
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(op)}>
                             <Pencil className="w-3 h-3" />
