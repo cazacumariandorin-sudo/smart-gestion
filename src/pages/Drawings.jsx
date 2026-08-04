@@ -18,6 +18,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { toast } from 'sonner';
+
+const isPermissionError = (err) => {
+  const status = err?.status || err?.response?.status || err?.statusCode;
+  const msg = (err?.message || err?.response?.data?.message || '').toString();
+  return status === 403 || /forbidden|permission|permiso|no tiene permiso|not allowed|unauthorized/i.test(msg);
+};
+
+const showMutationError = (err, action = 'guardar') => {
+  if (isPermissionError(err)) {
+    toast.error('No tiene permisos suficientes para esta acción. Contacte con el administrador.');
+  } else {
+    toast.error(`No se pudo ${action} el documento. Inténtelo de nuevo.`);
+  }
+};
 
 const empty = { title: '', reference: '', client_id: '', client_name: '', obra_id: '', obra_name: '', date: new Date().toISOString().split('T')[0], version: '', file_url: '', notes: '' };
 
@@ -97,9 +112,9 @@ export default function Drawings() {
   const todasObras = useMemo(() => [...obras.map(o => ({ id: o.id, name: o.name, client_id: o.client_id, client_name: o.client_name })), ...solarObras.map(o => ({ id: o.id, name: o.name, client_id: o.client_id, client_name: o.client_name }))].sort((a,b) => a.name.localeCompare(b.name)), [obras, solarObras]);
   const uniqueYears = useMemo(() => [...new Set(drawings.map(d => d.date?.split('-')[0]).filter(Boolean))].sort((a, b) => b - a), [drawings]);
 
-  const createM = useMutation({ mutationFn: d => base44.entities.Drawing.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['drawings'] }); close_(); } });
-  const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Drawing.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['drawings'] }); close_(); } });
-  const deleteM = useMutation({ mutationFn: id => base44.entities.Drawing.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['drawings'] }) });
+  const createM = useMutation({ mutationFn: d => base44.entities.Drawing.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['drawings'] }); close_(); }, onError: (e) => showMutationError(e, 'subir') });
+  const updateM = useMutation({ mutationFn: ({ id, d }) => base44.entities.Drawing.update(id, d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['drawings'] }); close_(); }, onError: (e) => showMutationError(e, 'guardar') });
+  const deleteM = useMutation({ mutationFn: id => base44.entities.Drawing.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['drawings'] }), onError: (e) => showMutationError(e, 'eliminar') });
 
   const open_ = (d = null) => { setEditing(d); setForm(d ? { ...d } : empty); setDialogOpen(true); };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(empty); };
@@ -257,8 +272,8 @@ export default function Drawings() {
                                          </Button>
                                        )}
                                        {canCreate && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => open_(d)}><Pencil className="w-3 h-3" /></Button>}
-                                       {canDelete && (
-                                    <AlertDialog>
+                                       {canDelete(d) && (
+                                       <AlertDialog>
                                       <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3 h-3" /></Button>
                                       </AlertDialogTrigger>

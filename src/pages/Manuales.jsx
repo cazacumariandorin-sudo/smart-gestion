@@ -17,6 +17,21 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Textarea } from '@/components/ui/textarea';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { toast } from 'sonner';
+
+const isPermissionError = (err) => {
+  const status = err?.status || err?.response?.status || err?.statusCode;
+  const msg = (err?.message || err?.response?.data?.message || '').toString();
+  return status === 403 || /forbidden|permission|permiso|no tiene permiso|not allowed|unauthorized/i.test(msg);
+};
+
+const showMutationError = (err, action = 'guardar') => {
+  if (isPermissionError(err)) {
+    toast.error('No tiene permisos suficientes para esta acción. Contacte con el administrador.');
+  } else {
+    toast.error(`No se pudo ${action} el documento. Inténtelo de nuevo.`);
+  }
+};
 
 const getEmptyForm = () => ({ title: '', client_id: '', client_name: '', obra_id: '', obra_name: '', fabricante_id: '', fabricante_name: '', categoria: '', file_url: '', file_type: '', version: '', date: new Date().toISOString().split('T')[0], notes: '' });
 
@@ -60,8 +75,8 @@ export default function Manuales() {
   ].sort((a, b) => a.name.localeCompare(b.name)), [obras, solarObras]);
   const { data: fabricantes = [] } = useQuery({ queryKey: ['fabricantes'], queryFn: () => base44.entities.Fabricante.list('name', 300) });
 
-  const createM = useMutation({ mutationFn: d => base44.entities.Manual.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['manuales'] }); close_(); } });
-  const deleteM = useMutation({ mutationFn: id => base44.entities.Manual.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['manuales'] }) });
+  const createM = useMutation({ mutationFn: d => base44.entities.Manual.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['manuales'] }); close_(); }, onError: (e) => showMutationError(e, 'subir') });
+  const deleteM = useMutation({ mutationFn: id => base44.entities.Manual.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['manuales'] }), onError: (e) => showMutationError(e, 'eliminar') });
 
   const close_ = () => { setDialogOpen(false); setForm(getEmptyForm()); };
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -219,7 +234,7 @@ export default function Manuales() {
                                 <Link2 className="w-3.5 h-3.5" />
                               </Button>
                             )}
-                            {canDelete && <AlertDialog>
+                            {canDelete(m) && <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
                               </AlertDialogTrigger>
