@@ -233,7 +233,7 @@ export default function Drawings() {
                                      </div>
                                      <div className="flex-1 min-w-0">
                                        <div className="flex items-center gap-1.5">
-                                         <p className="text-sm font-medium truncate">{d.title}</p>
+                                         <p className="text-sm font-medium leading-snug break-words">{d.title}</p>
                                          {!d.client_id && !d.obra_id && <span title="Sin obra ni cliente asignado"><AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" /></span>}
                                        </div>
                                        <div className="flex items-center gap-2">

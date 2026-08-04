@@ -190,7 +190,7 @@ export default function Manuales() {
                         <Card key={m.id} className="p-4 flex items-center gap-3">
                           <div className="shrink-0">{fileIcon(m.file_type)}</div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{m.title}</p>
+                            <p className="text-sm font-medium leading-snug break-words">{m.title}</p>
                             <div className="flex items-center gap-2 flex-wrap mt-1">
                               {m.categoria && <Badge variant="outline" className="text-[10px]">{m.categoria}</Badge>}
                               {m.version && <span className="text-[10px] text-muted-foreground">v{m.version}</span>}
