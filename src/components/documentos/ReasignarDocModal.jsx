@@ -23,7 +23,7 @@ export default function ReasignarDocModal({ doc, entityName, open, onClose }) {
       setClientId(doc.client_id || '');
       setClientName(doc.client_name || '');
       setObraId(doc.obra_id || '');
-      setObraName(doc.obra_name || (entityName === 'Drawing' ? doc.project || '' : ''));
+      setObraName(doc.obra_name || (entityName === 'Drawing' ? doc.project || doc.obra_name || '' : ''));
     }
   }, [doc?.id, open]);
 
@@ -91,13 +91,10 @@ export default function ReasignarDocModal({ doc, entityName, open, onClose }) {
       obra_id: obraId,
       obra_name: obraName,
     };
-    if (entityName === 'Drawing') {
-      data.project = obraName;
-    }
     updateM.mutate(data);
   };
 
-  const isOrphan = !doc?.client_id && !doc?.obra_id && !(entityName === 'Drawing' && doc?.project);
+  const isOrphan = !doc?.client_id && !doc?.obra_id;
 
   if (!doc) return null;
 

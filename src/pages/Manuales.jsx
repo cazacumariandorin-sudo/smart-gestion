@@ -50,6 +50,11 @@ export default function Manuales() {
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
   const { data: obras = [] } = useQuery({ queryKey: ['obras'], queryFn: () => base44.entities.Obra.list('name', 300) });
+  const { data: solarObras = [] } = useQuery({ queryKey: ['solar_obras_manuales'], queryFn: () => base44.entities.SolarObra.list('name', 300) });
+  const todasObras = useMemo(() => [
+    ...obras.map(o => ({ id: o.id, name: o.name, client_id: o.client_id, client_name: o.client_name })),
+    ...solarObras.map(o => ({ id: o.id, name: o.name, client_id: o.client_id, client_name: o.client_name }))
+  ].sort((a, b) => a.name.localeCompare(b.name)), [obras, solarObras]);
   const { data: fabricantes = [] } = useQuery({ queryKey: ['fabricantes'], queryFn: () => base44.entities.Fabricante.list('name', 300) });
 
   const createM = useMutation({ mutationFn: d => base44.entities.Manual.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['manuales'] }); close_(); } });
@@ -63,8 +68,13 @@ export default function Manuales() {
     setForm(p => ({ ...p, client_id: id, client_name: c?.name || '' }));
   };
   const handleObraChange = (id) => {
-    const o = obras.find(ob => ob.id === id);
-    setForm(p => ({ ...p, obra_id: id, obra_name: o?.name || '' }));
+    const o = todasObras.find(ob => ob.id === id);
+    setForm(p => ({
+      ...p,
+      obra_id: id,
+      obra_name: o?.name || '',
+      ...(o?.client_id && !p.client_id ? { client_id: o.client_id, client_name: o.client_name || '' } : {}),
+    }));
   };
 
   const handleFileUpload = async (file) => {
@@ -148,7 +158,7 @@ export default function Manuales() {
         </MobileSelect>
         <MobileSelect value={obraFilter} onValueChange={setObraFilter} placeholder="Obra" triggerClassName="w-full sm:w-44">
           <MobileSelectItem value="all">Todas las obras</MobileSelectItem>
-          {obras.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
+          {todasObras.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
         </MobileSelect>
         <MobileSelect value={fabricanteFilter} onValueChange={setFabricanteFilter} placeholder="Fabricante" triggerClassName="w-full sm:w-44">
           <MobileSelectItem value="all">Todos los fabricantes</MobileSelectItem>
@@ -258,7 +268,7 @@ export default function Manuales() {
               <div className="space-y-1.5">
                 <Label className="text-xs">Obra *</Label>
                 <MobileSelect value={form.obra_id} onValueChange={handleObraChange} placeholder="Seleccionar... (obligatorio)">
-                  {obras.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
+                  {todasObras.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
                 </MobileSelect>
               </div>
               <div className="space-y-1.5">

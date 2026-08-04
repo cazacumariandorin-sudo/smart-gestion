@@ -5,11 +5,25 @@
     "title": {
       "type": "string"
     },
+    "reference": {
+      "type": "string",
+      "description": "Referencia / c\u00f3digo interno del plano"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (desnormalizado)"
+    },
     "obra_id": {
-      "type": "string"
+      "type": "string",
+      "description": "ID de la obra (Obra o SolarObra)"
     },
     "obra_name": {
-      "type": "string"
+      "type": "string",
+      "description": "Nombre de la obra (desnormalizado)"
     },
     "category": {
       "type": "string"

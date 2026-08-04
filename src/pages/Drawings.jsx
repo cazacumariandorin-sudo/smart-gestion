@@ -19,7 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const empty = { title: '', reference: '', client_id: '', client_name: '', project: '', date: new Date().toISOString().split('T')[0], version: '', file_url: '', notes: '' };
+const empty = { title: '', reference: '', client_id: '', client_name: '', obra_id: '', obra_name: '', date: new Date().toISOString().split('T')[0], version: '', file_url: '', notes: '' };
 
 const getFileType = (url) => {
   if (!url) return null;
@@ -107,11 +107,12 @@ export default function Drawings() {
     setForm(p => ({ ...p, client_id: id, client_name: c?.name || '' }));
   };
 
-  const handleObraChange = (obraName) => {
-    const obra = todasObras.find(o => o.name === obraName);
+  const handleObraChange = (obraId) => {
+    const obra = todasObras.find(o => o.id === obraId);
     setForm(p => ({
       ...p,
-      project: obraName,
+      obra_id: obraId,
+      obra_name: obra?.name || '',
       // Auto-rellenar cliente si la obra lo tiene y el cliente no está seleccionado aún
       ...(obra?.client_id && !p.client_id ? { client_id: obra.client_id, client_name: obra.client_name || '' } : {}),
     }));
@@ -131,9 +132,9 @@ export default function Drawings() {
 
   const filtered = drawings.filter(d => {
     const q = search.toLowerCase();
-    const matchQ = !search || d.title?.toLowerCase().includes(q) || d.reference?.toLowerCase().includes(q) || d.project?.toLowerCase().includes(q);
+    const matchQ = !search || d.title?.toLowerCase().includes(q) || d.reference?.toLowerCase().includes(q) || d.obra_name?.toLowerCase().includes(q);
     const matchC = clientFilter === 'all' || d.client_id === clientFilter;
-    const matchO = obraFilter === 'all' || d.project === obraFilter;
+    const matchO = obraFilter === 'all' || d.obra_id === obraFilter;
     const matchY = yearFilter === 'all' || d.date?.startsWith(yearFilter);
     return matchQ && matchC && matchO && matchY;
   });
@@ -145,8 +146,8 @@ export default function Drawings() {
       const cKey = d.client_id || '__no_client__';
       const cName = d.client_name || 'Sin cliente';
       if (!map[cKey]) map[cKey] = { name: cName, projects: {} };
-      const pKey = d.project || '__no_project__';
-      const pName = d.project || 'Sin obra';
+      const pKey = d.obra_id || d.obra_name || '__no_project__';
+      const pName = d.obra_name || 'Sin obra';
       if (!map[cKey].projects[pKey]) map[cKey].projects[pKey] = { name: pName, drawings: [] };
       map[cKey].projects[pKey].drawings.push(d);
     });
@@ -184,7 +185,7 @@ export default function Drawings() {
         </MobileSelect>
         <MobileSelect value={obraFilter} onValueChange={setObraFilter} placeholder="Obra" triggerClassName="w-full sm:w-44">
           <MobileSelectItem value="all">Todas las obras</MobileSelectItem>
-          {todasObras.map(o => <MobileSelectItem key={o.id} value={o.name}>{o.name}</MobileSelectItem>)}
+          {todasObras.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
         </MobileSelect>
         <MobileSelect value={yearFilter} onValueChange={setYearFilter} placeholder="Año" triggerClassName="w-full sm:w-24">
           <MobileSelectItem value="all">Todos</MobileSelectItem>
@@ -226,14 +227,14 @@ export default function Drawings() {
                           {pData.drawings.map(d => {
                             const ft = getFileType(d.file_url);
                             return (
-                              <div key={d.id} className={`flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/40 group ${!d.client_id && !d.project ? 'bg-amber-50/60' : ''}`}>
+                              <div key={d.id} className={`flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/40 group ${!d.client_id && !d.obra_id ? 'bg-amber-50/60' : ''}`}>
                                      <div className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${ft ? fileTypeColor[ft] : 'bg-gray-100 text-gray-600'}`}>
                                        {ft ? fileTypeLabel[ft] : '—'}
                                      </div>
                                      <div className="flex-1 min-w-0">
                                        <div className="flex items-center gap-1.5">
                                          <p className="text-sm font-medium truncate">{d.title}</p>
-                                         {!d.client_id && !d.project && <span title="Sin obra ni cliente asignado"><AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" /></span>}
+                                         {!d.client_id && !d.obra_id && <span title="Sin obra ni cliente asignado"><AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" /></span>}
                                        </div>
                                        <div className="flex items-center gap-2">
                                          {d.reference && <span className="text-[10px] font-mono text-muted-foreground">{d.reference}</span>}
@@ -293,7 +294,7 @@ export default function Drawings() {
               <FileViewer url={viewerDoc.file_url} title={viewerDoc.title} />
             </div>
             <div className="flex justify-between items-center pt-2 border-t">
-              <p className="text-xs text-muted-foreground">{viewerDoc.client_name} — {viewerDoc.project}</p>
+              <p className="text-xs text-muted-foreground">{viewerDoc.client_name} — {viewerDoc.obra_name}</p>
               <a href={viewerDoc.file_url} target="_blank" rel="noopener noreferrer" download>
                 <Button variant="outline" size="sm" className="gap-1.5"><ExternalLink className="w-3.5 h-3.5" /> Abrir / Descargar</Button>
               </a>
@@ -340,8 +341,8 @@ export default function Drawings() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Obra</Label>
-                <MobileSelect value={form.project || ''} onValueChange={handleObraChange} placeholder="Seleccionar obra...">
-                  {todasObras.map(o => <MobileSelectItem key={o.id} value={o.name}>{o.name}</MobileSelectItem>)}
+                <MobileSelect value={form.obra_id || ''} onValueChange={handleObraChange} placeholder="Seleccionar obra...">
+                  {todasObras.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
                 </MobileSelect>
               </div>
               <div className="space-y-1.5">
@@ -373,7 +374,7 @@ export default function Drawings() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={close_}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.title || !form.client_id || isPending} className="gap-2 min-w-28">
+            <Button onClick={handleSave} disabled={!form.title || !form.client_id || !form.obra_id || isPending} className="gap-2 min-w-28">
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Guardar
             </Button>
           </DialogFooter>
