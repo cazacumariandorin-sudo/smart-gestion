@@ -34,16 +34,20 @@ export default function ReportarFalloButton() {
         user_id: user?.id || '',
         user_role: user?.role || ''
       });
+      // Auto-cerrar el mensaje después de 5 segundos (en móvil se quedaba fijo arriba)
+      const autoDismiss = (t) => { if (t?.dismiss) setTimeout(() => t.dismiss(), 5000); };
+
       if (r?.skipped) {
-        toast({ title: 'Reporte similar ya enviado', description: 'Gracias, ya tenemos un reporte similar reciente.' });
+        autoDismiss(toast({ title: 'Reporte similar ya enviado', description: 'Gracias, ya tenemos un reporte similar reciente.' }));
       } else {
-        toast({ title: 'Reporte enviado ✓', description: 'El equipo de soporte puede revisarlo ahora.' });
+        autoDismiss(toast({ title: 'Reporte enviado ✓', description: 'El equipo de soporte puede revisarlo ahora.' }));
       }
       setNotas('');
       setPasos('');
       setOpen(false);
     } catch (e) {
-      toast({ variant: 'destructive', title: 'No se pudo enviar', description: e.message });
+      const t = toast({ variant: 'destructive', title: 'No se pudo enviar', description: e.message });
+      setTimeout(() => t?.dismiss && t.dismiss(), 5000);
     } finally {
       setEnviando(false);
     }
