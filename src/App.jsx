@@ -336,6 +336,9 @@ function App() {
     <AuthProvider>
       <I18nProvider>
         <QueryClientProvider client={queryClientInstance}>
+          {/* Sentinel oculto que confirma que React montó el árbol. Usado por el
+              detector de pantalla blanca para evitar falsos positivos. */}
+          <div id="app-root-mounted" aria-hidden="true" style={{ display: 'none' }} />
           <Router>
             <GlobalLoadingBar />
             <ThemeDetector />

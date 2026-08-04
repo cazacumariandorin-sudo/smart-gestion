@@ -86,19 +86,23 @@ export function setupGlobalErrorHandling() {
     }
   });
 
-  // Detección de pantallas blancas: si el body está vacío / no.hydrated
+  // Detección de pantallas blancas: usa un sentinel marcado por el propio árbol de React.
+  // El detector solo dispara si React NO montó el árbol (sentinel ausente Y #root vacío),
+  // evitando falsos positivos durante microestados de transición (AnimatePresence, Suspense).
   if (typeof document !== 'undefined') {
     let blankCheckAttempts = 0;
     const checkBlankScreen = () => {
       blankCheckAttempts++;
-      // Solo revisar en los primeros 8 segundos tras carga, y solo si algo falló
       if (blankCheckAttempts > 4) return;
       const main = document.querySelector('#root');
-      if (main && main.children.length === 0 && document.readyState === 'complete') {
+      const sentinel = document.getElementById('app-root-mounted');
+      const rootVacio = !main || main.children.length === 0;
+      const reactNoMontado = !sentinel;
+      if (rootVacio && reactNoMontado && document.readyState === 'complete') {
         enviarReporteDiagnostico({
           tipo: 'pantalla_blanca',
           severidad: 'critico',
-          mensaje_error: 'Render vacío en #root (posible pantalla blanca)',
+          mensaje_error: 'React no montó el árbol (#root vacío y sentinel ausente)',
           user_email: currentUserSnapshot.email,
           user_id: currentUserSnapshot.id,
           user_role: currentUserSnapshot.role
