@@ -117,6 +117,7 @@ export default function RealUsersModal({ open, onOpenChange, users, onSuccess })
               <MobileSelectItem value="gerencia">GERENCIA</MobileSelectItem>
               <MobileSelectItem value="director_comercial">DIRECTOR COMERCIAL</MobileSelectItem>
               <MobileSelectItem value="jefe_obra">JEFE OBRA</MobileSelectItem>
+              <MobileSelectItem value="técnico">TÉCNICO</MobileSelectItem>
               <MobileSelectItem value="operario">OPERARIO</MobileSelectItem>
               <MobileSelectItem value="control_horario">CONTROL HORARIO</MobileSelectItem>
               <MobileSelectItem value="cliente_obra">CLIENTE OBRA</MobileSelectItem>
