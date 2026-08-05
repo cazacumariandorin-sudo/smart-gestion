@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import {
   Plus, Pencil, Trash2, Building2, Users, Calendar, Clock,
-  Save, Loader2, X, ChevronDown, ChevronUp, User
+  Save, Loader2, X, ChevronDown, ChevronUp, User, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import GestionarDuplicadosPrevision, { detectarDuplicados } from './GestionarDuplicadosPrevision';
+import { Copy } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format, parseISO, differenceInDays, getWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -39,6 +41,9 @@ export default function PrevisionObras() {
   const [expandedId, setExpandedId] = useState(null);
   const [clientFilter, setClientFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dupesOpen, setDupesOpen] = useState(false);
+  const duplicados = useMemo(() => detectarDuplicados(previsiones), [previsiones]);
+  const numDuplicados = duplicados.reduce((s, g) => s + (g.previsiones.length - 1), 0);
 
   const { data: previsiones = [], isLoading } = useQuery({
     queryKey: ['previsiones_obra'],
@@ -168,12 +173,39 @@ export default function PrevisionObras() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <p className="text-sm text-muted-foreground">{filtered.length} previsiones</p>
-        <Button onClick={() => open_()} size="sm" className="gap-2 shadow-sm">
-          <Plus className="w-4 h-4" /> Nueva previsión
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {numDuplicados > 0 && (
+            <Button
+              onClick={() => setDupesOpen(true)}
+              variant="outline"
+              size="sm"
+              className="gap-2 border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100"
+            >
+              <Copy className="w-4 h-4" /> {numDuplicados} duplicados
+            </Button>
+          )}
+          <Button onClick={() => open_()} size="sm" className="gap-2 shadow-sm">
+            <Plus className="w-4 h-4" /> Nueva previsión
+          </Button>
+        </div>
       </div>
+
+      {numDuplicados > 0 && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            Se detectaron <b>{numDuplicados}</b> previsiones duplicadas (misma obra en fechas solapadas).
+            <button
+              onClick={() => setDupesOpen(true)}
+              className="ml-1 underline font-semibold hover:text-amber-900"
+            >
+              Revisar duplicados
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -423,6 +455,12 @@ export default function PrevisionObras() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <GestionarDuplicadosPrevision
+        previsiones={previsiones}
+        open={dupesOpen}
+        onOpenChange={setDupesOpen}
+      />
     </div>
   );
 }

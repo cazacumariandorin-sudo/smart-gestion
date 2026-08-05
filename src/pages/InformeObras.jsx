@@ -9,7 +9,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { addMonths, subMonths, addDays, subDays, format, parseISO } from 'date-fns';
 import {
-  Plus, Building2, CalendarDays, LayoutList, Loader2, Save, X, Users, ChevronDown,
+  Plus, Building2, CalendarDays, LayoutList, Loader2, Save, X, Users, ChevronDown, Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,7 @@ import CalendarioObras from '@/components/informe/CalendarioObras';
 import GanttObras from '@/components/informe/GanttObras';
 import FiltrosEstadoObra from '@/components/informe/FiltrosEstadoObra';
 import PrevisionObraCard from '@/components/informe/PrevisionObraCard';
+import GestionarDuplicadosPrevision, { detectarDuplicados } from '@/components/informe/GestionarDuplicadosPrevision';
 import { useUserRole } from '@/lib/useUserRole';
 
 const STATUS_CFG = {
@@ -61,6 +62,7 @@ export default function InformeObras() {
   const [form, setForm] = useState(emptyForm);
   const [focusObra, setFocusObra] = useState(null);
   const [conflictInfo, setConflictInfo] = useState(null); // { mensaje, prevision_existente, data }
+  const [dupesOpen, setDupesOpen] = useState(false);
 
   // ── Data ──
   const { data: previsiones = [], isLoading, refetch } = useQuery({
@@ -217,6 +219,10 @@ export default function InformeObras() {
   const currentVista = VISTAS.find(v => v.value === view) || VISTAS[0];
   const CurrentIcon = currentVista.icon;
 
+  // Detección de previsiones duplicadas (misma obra + rangos solapados)
+  const gruposDuplicados = detectarDuplicados(previsiones);
+  const numDuplicados = gruposDuplicados.reduce((s, g) => s + (g.previsiones.length - 1), 0);
+
   // Agrupar previsiones por obra (para vista por obra)
   const grouped = (() => {
     const map = {};
@@ -266,11 +272,37 @@ export default function InformeObras() {
               </div>
             )}
           </div>
+          {canEditPrevision && numDuplicados > 0 && (
+            <Button
+              onClick={() => setDupesOpen(true)}
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-9 text-xs border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100"
+            >
+              <Copy className="w-3.5 h-3.5" /> {numDuplicados} duplicados
+            </Button>
+          )}
           <Button onClick={() => open_()} size="sm" className="gap-1.5 shadow-sm h-9 text-xs">
             <Plus className="w-3.5 h-3.5" /><span className="hidden sm:inline">Nueva previsión</span>
           </Button>
         </div>
       </div>
+
+      {numDuplicados > 0 && (
+        <div className="mb-3 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+          <Copy className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            Se detectaron <b>{numDuplicados}</b> previsiones duplicadas (misma obra con fechas solapadas).
+            {canEditPrevision ? (
+              <button onClick={() => setDupesOpen(true)} className="ml-1 underline font-semibold hover:text-amber-900">
+                Revisar y eliminar
+              </button>
+            ) : (
+              <span> Contacta con administración para limpiarlas.</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Filtros desplegables — siempre visibles */}
       <FiltrosEstadoObra obras={obras} />
@@ -444,6 +476,12 @@ export default function InformeObras() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <GestionarDuplicadosPrevision
+        previsiones={previsiones}
+        open={dupesOpen}
+        onOpenChange={setDupesOpen}
+      />
     </div>
   );
 }
