@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
+import { registrarLoginSesion, registrarLogoutSesion } from '@/lib/diagnosticoUtils';
 
 const AuthContext = createContext();
 
@@ -85,6 +86,10 @@ export const AuthProvider = ({ children }) => {
 
       setUser(currentUser);
       setIsAuthenticated(true);
+      // Captura de sesión para diagnóstico (timestamp de login + identidad)
+      try {
+        registrarLoginSesion({ ...currentUser, metodo_login: 'session_token' });
+      } catch { /* sin-op */ }
     } catch (error) {
       clearTimeout(timeoutId);
       console.error('User auth check failed:', error);
@@ -97,6 +102,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = (shouldRedirect = true) => {
+    try { registrarLogoutSesion(); } catch { /* sin-op */ }
     setUser(null);
     setIsAuthenticated(false);
     if (shouldRedirect) {
