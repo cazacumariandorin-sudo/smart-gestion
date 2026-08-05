@@ -102,11 +102,6 @@
           }
         },
         {
-          "user_condition": {
-            "role": "t\u00e9cnico"
-          }
-        },
-        {
           "created_by": "{{user.email}}"
         }
       ]
