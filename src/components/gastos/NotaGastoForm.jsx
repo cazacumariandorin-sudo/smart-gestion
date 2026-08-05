@@ -58,7 +58,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     (payload) => base44.entities.RegistroGasto.create(payload),
     'notas_gasto',
     (prev, payload) => [{ id: `optimistic-${Date.now()}`, ...payload }, ...prev],
-    (data) => { toast.success(`Registro ${data?.numero_nota || ''} creado correctamente`, { description: `${data?.categoria || '—'} · ${data?.importe ? data.importe.toFixed(2) + ' €' : '—'}`, duration: 5000 }); onCreated?.(); onClose(); },
+    (data) => { toast.success(`Registro ${data?.numero_nota || ''} creado correctamente`, { description: `${data?.categoria || '—'} · ${data?.importe ? data.importe.toFixed(2) + ' €' : '—'}`, duration: 5000 }); onCreated?.({ operario_id: operarioEfectivo?.id }); onClose(); },
     (err) => toast.error('Error al crear: ' + err.message)
   );
 
@@ -69,6 +69,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const handleDone = ({ ocr_raw, ocr_ok, preview, archivo, error_ocr, datos }) => {
     setOcrRaw(ocr_raw || ''); setIaNoDispo(!ocr_ok); setCaptureData({ preview, archivo }); setArchivos(archivo ? [archivo] : []); setPaso('formulario');
     if (datos) {
+      const catNormalizada = (datos.categoria || '').toLowerCase().trim();
+      const catValida = CATEGORIAS.includes(catNormalizada) ? catNormalizada : '';
       setForm(prev => ({
         ...prev,
         fecha_documento: datos.fecha_documento || prev.fecha_documento,
@@ -77,6 +79,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         nif_comercio: datos.nif_comercio || prev.nif_comercio,
         concepto: datos.concepto || prev.concepto,
         codigo_validacion_fiscal: datos.codigo_validacion_fiscal || prev.codigo_validacion_fiscal,
+        categoria: catValida || prev.categoria,
       }));
     }
   };

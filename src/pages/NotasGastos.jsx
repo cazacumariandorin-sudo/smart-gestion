@@ -321,7 +321,10 @@ export default function NotasGastos() {
       <NotaGastoForm
         open={showForm}
         onClose={() => setShowForm(false)}
-        onCreated={() => qc.invalidateQueries({ queryKey: ['notas_gasto'] })}
+        onCreated={(info) => {
+          qc.invalidateQueries({ queryKey: ['notas_gasto'] });
+          if (info?.operario_id) setOperarioAbierto(info.operario_id);
+        }}
         operario={operarioActual}
         isAdmin={isAdmin}
         operarios={tecnicos}

@@ -30,6 +30,13 @@ Deno.serve(async (req) => {
 - nombre_comercio: nombre del establecimiento emisor.
 - nif_comercio: CIF/NIF del emisor, en mayúsculas (ej: A28986636).
 - concepto: descripción breve del gasto (máx 60 caracteres).
+- categoria: una sola palabra, en minúsculas, eligiendo UNA de estas opciones exactas:
+  - "combustible" (repostajes, gasolina, diésel, gasolina, estaciones de servicio)
+  - "peaje" (autopistas, peajes,Taget, AP6, comprobantes de paso, vías de peaje)
+  - "parking" (parquímetros, aparcamientos, estacionamiento, ticket de aparcamiento)
+  - "comida" (restaurantes, cafeterías, bares, hostelería,€ consumición)
+  - "material" (ferretería, materiales, suministros, recambios, commissioners de Obra)
+  - "otros" (si no encaja en ninguno de los anteriores)
 - codigo_validacion_fiscal: número de factura simplificada o código fiscal si aparece; si no, cadena vacía.
 - ocr_raw: transcripción COMPLETA del texto visible, línea por línea, tal cual aparece.`;
 
@@ -41,9 +48,11 @@ Deno.serve(async (req) => {
         nombre_comercio: { type: 'string' },
         nif_comercio: { type: 'string' },
         concepto: { type: 'string' },
+        categoria: { type: 'string', enum: ['combustible', 'peaje', 'parking', 'comida', 'material', 'otros'] },
         codigo_validacion_fiscal: { type: 'string' },
         ocr_raw: { type: 'string' },
       },
+      required: ['categoria', 'importe', 'fecha_documento', 'nombre_comercio'],
     };
 
     const r = await ocrDocumento(base44, {
