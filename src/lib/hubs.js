@@ -168,6 +168,7 @@ export const HUBS = [
       { label: 'Simulador', path: '/simulador-roles', icon: Eye, module: 'users' },
       { label: 'Reglas de Oro', path: '/sistema/reglas-de-oro', icon: Shield, module: 'users' },
       { label: 'Diagnóstico', path: '/diagnostico-app', icon: Shield, module: 'users' },
+      { label: 'Empresas', path: '/empresas', icon: Building2, module: 'users' },
     ],
   },
 ];
