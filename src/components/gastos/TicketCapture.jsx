@@ -54,8 +54,23 @@ export default function TicketCapture({ onDone, onSkip }) {
 
       if (!base64) throw new Error('No se pudo leer el archivo');
 
+      // Subir archivo (comprimido si es imagen) a Base44 CDN.
+      // La función backend `procesarOcrNota` exige `file_url`, no base64.
+      let blob = file;
+      if (esImagen && base64.startsWith('data:')) {
+        const parts = base64.split(',');
+        const mime = (parts[0].match(/:(.*?);/)?.[1]) || file.type;
+        const binStr = atob(parts[1]);
+        const u8 = new Uint8Array(binStr.length);
+        for (let i = 0; i < binStr.length; i++) u8[i] = binStr.charCodeAt(i);
+        blob = new Blob([u8], { type: mime });
+      }
+      const subida = await base44.integrations.Core.UploadFile({ file: blob });
+      const file_url = subida?.file_url;
+      if (!file_url) throw new Error('No se pudo subir el archivo al almacenamiento');
+
       const res = await base44.functions.invoke('procesarOcrNota', {
-        file_base64: base64,
+        file_url,
         file_tipo: file.type,
       });
 
@@ -66,7 +81,7 @@ export default function TicketCapture({ onDone, onSkip }) {
       setEstado('ok');
 
       onDone({
-        archivo: { url: null, nombre: file.name, tipo: file.type, storage: 'local' },
+        archivo: { url: file_url, nombre: file.name, tipo: file.type, storage: 'cdn' },
         preview: URL.createObjectURL(file),
         ocr_raw: textoOcr,
         ocr_ok: r?.success && textoOcr.length > 5,
