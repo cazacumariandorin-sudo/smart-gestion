@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Smartphone, Wifi, Battery, Monitor, Code, MessageSquareText, History, ClipboardList, Download, Copy, Check, Sparkles } from 'lucide-react';
+import { X, Smartphone, Wifi, Battery, Monitor, Code, MessageSquareText, History, ClipboardList, Download, Copy, Check, Sparkles, Loader2, Lightbulb, Wrench } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { base44 } from '@/api/base44Client';
 
 const ESTADOS = ['nuevo', 'revisado', 'en_proceso', 'resuelto', 'ignorado'];
 
@@ -30,17 +31,64 @@ function FilaDato({ icon: Icon, label, value }) {
   );
 }
 
-export default function DetalleSesionDiagnostico({ sesion, onClose, onUpdate, puedeEditar }) {
+export default function DetalleSesionDiagnostico({ sesion, onClose, onUpdate, puedeEditar, puedeArreglarIA }) {
   const [estadoLocal, setEstadoLocal] = useState(sesion?.estado || 'nuevo');
   const [comentario, setComentario] = useState('');
   const [copiado, setCopiado] = useState(false);
+  const [analisisIA, setAnalisisIA] = useState(null);
+  const [cargandoIA, setCargandoIA] = useState(false);
+  const [errorIA, setErrorIA] = useState('');
 
   useEffect(() => {
     if (sesion) {
       setEstadoLocal(sesion.estado || 'nuevo');
       setComentario(sesion.comentario_soporte || '');
+      // Reset del análisis al cambiar de incidente
+      setAnalisisIA(null);
+      setErrorIA('');
     }
   }, [sesion]);
+
+  const handleArreglarConIA = async () => {
+    if (!sesion) return;
+    setCargandoIA(true);
+    setErrorIA('');
+    setAnalisisIA(null);
+    try {
+      const prompt = [
+        'Eres un ingeniero de soporte Full-Stack experto en apps React + Tailwind + Base44 (Vite ESM).',
+        'Analiza el siguiente reporte de incidente de la app SIMANTEC (SMART-GESTION) y propón UNA causa raíz probable y los pasos concretos para resolverlo.',
+        'Sé técnico y específico. Si el síntoma sugiere una causa conocida (pantalla blanca tras una navegación, Crash en WebCrypto RTC/Android WebView, etc.), indícalo.',
+        'Incluye snippet de código solo si aplica. Responde en español.',
+        '',
+        '--- Reporte del incidente ---',
+        buildResumenIA(),
+      ].join('\n');
+      const schema = {
+        type: 'object',
+        properties: {
+          hipotesis_raiz: { type: 'string', description: 'Causa raíz más probable del incidente (1-2 frases)' },
+          probabilidad: { type: 'string', enum: ['alta', 'media', 'baja'] },
+          razonamiento: { type: 'string', description: 'Breve explicación de por qué lo crees' },
+          pasos_resolucion: { type: 'array', items: { type: 'string' }, description: 'Pasos concretos para resolver o mitigar' },
+          codigo_sugerido: { type: 'string', description: 'Snippet de código si aplica, si no, cadena vacía' },
+          requiere_revision_humana: { type: 'boolean', description: 'Si requiere validación manual antes de aplicar el fix' },
+          prioridad: { type: 'string', enum: ['critica', 'alta', 'media', 'baja'] },
+        },
+        required: ['hipotesis_raiz', 'probabilidad', 'pasos_resolucion', 'requiere_revision_humana', 'prioridad'],
+      };
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: schema,
+        model: 'claude_sonnet_4_6',
+      });
+      setAnalisisIA(result || {});
+    } catch (e) {
+      setErrorIA(e?.message || 'No se pudo analizar el incidente con IA.');
+    } finally {
+      setCargandoIA(false);
+    }
+  };
 
   if (!sesion) return null;
 
@@ -239,6 +287,68 @@ export default function DetalleSesionDiagnostico({ sesion, onClose, onUpdate, pu
               </ol>
               {sesion.ultima_accion && (
                 <p className="text-[10px] font-mono mt-1 text-muted-foreground">Última acción: {sesion.ultima_accion}</p>
+              )}
+            </div>
+          )}
+
+          {/* Arreglar con IA (gerencia/admin) */}
+          {puedeArreglarIA && (
+            <div className="rounded-md border border-violet-300/60 bg-violet-50/30 p-2 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-semibold flex items-center gap-1.5 text-violet-800">
+                  <Sparkles className="w-3.5 h-3.5" /> Arreglar con IA
+                </div>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={handleArreglarConIA}
+                  disabled={cargandoIA}
+                  className="gap-1.5"
+                >
+                  {cargandoIA ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lightbulb className="w-3.5 h-3.5" />}
+                  {cargandoIA ? 'Analizando…' : 'Analizar y proponer fix'}
+                </Button>
+              </div>
+
+              {errorIA && (
+                <p className="text-[11px] text-destructive">{errorIA}</p>
+              )}
+
+              {analisisIA && (
+                <div className="space-y-2 mt-1">
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    <Badge variant="outline" className="text-[10px]">Probabilidad: {analisisIA.probabilidad || '—'}</Badge>
+                    <Badge variant="outline" className="text-[10px]">Prioridad: {analisisIA.prioridad || '—'}</Badge>
+                    {analisisIA.requiere_revision_humana && (
+                      <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-300">Requiere validación humana</Badge>
+                    )}
+                  </div>
+                  {analisisIA.razonamiento && (
+                    <div>
+                      <div className="text-[10px] text-muted-foreground uppercase mb-0.5">Hipótesis raíz</div>
+                      <p className="text-xs">{analisisIA.razonamiento}</p>
+                      <p className="text-xs font-medium mt-1">{analisisIA.hipotesis_raiz}</p>
+                    </div>
+                  )}
+                  {analisisIA.pasos_resolucion?.length > 0 && (
+                    <div>
+                      <div className="text-[10px] text-muted-foreground uppercase mb-0.5 flex items-center gap-1">
+                        <Wrench className="w-3 h-3" /> Pasos sugeridos
+                      </div>
+                      <ol className="text-[11px] list-decimal ml-4 space-y-0.5">
+                        {analisisIA.pasos_resolucion.map((paso, i) => <li key={i}>{paso}</li>)}
+                      </ol>
+                    </div>
+                  )}
+                  {analisisIA.codigo_sugerido && (
+                    <div>
+                      <div className="text-[10px] text-muted-foreground uppercase mb-0.5">Código sugerido</div>
+                      <pre className="text-[10px] font-mono whitespace-pre-wrap break-all bg-muted/40 border rounded p-1.5 max-h-32 overflow-y-auto">
+                        {analisisIA.codigo_sugerido}
+                      </pre>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}

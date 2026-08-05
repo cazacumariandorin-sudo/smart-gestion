@@ -161,6 +161,7 @@ export default function DiagnosticoApp() {
         onClose={() => setSesionSel(null)}
         onUpdate={actualizarSesionMutation.mutate}
         puedeEditar={true}
+        puedeArreglarIA={esGerencia}
       />
 
     </div>
