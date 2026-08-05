@@ -27,27 +27,22 @@ export default function NuevaConversacionDialog({ open, onClose, user, onSuccess
     if (!user) return;
     setCargando(true);
     try {
-      const todosUsuarios = await base44.entities.User.list();
+      // Operario es accesible por gerencia/admin/jefe_obra/técnico; User.list() solo admin.
       const operariosData = await base44.entities.Operario.list();
-      const operariosMap = new Map(operariosData.map(op => [op.user_email, op]));
-      
-      const filtrados = todosUsuarios
-        .filter(u => u.email && u.email !== user.email && u.role !== 'usuario_demo')
-        .map(u => {
-          const operario = operariosMap.get(u.email);
-          return {
-            id: u.id,
-            data: {
-              name: operario?.name || u.full_name || u.email,
-              email: u.email,
-              role: u.role,
-              user_id: u.id
-            }
-          };
-        });
+      const filtrados = operariosData
+        .filter(op => op.user_email && op.user_email !== user.email)
+        .map(op => ({
+          id: op.id,
+          data: {
+            name: op.name || op.user_vinculado_nombre || op.user_email,
+            email: op.user_email,
+            role: op.role || 'operario',
+            user_id: op.user_id || null
+          }
+        }));
       setOperarios(filtrados);
     } catch (error) {
-      toast.error('Error al cargar usuarios: ' + error.message);
+      toast.error('Error al cargar operarios: ' + error.message);
     } finally {
       setCargando(false);
     }
