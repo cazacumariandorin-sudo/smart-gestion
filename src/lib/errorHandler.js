@@ -10,6 +10,10 @@ export function setCurrentUserForDiag(user) {
       id: user.id || '',
       role: user.role || ''
     };
+    // Persistir para que los ErrorBoundary (clases que no usan contexto) lean el usuario
+    try {
+      localStorage.setItem('diag_user_snapshot', JSON.stringify(currentUserSnapshot));
+    } catch { /* sessionStorage/privado */ }
   }
 }
 

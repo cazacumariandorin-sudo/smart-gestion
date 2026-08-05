@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Lock, Reply, Check, CheckCheck, Paperclip, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { safeTimeFormat } from '@/lib/chatDateUtils';
 
 function TickEstado({ msg, isOwn, currentUser }) {
   if (!isOwn) return null;
@@ -101,7 +100,7 @@ export default function ChatMessageBubble({ msg, isOwn, textoMostrar, onReply, m
         {/* Hora + ticks */}
         <div className="flex items-center gap-1 px-1">
           <span className="text-[10px] text-muted-foreground">
-            {msg.fecha_envio ? format(new Date(msg.fecha_envio), 'HH:mm') : ''}
+            {safeTimeFormat(msg.fecha_envio)}
           </span>
           <TickEstado msg={msg} isOwn={isOwn} />
         </div>

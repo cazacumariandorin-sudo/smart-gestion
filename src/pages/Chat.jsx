@@ -17,6 +17,10 @@ import ChatMessageBubble from '@/components/chat/ChatMessageBubble';
 import ChatDateSeparator from '@/components/chat/ChatDateSeparator';
 import ChatInfoPanel from '@/components/chat/ChatInfoPanel';
 import ChatInput from '@/components/chat/ChatInput';
+import ChatErrorBoundary from '@/components/chat/ChatErrorBoundary';
+import {
+  safeToISO, safeTimeFormat, toValidDate,
+} from '@/lib/chatDateUtils';
 import {
   generarClavesRSA, cifrarAES, descifrarAES,
   cifrarClaveAESConRSA, descifrarClaveAESConRSA,
@@ -280,9 +284,13 @@ export default function Chat() {
   const mensajesConSeparadores = [];
   let lastDate = null;
   for (const msg of messages) {
-    const fechaMsg = msg.fecha_envio ? new Date(msg.fecha_envio) : null;
-    if (fechaMsg && (!lastDate || !isSameDay(fechaMsg, lastDate))) {
-      mensajesConSeparadores.push({ type: 'separator', date: fechaMsg.toISOString() });
+    const fechaMsg = toValidDate(msg.fecha_envio);
+    if (
+      fechaMsg &&
+      (!lastDate || !isSameDay(fechaMsg, lastDate))
+    ) {
+      const iso = safeToISO(msg.fecha_envio);
+      if (iso) mensajesConSeparadores.push({ type: 'separator', date: iso });
       lastDate = fechaMsg;
     }
     mensajesConSeparadores.push({ type: 'message', msg });
@@ -298,6 +306,7 @@ export default function Chat() {
   };
 
   return (
+    <ChatErrorBoundary>
     <div className="flex h-[calc(100vh-4rem)] bg-background overflow-hidden">
 
       {/* ── SIDEBAR LISTA DE CONVERSACIONES ── */}
@@ -362,7 +371,7 @@ export default function Chat() {
                         {conv.cifrado_activo && <Lock className="w-2.5 h-2.5 text-muted-foreground" />}
                         {conv.ultimo_mensaje_fecha && (
                           <span className="text-[10px] text-muted-foreground">
-                            {format(new Date(conv.ultimo_mensaje_fecha), 'HH:mm')}
+                            {safeTimeFormat(conv.ultimo_mensaje_fecha)}
                           </span>
                         )}
                       </div>
@@ -500,5 +509,6 @@ export default function Chat() {
         onSalir={handleSalirConversacion}
       />
     </div>
+    </ChatErrorBoundary>
   );
 }

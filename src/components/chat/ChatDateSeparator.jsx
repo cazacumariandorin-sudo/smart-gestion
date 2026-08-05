@@ -1,12 +1,8 @@
-import { format, isToday, isYesterday, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { safeSeparatorLabel } from '@/lib/chatDateUtils';
 
 export default function ChatDateSeparator({ dateStr }) {
-  const date = new Date(dateStr);
-  let label;
-  if (isToday(date)) label = 'Hoy';
-  else if (isYesterday(date)) label = 'Ayer';
-  else label = format(date, "EEEE d 'de' MMMM", { locale: es });
+  const label = safeSeparatorLabel(dateStr);
+  if (label == null) return null;
 
   return (
     <div className="flex items-center gap-3 my-2 select-none">
