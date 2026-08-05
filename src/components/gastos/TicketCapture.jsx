@@ -86,6 +86,7 @@ export default function TicketCapture({ onDone, onSkip }) {
         archivo: { url: file_url, nombre: file.name, tipo: file.type, storage: 'cdn' },
         preview: URL.createObjectURL(file),
         ocr_raw: textoOcr,
+        datos: r?.datos || null,
         ocr_ok: r?.success && textoOcr.length > 5,
         error_ocr: r?.error || null,
       });

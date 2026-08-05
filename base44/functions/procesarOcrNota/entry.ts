@@ -24,21 +24,49 @@ Deno.serve(async (req) => {
       });
     }
 
-    const prompt = 'Transcribe EXACTAMENTE todo el texto visible en este ticket o factura española, línea por línea. Incluye todos los números (importes, fechas, NIFs). No interpretes ni resumas. Solo transcribe el texto tal como aparece en el documento.';
+    const prompt = `Analiza este ticket o factura española y extrae los campos clave en JSON:
+- fecha_documento: fecha del documento en formato YYYY-MM-DD (no la fecha de hoy).
+- importe: importe TOTAL final, como número (sin símbolo € ni separadores de miles; usa punto decimal, ej: 11.75).
+- nombre_comercio: nombre del establecimiento emisor.
+- nif_comercio: CIF/NIF del emisor, en mayúsculas (ej: A28986636).
+- concepto: descripción breve del gasto (máx 60 caracteres).
+- codigo_validacion_fiscal: número de factura simplificada o código fiscal si aparece; si no, cadena vacía.
+- ocr_raw: transcripción COMPLETA del texto visible, línea por línea, tal cual aparece.`;
 
-    const r = await ocrDocumento(base44, { file_url, file_tipo: file_tipo || 'image/jpeg', prompt });
+    const schema = {
+      type: 'object',
+      properties: {
+        fecha_documento: { type: 'string' },
+        importe: { type: 'number' },
+        nombre_comercio: { type: 'string' },
+        nif_comercio: { type: 'string' },
+        concepto: { type: 'string' },
+        codigo_validacion_fiscal: { type: 'string' },
+        ocr_raw: { type: 'string' },
+      },
+    };
+
+    const r = await ocrDocumento(base44, {
+      file_url,
+      file_tipo: file_tipo || 'image/jpeg',
+      prompt,
+      response_json_schema: schema,
+    });
 
     if (!r.success) {
       return Response.json({ success: false, ocr_raw: '', error: r.error });
     }
 
-    if (!r.ocr_raw || r.ocr_raw.length < 5) {
+    const datos = r.datos || {};
+    const raw = datos.ocr_raw || r.ocr_raw || '';
+    if (!raw || raw.length < 5) {
       return Response.json({ success: false, ocr_raw: '', error: 'Documento ilegible o vacío' });
     }
 
     return Response.json({
       success: true,
-      ocr_raw: r.ocr_raw,
+      datos,
+      ocr_raw: raw,
       modelo: r.modelo,
       fallback: r.fallback,
     });

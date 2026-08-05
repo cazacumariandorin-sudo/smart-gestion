@@ -66,8 +66,19 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const esGastoTardio = useMemo(() => { if (!form.fecha_documento) return false; return Math.floor((Date.now() - new Date(form.fecha_documento)) / 86400000) > 30; }, [form.fecha_documento]);
 
-  const handleDone = ({ ocr_raw, ocr_ok, preview, archivo, error_ocr }) => {
+  const handleDone = ({ ocr_raw, ocr_ok, preview, archivo, error_ocr, datos }) => {
     setOcrRaw(ocr_raw || ''); setIaNoDispo(!ocr_ok); setCaptureData({ preview, archivo }); setArchivos(archivo ? [archivo] : []); setPaso('formulario');
+    if (datos) {
+      setForm(prev => ({
+        ...prev,
+        fecha_documento: datos.fecha_documento || prev.fecha_documento,
+        importe: datos.importe != null ? String(datos.importe) : prev.importe,
+        nombre_comercio: datos.nombre_comercio || prev.nombre_comercio,
+        nif_comercio: datos.nif_comercio || prev.nif_comercio,
+        concepto: datos.concepto || prev.concepto,
+        codigo_validacion_fiscal: datos.codigo_validacion_fiscal || prev.codigo_validacion_fiscal,
+      }));
+    }
   };
 
   const checkDuplicado = () => {
