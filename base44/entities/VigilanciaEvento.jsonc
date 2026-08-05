@@ -1,0 +1,90 @@
+{
+  "name": "VigilanciaEvento",
+  "type": "object",
+  "properties": {
+    "vigilancia_id": {
+      "type": "string",
+      "description": "ID de la VigilanciaDiagnostico a la que pertenece este evento"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email del usuario vigilado (denormalizado para filtros r\u00e1pidos)"
+    },
+    "tipo_evento": {
+      "type": "string",
+      "enum": [
+        "nav",
+        "click",
+        "red",
+        "auth",
+        "error",
+        "promise_rejection",
+        "visibility",
+        "render",
+        "network_request",
+        "custom"
+      ],
+      "description": "Tipo del evento de telemetr\u00eda"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp exacto en que ocurri\u00f3 el evento en el cliente"
+    },
+    "ruta": {
+      "type": "string",
+      "description": "Ruta (window.location.pathname) en el momento del evento"
+    },
+    "datos": {
+      "type": "object",
+      "description": "Payload espec\u00edfico del tipo de evento (accion, url, status, message, etc.)",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "vigilancia_id",
+    "user_email",
+    "tipo_evento",
+    "timestamp"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

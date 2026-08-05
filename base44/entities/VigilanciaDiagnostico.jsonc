@@ -1,0 +1,139 @@
+{
+  "name": "VigilanciaDiagnostico",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email del usuario vigilado (clave natural de b\u00fasqueda)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID del usuario (User.id), si est\u00e1 disponible"
+    },
+    "user_full_name": {
+      "type": "string",
+      "description": "Nombre display del usuario vigilado (desnormalizado)"
+    },
+    "user_role_snapshot": {
+      "type": "string",
+      "description": "Rol del usuario en el momento de activar la vigilancia (para comparativa con otro usuario del mismo rol)"
+    },
+    "iniciado_por": {
+      "type": "string",
+      "description": "Email del gerente/admin que activ\u00f3 la vigilancia"
+    },
+    "fecha_inicio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp de inicio"
+    },
+    "fecha_fin_prevista": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp de fin previsto (fecha_inicio + duracion_horas)"
+    },
+    "fecha_fin_real": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp real de finalizaci\u00f3n (manual o por expiraci\u00f3n)"
+    },
+    "duracion_horas": {
+      "type": "number",
+      "default": 48,
+      "description": "Duraci\u00f3n m\u00e1xima de la vigilancia en horas"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "activa",
+        "finalizada",
+        "cancelada",
+        "expirada"
+      ],
+      "default": "activa",
+      "description": "Estado del ciclo de vida de la vigilancia"
+    },
+    "motivo": {
+      "type": "string",
+      "description": "Motivo de activaci\u00f3n (bug reportado, comparativa, etc.)"
+    },
+    "eventos_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Cach\u00e9: n\u00famero total de eventos registrados (actualizado por el backend)"
+    },
+    "finalizada_por": {
+      "type": "string",
+      "description": "Email de quien detuvo la vigilancia manualmente"
+    },
+    "comparativa_con_vigilancia_id": {
+      "type": "string",
+      "description": "ID de otra vigilancia con la que se quiere comparar (mismo rol)"
+    },
+    "es_comparativa": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si esta vigilancia se inici\u00f3 espec\u00edficamente para comparar"
+    },
+    "notas_gerencia": {
+      "type": "string",
+      "description": "Notas internas de gerencia"
+    }
+  },
+  "required": [
+    "user_email",
+    "iniciado_por",
+    "fecha_inicio",
+    "fecha_fin_prevista",
+    "estado"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

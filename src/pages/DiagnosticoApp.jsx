@@ -6,8 +6,9 @@ import { useUserRole } from '@/lib/useUserRole';
 import ListaSesionesDiagnostico from '@/components/diagnostico/ListaSesionesDiagnostico';
 import DetalleSesionDiagnostico from '@/components/diagnostico/DetalleSesionDiagnostico';
 import GestionAccesosDiagnostico from '@/components/diagnostico/GestionAccesosDiagnostico';
+import VigilanciaPanel from '@/components/diagnostico/VigilanciaPanel';
 import { base44 } from '@/api/base44Client';
-import { Bug, Users, Activity, ShieldCheck } from 'lucide-react';
+import { Bug, Users, Activity, ShieldCheck, Eye } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import PageHeader from '@/components/layout/PageHeader';
@@ -126,13 +127,18 @@ export default function DiagnosticoApp() {
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="w-full grid grid-cols-2">
+          <TabsList className={`w-full grid ${esGerencia ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="sesiones" className="text-xs">
               <Bug className="w-3.5 h-3.5 mr-1.5" /> Incidentes
             </TabsTrigger>
             {esGerencia && (
               <TabsTrigger value="accesos" className="text-xs">
                 <Users className="w-3.5 h-3.5 mr-1.5" /> Accesos IT
+              </TabsTrigger>
+            )}
+            {esGerencia && (
+              <TabsTrigger value="vigilancia" className="text-xs">
+                <Eye className="w-3.5 h-3.5 mr-1.5" /> Vigilancia
               </TabsTrigger>
             )}
           </TabsList>
@@ -150,6 +156,12 @@ export default function DiagnosticoApp() {
           {esGerencia && (
             <TabsContent value="accesos" className="mt-3">
               <GestionAccesosDiagnostico accesos={accesos} loading={loadingAccesos} />
+            </TabsContent>
+          )}
+
+          {esGerencia && (
+            <TabsContent value="vigilancia" className="mt-3">
+              <VigilanciaPanel esGerencia={esGerencia} />
             </TabsContent>
           )}
         </Tabs>

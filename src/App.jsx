@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query'
 import GlobalLoadingBar from '@/components/GlobalLoadingBar';
 import { setupGlobalErrorHandling, setCurrentUserForDiag } from '@/lib/errorHandler';
+import { iniciarVigilanciaSilenciosa } from '@/lib/vigilanciaSilente';
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -332,6 +333,7 @@ const AuthenticatedApp = () => {
 function App() {
   useEffect(() => {
     setupGlobalErrorHandling();
+    iniciarVigilanciaSilenciosa();
   }, []);
 
   return (
