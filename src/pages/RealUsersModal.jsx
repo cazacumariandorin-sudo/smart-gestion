@@ -10,73 +10,60 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
-
-const ROLES = ['admin', 'gerencia', 'director_comercial', 'jefe_obra', 'operario', 'control_horario', 'cliente_obra'];
+import { Loader2, Building2 } from 'lucide-react';
 
 export default function RealUsersModal({ open, onOpenChange, users, onSuccess }) {
   const [email, setEmail] = useState('');
   const [nombre, setNombre] = useState('');
   const [rol, setRol] = useState('operario');
   const [cargo, setCargo] = useState('');
+  const [empresaId, setEmpresaId] = useState('');
   const [accesoHasta, setAccesoHasta] = useState('');
   const [error, setError] = useState('');
 
+  // Cargar empresas para vincular al empleado
+  const { data: empresas = [] } = useQuery({
+    queryKey: ['empresas-select-inv'],
+    queryFn: () => base44.entities.Empresa.list(),
+    enabled: open,
+  });
+
   const inviteMutation = useMutation({
     mutationFn: async () => {
-      // Validación 1: Campos requeridos
+      // Validaciones básicas
       if (!email || !nombre || !cargo) {
         throw new Error('Completa todos los campos obligatorios (email, nombre, cargo)');
       }
 
-      // Validación 2: Email ya existe
       const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
       if (existingUser) {
         throw new Error('Este email ya tiene una cuenta registrada');
       }
 
-      // Usar función backend que genera ID personalizado automáticamente y
-      // aplica el rol personalizado tras el registro.
-      const response = await base44.functions.invoke('inviteUserFunction', {
+      const empresa = empresas.find(e => e.id === empresaId);
+
+      // Llamar a la nueva función que crea la InvitacionUsuario + envía el email.
+      const response = await base44.functions.invoke('crearInvitacionUsuario', {
         email,
-        role: rol
+        role: rol,
+        full_name: nombre,
+        cargo,
+        empresa_id: empresaId || null,
+        empresa_nombre: empresa?.nombre || null,
+        acceso_hasta: accesoHasta ? new Date(accesoHasta).toISOString() : null
       });
 
-      const estado = response.data?.estado;
-      const userId = response.data?.user_id_personalizado;
-
-      // Si el usuario ya estaba registrado (aceptó la invitación antes), aplicamos los
-      // datos adicionales inmediatamente. Si está pendiente, dejamos que el flujo de
-      // invitación complete el alta y el admin rellenará el resto tras el registro.
-      if (estado === 'registrado') {
-        const createdUsers = await base44.entities.User.filter({ email });
-        if (createdUsers.length > 0) {
-          await base44.entities.User.update(createdUsers[0].id, {
-            full_name: nombre,
-            cargo,
-            acceso_hasta: accesoHasta || null,
-            tipo_cuenta: 'real',
-          });
-        }
-      }
-
-      return { email, nombre, user_id_personalizado: userId, estado };
+      return { email, nombre, estado: response.data?.estado };
     },
     onSuccess: (data) => {
-      let mensaje;
-      if (data.estado === 'pendiente_aceptacion') {
-        mensaje = `Invitación enviada a ${data.email}. El usuario aparecerá en la lista tras aceptar el email de invitación.`;
-        toast.message(mensaje, { duration: 8000 });
-      } else {
-        mensaje = `✓ Usuario ${data.nombre} añadido correctamente`;
-        if (data.user_id_personalizado) {
-          mensaje += ` (ID: ${data.user_id_personalizado})`;
-        }
-        toast.success(mensaje);
-      }
+      const mensaje =
+        data.estado === 'pendiente_activacion'
+          ? `Invitación enviada a ${data.email}. La cuenta se activará automáticamente cuando el usuario acepte el email de invitación.`
+          : `✓ Usuario ${data.nombre} añadido correctamente`;
+      toast.message(mensaje, { duration: 8000 });
       onOpenChange(false);
       onSuccess();
       // Reset form
@@ -84,11 +71,12 @@ export default function RealUsersModal({ open, onOpenChange, users, onSuccess })
       setNombre('');
       setRol('operario');
       setCargo('');
+      setEmpresaId('');
       setAccesoHasta('');
       setError('');
     },
     onError: (err) => {
-      setError(err.message || 'Error al invitar usuario');
+      setError(err.message || 'Error al crear la invitación');
     },
   });
 
@@ -99,9 +87,9 @@ export default function RealUsersModal({ open, onOpenChange, users, onSuccess })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Añadir usuario real</DialogTitle>
+          <DialogTitle>Nuevo usuario / empleado</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -118,14 +106,23 @@ export default function RealUsersModal({ open, onOpenChange, users, onSuccess })
           <div className="space-y-2">
             <Label className="text-xs">Nombre completo *</Label>
             <Input
-              placeholder="Nombre del usuario"
+              placeholder="Nombre del empleado"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs">Rol *</Label>
+            <Label className="text-xs flex items-center gap-1"><Building2 className="w-3 h-3" /> Empresa (empleado de)</Label>
+            <MobileSelect value={empresaId} onValueChange={setEmpresaId} placeholder="Sin empresa asignada">
+              {empresas.map(e => (
+                <MobileSelectItem key={e.id} value={e.id}>{e.nombre}{e.es_principal ? ' (Principal)' : ''}</MobileSelectItem>
+              ))}
+            </MobileSelect>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Rol de acceso *</Label>
             <MobileSelect value={rol} onValueChange={setRol} placeholder="Seleccionar rol">
               <MobileSelectItem value="admin">ADMIN</MobileSelectItem>
               <MobileSelectItem value="gerencia">GERENCIA</MobileSelectItem>
@@ -148,12 +145,17 @@ export default function RealUsersModal({ open, onOpenChange, users, onSuccess })
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs">Acceso hasta</Label>
+            <Label className="text-xs">Acceso hasta (opcional)</Label>
             <Input
               type="date"
               value={accesoHasta}
               onChange={(e) => setAccesoHasta(e.target.value)}
             />
+          </div>
+
+          <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 text-xs text-blue-800 dark:text-blue-200">
+            Se enviará un email de invitación. La cuenta nacerá en estado
+            <b> «Pendiente de activación»</b> y pasará a <b>«Activo»</b> automáticamente cuando el usuario acepte el email.
           </div>
 
           {error && (
@@ -169,7 +171,7 @@ export default function RealUsersModal({ open, onOpenChange, users, onSuccess })
           </Button>
           <Button onClick={handleSubmit} disabled={inviteMutation.isPending} className="gap-2">
             {inviteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            Guardar
+            Enviar invitación
           </Button>
         </DialogFooter>
       </DialogContent>

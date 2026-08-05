@@ -1,0 +1,137 @@
+{
+  "name": "InvitacionUsuario",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "Email del invitado \u2014 clave de coincidencia con el User cuando acepte"
+    },
+    "rol": {
+      "type": "string",
+      "description": "Rol personalizado que se aplicar\u00e1 al User tras aceptar"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Nombre completo deseado para el usuario"
+    },
+    "cargo": {
+      "type": "string",
+      "description": "Cargo / puesto que ocupar\u00e1 en la empresa"
+    },
+    "empresa_id": {
+      "type": "string",
+      "description": "ID de la empresa (entidad Empresa) a la que se vincula como empleado"
+    },
+    "empresa_nombre": {
+      "type": "string",
+      "description": "Nombre de la empresa (desnormalizado)"
+    },
+    "acceso_hasta": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha opcional de expiraci\u00f3n del acceso"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente_activacion",
+        "activado",
+        "expirado",
+        "suspendido"
+      ],
+      "default": "pendiente_activacion",
+      "description": "Estado del ciclo de vida de la invitaci\u00f3n"
+    },
+    "invitado_por": {
+      "type": "string",
+      "description": "Email del gerente/admin que cre\u00f3 la invitaci\u00f3n"
+    },
+    "fecha_invitacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se envi\u00f3 la invitaci\u00f3n"
+    },
+    "user_id_registrado": {
+      "type": "string",
+      "description": "ID del User una vez aceptada la invitaci\u00f3n y activada la cuenta"
+    },
+    "fecha_aceptacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que el usuario acept\u00f3 la invitaci\u00f3n y se activ\u00f3"
+    },
+    "suspendido_por": {
+      "type": "string",
+      "description": "Email del gerente/admin que suspendi\u00f3 la invitaci\u00f3n"
+    },
+    "fecha_suspension": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de la suspensi\u00f3n"
+    },
+    "motivo_suspension": {
+      "type": "string",
+      "description": "Motivo de la suspensi\u00f3n (si aplica)"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Notas internas sobre la invitaci\u00f3n"
+    }
+  },
+  "required": [
+    "email",
+    "estado"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "data.email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

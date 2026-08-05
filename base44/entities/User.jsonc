@@ -34,6 +34,30 @@
       ],
       "default": "real"
     },
+    "estado_cuenta": {
+      "type": "string",
+      "enum": [
+        "activo",
+        "inactivo",
+        "pendiente_activacion",
+        "suspendido"
+      ],
+      "default": "pendiente_activacion",
+      "description": "Estado del ciclo de vida de la cuenta: pendiente_activacion (invitaci\u00f3n enviada), activo (invitaci\u00f3n aceptada), inactivo (sin acceso voluntario), suspendido (sanci\u00f3n / bloqueo temporal)"
+    },
+    "empresa_id": {
+      "type": "string",
+      "description": "ID de la empresa (entidad Empresa) a la que pertenece como empleado"
+    },
+    "empresa_nombre": {
+      "type": "string",
+      "description": "Nombre de la empresa (desnormalizado)"
+    },
+    "fecha_vinculacion_empresa": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que el usuario qued\u00f3 vinculado a la empresa como empleado"
+    },
     "acceso_hasta": {
       "type": "string",
       "format": "date-time",
@@ -42,6 +66,19 @@
     "invitado_por": {
       "type": "string",
       "description": "Email del usuario que invit\u00f3"
+    },
+    "suspendido_por": {
+      "type": "string",
+      "description": "Email del gerente/admin que suspendi\u00f3 la cuenta"
+    },
+    "fecha_suspension": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se suspendi\u00f3 la cuenta"
+    },
+    "motivo_suspension": {
+      "type": "string",
+      "description": "Motivo de la suspensi\u00f3n de la cuenta"
     },
     "vinculo_estado": {
       "type": "string",
