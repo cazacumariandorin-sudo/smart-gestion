@@ -85,6 +85,18 @@
     "coste_hora": {
       "type": "number",
       "description": "Coste por hora en EUR (para c\u00e1lculo de rentabilidad de proyecto)"
+    },
+    "empresa_id": {
+      "type": "string",
+      "description": "ID de la empresa (Entidad Empresa) a la que pertenece el empleado"
+    },
+    "empresa_nombre": {
+      "type": "string",
+      "description": "Nombre de la empresa (desnormalizado)"
+    },
+    "empresa_cif": {
+      "type": "string",
+      "description": "CIF de la empresa (desnormalizado)"
     }
   },
   "required": [

@@ -1,0 +1,124 @@
+{
+  "name": "Empresa",
+  "type": "object",
+  "properties": {
+    "nombre": {
+      "type": "string",
+      "description": "Nombre o raz\u00f3n social de la empresa"
+    },
+    "cif": {
+      "type": "string",
+      "description": "CIF / NIF de la empresa"
+    },
+    "domicilio": {
+      "type": "string",
+      "description": "Direcci\u00f3n fiscal"
+    },
+    "localidad": {
+      "type": "string",
+      "description": "Localidad"
+    },
+    "provincia": {
+      "type": "string",
+      "description": "Provincia"
+    },
+    "codigo_postal": {
+      "type": "string"
+    },
+    "telefono": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "web": {
+      "type": "string"
+    },
+    "activa": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si la empresa est\u00e1 activa"
+    },
+    "es_principal": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si esta es la empresa principal del workspace (SIMANTEC SL)"
+    },
+    "notas": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "nombre",
+    "cif"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
