@@ -23,10 +23,10 @@ Deno.serve(async (req) => {
     const inviteRole = userRole === 'admin' ? 'admin' : 'user';
     await base44.users.inviteUser(email, inviteRole);
 
-    // Esperar un momento para que el usuario se registre
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Esperar un momento por si el invitado ya estaba autenticado (raro)
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Buscar al usuario recién creado
+    // Buscar al usuario recién creado (puede tardar en aparecer hasta aceptar la invitación)
     const todosUsuarios = await base44.asServiceRole.entities.User.list();
     const nuevoUsuario = todosUsuarios.find(u => u.email === email);
 
@@ -65,14 +65,21 @@ Deno.serve(async (req) => {
         role: userRole
       });
 
-      return Response.json({ 
-        success: true, 
-        message: `User ${email} invited successfully`,
+      return Response.json({
+        success: true,
+        estado: 'registrado',
+        message: `User ${email} successfully created and registered`,
         user_id_personalizado: idPersonalizado
       });
     }
 
-    return Response.json({ success: true, message: `User ${email} invited successfully (ID pending)` });
+    // El usuario fue invitado pero aún no ha aceptado la invitación por email.
+    // No aparecerá en la lista hasta que complete el registro.
+    return Response.json({
+      success: true,
+      estado: 'pendiente_aceptacion',
+      message: `Invitación enviada a ${email}. El usuario aparecerá en la lista tras aceptar el email de invitación.`
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

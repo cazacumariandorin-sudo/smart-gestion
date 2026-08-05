@@ -38,31 +38,45 @@ export default function RealUsersModal({ open, onOpenChange, users, onSuccess })
         throw new Error('Este email ya tiene una cuenta registrada');
       }
 
-      // Usar función backend que genera ID personalizado automáticamente
+      // Usar función backend que genera ID personalizado automáticamente y
+      // aplica el rol personalizado tras el registro.
       const response = await base44.functions.invoke('inviteUserFunction', {
         email,
         role: rol
       });
 
-      // Actualizar usuario con datos adicionales
-      const createdUsers = await base44.entities.User.filter({ email });
-      if (createdUsers.length > 0) {
-        await base44.entities.User.update(createdUsers[0].id, {
-          full_name: nombre,
-          cargo,
-          acceso_hasta: accesoHasta || null,
-          tipo_cuenta: 'real',
-        });
+      const estado = response.data?.estado;
+      const userId = response.data?.user_id_personalizado;
+
+      // Si el usuario ya estaba registrado (aceptó la invitación antes), aplicamos los
+      // datos adicionales inmediatamente. Si está pendiente, dejamos que el flujo de
+      // invitación complete el alta y el admin rellenará el resto tras el registro.
+      if (estado === 'registrado') {
+        const createdUsers = await base44.entities.User.filter({ email });
+        if (createdUsers.length > 0) {
+          await base44.entities.User.update(createdUsers[0].id, {
+            full_name: nombre,
+            cargo,
+            acceso_hasta: accesoHasta || null,
+            tipo_cuenta: 'real',
+          });
+        }
       }
 
-      return { email, nombre, user_id_personalizado: response.data.user_id_personalizado };
+      return { email, nombre, user_id_personalizado: userId, estado };
     },
     onSuccess: (data) => {
-      let mensaje = `✓ Usuario ${data.nombre} añadido correctamente`;
-      if (data.user_id_personalizado) {
-        mensaje += ` (ID: ${data.user_id_personalizado})`;
+      let mensaje;
+      if (data.estado === 'pendiente_aceptacion') {
+        mensaje = `Invitación enviada a ${data.email}. El usuario aparecerá en la lista tras aceptar el email de invitación.`;
+        toast.message(mensaje, { duration: 8000 });
+      } else {
+        mensaje = `✓ Usuario ${data.nombre} añadido correctamente`;
+        if (data.user_id_personalizado) {
+          mensaje += ` (ID: ${data.user_id_personalizado})`;
+        }
+        toast.success(mensaje);
       }
-      toast.success(mensaje);
       onOpenChange(false);
       onSuccess();
       // Reset form
