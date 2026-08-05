@@ -15,11 +15,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    const validRoles = ['admin', 'gerencia', 'director_comercial', 'jefe_obra', 'operario', 'control_horario', 'cliente_obra', 'usuario_demo'];
+    const validRoles = ['admin', 'gerencia', 'director_comercial', 'jefe_obra', 'operario', 'control_horario', 'cliente_obra', 'técnico', 'usuario_demo'];
     const userRole = validRoles.includes(role) ? role : 'operario';
 
-    // Invitar al usuario
-    await base44.users.inviteUser(email, userRole);
+    // La API de invitación solo acepta 'user' o 'admin'. Invitamos como 'user'
+    // y luego actualizamos el rol personalizado en la entidad User.
+    const inviteRole = userRole === 'admin' ? 'admin' : 'user';
+    await base44.users.inviteUser(email, inviteRole);
 
     // Esperar un momento para que el usuario se registre
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -57,9 +59,10 @@ Deno.serve(async (req) => {
       const nuevoSecuencial = maxSecuencial + 1;
       const idPersonalizado = `${year}-${String(nuevoSecuencial).padStart(4, '0')}`;
 
-      // Actualizar usuario con ID personalizado
+      // Actualizar usuario con ID personalizado y rol personalizado
       await base44.asServiceRole.entities.User.update(nuevoUsuario.id, {
-        user_id_personalizado: idPersonalizado
+        user_id_personalizado: idPersonalizado,
+        role: userRole
       });
 
       return Response.json({ 
