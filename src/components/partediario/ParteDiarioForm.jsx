@@ -10,7 +10,7 @@ import { Loader2 } from 'lucide-react';
 import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import ParteFotosInput from './ParteFotosInput';
-import ParteTecnicosAdicionales from './ParteTecnicosAdicionales';
+import ParteTecnicosDropdown from './ParteTecnicosDropdown';
 import SignatureCanvas from '@/components/workorders/SignatureCanvas';
 
 export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
@@ -105,7 +105,7 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
 
       <div className="space-y-1.5">
         <Label className="text-xs">¿Otros técnicos en la jornada?</Label>
-        <ParteTecnicosAdicionales
+        <ParteTecnicosDropdown
           tecnicoActualId={editing?.tecnico_id || user?.id}
           seleccionados={tecnicosAdicionales}
           onChange={setTecnicosAdicionales}
