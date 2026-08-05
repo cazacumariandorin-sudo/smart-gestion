@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 import { Plus, Copy, Link } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
-const ROLES_REALES = ['admin', 'gerencia', 'director_comercial', 'jefe_obra', 'operario', 'control_horario', 'cliente_obra'];
+const ROLES_REALES = ['admin', 'gerencia', 'director_comercial', 'jefe_obra', 'técnico', 'operario', 'control_horario', 'cliente_obra'];
 
 export default function AddUserTab({ users, usersLoaded, isOwner, onInvited }) {
   const [inviteEmail, setInviteEmail] = useState('');
