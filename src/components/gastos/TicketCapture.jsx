@@ -56,16 +56,18 @@ export default function TicketCapture({ onDone, onSkip }) {
 
       // Subir archivo (comprimido si es imagen) a Base44 CDN.
       // La función backend `procesarOcrNota` exige `file_url`, no base64.
-      let blob = file;
+      let subidafFile = file;
       if (esImagen && base64.startsWith('data:')) {
         const parts = base64.split(',');
         const mime = (parts[0].match(/:(.*?);/)?.[1]) || file.type;
         const binStr = atob(parts[1]);
         const u8 = new Uint8Array(binStr.length);
         for (let i = 0; i < binStr.length; i++) u8[i] = binStr.charCodeAt(i);
-        blob = new Blob([u8], { type: mime });
+        // UploadFile exige un File (con nombre) — un Blob pelado se rechaza como "empty object"
+        const ext = (mime.split('/')[1] || 'jpeg').split('+')[0];
+        subidafFile = new File([u8], file.name.replace(/\.(jpe?g|png|gif|webp|pdf)$/i, '') + '_comp.' + ext, { type: mime });
       }
-      const subida = await base44.integrations.Core.UploadFile({ file: blob });
+      const subida = await base44.integrations.Core.UploadFile({ file: subidafFile });
       const file_url = subida?.file_url;
       if (!file_url) throw new Error('No se pudo subir el archivo al almacenamiento');
 
