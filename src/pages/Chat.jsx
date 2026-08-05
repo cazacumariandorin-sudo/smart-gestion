@@ -212,21 +212,15 @@ export default function Chat() {
 
       const msg = await base44.entities.ChatMensaje.create(mensajePayload);
 
-      // Actualizar conversación
-      await base44.entities.ChatConversacion.update(selectedConvId, {
-        ultimo_mensaje_texto: text ? (text.substring(0, 50) || '[Archivo]') : '[Archivo]',
-        ultimo_mensaje_fecha: new Date().toISOString(),
-        ultimo_mensaje_autor: currentUser?.full_name || currentUser?.email,
-        total_mensajes: (selectedConv?.total_mensajes || 0) + 1,
-      });
-
-      // Notificaciones
-      if (msg?.id) {
-        base44.functions.invoke('notificarNuevoMensaje', {
-          conversacion_id: selectedConvId,
-          mensaje_id: msg.id,
-        }).catch(() => {});
-      }
+      // Actualizar conversación + notificaciones vía backend (service role)
+      // — evita "Permission denied" para técnicos al hacer ChatConversacion.update
+      // No se espera (fire & forget): el email puede tardar y no debe bloquear el envío
+      base44.functions.invoke('notificarNuevoMensaje', {
+        conversacion_id: selectedConvId,
+        mensaje_id: msg?.id || null,
+        preview_texto: text ? (text.substring(0, 50) || '[Archivo]') : '[Archivo]',
+        incrementar_total: true,
+      }).catch((e) => console.error('Error notificando mensaje:', e));
 
       return msg;
     },

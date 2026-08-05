@@ -9,44 +9,58 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { conversacion_id, mensaje_id } = await req.json();
+    const { conversacion_id, mensaje_id, preview_texto, incrementar_total = false } = await req.json();
 
     if (!conversacion_id) {
       return Response.json({ error: 'Falta conversacion_id' }, { status: 400 });
     }
 
-    // Obtener conversación y participantes
+    // Obtener conversación (lectura con RLS del usuario — participante o autor solo)
     const conversacion = await base44.entities.ChatConversacion.get(conversacion_id);
-    
+
     if (!conversacion) {
       return Response.json({ error: 'Conversación no encontrada' }, { status: 404 });
     }
 
-    // Obtener mensaje
-    const mensaje = await base44.entities.ChatMensaje.get(mensaje_id);
-    
-    // Actualizar último mensaje
-    await base44.entities.ChatConversacion.update(conversacion_id, {
-      ultimo_mensaje_texto: mensaje?.tipo_mensaje === 'cifrado' 
-        ? '🔒 Mensaje cifrado' 
-        : mensaje?.mensaje_cifrado?.substring(0, 50) || 'Nuevo mensaje',
+    // Verificar que el usuario sea participante o creador
+    const esParticipante = (conversacion.participantes || []).some(
+      p => p.user_email === user.email
+    );
+    if (!esParticipante && conversacion.created_by !== user.email) {
+      return Response.json({ error: 'No autorizado' }, { status: 403 });
+    }
+
+    // Obtener mensaje (lectura con RLS — jorge es destinatario o autor)
+    const mensaje = mensaje_id
+      ? await base44.entities.ChatMensaje.get(mensaje_id)
+      : null;
+
+    // Actualizar conversación como service role — bypassa RLS para que técnicos
+    // (que no tienen update explícito en ChatConversacion) puedan actualizar el
+    // último mensaje al enviar.
+    const updateData: any = {
+      ultimo_mensaje_texto: preview_texto ||
+        (mensaje?.tipo_mensaje === 'cifrado'
+          ? '🔒 Mensaje cifrado'
+          : (mensaje?.mensaje_cifrado || '').substring(0, 50) || 'Nuevo mensaje'),
       ultimo_mensaje_fecha: new Date().toISOString(),
+      ultimo_mensaje_autor: mensaje?.autor_nombre || user.full_name || user.email,
       updated_date: new Date().toISOString(),
-    });
+    };
+    if (incrementar_total) {
+      updateData.total_mensajes = (conversacion.total_mensajes || 0) + 1;
+    }
+    await base44.asServiceRole.entities.ChatConversacion.update(conversacion_id, updateData);
 
     // Enviar notificaciones push a los participantes (excepto al remitente)
     const remitenteEmail = mensaje?.autor_email || user.email;
     const conversacionNombre = conversacion.nombre || 'Chat';
-    
-    // Filtrar participantes que no son el remitente
-    const participantesParaNotificar = conversacion.participantes?.filter(
-      p => p.user_email !== remitenteEmail
-    ) || [];
 
-    // Enviar notificación a cada participante
+    const participantesParaNotificar = (conversacion.participantes || [])
+      .filter(p => p.user_email && p.user_email !== remitenteEmail);
+
     for (const participante of participantesParaNotificar) {
       try {
-        // Enviar email de notificación
         await base44.integrations.Core.SendEmail({
           to: participante.user_email,
           subject: `Nuevo mensaje en ${conversacionNombre}`,
@@ -62,7 +76,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ 
+    return Response.json({
       success: true,
       conversacion_id,
       mensaje_id,
