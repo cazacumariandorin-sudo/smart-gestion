@@ -28,7 +28,7 @@ const PREFIJOS = {
   WorkOrder:   'ALB',
   Vehiculo:    'VEH',
   User:        'USR',
-  Presupuesto: 'PRES',
+  Presupuesto: 'PRE',
   Drawing:     'PLN',
 };
 
@@ -40,10 +40,10 @@ const PREFIJOS = {
  * @param entidad Nombre de la entidad para formatos especiales
  */
 function formatearId(prefijo, secuencial, anio, entidad) {
-  // Presupuesto usa formato especial: PRES-SG-AAAA-NNN
+  // Presupuesto usa formato interno: PRE-AAAA-SSSSS (ej: PRE-2026-00001)
   if (entidad === 'Presupuesto') {
-    const seq3 = String(secuencial).padStart(3, '0');
-    return `${prefijo.toUpperCase()}-SG-${anio}-${seq3}`;
+    const seq5 = String(secuencial).padStart(5, '0');
+    return `${prefijo.toUpperCase()}-${anio}-${seq5}`;
   }
   // Formato estándar para resto de entidades: PREFIJO-AA-SSSSS
   const anio2 = String(anio).slice(-2);
@@ -55,14 +55,26 @@ function formatearId(prefijo, secuencial, anio, entidad) {
  * Calcula el siguiente secuencial para una entidad y año dados.
  * Busca el mayor número ya asignado en el campo `campo` filtrando por año en el ID.
  */
-function calcularSiguienteSecuencial(registros, campo, prefijo, anio2) {
+function calcularSiguienteSecuencial(registros, campo, prefijo, anio, entidad) {
   let max = 0;
+  const anio2 = String(anio).slice(-2);
+  const anioFull = String(anio);
   for (const r of registros) {
     const val = r[campo];
     if (!val) continue;
-    // Formato esperado: PREFIJO-AÑO-SSSSS
     const partes = val.split('-');
-    if (partes.length === 3 && partes[0] === prefijo && partes[1] === anio2) {
+    // Presupuesto nuevo: PRE-AAAA-SSSSS
+    if (entidad === 'Presupuesto' && partes.length === 3 && partes[0] === prefijo && partes[1] === anioFull) {
+      const n = parseInt(partes[2], 10);
+      if (!isNaN(n) && n > max) max = n;
+    }
+    // Presupuesto legacy: PRES-SG-AAAA-NNN
+    else if (entidad === 'Presupuesto' && partes.length === 4 && partes[0] === 'PRES' && partes[2] === anioFull) {
+      const n = parseInt(partes[3], 10);
+      if (!isNaN(n) && n > max) max = n;
+    }
+    // Estándar: PREFIJO-AA-SSSSS
+    else if (partes.length === 3 && partes[0] === prefijo && partes[1] === anio2) {
       const n = parseInt(partes[2], 10);
       if (!isNaN(n) && n > max) max = n;
     }
@@ -102,7 +114,7 @@ Deno.serve(async (req) => {
     }
 
     const todos = await entityApi.list('-created_date', 500);
-    const siguiente = calcularSiguienteSecuencial(todos, campoId, prefijo, anio2);
+    const siguiente = calcularSiguienteSecuencial(todos, campoId, prefijo, anio, entidad);
     const nuevoId = formatearId(prefijo, siguiente, anio, entidad);
 
     // Actualizar el registro con el nuevo ID

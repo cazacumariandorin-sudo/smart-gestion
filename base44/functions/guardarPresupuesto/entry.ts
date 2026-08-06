@@ -19,8 +19,9 @@ Deno.serve(async (req) => {
         const { titulo, cliente_id, cliente_name, fecha, importe, conceptos, partes_trabajo_ids, notas, file_url, descripcion, es_duplicado_confirmado = false } = body;
 
         // Validaciones básicas (título es opcional, se autogenera)
-        if (!cliente_id || !fecha || !importe) {
-            return Response.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+        // El importe puede ser 0 (líneas de concepto sin precio, valoración delegada)
+        if (!cliente_id || !fecha || importe === undefined || importe === null || Number.isNaN(Number(importe))) {
+            return Response.json({ error: 'Faltan campos obligatorios: cliente, fecha e importe' }, { status: 400 });
         }
 
         // Generar título automático si no se proporciona (usando código de registro)

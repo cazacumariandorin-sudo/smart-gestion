@@ -8,6 +8,7 @@ import { Plus, FileText, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import PresupuestoForm from "@/pages/presupuestos/PresupuestoForm";
+import { toast } from "sonner";
 
 export default function Presupuestos() {
     const queryClient = useQueryClient();
@@ -25,16 +26,18 @@ export default function Presupuestos() {
             return response.data;
         },
         onSuccess: async (result) => {
-            if (result.code === 'DUPLICATE_BUDGET') {
+            if (result?.code === 'DUPLICATE_BUDGET') {
                 setDuplicadoConfirm(result);
             } else {
-                // Asignar ID único al presupuesto recién creado
-                if (result.id) {
-                    try { await base44.functions.invoke('generarIdUnico', { entidad: 'Presupuesto', record_id: result.id, campo_id: 'codigo_registro' }); } catch {}
-                }
                 queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
                 setShowForm(false);
+                toast.success(result?.codigo_registro
+                    ? `Presupuesto guardado · ${result.codigo_registro}`
+                    : 'Presupuesto guardado correctamente');
             }
+        },
+        onError: (err) => {
+            toast.error('No se pudo guardar el presupuesto: ' + (err?.message || 'Inténtalo de nuevo'));
         },
     });
 
