@@ -8,6 +8,7 @@ import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { Car, Plus, Edit2, Trash2, Bell, BellOff, AlertTriangle, CheckCircle2, Clock, Wrench, Loader2, ChevronDown, ChevronUp, Route, MapPin, Fuel, Siren } from 'lucide-react';
 import ReportarAveriaDialog from '@/components/flota/ReportarAveriaDialog';
+import RepostajeRapidoDialog from '@/components/flota/RepostajeRapidoDialog';
 import CostesFlotaProyecto from '@/components/flota/CostesFlotaProyecto';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,7 @@ const TIPO_ALERTA_LABELS = {
   averia_electrica: 'Avería eléctrica',
   testigo_panel: 'Testigo en el panel',
   otra_incidencia: 'Otra incidencia',
+  repostaje: 'Repostaje combustible',
 };
 
 function diasHasta(fechaStr) {
@@ -106,7 +108,7 @@ function FormField({ label, id, type = 'text', value, onChange, placeholder, hin
   );
 }
 
-function VehiculoCard({ v, onEdit, onDelete, isAdmin, onReportarAveria }) {
+function VehiculoCard({ v, onEdit, onDelete, isAdmin, onReportarAveria, onRepostaje }) {
   const [expanded, setExpanded] = useState(false);
   const itvDias = diasHasta(v.itv_fecha);
   const aceiteDias = diasHasta(v.aceite_fecha);
@@ -139,6 +141,9 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin, onReportarAveria }) {
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" title="Registrar repostaje" onClick={() => onRepostaje(v)}>
+            <Fuel className="w-4 h-4" />
+          </Button>
           <Button size="icon" variant="ghost" className="h-8 w-8 text-orange-500 hover:text-orange-600" title="Reportar avería" onClick={() => onReportarAveria(v)}>
             <Siren className="w-4 h-4" />
           </Button>
@@ -196,6 +201,7 @@ export default function Flota() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [averiaVehiculo, setAveriaVehiculo] = useState(null);
+  const [repostajeVehiculo, setRepostajeVehiculo] = useState(null);
 
   const onRefresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['vehiculos'] });
@@ -281,6 +287,43 @@ export default function Flota() {
     () => toast.success('Vehículo eliminado'),
     () => toast.error('Error al eliminar')
   );
+
+  const repostajeMutation = useMutation({
+    mutationFn: async (lugar) => {
+      const v = repostajeVehiculo;
+      const tecnico = user?.full_name || user?.email || '';
+      await base44.entities.AlertaVehiculo.create({
+        vehiculo_id: v.id,
+        vehiculo_matricula: v.matricula,
+        vehiculo_modelo: v.modelo,
+        tipo: 'repostaje',
+        urgencia: 'baja',
+        lugar,
+        descripcion: `Suministro de combustible registrado por ${tecnico}`,
+        reportada_por_nombre: tecnico,
+        fecha: new Date().toISOString().split('T')[0],
+        km_actuales: v.km_actuales || undefined,
+      });
+      await base44.entities.AsistenteTarea.create({
+        titulo: `Repostaje — ${v.matricula} (${v.modelo})`,
+        descripcion: `${tecnico} repostó combustible en: ${lugar}`,
+        tipo: 'alerta',
+        prioridad: 'baja',
+        entidad_relacionada_tipo: 'Vehiculo',
+        entidad_relacionada_id: v.id,
+        creada_por: 'usuario',
+        solo_gerencia: true,
+        modulo: 'flota',
+        origen_solicitud: tecnico,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['alertas-vehiculo'] });
+      setRepostajeVehiculo(null);
+      toast.success('Repostaje registrado. Gerencia y administración avisadas.');
+    },
+    onError: () => toast.error('Error al registrar el repostaje'),
+  });
 
   const handleEdit = (v) => {
     setEditing(v);
@@ -381,7 +424,7 @@ export default function Flota() {
             ) : (
               <div className="space-y-3">
                 {vehiculos.map(v => (
-                  <VehiculoCard key={v.id} v={v} onEdit={handleEdit} onDelete={(id) => deleteMutation.mutate(id)} isAdmin={isAdmin} onReportarAveria={setAveriaVehiculo} />
+                  <VehiculoCard key={v.id} v={v} onEdit={handleEdit} onDelete={(id) => deleteMutation.mutate(id)} isAdmin={isAdmin} onReportarAveria={setAveriaVehiculo} onRepostaje={setRepostajeVehiculo} />
                 ))}
               </div>
             )}
@@ -445,6 +488,7 @@ export default function Flota() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          {a.lugar && <Badge variant="outline" className="text-xs gap-1"><MapPin className="w-3 h-3" />{a.lugar}</Badge>}
                           <Badge className={cn('text-xs', URGENCIA_COLORS[a.urgencia])}>{a.urgencia}</Badge>
                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => resolverAlertaMutation.mutate(a.id)}>
                             Resolver
@@ -589,6 +633,15 @@ export default function Flota() {
         onOpenChange={(o) => { if (!o) setAveriaVehiculo(null); }}
         onSubmit={(data) => reportarAveriaMutation.mutate(data)}
         isSubmitting={reportarAveriaMutation.isPending}
+      />
+
+      <RepostajeRapidoDialog
+        vehiculo={repostajeVehiculo}
+        open={!!repostajeVehiculo}
+        onOpenChange={(o) => { if (!o) setRepostajeVehiculo(null); }}
+        onSubmit={(lugar) => repostajeMutation.mutate(lugar)}
+        isSubmitting={repostajeMutation.isPending}
+        tecnicoNombre={user?.full_name || user?.email}
       />
     </div>
   );

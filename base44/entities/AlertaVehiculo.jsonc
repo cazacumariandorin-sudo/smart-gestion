@@ -54,7 +54,8 @@
         "averia_frenos",
         "averia_electrica",
         "testigo_panel",
-        "otra_incidencia"
+        "otra_incidencia",
+        "repostaje"
       ],
       "type": "string"
     },
@@ -82,7 +83,11 @@
       "type": "string"
     },
     "reportada_por_nombre": {
-      "description": "Nombre de quien report\u00f3 la incidencia (para aver\u00edas reportadas manualmente)",
+      "description": "Nombre de quien report\u00f3 la incidencia (para aver\u00edas/reportes manuales)",
+      "type": "string"
+    },
+    "lugar": {
+      "description": "Lugar gen\u00e9rico del aviso (ej. repostaje: gasolinera, obra, almac\u00e9n...)",
       "type": "string"
     }
   },
