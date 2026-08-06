@@ -6,6 +6,10 @@
       "type": "string",
       "description": "ID del operario vinculado"
     },
+    "operario_user_email": {
+      "type": "string",
+      "description": "Email del usuario de la app vinculado al operario (para RLS y filtros r\u00e1pidos)"
+    },
     "operario_name": {
       "type": "string",
       "description": "Nombre del operario"
@@ -28,7 +32,7 @@
     },
     "file_url": {
       "type": "string",
-      "description": "URL del PDF de la n\u00f3mina individual"
+      "description": "URL del PDF"
     },
     "drive_file_id": {
       "type": "string",
@@ -41,43 +45,35 @@
         "resumen_costes"
       ],
       "default": "nomina_individual",
-      "description": "Tipo de documento cargado: n\u00f3mina individual por p\u00e1gina o resumen estad\u00edstico de costes (GEFISCAL)"
+      "description": "Tipo de documento: n\u00f3mina individual o resumen GEFISCAL"
     },
     "liquido_percibir": {
-      "type": "number",
-      "description": "L\u00edquido a percibir"
+      "type": "number"
     },
     "total_devengado": {
-      "type": "number",
-      "description": "Total devengado"
+      "type": "number"
     },
     "prorrata_pagas_extra": {
-      "type": "number",
-      "description": "Prorrata pagas extraordinarias"
+      "type": "number"
     },
     "cuotas_obreras": {
       "type": "number",
       "description": "Cuotas obreras (SS trabajador)"
     },
     "retencion_irpf": {
-      "type": "number",
-      "description": "Retenci\u00f3n IRPF"
+      "type": "number"
     },
     "coste_ss_empresa": {
-      "type": "number",
-      "description": "Coste Seguridad Social a cargo de la empresa"
+      "type": "number"
     },
     "coste_empresa": {
-      "type": "number",
-      "description": "Coste total para la empresa (l\u00edquido + SS empresa)"
+      "type": "number"
     },
     "anticipos_deducciones": {
-      "type": "number",
-      "description": "Anticipos y deducciones aplicadas (anticipo, descuento especie, etc.)"
+      "type": "number"
     },
     "tipo_anticipo": {
-      "type": "string",
-      "description": "Tipo de deducci\u00f3n: ANTICIPO, DTO ESPECIE, etc."
+      "type": "string"
     },
     "estado_asignacion": {
       "type": "string",
@@ -86,20 +82,16 @@
         "sin_asignar",
         "revision_manual"
       ],
-      "default": "asignada",
-      "description": "Estado de la asignaci\u00f3n autom\u00e1tica"
+      "default": "asignada"
     },
     "lote_id": {
-      "type": "string",
-      "description": "ID del lote de procesamiento"
+      "type": "string"
     },
     "pagina_origen": {
-      "type": "integer",
-      "description": "N\u00famero de p\u00e1gina en el PDF original (nominas individuales)"
+      "type": "integer"
     },
     "texto_extraido": {
-      "type": "string",
-      "description": "JSON extra\u00eddo del PDF para referencia / asistente"
+      "type": "string"
     }
   },
   "required": [
@@ -139,7 +131,7 @@
           }
         },
         {
-          "data.operario_id": "{{user.id}}"
+          "data.operario_user_email": "{{user.email}}"
         }
       ]
     },
