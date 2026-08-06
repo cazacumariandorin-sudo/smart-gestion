@@ -13,6 +13,7 @@ import { es } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import OcrUploader from "@/components/gastos/OcrUploader";
 import ParteSelector from "@/components/presupuestos/ParteSelector";
+import { extraerConceptosDesdeTexto } from "@/lib/conceptosExtractor";
 
 export default function PresupuestoForm({ onSubmit, onCancel }) {
     const [formData, setFormData] = useState({
@@ -98,6 +99,7 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                     p.materiales_necesarios ? `Materiales: ${p.materiales_necesarios}` : null,
                     p.trabajos_pendientes ? `Pendiente: ${p.trabajos_pendientes}` : null,
                 ].filter(Boolean).join('\n'),
+                materiales_texto: p.materiales_necesarios || '',
             }));
 
             return [...wosNorm, ...pdsNorm].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
@@ -121,14 +123,16 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
     };
 
     const handleAddConcepto = () => {
-        if (!nuevoConcepto.descripcion || !nuevoConcepto.precio_unitario) return;
-        
-        const total = nuevoConcepto.cantidad * nuevoConcepto.precio_unitario;
+        // Permitir añadir líneas sin precio (la valoración puede hacerla otro usuario)
+        if (!nuevoConcepto.descripcion || !nuevoConcepto.descripcion.trim()) return;
+
+        const precioUnitario = parseFloat(nuevoConcepto.precio_unitario) || 0;
+        const total = (nuevoConcepto.cantidad || 1) * precioUnitario;
         setFormData(prev => ({
             ...prev,
-            conceptos: [...prev.conceptos, { ...nuevoConcepto, total }]
+            conceptos: [...prev.conceptos, { ...nuevoConcepto, precio_unitario: precioUnitario, total }]
         }));
-        
+
         setFormData(prev => ({ ...prev, importe: prev.importe + total }));
         setNuevoConcepto({ descripcion: "", cantidad: 1, unidad: "ud", precio_unitario: 0 });
     };
@@ -145,7 +149,7 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
     const handleToggleParteTrabajo = (parte) => {
         const ya = formData.partes_trabajo_ids.includes(parte.id);
 
-        // Autocompletar descripción: al añadir, anexamos el resumen del parte si no está ya presente
+        // Autocompletar descripción: al añadir, anexamos el resumen del parte si no está presente
         let nuevaDesc = formData.descripcion;
         if (!ya && parte.descripcion_auto) {
             const marca = parte.descripcion_auto.trim().slice(0, 40);
@@ -156,13 +160,32 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
             }
         }
 
-        setFormData(prev => ({
-            ...prev,
-            partes_trabajo_ids: ya
-                ? prev.partes_trabajo_ids.filter(id => id !== parte.id)
-                : [...prev.partes_trabajo_ids, parte.id],
-            descripcion: nuevaDesc,
-        }));
+        // Extraer conceptos desde los materiales del parte (sin precio)
+        let conceptosExtraidos = [];
+        if (!ya && parte.materiales_texto) {
+            conceptosExtraidos = extraerConceptosDesdeTexto(parte.materiales_texto);
+        }
+
+        setFormData(prev => {
+            let nuevosConceptos = prev.conceptos;
+            if (!ya && conceptosExtraidos.length) {
+                const sinDuplicar = conceptosExtraidos.filter(nc =>
+                    !prev.conceptos.some(ec =>
+                        ec.descripcion.trim().toLowerCase() === nc.descripcion.trim().toLowerCase() &&
+                        Number(ec.cantidad) === Number(nc.cantidad)
+                    )
+                );
+                nuevosConceptos = [...prev.conceptos, ...sinDuplicar];
+            }
+            return {
+                ...prev,
+                partes_trabajo_ids: ya
+                    ? prev.partes_trabajo_ids.filter(id => id !== parte.id)
+                    : [...prev.partes_trabajo_ids, parte.id],
+                descripcion: nuevaDesc,
+                conceptos: nuevosConceptos,
+            };
+        });
     };
 
     const handleSubmit = (e) => {
