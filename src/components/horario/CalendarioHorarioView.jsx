@@ -2,10 +2,12 @@ import { useState, useMemo } from 'react';
 import { startOfMonth, endOfMonth, eachDayOfInterval, getDay, format, isSameMonth, isToday, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, User, Building2, CheckCircle2, AlertTriangle, XCircle, Coffee, ClipboardCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Building2, CheckCircle2, AlertTriangle, XCircle, Coffee, ClipboardCheck, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useQueryClient } from '@tanstack/react-query';
+import GestionDiaSheet from './GestionDiaSheet';
 
 function horasMinutos(hStr) {
   if (!hStr) return null;
@@ -25,7 +27,7 @@ function calcularMinutosFichaje(f) {
   return Math.max(0, diff);
 }
 
-function DiaCell({ date, fichajesDia = [], canSeeAll, isCurrentMonth, onClick }) {
+function DiaCell({ date, fichajesDia = [], canSeeAll, canForce = false, isCurrentMonth, onClick }) {
   const sinSalida = fichajesDia.filter(f => f.hora_entrada && !f.hora_salida).length;
   const estado = fichajesDia.length === 0 ? 'vacio' : sinSalida > 0 ? 'incompleto' : 'completo';
   const totalMins = fichajesDia.reduce((s, f) => s + calcularMinutosFichaje(f), 0);
@@ -37,12 +39,13 @@ function DiaCell({ date, fichajesDia = [], canSeeAll, isCurrentMonth, onClick })
 
   return (
     <button
-      onClick={() => hasFichajes && onClick(date, fichajesDia)}
+      onClick={() => (canForce || hasFichajes) && onClick(date, fichajesDia)}
       className={cn(
         'relative flex flex-col rounded-lg border transition-all duration-100 select-none p-1.5 min-h-[72px]',
         !isCurrentMonth ? 'border-transparent opacity-30 pointer-events-none' :
-        !hasFichajes && esFinSemana ? 'border-border/30 bg-muted/20 cursor-default' :
-        !hasFichajes ? 'border-border/40 bg-background cursor-default hover:bg-muted/20' :
+        !hasFichajes && !canForce && esFinSemana ? 'border-border/30 bg-muted/20 cursor-default' :
+        !hasFichajes && !canForce ? 'border-border/40 bg-background cursor-default hover:bg-muted/20' :
+        !hasFichajes && canForce ? 'border-dashed border-border/60 bg-background hover:bg-muted/40 active:scale-[0.97] cursor-pointer' :
         estado === 'completo' ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 active:scale-[0.97] cursor-pointer' :
         'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 active:scale-[0.97] cursor-pointer',
         hoy && 'ring-2 ring-primary ring-offset-1',
@@ -62,6 +65,7 @@ function DiaCell({ date, fichajesDia = [], canSeeAll, isCurrentMonth, onClick })
           </div>
         </div>
       )}
+      {!hasFichajes && canForce && <Plus className="w-3 h-3 text-muted-foreground/40 absolute bottom-1.5 right-1.5" />}
     </button>
   );
 }
@@ -144,10 +148,10 @@ function DetalleDiaSheet({ date, fichajes, open, onClose }) {
 
 const DIAS_SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
-export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false, month, onMonthChange }) {
+export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false, canForce = false, operarios = [], month, onMonthChange }) {
   const [mesInterno, setMesInterno] = useState(new Date());
   const [diaSeleccionado, setDiaSeleccionado] = useState(null);
-  const [fichajesDia, setFichajesDia] = useState([]);
+  const qc = useQueryClient();
 
   // Mes controlado: si el padre pasa `month` (YYYY-MM) + `onMonthChange`, el selector
   // externo de mes dirige el calendario; si no, se usa el estado interno (flechas).
@@ -179,6 +183,8 @@ export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false
     });
     return map;
   }, [fichajes]);
+
+  const fichajesDia = diaSeleccionado ? (fichajesPorDia[format(diaSeleccionado, 'yyyy-MM-dd')] || []) : [];
 
   const { totalMinsMes, diasConFichajes, trabajadoresUnicos, sinSalidaMes } = useMemo(() => {
     let totalMinsMes = 0; const diasSet = new Set(); const trabSet = new Set(); let sinSalidaMes = 0;
@@ -226,9 +232,9 @@ export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false
           if (!date) return <div key={`e-${idx}`} />;
           const key = format(date, 'yyyy-MM-dd');
           return (
-            <DiaCell key={key} date={date} fichajesDia={fichajesPorDia[key] || []} canSeeAll={canSeeAll}
+            <DiaCell key={key} date={date} fichajesDia={fichajesPorDia[key] || []} canSeeAll={canSeeAll} canForce={canForce}
               isCurrentMonth={isSameMonth(date, mesActual)}
-              onClick={(d, fs) => { setDiaSeleccionado(d); setFichajesDia(fs); }} />
+              onClick={(d) => setDiaSeleccionado(d)} />
           );
         })}
       </div>
@@ -239,7 +245,11 @@ export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false
           </div>
         ))}
       </div>
-      <DetalleDiaSheet date={diaSeleccionado} fichajes={fichajesDia} open={!!diaSeleccionado} onClose={() => setDiaSeleccionado(null)} />
+      {canForce ? (
+        <GestionDiaSheet date={diaSeleccionado} fichajes={fichajesDia} operarios={operarios} open={!!diaSeleccionado} onClose={() => setDiaSeleccionado(null)} onUpdated={() => qc.invalidateQueries({ queryKey: ['fichajes'] })} />
+      ) : (
+        <DetalleDiaSheet date={diaSeleccionado} fichajes={fichajesDia} open={!!diaSeleccionado} onClose={() => setDiaSeleccionado(null)} />
+      )}
     </div>
   );
 }
