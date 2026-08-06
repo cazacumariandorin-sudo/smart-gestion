@@ -144,10 +144,19 @@ function DetalleDiaSheet({ date, fichajes, open, onClose }) {
 
 const DIAS_SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
-export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false }) {
-  const [mesActual, setMesActual] = useState(new Date());
+export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false, month, onMonthChange }) {
+  const [mesInterno, setMesInterno] = useState(new Date());
   const [diaSeleccionado, setDiaSeleccionado] = useState(null);
   const [fichajesDia, setFichajesDia] = useState([]);
+
+  // Mes controlado: si el padre pasa `month` (YYYY-MM) + `onMonthChange`, el selector
+  // externo de mes dirige el calendario; si no, se usa el estado interno (flechas).
+  const mesActual = month ? new Date(month + '-01T00:00:00') : mesInterno;
+  const mesKey = format(mesActual, 'yyyy-MM');
+  const setMesActual = (d) => {
+    if (onMonthChange) onMonthChange(format(d, 'yyyy-MM'));
+    else setMesInterno(d);
+  };
 
   const diasMes = useMemo(() => {
     const inicio = startOfMonth(mesActual); const fin = endOfMonth(mesActual);
@@ -158,7 +167,7 @@ export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false
     dias.forEach(d => celdas.push(d));
     while (celdas.length % 7 !== 0) celdas.push(null);
     return celdas;
-  }, [mesActual]);
+  }, [mesKey]);
 
   const fichajesPorDia = useMemo(() => {
     const map = {};
@@ -173,7 +182,7 @@ export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false
 
   const { totalMinsMes, diasConFichajes, trabajadoresUnicos, sinSalidaMes } = useMemo(() => {
     let totalMinsMes = 0; const diasSet = new Set(); const trabSet = new Set(); let sinSalidaMes = 0;
-    const pref = format(mesActual, 'yyyy-MM');
+    const pref = mesKey;
     fichajes.forEach(f => {
       if (!f.date?.startsWith(pref)) return;
       totalMinsMes += calcularMinutosFichaje(f);
@@ -181,7 +190,7 @@ export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false
       if (f.hora_entrada && !f.hora_salida) sinSalidaMes++;
     });
     return { totalMinsMes, diasConFichajes: diasSet.size, trabajadoresUnicos: trabSet.size, sinSalidaMes };
-  }, [fichajes, mesActual]);
+  }, [fichajes, mesKey]);
 
   return (
     <div className="space-y-4">
@@ -199,11 +208,11 @@ export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false
         ))}
       </div>
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => setMesActual(m => subMonths(m, 1))} className="gap-1">
+        <Button variant="ghost" size="sm" onClick={() => setMesActual(subMonths(mesActual, 1))} className="gap-1">
           <ChevronLeft className="w-4 h-4" /><span className="hidden sm:inline text-xs">Anterior</span>
         </Button>
         <h2 className="text-sm font-bold capitalize">{format(mesActual, 'MMMM yyyy', { locale: es })}</h2>
-        <Button variant="ghost" size="sm" onClick={() => setMesActual(m => addMonths(m, 1))} className="gap-1">
+        <Button variant="ghost" size="sm" onClick={() => setMesActual(addMonths(mesActual, 1))} className="gap-1">
           <span className="hidden sm:inline text-xs">Siguiente</span><ChevronRight className="w-4 h-4" />
         </Button>
       </div>
