@@ -72,12 +72,20 @@ export default function RealUsersTab() {
   const handleAsignarIdsPendientes = async () => {
     try {
       const response = await base44.functions.invoke('asignarIdsPersonalizadosExistentes', {});
-      if (response.data.success) {
-        toast.success(`IDs asignados: ${response.data.resultados.actualizados} usuarios actualizados`);
+      const payload = response?.data ?? response;
+      if (payload?.success) {
+        const n = payload?.resumen?.actualizados ?? 0;
+        toast.success(
+          n > 0
+            ? `IDs asignados: ${n} registro${n !== 1 ? 's' : ''} actualizado${n !== 1 ? 's' : ''}`
+            : 'No había IDs pendientes de asignar'
+        );
         handleRefresh();
+      } else {
+        toast.error('No se pudo completar: ' + (payload?.error || 'respuesta inválida'));
       }
     } catch (error) {
-      toast.error('Error al asignar IDs: ' + error.message);
+      toast.error('Error al asignar IDs: ' + (error?.message || 'desconocido'));
     }
   };
 
