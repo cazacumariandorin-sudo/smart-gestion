@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import OcrUploader from "@/components/gastos/OcrUploader";
+import ParteSelector from "@/components/presupuestos/ParteSelector";
 
 export default function PresupuestoForm({ onSubmit, onCancel }) {
     const [formData, setFormData] = useState({
@@ -34,7 +35,6 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
     });
 
     const [loadingPartes, setLoadingPartes] = useState(false);
-    const [busquedaPartes, setBusquedaPartes] = useState("");
     const [archivoFuente, setArchivoFuente] = useState(null);
     const [procesandoOcr, setProcesandoOcr] = useState(false);
 
@@ -104,17 +104,6 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
         },
         enabled: !!formData.cliente_id,
     });
-
-    // Filtrar partes por búsqueda (título u obra)
-    const partesFiltrados = partesTrabajo.filter(parte => {
-        if (!busquedaPartes) return true;
-        const search = busquedaPartes.toLowerCase();
-        const titulo = (parte.titulo || "").toLowerCase();
-        const obra = (parte.obra_name || "").toLowerCase();
-        return titulo.includes(search) || obra.includes(search);
-    });
-
-    const partesSeleccionados = partesTrabajo.filter(p => formData.partes_trabajo_ids.includes(p.id));
 
     const handleDatosOcrExtraidos = (datos) => {
         if (datos?.conceptos && datos.conceptos.length > 0) {
@@ -355,68 +344,18 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
 
                         {/* Partes de trabajo / diarios vinculados */}
                         {formData.cliente_id && (
-                            <div className="space-y-3">
-                                <Label className="flex items-center justify-between">
-                                    <span className="flex items-center gap-2">
-                                        <FileText className="w-4 h-4" />
-                                        Partes de Trabajo y Partes Diarios del Cliente
-                                    </span>
-                                    {(loadingPartes || isLoadingPartes) && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                            <div className="space-y-2">
+                                <Label className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4" />
+                                    Partes de Trabajo y Partes Diarios del Cliente
                                 </Label>
-
-                                {/* Selecciones activas */}
-                                {partesSeleccionados.length > 0 && (
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {partesSeleccionados.map(p => (
-                                            <Badge key={p.id} variant="default" className="gap-1 text-[10px]">
-                                                {p.tipo === 'parte_diario' ? <ClipboardCheck className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-                                                {p.titulo}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Buscador de partes */}
-                                {partesTrabajo.length > 0 && (
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input
-                                            type="text"
-                                            placeholder="Buscar por título u obra..."
-                                            value={busquedaPartes}
-                                            onChange={(e) => setBusquedaPartes(e.target.value)}
-                                            className="w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                                        />
-                                    </div>
-                                )}
-
-                                {partesFiltrados.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">
-                                        {busquedaPartes ? 'No se encontraron partes con esa búsqueda' : 'No hay partes de trabajo ni partes diarios para este cliente'}
-                                    </p>
-                                ) : (
-                                    <div className="grid gap-2 md:grid-cols-2 max-h-64 overflow-y-auto">
-                                        {partesFiltrados.map(parte => (
-                                            <Button
-                                                key={parte.id}
-                                                type="button"
-                                                variant={formData.partes_trabajo_ids.includes(parte.id) ? "default" : "outline"}
-                                                className="justify-start h-auto py-2 px-3"
-                                                onClick={() => handleToggleParteTrabajo(parte)}
-                                            >
-                                                {parte.tipo === 'parte_diario'
-                                                    ? <ClipboardCheck className="w-4 h-4 mr-2 shrink-0" />
-                                                    : <FileText className="w-4 h-4 mr-2 shrink-0" />}
-                                                <div className="text-left">
-                                                    <p className="text-xs font-medium">{parte.titulo}</p>
-                                                    <p className="text-[10px] text-muted-foreground">
-                                                        {parte.obra_name} {parte.sub ? `· ${parte.sub}` : ''}
-                                                    </p>
-                                                </div>
-                                            </Button>
-                                        ))}
-                                    </div>
-                                )}
+                                <ParteSelector
+                                    partes={partesTrabajo}
+                                    seleccionadosIds={formData.partes_trabajo_ids}
+                                    onToggle={handleToggleParteTrabajo}
+                                    clienteName={formData.cliente_name}
+                                    loading={loadingPartes || isLoadingPartes}
+                                />
                             </div>
                         )}
 
