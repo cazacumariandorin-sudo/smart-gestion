@@ -11,6 +11,7 @@ import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import ParteFotosInput from './ParteFotosInput';
 import ParteTecnicosDropdown from './ParteTecnicosDropdown';
+import ParteTrabajosExtras from './ParteTrabajosExtras';
 import SignatureCanvas from '@/components/workorders/SignatureCanvas';
 
 export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
@@ -28,6 +29,65 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
   const [fotos, setFotos] = useState(editing?.fotos || []);
   const [tecnicosAdicionales, setTecnicosAdicionales] = useState(editing?.tecnicos_adicionales || []);
   const [firmaUrl, setFirmaUrl] = useState(editing?.firma_url || '');
+  const [trabajosExtras, setTrabajosExtras] = useState([]);
+
+  const claveMensual = () => {
+    const d = new Date(`${fecha}T00:00:00`);
+    const anio = d.getFullYear();
+    const mesNum = d.getMonth() + 1;
+    const mesKey = `${anio}-${String(mesNum).padStart(2, '0')}`;
+    return { anio, mesNum, mesKey };
+  };
+
+  const obtenerClienteDeObra = async () => {
+    if (!obra.obra_id) return { client_id: '', client_name: '' };
+    try {
+      if (obra.obra_tipo === 'solar') {
+        const s = await base44.entities.SolarObra.get(obra.obra_id);
+        return { client_id: s.client_id || '', client_name: s.client_name || '' };
+      }
+      const o = await base44.entities.Obra.get(obra.obra_id);
+      return { client_id: o.client_id || '', client_name: o.client_name || '' };
+    } catch {
+      return { client_id: '', client_name: '' };
+    }
+  };
+
+  const persistCentralizados = async (parteId) => {
+    const { anio, mesNum, mesKey } = claveMensual();
+    const { client_id, client_name } = await obtenerClienteDeObra();
+    const baseSolicitante = {
+      obra_id: obra.obra_id, obra_name: obra.obra_name, obra_tipo: obra.obra_tipo,
+      client_id, client_name,
+      parte_id: parteId,
+      fecha_solicitud: fecha,
+      solicitado_por_email: user?.email,
+      solicitado_por_nombre: user?.full_name || user?.email,
+      solicitado_por_rol: user?.role,
+      mes: mesKey, anio, mes_numero: mesNum,
+    };
+
+    const extrasValidos = trabajosExtras.filter((e) => e.descripcion?.trim());
+    if (extrasValidos.length) {
+      const payloadExtras = extrasValidos.map((e) => ({
+        ...baseSolicitante,
+        descripcion: e.descripcion.trim(),
+        importe_estimado: e.importe ? Number(e.importe) : null,
+        prioridad: e.prioridad || 'media',
+        estado: 'pendiente',
+      }));
+      await base44.entities.TrabajoExtraObra.bulkCreate(payloadExtras);
+    }
+
+    if (materialesNecesarios.trim()) {
+      await base44.entities.MaterialPendiente.create({
+        ...baseSolicitante,
+        descripcion: materialesNecesarios.trim(),
+        prioridad: 'media',
+        estado: 'pendiente',
+      });
+    }
+  };
 
   const buildPayload = () => {
     const firmaNueva = !!firmaUrl && firmaUrl !== (editing?.firma_url || '');
@@ -79,10 +139,14 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
       const creado = await base44.entities.ParteDiarioObra.create(payload);
       // Replicar fotos del nuevo parte a la Galería de Fotos (clasificadas por obra/cliente)
       replicateFotosToGallery(creado.id);
+      // Migrar trabajos extras y material pendiente a sus entidades centralizadas
+      try { await persistCentralizados(creado.id); } catch (e) { console.warn('Persist centralizados falló:', e); }
       return creado;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['partes-diarios'] });
+      qc.invalidateQueries({ queryKey: ['trabajos-extras-obra'] });
+      qc.invalidateQueries({ queryKey: ['materiales-pendientes'] });
       qc.invalidateQueries({ queryKey: ['fotos-proyecto'] });
       qc.invalidateQueries({ queryKey: ['fotos'] });
       onSuccess?.();
@@ -126,7 +190,14 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
           <Textarea value={materialesNecesarios} onChange={e => setMaterialesNecesarios(e.target.value)} rows={2} placeholder="Ej: 40m3 arena, 10 sacos cemento..." className="flex-1" />
           <VoiceInputButton onResult={t => setMaterialesNecesarios(p => (p ? p + ' ' : '') + t)} />
         </div>
+        <p className="text-[10px] text-muted-foreground">
+          Al guardar el parte, este material se envía automáticamente como <b>Material Pendiente</b> a Gerencia/Administración, centralizado por obra.
+        </p>
       </div>
+
+      {!editing && (
+        <ParteTrabajosExtras extras={trabajosExtras} onChange={setTrabajosExtras} />
+      )}
 
       <div className="space-y-1.5">
         <Label className="text-xs">Trabajos pendientes</Label>

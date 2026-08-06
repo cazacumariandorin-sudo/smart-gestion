@@ -73,6 +73,8 @@ const ParteDiario = lazy(() => import('./pages/ParteDiario'));
 const EconomicoDashboard = lazy(() => import('./pages/EconomicoDashboard'));
 const DiagnosticoApp = lazy(() => import('./pages/DiagnosticoApp'));
 const Empresas = lazy(() => import('./pages/Empresas'));
+const TrabajosExtras = lazy(() => import('./pages/TrabajosExtras'));
+const MaterialPendiente = lazy(() => import('./pages/MaterialPendiente'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -259,6 +261,8 @@ function AnimatedRoutes() {
             <Route path="/economico-dashboard" element={<ProtectedRoute module="economico-dashboard"><Suspense fallback={<PageLoader />}><EconomicoDashboard /></Suspense></ProtectedRoute>} />
             <Route path="/diagnostico-app" element={<ProtectedRoute><Suspense fallback={<PageLoader />}><DiagnosticoApp /></Suspense></ProtectedRoute>} />
             <Route path="/empresas" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><Empresas /></Suspense></ProtectedRoute>} />
+            <Route path="/trabajos-extras" element={<ProtectedRoute module="trabajos-extras"><Suspense fallback={<PageLoader />}><TrabajosExtras /></Suspense></ProtectedRoute>} />
+            <Route path="/material-pendiente" element={<ProtectedRoute module="material-pendiente"><Suspense fallback={<PageLoader />}><MaterialPendiente /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
 

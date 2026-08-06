@@ -26,7 +26,9 @@ import {
   Truck,
   Briefcase,
   Shield,
-  ClipboardCheck
+  ClipboardCheck,
+  Sparkles,
+  PackageOpen
 } from 'lucide-react';
 
 /**
@@ -67,6 +69,8 @@ export const HUBS = [
       { label: 'Solar', path: '/solar', icon: Sun, module: 'solar' },
       { label: 'Partes', path: '/work-orders', icon: ClipboardList, module: 'work-orders' },
       { label: 'Parte diario', path: '/parte-diario', icon: ClipboardCheck, module: 'parte-diario' },
+      { label: 'Trabajos extras', path: '/trabajos-extras', icon: Sparkles, module: 'trabajos-extras' },
+      { label: 'Material pendiente', path: '/material-pendiente', icon: PackageOpen, module: 'material-pendiente' },
       { label: 'Informe', path: '/informe-obras', icon: BarChart2, module: 'informe-obras' },
     ],
   },

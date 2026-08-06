@@ -1,0 +1,167 @@
+{
+  "name": "TrabajoExtraObra",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (Obra o SolarObra). Puede ser null para opciones fijas (Oficina/Almac\u00e9n/Otro)."
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra (desnormalizado)"
+    },
+    "obra_tipo": {
+      "type": "string",
+      "enum": [
+        "obra_civil",
+        "solar",
+        "oficina",
+        "almacen",
+        "otro"
+      ],
+      "default": "obra_civil"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID del cliente (desnormalizado, si aplica)"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (desnormalizado)"
+    },
+    "parte_id": {
+      "type": "string",
+      "description": "ID del ParteDiarioObra que origin\u00f3 el trabajo extra"
+    },
+    "fecha_solicitud": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la solicitud (fecha del parte)"
+    },
+    "solicitado_por_email": {
+      "type": "string",
+      "description": "Email del usuario que solicit\u00f3 el trabajo extra"
+    },
+    "solicitado_por_nombre": {
+      "type": "string",
+      "description": "Nombre del solicitante"
+    },
+    "solicitado_por_rol": {
+      "type": "string",
+      "description": "Rol del solicitante en el momento de la solicitud"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n del trabajo extra solicitado"
+    },
+    "importe_estimado": {
+      "type": "number",
+      "description": "Importe estimado del trabajo extra (opcional)"
+    },
+    "prioridad": {
+      "type": "string",
+      "enum": [
+        "baja",
+        "media",
+        "alta"
+      ],
+      "default": "media"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "facturado"
+      ],
+      "default": "pendiente",
+      "description": "Pendiente hasta que gerencia/administraci\u00f3n lo marque facturado"
+    },
+    "importe_facturado": {
+      "type": "number",
+      "description": "Importe final facturado (lo fija gerencia/administraci\u00f3n)"
+    },
+    "fecha_facturacion": {
+      "type": "string",
+      "format": "date"
+    },
+    "facturado_por": {
+      "type": "string",
+      "description": "Email de quien marc\u00f3 el trabajo como facturado"
+    },
+    "notas_admin": {
+      "type": "string",
+      "description": "Notas internas de gerencia/administraci\u00f3n"
+    },
+    "mes": {
+      "type": "string",
+      "description": "Clave mensual YYYY-MM (desnormalizada para filtros r\u00e1pidos por mes)"
+    },
+    "anio": {
+      "type": "number"
+    },
+    "mes_numero": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "descripcion",
+    "fecha_solicitud"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "data.solicitado_por_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

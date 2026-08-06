@@ -13,8 +13,9 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { jsPDF } from 'jspdf';
+import { useQuery } from '@tanstack/react-query';
 import {
-  Edit3, Download, Lock, Unlock, Archive, Power, Trash2, X, Camera, Package, Clock, FileSignature, ChevronLeft
+  Edit3, Download, Lock, Unlock, Archive, Power, Trash2, X, Camera, Package, Clock, FileSignature, ChevronLeft, Sparkles
 } from 'lucide-react';
 import ParteDiarioForm from './ParteDiarioForm';
 
@@ -27,6 +28,17 @@ export default function ParteDiarioDetail({ parte, onClose }) {
 
   const esGerente = isGerencia || isAdmin;
   const cerrado = parte.estado === 'cerrado';
+
+  const { data: extrasDelParte = [] } = useQuery({
+    queryKey: ['trabajos-extras-parte', parte.id],
+    queryFn: () => base44.entities.TrabajoExtraObra.filter({ parte_id: parte.id }, '-fecha_solicitud', 50),
+    enabled: !!parte.id,
+  });
+  const { data: materialDelParte = [] } = useQuery({
+    queryKey: ['material-pendiente-parte', parte.id],
+    queryFn: () => base44.entities.MaterialPendiente.filter({ parte_id: parte.id }, '-fecha_solicitud', 10),
+    enabled: !!parte.id,
+  });
   const inactivo = parte.activo === false;
   const isOwner = parte.tecnico_id === user?.id || parte.created_by_id === user?.id;
   const podeEditar = !cerrado && (esGerente || isOwner);
@@ -170,6 +182,32 @@ export default function ParteDiarioDetail({ parte, onClose }) {
             <div>
               <p className="font-medium mb-0.5 flex items-center gap-1"><Clock className="w-3.5 h-3.5" />Pendientes</p>
               <p className="text-amber-600 whitespace-pre-wrap">{parte.trabajos_pendientes}</p>
+            </div>
+          )}
+
+          {extrasDelParte.length > 0 && (
+            <div>
+              <p className="font-medium mb-0.5 flex items-center gap-1 text-amber-700"><Sparkles className="w-3.5 h-3.5" />Trabajos extras ({extrasDelParte.length})</p>
+              <ul className="space-y-0.5">
+                {extrasDelParte.map((e) => (
+                  <li key={e.id} className="text-xs text-muted-foreground flex items-center gap-2">
+                    <span className="whitespace-pre-wrap flex-1">{e.descripcion}</span>
+                    <Badge variant={e.estado === 'facturado' ? 'default' : 'secondary'} className="text-[10px] shrink-0">
+                      {e.estado}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {materialDelParte.length > 0 && (
+            <div>
+              <p className="font-medium mb-0.5 flex items-center gap-1"><Package className="w-3.5 h-3.5" />Material pendiente</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-muted-foreground whitespace-pre-wrap flex-1 min-w-0">{materialDelParte[0].descripcion}</span>
+                <Badge variant="secondary" className="text-[10px] shrink-0">{materialDelParte[0].estado}</Badge>
+              </div>
             </div>
           )}
 
