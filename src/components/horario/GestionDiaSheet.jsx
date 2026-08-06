@@ -11,13 +11,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { recalcularPrevision } from '@/hooks/useRecalcularPrevision';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
-import { User, Zap, Plus, Clock, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { User, Zap, Plus, Clock, CheckCircle2, AlertTriangle, Loader2, Pencil, Save, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +39,124 @@ function calcularMinutosFichaje(f) {
   let d = s - e;
   if (f.pausa_inicio && f.pausa_fin) { const pi = horasMinutos(f.pausa_inicio); const pf = horasMinutos(f.pausa_fin); if (pi && pf) d -= Math.max(0, pf - pi); }
   return Math.max(0, d);
+}
+
+function FichajeRow({ f }) {
+  const qc = useQueryClient();
+  const [edit, setEdit] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [borrar, setBorrar] = useState(false);
+  const [form, setForm] = useState({
+    hora_entrada: f.hora_entrada || '', hora_salida: f.hora_salida || '',
+    pausa_inicio: f.pausa_inicio || '', pausa_fin: f.pausa_fin || '',
+    obra_id: f.obra_id || '', obra_name: f.obra_name || '', obra_tipo: f.obra_tipo || 'obra_civil', project: f.project || '',
+    notas: f.notas || '',
+  });
+  const mins = calcularMinutosFichaje(f);
+  const completo = !!f.hora_entrada && !!f.hora_salida;
+  const sinSalida = !!f.hora_entrada && !f.hora_salida;
+
+  const after = () => {
+    qc.invalidateQueries({ queryKey: ['fichajes_shared'] });
+    qc.invalidateQueries({ queryKey: ['fichajes'] });
+    if (f.obra_id) recalcularPrevision(f.obra_id, f.obra_name).catch(() => {});
+  };
+
+  const guardar = async () => {
+    setSaving(true);
+    try {
+      await base44.entities.Fichaje.update(f.id, {
+        hora_entrada: form.hora_entrada || null,
+        hora_salida: form.hora_salida || null,
+        pausa_inicio: form.pausa_inicio || null,
+        pausa_fin: form.pausa_fin || null,
+        obra_id: form.obra_id || null,
+        obra_name: form.obra_name || null,
+        obra_tipo: form.obra_tipo || 'obra_civil',
+        project: form.project || form.obra_name || '',
+        notas: form.notas || null,
+      });
+      toast.success('Fichaje actualizado');
+      setEdit(false);
+      after();
+    } catch (e) { toast.error('Error al actualizar: ' + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const confirmarBorrar = async () => {
+    setBorrar(false);
+    setSaving(true);
+    try {
+      await base44.entities.Fichaje.delete(f.id);
+      toast.success('Fichaje eliminado');
+      after();
+    } catch (e) { toast.error('Error al borrar: ' + e.message); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className={cn('rounded-xl border', completo ? 'border-emerald-200 dark:border-emerald-800' : sinSalida ? 'border-amber-200 dark:border-amber-800' : 'border-border')}>
+      <div className={cn('p-3 flex items-center justify-between gap-2 rounded-t-xl', completo ? 'bg-emerald-50/50 dark:bg-emerald-950/20' : sinSalida ? 'bg-amber-50/50 dark:bg-amber-950/20' : 'bg-card')}>
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0"><User className="w-3.5 h-3.5 text-primary" /></div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{f.operario_name || '—'}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{f.hora_entrada || '--:--'} → {f.hora_salida || '--:--'}{f.project ? ` · ${f.project}` : ''}</p>
+          </div>
+        </div>
+        <div className="shrink-0 flex items-center gap-1">
+          {completo
+            ? <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border-emerald-200 gap-1"><CheckCircle2 className="w-2.5 h-2.5" />{minutosATexto(mins)}</Badge>
+            : sinSalida
+            ? <Badge className="text-[10px] bg-amber-100 text-amber-700 border-amber-200 gap-1"><AlertTriangle className="w-2.5 h-2.5" />Sin salida</Badge>
+            : <Badge variant="outline" className="text-[10px]">Sin datos</Badge>}
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEdit(e => !e)} title={edit ? 'Cerrar' : 'Editar'}>
+            {edit ? <X className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={() => setBorrar(true)} title="Borrar">
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      </div>
+      {edit && (
+        <div className="p-3 border-t border-border space-y-2.5">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1"><Label className="text-xs">Entrada</Label><Input type="time" value={form.hora_entrada} onChange={e => setForm(s => ({ ...s, hora_entrada: e.target.value }))} className="h-9" /></div>
+            <div className="space-y-1"><Label className="text-xs">Salida</Label><Input type="time" value={form.hora_salida} onChange={e => setForm(s => ({ ...s, hora_salida: e.target.value }))} className="h-9" /></div>
+            <div className="space-y-1"><Label className="text-xs">Pausa inicio</Label><Input type="time" value={form.pausa_inicio} onChange={e => setForm(s => ({ ...s, pausa_inicio: e.target.value }))} className="h-9" /></div>
+            <div className="space-y-1"><Label className="text-xs">Pausa fin</Label><Input type="time" value={form.pausa_fin} onChange={e => setForm(s => ({ ...s, pausa_fin: e.target.value }))} className="h-9" /></div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Obra / lugar</Label>
+            <ObraSelectorObras value={{ obra_id: form.obra_id, obra_name: form.obra_name, obra_tipo: form.obra_tipo }}
+              onChange={v => setForm(s => ({ ...s, obra_id: v.obra_id || '', obra_name: v.obra_name || '', obra_tipo: v.obra_tipo || 'obra_civil', project: v.project || v.obra_name || '' }))}
+              triggerClassName="w-full h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Notas</Label>
+            <Input value={form.notas} onChange={e => setForm(s => ({ ...s, notas: e.target.value }))} className="h-9" />
+          </div>
+          <Button size="sm" className="w-full gap-1.5" onClick={guardar} disabled={saving}>
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Guardar cambios
+          </Button>
+        </div>
+      )}
+      <AlertDialog open={borrar} onOpenChange={setBorrar}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><Trash2 className="w-4 h-4 text-red-600" />Borrar fichaje</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará el fichaje de <strong>{f.operario_name || '—'}</strong> del día <strong>{f.date}</strong>. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarBorrar} className="bg-red-600 hover:bg-red-700 text-white gap-1.5"><Trash2 className="w-3.5 h-3.5" /> Sí, borrar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 }
 
 export default function GestionDiaSheet({ date, fichajes = [], operarios = [], open, onClose, onUpdated }) {
@@ -131,31 +251,9 @@ export default function GestionDiaSheet({ date, fichajes = [], operarios = [], o
           {fichajes.length > 0 && (
             <div className="space-y-2">
               <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">Fichajes existentes</p>
-              {fichajes.sort((a, b) => (a.hora_entrada || '').localeCompare(b.hora_entrada || '')).map(f => {
-                const mins = calcularMinutosFichaje(f);
-                const completo = !!f.hora_entrada && !!f.hora_salida;
-                const sinSalida = !!f.hora_entrada && !f.hora_salida;
-                return (
-                  <div key={f.id} className={cn('rounded-xl border p-3 flex items-center justify-between gap-2',
-                    completo ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20' :
-                    sinSalida ? 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20' : 'border-border bg-card')}>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0"><User className="w-3.5 h-3.5 text-primary" /></div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate">{f.operario_name || '—'}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{f.hora_entrada || '--:--'} → {f.hora_salida || '--:--'}{f.project ? ` · ${f.project}` : ''}</p>
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      {completo
-                        ? <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border-emerald-200 gap-1"><CheckCircle2 className="w-2.5 h-2.5" />{minutosATexto(mins)}</Badge>
-                        : sinSalida
-                        ? <Badge className="text-[10px] bg-amber-100 text-amber-700 border-amber-200 gap-1"><AlertTriangle className="w-2.5 h-2.5" />Sin salida</Badge>
-                        : <Badge variant="outline" className="text-[10px]">Sin datos</Badge>}
-                    </div>
-                  </div>
-                );
-              })}
+              {fichajes.sort((a, b) => (a.hora_entrada || '').localeCompare(b.hora_entrada || '')).map(f => (
+                <FichajeRow key={f.id} f={f} />
+              ))}
             </div>
           )}
 
