@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import OcrUploader from "@/components/gastos/OcrUploader";
 import ParteSelector from "@/components/presupuestos/ParteSelector";
 import { extraerConceptosDesdeTexto } from "@/lib/conceptosExtractor";
+import SimantecLogo from "@/components/SimantecLogo";
+import CorrectorOrtograficoButton from "@/components/CorrectorOrtograficoButton";
 
 export default function PresupuestoForm({ onSubmit, onCancel }) {
     const [formData, setFormData] = useState({
@@ -137,6 +139,21 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
         setNuevoConcepto({ descripcion: "", cantidad: 1, unidad: "ud", precio_unitario: 0 });
     };
 
+    // Editar una línea de concepto ya rellenada (incluidas las autocompletadas) para incorporar detalles
+    const handleEditConcepto = (index, field, value) => {
+        setFormData(prev => {
+            const conceptos = [...prev.conceptos];
+            const prevConcepto = conceptos[index];
+            const actualizado = { ...prevConcepto, [field]: value };
+            const cant = Number(actualizado.cantidad) || 0;
+            const precio = Number(actualizado.precio_unitario) || 0;
+            const totalPrevio = Number(prevConcepto.total) || 0;
+            actualizado.total = cant * precio;
+            conceptos[index] = actualizado;
+            return { ...prev, conceptos, importe: prev.importe - totalPrevio + actualizado.total };
+        });
+    };
+
     const handleRemoveConcepto = (index) => {
         const conceptoEliminado = formData.conceptos[index];
         setFormData(prev => ({
@@ -198,7 +215,10 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
             <Card className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
                 <CardHeader className="sticky top-0 bg-background border-b z-10">
                     <div className="flex items-center justify-between">
-                        <CardTitle>Nuevo Presupuesto</CardTitle>
+                        <div className="flex items-center gap-3">
+                            <SimantecLogo variant="icon" size={34} />
+                            <CardTitle>Nuevo Presupuesto</CardTitle>
+                        </div>
                         <Button variant="ghost" size="icon" onClick={onCancel}>
                             <X className="w-4 h-4" />
                         </Button>
@@ -268,14 +288,26 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
 
                         {/* Descripción autocompletada */}
                         <div className="space-y-2">
-                            <Label htmlFor="descripcion">Descripción (autocompletada)</Label>
+                            <div className="flex items-center justify-between gap-2">
+                                <Label htmlFor="descripcion">Descripción (autocompletada)</Label>
+                                <CorrectorOrtograficoButton
+                                    text={formData.descripcion}
+                                    onCorrected={(t) => setFormData(prev => ({ ...prev, descripcion: t }))}
+                                    label="Corregir ortografía"
+                                />
+                            </div>
                             <Textarea
                                 id="descripcion"
                                 value={formData.descripcion}
                                 onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
                                 placeholder="Se rellena automáticamente al seleccionar partes de trabajo"
                                 className="min-h-[60px]"
+                                spellCheck
+                                lang="es"
                             />
+                            <p className="text-[11px] text-muted-foreground">
+                                El corrector normaliza ortografía y nomenclatura técnica (el parte es genérico, creado por técnicos).
+                            </p>
                         </div>
 
                         {/* Subida de documento fuente con OCR */}
@@ -306,15 +338,39 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                                 <div className="space-y-2">
                                     {formData.conceptos.map((concepto, index) => (
                                         <div key={index} className="flex items-center gap-2 p-2 border rounded-lg bg-card">
-                                            <div className="flex-1 grid grid-cols-12 gap-2 text-xs">
-                                                <span className="col-span-5 font-medium">{concepto.descripcion}</span>
-                                                <span className="col-span-2 text-center">{concepto.cantidad} {concepto.unidad}</span>
-                                                <span className="col-span-2 text-right">{concepto.precio_unitario.toFixed(2)}€</span>
+                                            <div className="flex-1 grid grid-cols-12 gap-2 text-xs items-center">
+                                                <Input
+                                                    className="col-span-5 h-7 text-xs"
+                                                    value={concepto.descripcion}
+                                                    onChange={(e) => handleEditConcepto(index, "descripcion", e.target.value)}
+                                                    placeholder="Descripción"
+                                                    spellCheck
+                                                    lang="es"
+                                                />
+                                                <Input
+                                                    className="col-span-1 h-7 text-xs text-center px-1"
+                                                    type="number"
+                                                    value={concepto.cantidad}
+                                                    onChange={(e) => handleEditConcepto(index, "cantidad", parseFloat(e.target.value) || 0)}
+                                                />
+                                                <Input
+                                                    className="col-span-1 h-7 text-xs text-center px-1"
+                                                    value={concepto.unidad}
+                                                    onChange={(e) => handleEditConcepto(index, "unidad", e.target.value)}
+                                                />
+                                                <Input
+                                                    className="col-span-2 h-7 text-xs text-right"
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={concepto.precio_unitario}
+                                                    onChange={(e) => handleEditConcepto(index, "precio_unitario", parseFloat(e.target.value) || 0)}
+                                                    placeholder="0,00"
+                                                />
                                                 <span className="col-span-2 text-right font-bold">{concepto.total.toFixed(2)}€</span>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleRemoveConcepto(index)}
-                                                    className="col-span-1 text-destructive hover:text-destructive/80"
+                                                    className="col-span-1 text-destructive hover:text-destructive/80 flex justify-end"
                                                 >
                                                     <Trash2 className="w-3 h-3" />
                                                 </button>
@@ -331,6 +387,8 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                                     placeholder="Descripción"
                                     value={nuevoConcepto.descripcion}
                                     onChange={(e) => setNuevoConcepto(prev => ({ ...prev, descripcion: e.target.value }))}
+                                    spellCheck
+                                    lang="es"
                                 />
                                 <Input
                                     className="md:col-span-2"

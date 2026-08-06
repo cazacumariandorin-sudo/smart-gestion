@@ -18,6 +18,8 @@ import {
   Edit3, Download, Lock, Unlock, Archive, Power, Trash2, X, Camera, Package, Clock, FileSignature, ChevronLeft, Sparkles
 } from 'lucide-react';
 import ParteDiarioForm from './ParteDiarioForm';
+import SimantecLogo from '@/components/SimantecLogo';
+import { drawSimantecLogoPdf } from '@/lib/simantecLogoPdf';
 
 export default function ParteDiarioDetail({ parte, onClose }) {
   const { user } = useAuth();
@@ -76,7 +78,10 @@ export default function ParteDiarioDetail({ parte, onClose }) {
   const exportarPDF = () => {
     const doc = new jsPDF();
     const margin = 14;
-    let y = 18;
+    let y = 12;
+    // Logotipo corporativo SIMANTEC
+    const logoH = drawSimantecLogoPdf(doc, margin, y, 16);
+    y = 12 + logoH + 2;
     doc.setFontSize(15); doc.setFont('helvetica', 'bold');
     doc.text('PARTE DIARIO DE OBRA', margin, y); y += 8;
     doc.setFontSize(10); doc.setFont('helvetica', 'normal');
@@ -146,6 +151,7 @@ export default function ParteDiarioDetail({ parte, onClose }) {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center flex-wrap gap-2 pr-8">
+            <SimantecLogo variant="icon" size={26} />
             <span className="truncate">Parte Diario — {parte.obra_name}</span>
             {cerrado && <Badge className="bg-blue-100 text-blue-700 border-blue-200">Cerrado</Badge>}
             {inactivo && <Badge className="bg-amber-100 text-amber-700 border-amber-200">Inactivo</Badge>}

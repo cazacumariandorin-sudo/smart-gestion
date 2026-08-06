@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
+import SimantecLogo from '@/components/SimantecLogo';
+import CorrectorOrtograficoButton from '@/components/CorrectorOrtograficoButton';
 import ParteFotosInput from './ParteFotosInput';
 import ParteTecnicosDropdown from './ParteTecnicosDropdown';
 import ParteTrabajosExtras from './ParteTrabajosExtras';
@@ -157,6 +159,9 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-center pb-1">
+        <SimantecLogo size={36} />
+      </div>
       <div className="space-y-1.5">
         <Label className="text-xs">Obra *</Label>
         <ObraSelectorObras value={obra} onChange={setObra} disabled={!!editing} />
@@ -177,17 +182,23 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs">Trabajos realizados *</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Trabajos realizados *</Label>
+          <CorrectorOrtograficoButton text={trabajosRealizados} onCorrected={setTrabajosRealizados} />
+        </div>
         <div className="flex gap-2 items-start">
-          <Textarea value={trabajosRealizados} onChange={e => setTrabajosRealizados(e.target.value)} rows={3} placeholder="Describe el trabajo y el progreso de hoy..." className="flex-1" />
+          <Textarea value={trabajosRealizados} onChange={e => setTrabajosRealizados(e.target.value)} rows={3} placeholder="Describe el trabajo y el progreso de hoy..." className="flex-1" spellCheck lang="es" />
           <VoiceInputButton onResult={t => setTrabajosRealizados(p => (p ? p + ' ' : '') + t)} />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs">Materiales necesarios / utilizados</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Materiales necesarios / utilizados</Label>
+          <CorrectorOrtograficoButton text={materialesNecesarios} onCorrected={setMaterialesNecesarios} />
+        </div>
         <div className="flex gap-2 items-start">
-          <Textarea value={materialesNecesarios} onChange={e => setMaterialesNecesarios(e.target.value)} rows={2} placeholder="Ej: 40m3 arena, 10 sacos cemento..." className="flex-1" />
+          <Textarea value={materialesNecesarios} onChange={e => setMaterialesNecesarios(e.target.value)} rows={2} placeholder="Ej: 40m3 arena, 10 sacos cemento..." className="flex-1" spellCheck lang="es" />
           <VoiceInputButton onResult={t => setMaterialesNecesarios(p => (p ? p + ' ' : '') + t)} />
         </div>
         <p className="text-[10px] text-muted-foreground">
@@ -200,9 +211,12 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
       )}
 
       <div className="space-y-1.5">
-        <Label className="text-xs">Trabajos pendientes</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Trabajos pendientes</Label>
+          <CorrectorOrtograficoButton text={trabajosPendientes} onCorrected={setTrabajosPendientes} />
+        </div>
         <div className="flex gap-2 items-start">
-          <Textarea value={trabajosPendientes} onChange={e => setTrabajosPendientes(e.target.value)} rows={2} placeholder="Qué queda por hacer..." className="flex-1" />
+          <Textarea value={trabajosPendientes} onChange={e => setTrabajosPendientes(e.target.value)} rows={2} placeholder="Qué queda por hacer..." className="flex-1" spellCheck lang="es" />
           <VoiceInputButton onResult={t => setTrabajosPendientes(p => (p ? p + ' ' : '') + t)} />
         </div>
       </div>

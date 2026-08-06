@@ -24,6 +24,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useUserRole } from '@/lib/useUserRole';
+import { drawSimantecLogoPdf } from '@/lib/simantecLogoPdf';
 
 const statusConfig = {
   pendiente: { label: 'Pendiente', className: 'bg-amber-100 text-amber-700 border-amber-200' },
@@ -106,7 +107,10 @@ export default function WorkOrderDetail() {
   const downloadPDF = () => {
     const doc = new jsPDF();
     const margin = 14;
-    let y = 20;
+    let y = 12;
+    // Logotipo corporativo SIMANTEC
+    const logoH = drawSimantecLogoPdf(doc, margin, y, 16);
+    y = 12 + logoH + 4;
 
     doc.setFontSize(18);
     doc.setTextColor(40, 40, 40);
