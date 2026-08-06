@@ -9,9 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Card, CardContent } from '@/components/ui/card';
-import { Sparkles, Filter, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Filter, CheckCircle2, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useUserRole } from '@/lib/useUserRole';
+import NuevaSolicitudDirecta from '@/components/extras/NuevaSolicitudDirecta';
 
 const ESTADOS = [
   { value: 'todos', label: 'Todos los estados' },
@@ -27,7 +29,9 @@ const PRIORIDAD_BADGE = {
 
 export default function TrabajosExtras() {
   const { user } = useAuth();
+  const { isGerencia, isAdmin, isJefeObra } = useUserRole();
   const qc = useQueryClient();
+  const [showNueva, setShowNueva] = useState(false);
   const hoy = new Date();
   const [filtroMes, setFiltroMes] = useState(`${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`);
   const [filtroEstado, setFiltroEstado] = useState('todos');
@@ -104,6 +108,13 @@ export default function TrabajosExtras() {
       <PageHeader title="Trabajos Extras" subtitle="Trabajos extras solicitados en partes diarios, centralizados por obra" />
 
       <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
+        {(isGerencia || isAdmin || isJefeObra) && (
+          <Button onClick={() => setShowNueva(true)} className="w-full gap-1.5">
+            <Plus className="w-4 h-4" /> Nueva solicitud directa (visita/seguimiento)
+          </Button>
+        )}
+        <NuevaSolicitudDirecta open={showNueva} onOpenChange={setShowNueva} tipo="trabajo_extra" />
+
         {/* Resumen mensual */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <ResumenCard label="Total" valor={resumen.total} tone="slate" />
