@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   FileText, Download, Search, User, Calendar, AlertTriangle,
-  Pencil, Trash2, Check, X, Loader2, Copy, ChevronDown, ChevronUp
+  Pencil, Trash2, Check, X, Loader2, Copy, ChevronDown, ChevronUp, Eye
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -173,6 +173,45 @@ function ModalDuplicados({ grupos, onClose, onEliminar, eliminando }) {
   );
 }
 
+// ── Visor sin descarga: muestra el PDF embebido en un overlay ────────────────
+function VisorNomina({ nom, onClose }) {
+  if (!nom) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/70" onClick={onClose}>
+      <div className="flex items-center justify-between px-4 h-12 bg-card border-b border-border shrink-0" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText className="w-4 h-4 text-primary shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{nom.operario_name || 'Nómina'}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{nom.periodo || `${MESES[nom.mes] || ''} ${nom.anio}`}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {nom.file_url && (
+            <Button asChild size="sm" variant="outline" className="h-8 px-3 text-xs gap-1.5">
+              <a href={nom.file_url} target="_blank" rel="noopener noreferrer"><Download className="w-3.5 h-3.5" /> Descargar</a>
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="w-8 h-8" onClick={onClose}><X className="w-4 h-4" /></Button>
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 p-2 sm:p-4" onClick={e => e.stopPropagation()}>
+        {nom.file_url ? (
+          <iframe
+            src={nom.file_url}
+            title={`Nomina-${nom.operario_name || ''}-${nom.id}`}
+            className="w-full h-full rounded-lg border-0 bg-white"
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+            Esta nómina no tiene PDF asociado.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function EditForm({ nom, onSave, onCancel, saving }) {
   const [form, setForm] = useState({
     operario_name: nom.operario_name || '',
@@ -213,7 +252,7 @@ function EditForm({ nom, onSave, onCancel, saving }) {
 }
 
 // ── Vista tabla: filas por trabajador, columnas por mes ───────────────────────
-function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, confirmarBorrarId, setConfirmarBorrarId, deletePending }) {
+function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, onVer, confirmarBorrarId, setConfirmarBorrarId, deletePending }) {
   const [expandido, setExpandido] = useState(null); // trabajador expandido
 
   // Años disponibles en los datos
@@ -347,8 +386,13 @@ function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, con
                                   <td className="px-2 py-2">
                                     <div className="flex items-center justify-end gap-0.5">
                                       {nom.file_url && (
+                                        <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => onVer(nom.id)} title="Visualizar">
+                                          <Eye className="w-3.5 h-3.5" />
+                                        </Button>
+                                      )}
+                                      {nom.file_url && (
                                         <Button variant="ghost" size="icon" asChild className="w-7 h-7">
-                                          <a href={nom.file_url} target="_blank" rel="noopener noreferrer" title="Ver PDF"><Download className="w-3.5 h-3.5" /></a>
+                                          <a href={nom.file_url} target="_blank" rel="noopener noreferrer" title="Descargar / abrir"><Download className="w-3.5 h-3.5" /></a>
                                         </Button>
                                       )}
                                       {esAdmin && (
@@ -399,6 +443,7 @@ export default function ListaNominas({ esAdmin }) {
   const [confirmarBorrarId, setConfirmarBorrarId] = useState(null);
   const [modalDuplicados, setModalDuplicados] = useState(false);
   const [eliminandoDuplicados, setEliminandoDuplicados] = useState(false);
+  const [nominaVista, setNominaVista] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -483,6 +528,7 @@ export default function ListaNominas({ esAdmin }) {
         idsDuplicados={idsDuplicados}
         onEditar={(id) => setEditandoId(editandoId === id ? null : id)}
         onBorrar={(id) => deleteMutation.mutate(id)}
+        onVer={(id) => setNominaVista(nominas.find(n => n.id === id))}
         confirmarBorrarId={confirmarBorrarId}
         setConfirmarBorrarId={setConfirmarBorrarId}
         deletePending={deleteMutation.isPending}
@@ -508,6 +554,10 @@ export default function ListaNominas({ esAdmin }) {
           onEliminar={handleEliminarDuplicados}
           eliminando={eliminandoDuplicados}
         />
+      )}
+
+      {nominaVista && (
+        <VisorNomina nom={nominaVista} onClose={() => setNominaVista(null)} />
       )}
     </div>
   );
