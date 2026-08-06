@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import AutoCorrectTextarea from '@/components/ui/AutoCorrectTextarea';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
@@ -187,7 +187,7 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
           <CorrectorOrtograficoButton text={trabajosRealizados} onCorrected={setTrabajosRealizados} />
         </div>
         <div className="flex gap-2 items-start">
-          <Textarea value={trabajosRealizados} onChange={e => setTrabajosRealizados(e.target.value)} rows={3} placeholder="Describe el trabajo y el progreso de hoy..." className="flex-1" spellCheck lang="es" />
+          <AutoCorrectTextarea value={trabajosRealizados} onChange={e => setTrabajosRealizados(e.target.value)} rows={3} placeholder="Describe el trabajo y el progreso de hoy..." spellCheck lang="es" />
           <VoiceInputButton onResult={t => setTrabajosRealizados(p => (p ? p + ' ' : '') + t)} />
         </div>
       </div>
@@ -198,7 +198,7 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
           <CorrectorOrtograficoButton text={materialesNecesarios} onCorrected={setMaterialesNecesarios} />
         </div>
         <div className="flex gap-2 items-start">
-          <Textarea value={materialesNecesarios} onChange={e => setMaterialesNecesarios(e.target.value)} rows={2} placeholder="Ej: 40m3 arena, 10 sacos cemento..." className="flex-1" spellCheck lang="es" />
+          <AutoCorrectTextarea value={materialesNecesarios} onChange={e => setMaterialesNecesarios(e.target.value)} rows={2} placeholder="Ej: 40m3 arena, 10 sacos cemento..." spellCheck lang="es" />
           <VoiceInputButton onResult={t => setMaterialesNecesarios(p => (p ? p + ' ' : '') + t)} />
         </div>
         <p className="text-[10px] text-muted-foreground">
@@ -216,7 +216,7 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
           <CorrectorOrtograficoButton text={trabajosPendientes} onCorrected={setTrabajosPendientes} />
         </div>
         <div className="flex gap-2 items-start">
-          <Textarea value={trabajosPendientes} onChange={e => setTrabajosPendientes(e.target.value)} rows={2} placeholder="Qué queda por hacer..." className="flex-1" spellCheck lang="es" />
+          <AutoCorrectTextarea value={trabajosPendientes} onChange={e => setTrabajosPendientes(e.target.value)} rows={2} placeholder="Qué queda por hacer..." spellCheck lang="es" />
           <VoiceInputButton onResult={t => setTrabajosPendientes(p => (p ? p + ' ' : '') + t)} />
         </div>
       </div>

@@ -16,6 +16,8 @@ import ParteSelector from "@/components/presupuestos/ParteSelector";
 import { extraerConceptosDesdeTexto } from "@/lib/conceptosExtractor";
 import SimantecLogo from "@/components/SimantecLogo";
 import CorrectorOrtograficoButton from "@/components/CorrectorOrtograficoButton";
+import AutoCorrectTextarea from "@/components/ui/AutoCorrectTextarea";
+import AutoCorrectInput from "@/components/ui/AutoCorrectInput";
 
 export default function PresupuestoForm({ onSubmit, onCancel }) {
     const [formData, setFormData] = useState({
@@ -296,7 +298,7 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                                     label="Corregir ortografía"
                                 />
                             </div>
-                            <Textarea
+                            <AutoCorrectTextarea
                                 id="descripcion"
                                 value={formData.descripcion}
                                 onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
@@ -339,8 +341,9 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                                     {formData.conceptos.map((concepto, index) => (
                                         <div key={index} className="flex items-center gap-2 p-2 border rounded-lg bg-card">
                                             <div className="flex-1 grid grid-cols-12 gap-2 text-xs items-center">
-                                                <Input
-                                                    className="col-span-5 h-7 text-xs"
+                                                <AutoCorrectInput
+                                                    wrapperClassName="col-span-5"
+                                                    className="h-7 text-xs"
                                                     value={concepto.descripcion}
                                                     onChange={(e) => handleEditConcepto(index, "descripcion", e.target.value)}
                                                     placeholder="Descripción"
@@ -382,8 +385,8 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
 
                             {/* Añadir nuevo concepto */}
                             <div className="grid gap-3 md:grid-cols-12 p-3 border rounded-lg bg-muted/30">
-                                <Input
-                                    className="md:col-span-5"
+                                <AutoCorrectInput
+                                    wrapperClassName="md:col-span-5"
                                     placeholder="Descripción"
                                     value={nuevoConcepto.descripcion}
                                     onChange={(e) => setNuevoConcepto(prev => ({ ...prev, descripcion: e.target.value }))}
@@ -443,7 +446,7 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                         {/* Notas */}
                         <div className="space-y-2">
                             <Label htmlFor="notas">Notas / Observaciones (opcional)</Label>
-                            <Textarea
+                            <AutoCorrectTextarea
                                 id="notas"
                                 value={formData.notas}
                                 onChange={(e) => setFormData(prev => ({ ...prev, notas: e.target.value }))}

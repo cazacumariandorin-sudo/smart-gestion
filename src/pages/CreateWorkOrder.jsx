@@ -4,7 +4,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import AutoCorrectTextarea from '@/components/ui/AutoCorrectTextarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
@@ -159,7 +159,7 @@ export default function CreateWorkOrder() {
           <div className="space-y-1.5">
             <Label className="text-xs">Descripción</Label>
             <div className="flex gap-1 items-start">
-              <Textarea placeholder="Descripción del trabajo realizado..." value={form.description} onChange={(e) => updateField('description', e.target.value)} rows={3} className="flex-1" />
+              <AutoCorrectTextarea placeholder="Descripción del trabajo realizado..." value={form.description} onChange={(e) => updateField('description', e.target.value)} rows={3} />
               <VoiceInputButton onResult={txt => updateField('description', form.description ? form.description + ' ' + txt : txt)} />
             </div>
           </div>
@@ -222,7 +222,7 @@ export default function CreateWorkOrder() {
         <Card className="p-5 space-y-3">
           <Label className="text-sm font-semibold">Observaciones</Label>
           <div className="flex gap-1 items-start">
-            <Textarea placeholder="Notas adicionales..." value={form.notes} onChange={(e) => updateField('notes', e.target.value)} rows={2} className="flex-1" />
+            <AutoCorrectTextarea placeholder="Notas adicionales..." value={form.notes} onChange={(e) => updateField('notes', e.target.value)} rows={2} />
             <VoiceInputButton onResult={txt => updateField('notes', form.notes ? form.notes + ' ' + txt : txt)} />
           </div>
         </Card>

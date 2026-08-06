@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Send, Paperclip, X, Reply } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { corregirTextoIA, MIN_LEN_AUTOCORRECCION } from '@/lib/correction';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -27,9 +28,17 @@ export default function ChatInput({ onSend, disabled, replyMsg, onCancelReply })
     }
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if ((!text.trim() && adjuntos.length === 0) || disabled || uploading) return;
-    onSend(text.trim(), adjuntos, replyMsg);
+    let textoFinal = text.trim();
+    // Corrección ortográfica/gramatical automática en mensajes con suficiente longitud
+    if (textoFinal.length >= MIN_LEN_AUTOCORRECCION) {
+      try {
+        const corregido = await corregirTextoIA(textoFinal);
+        if (corregido && corregido !== textoFinal) textoFinal = corregido;
+      } catch { /* silencioso: no interrumpir el envío */ }
+    }
+    onSend(textoFinal, adjuntos, replyMsg);
     setText('');
     setAdjuntos([]);
     if (onCancelReply) onCancelReply();

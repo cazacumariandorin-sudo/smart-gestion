@@ -5,6 +5,7 @@ import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import AutoCorrectInput from '@/components/ui/AutoCorrectInput';
 import { Label } from '@/components/ui/label';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -196,14 +197,14 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
                 <div className="space-y-1.5"><Label className="text-xs">Comercio / Proveedor</Label><div className="flex gap-1"><Input placeholder="Nombre" value={form.nombre_comercio} onChange={e => setField('nombre_comercio', e.target.value)} /><VoiceInputButton onResult={t => setField('nombre_comercio', t)} /></div></div>
                 <div className="space-y-1.5"><Label className="text-xs">NIF / CIF</Label><Input placeholder="B12345678" value={form.nif_comercio} onChange={e => setField('nif_comercio', e.target.value)} /></div>
               </div>
-              <div className="space-y-1.5"><Label className="text-xs">Concepto / Descripción</Label><div className="flex gap-1"><Input placeholder="Descripción del gasto" value={form.concepto} onChange={e => setField('concepto', e.target.value)} /><VoiceInputButton onResult={t => setField('concepto', t)} /></div></div>
+              <div className="space-y-1.5"><Label className="text-xs">Concepto / Descripción</Label><div className="flex gap-1"><AutoCorrectInput placeholder="Descripción del gasto" value={form.concepto} onChange={e => setField('concepto', e.target.value)} /><VoiceInputButton onResult={t => setField('concepto', t)} /></div></div>
               <ObraSelector value={form.obra_id} obraName={form.obra_name} obraTipo={form.obra_tipo} onChange={({ obra_id, obra_name, obra_tipo }) => setForm(f => ({ ...f, obra_id, obra_name, obra_tipo }))} />
-              <div className="space-y-1.5"><Label className="text-xs">Notas adicionales</Label><Input placeholder="Observaciones…" value={form.notas} onChange={e => setField('notas', e.target.value)} /></div>
+              <div className="space-y-1.5"><Label className="text-xs">Notas adicionales</Label><AutoCorrectInput placeholder="Observaciones…" value={form.notas} onChange={e => setField('notas', e.target.value)} /></div>
               {esGastoTardio && (
                 <div className="space-y-1.5 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
                   <Label className="text-xs flex items-center gap-1.5 text-amber-700 dark:text-amber-300 font-semibold"><Clock className="w-3.5 h-3.5" /> Gasto con más de 30 días</Label>
                   <p className="text-xs text-amber-600 dark:text-amber-400 mb-1.5">Se registrará como pendiente. Justifica el retraso.</p>
-                  <Input placeholder="Ej: Olvidé subir el ticket…" value={form.justificacion_tardia} onChange={e => setField('justificacion_tardia', e.target.value)} className="border-amber-300 focus:border-amber-500" />
+                  <AutoCorrectInput placeholder="Ej: Olvidé subir el ticket…" value={form.justificacion_tardia} onChange={e => setField('justificacion_tardia', e.target.value)} className="border-amber-300 focus:border-amber-500" />
                 </div>
               )}
             </div>

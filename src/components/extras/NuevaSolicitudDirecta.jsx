@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import AutoCorrectTextarea from '@/components/ui/AutoCorrectTextarea';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
 import { Loader2 } from 'lucide-react';
@@ -131,7 +131,7 @@ export default function NuevaSolicitudDirecta({ open, onOpenChange, tipo }) {
 
           <div className="space-y-1">
             <Label className="text-xs">{esTrabajo ? 'Descripción del trabajo extra *' : 'Detalle del material necesario *'}</Label>
-            <Textarea
+            <AutoCorrectTextarea
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
               rows={3}

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import AutoCorrectTextarea from '@/components/ui/AutoCorrectTextarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
@@ -262,7 +262,7 @@ export default function WorkOrderDetail() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Descripción</Label>
-              <Textarea value={form.description} onChange={(e) => updateField('description', e.target.value)} rows={3} />
+              <AutoCorrectTextarea value={form.description} onChange={(e) => updateField('description', e.target.value)} rows={3} />
             </div>
           </Card>
           <Card className="p-5">
@@ -273,7 +273,7 @@ export default function WorkOrderDetail() {
           </Card>
           <Card className="p-5 space-y-3">
             <Label className="text-sm font-semibold">Observaciones</Label>
-            <Textarea value={form.notes} onChange={(e) => updateField('notes', e.target.value)} rows={2} />
+            <AutoCorrectTextarea value={form.notes} onChange={(e) => updateField('notes', e.target.value)} rows={2} />
           </Card>
           <Card className="p-5 space-y-4">
             <h2 className="font-semibold text-sm">Firmas</h2>
