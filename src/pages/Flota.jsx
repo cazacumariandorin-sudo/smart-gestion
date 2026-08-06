@@ -10,6 +10,7 @@ import { Car, Plus, Edit2, Trash2, Bell, BellOff, AlertTriangle, CheckCircle2, C
 import ReportarAveriaDialog from '@/components/flota/ReportarAveriaDialog';
 import RepostajeRapidoDialog from '@/components/flota/RepostajeRapidoDialog';
 import CostesFlotaProyecto from '@/components/flota/CostesFlotaProyecto';
+import RepostajesReporte from '@/components/flota/RepostajesReporte';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -298,6 +299,7 @@ export default function Flota() {
         vehiculo_modelo: v.modelo,
         tipo: 'repostaje',
         urgencia: 'baja',
+        avisos_visible: true,
         lugar,
         descripcion: `Suministro de combustible registrado por ${tecnico}`,
         reportada_por_nombre: tecnico,
@@ -352,7 +354,9 @@ export default function Flota() {
     saveMutation.mutate(data);
   };
 
-  const alertasPendientes = alertas.filter(a => !a.resuelta);
+  // Los repostajes archivados (avisos_visible=false) desaparecen del tab de avisos
+  // para todos; solo gerencia/admin los ven vía el reporte de repostajes.
+  const alertasPendientes = alertas.filter(a => !a.resuelta && (a.tipo !== 'repostaje' || a.avisos_visible !== false));
   const alertasResueltas = alertas.filter(a => a.resuelta);
 
   const alertasUrgentes = vehiculos.filter(v => {
@@ -382,6 +386,7 @@ export default function Flota() {
               { value: 'viajes',    label: `Viajes (${viajes.length})`,       icon: Route, color: 'bg-teal-500 hover:bg-teal-600 border-teal-600 shadow-teal-200' },
               { value: 'alertas',   label: alertasPendientes.length > 0 ? `Alertas (${alertasPendientes.length})` : 'Alertas', icon: Bell,  color: alertasPendientes.length > 0 ? 'bg-red-500 hover:bg-red-600 border-red-600 shadow-red-200' : 'bg-slate-500 hover:bg-slate-600 border-slate-600 shadow-slate-200' },
               ...((isAdmin || isGerencia) ? [{ value: 'costes', label: 'Costes por proyecto', icon: Fuel, color: 'bg-amber-500 hover:bg-amber-600 border-amber-600 shadow-amber-200' }] : []),
+              ...((isAdmin || isGerencia) ? [{ value: 'repostajes', label: 'Repostajes', icon: Fuel, color: 'bg-green-500 hover:bg-green-600 border-green-600 shadow-green-200' }] : []),
             ].map(({ value, label, icon: Icon, color }) => (
               <button
                 key={value}
@@ -403,6 +408,7 @@ export default function Flota() {
             <TabsTrigger value="viajes" />
             <TabsTrigger value="alertas" />
             <TabsTrigger value="costes" />
+            <TabsTrigger value="repostajes" />
           </TabsList>
 
           {/* TAB VEHÍCULOS */}
@@ -531,6 +537,18 @@ export default function Flota() {
           {(isAdmin || isGerencia) && (
             <TabsContent value="costes">
               <CostesFlotaProyecto viajes={viajes} />
+            </TabsContent>
+          )}
+
+          {/* TAB REPOSTAJES (reporte histórico gerencia/admin) */}
+          {(isAdmin || isGerencia) && (
+            <TabsContent value="repostajes">
+              <div className="mb-3">
+                <p className="text-xs text-muted-foreground">
+                  Registro de repostajes. Los avisos del día son visibles para todos los usuarios; al archivarse a las 23:59 quedan como histórico accesible solo para gerencia y administración.
+                </p>
+              </div>
+              <RepostajesReporte />
             </TabsContent>
           )}
         </Tabs>
