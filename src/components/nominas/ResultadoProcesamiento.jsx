@@ -26,7 +26,12 @@ export default function ResultadoProcesamiento({ resultado, onCerrar }) {
       <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl p-4">
         <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-3">
           <CheckCircle2 className="w-5 h-5" />
-          <span className="font-semibold text-sm">Procesamiento completado — {resultado.periodo}</span>
+          <span className="font-semibold text-sm">
+          Procesamiento completado — {resultado.periodo}
+          {resultado.tipo_documento === 'resumen_costes' && (
+            <span className="ml-2 text-xs font-normal bg-blue-100 text-blue-700 rounded px-1.5 py-0.5">Resumen GEFISCAL</span>
+          )}
+        </span>
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div className="text-center">
@@ -64,14 +69,21 @@ export default function ResultadoProcesamiento({ resultado, onCerrar }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">{nom.operario_name}</p>
-              <p className="text-xs text-muted-foreground">DNI: {nom.operario_dni || '—'} · Pág. {nom.pagina}</p>
+              <p className="text-xs text-muted-foreground">
+                DNI: {nom.operario_dni || '—'}
+                {nom.pagina && ` · Pág. ${nom.pagina}`}
+                {nom.tipo_anticipo && <span className="ml-1 text-amber-600">· {nom.tipo_anticipo}: {nom.anticipos_deducciones?.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</span>}
+              </p>
             </div>
             <div className="text-right shrink-0">
               {nom.liquido_percibir && (
                 <p className="font-semibold text-sm text-green-700">{nom.liquido_percibir.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
               )}
+              {nom.cuotas_obreras != null && (
+                <p className="text-xs text-muted-foreground">SS obrero: {nom.cuotas_obreras.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+              )}
               {nom.coste_empresa && (
-                <p className="text-xs text-muted-foreground">Coste: {nom.coste_empresa.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+                <p className="text-xs text-muted-foreground">Coste total: {nom.coste_empresa.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
               )}
               <Badge variant={nom.asignada ? 'default' : 'outline'} className="text-[10px] mt-0.5">
                 {nom.asignada ? 'Asignada' : 'Sin asignar'}

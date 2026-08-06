@@ -24,27 +24,60 @@
     },
     "periodo": {
       "type": "string",
-      "description": "Ej: Enero 2026"
+      "description": "Ej: Julio 2026"
     },
     "file_url": {
       "type": "string",
-      "description": "URL del PDF de la n\u00f3mina individual (solo la p\u00e1gina del trabajador)"
+      "description": "URL del PDF de la n\u00f3mina individual"
     },
     "drive_file_id": {
       "type": "string",
       "description": "ID del archivo en Google Drive"
     },
+    "tipo_documento": {
+      "type": "string",
+      "enum": [
+        "nomina_individual",
+        "resumen_costes"
+      ],
+      "default": "nomina_individual",
+      "description": "Tipo de documento cargado: n\u00f3mina individual por p\u00e1gina o resumen estad\u00edstico de costes (GEFISCAL)"
+    },
     "liquido_percibir": {
       "type": "number",
-      "description": "L\u00edquido a percibir extra\u00eddo del PDF"
+      "description": "L\u00edquido a percibir"
     },
     "total_devengado": {
       "type": "number",
-      "description": "Total devengado extra\u00eddo del PDF"
+      "description": "Total devengado"
+    },
+    "prorrata_pagas_extra": {
+      "type": "number",
+      "description": "Prorrata pagas extraordinarias"
+    },
+    "cuotas_obreras": {
+      "type": "number",
+      "description": "Cuotas obreras (SS trabajador)"
+    },
+    "retencion_irpf": {
+      "type": "number",
+      "description": "Retenci\u00f3n IRPF"
+    },
+    "coste_ss_empresa": {
+      "type": "number",
+      "description": "Coste Seguridad Social a cargo de la empresa"
     },
     "coste_empresa": {
       "type": "number",
-      "description": "Coste total para la empresa extra\u00eddo del PDF"
+      "description": "Coste total para la empresa (l\u00edquido + SS empresa)"
+    },
+    "anticipos_deducciones": {
+      "type": "number",
+      "description": "Anticipos y deducciones aplicadas (anticipo, descuento especie, etc.)"
+    },
+    "tipo_anticipo": {
+      "type": "string",
+      "description": "Tipo de deducci\u00f3n: ANTICIPO, DTO ESPECIE, etc."
     },
     "estado_asignacion": {
       "type": "string",
@@ -62,17 +95,16 @@
     },
     "pagina_origen": {
       "type": "integer",
-      "description": "N\u00famero de p\u00e1gina en el PDF original"
+      "description": "N\u00famero de p\u00e1gina en el PDF original (nominas individuales)"
     },
     "texto_extraido": {
       "type": "string",
-      "description": "Texto extra\u00eddo del PDF para referencia / asistente"
+      "description": "JSON extra\u00eddo del PDF para referencia / asistente"
     }
   },
   "required": [
     "mes",
-    "anio",
-    "file_url"
+    "anio"
   ],
   "rls": {
     "create": {
