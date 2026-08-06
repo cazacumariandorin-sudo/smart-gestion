@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
-import { PDFDocument } from 'npm:pdf-lib@1.17.1';
+import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib@1.17.1';
 
 const ROOT_FOLDER_ID = '1yJzcwSzo2acrswgmtKLbNTKVd7WxUtF1';
 
@@ -179,14 +179,7 @@ Responde SOLO con JSON válido, sin texto adicional.`
       totalPaginas = pdfDoc.getPageCount();
     }
 
-    // ── PASO 3: subir PDF completo del resumen (una vez) o páginas individuales ──
-    let urlResumenCompleto = '';
-    if (tipoDetectado === 'resumen_costes') {
-      const nombreArch = nombre_archivo || `resumen_costes_${anio}_${String(mes).padStart(2, '0')}.pdf`;
-      const folderPath = `Nominas/${anio}/${String(mes).padStart(2, '0')}`;
-      const fileResult = await subirPDF(accessToken, useGdrive, pdf_base64, folderPath, nombreArch, base44);
-      urlResumenCompleto = fileResult.file_url;
-    }
+    // (El PDF del resumen completo ya no se usa — cada trabajador recibe su PDF individual generado)
 
     const resultados: any[] = [];
     const sinAsignar: any[] = [];
@@ -214,11 +207,11 @@ Responde SOLO con JSON válido, sin texto adicional.`
       const anioReal = trab.anio_documento ? parseInt(trab.anio_documento) : parseInt(anio);
       const periodoReal = getNombrePeriodo(mesReal, anioReal);
 
-      let fileUrl = urlResumenCompleto;
+      let fileUrl = '';
       let driveFileId = '';
 
-      // Para nóminas individuales: extraer la página correspondiente
       if (tipoDetectado === 'nomina_individual' && pdfDoc) {
+        // Nómina individual: extraer la página correspondiente
         const pageIndex = (trab.pagina || 1) - 1;
         if (pageIndex >= 0 && pageIndex < totalPaginas) {
           const pdfIndividual = await PDFDocument.create();
@@ -226,6 +219,16 @@ Responde SOLO con JSON válido, sin texto adicional.`
           pdfIndividual.addPage(pagCopiada);
           const pdfIndividualBytes = await pdfIndividual.save();
           const base64Individual = btoa(String.fromCharCode(...pdfIndividualBytes));
+          const nombreArchivo = `nomina_${dniLimpio || nombreLimpio.replace(/\s+/g, '_')}_${periodoReal.replace(' ', '_')}.pdf`;
+          const folderPath = `Nominas/${anioReal}/${String(mesReal).padStart(2, '0')}`;
+          const fileResult = await subirPDF(accessToken, useGdrive, base64Individual, folderPath, nombreArchivo, base44);
+          fileUrl = fileResult.file_url;
+          driveFileId = fileResult.drive_file_id || '';
+        }
+      } else if (tipoDetectado === 'resumen_costes') {
+        // Resumen GEFISCAL: generar un PDF individual por trabajador con sus datos extraídos
+        const base64Individual = await generarPDFIndividual(trab, periodoReal);
+        if (base64Individual) {
           const nombreArchivo = `nomina_${dniLimpio || nombreLimpio.replace(/\s+/g, '_')}_${periodoReal.replace(' ', '_')}.pdf`;
           const folderPath = `Nominas/${anioReal}/${String(mesReal).padStart(2, '0')}`;
           const fileResult = await subirPDF(accessToken, useGdrive, base64Individual, folderPath, nombreArchivo, base44);
@@ -376,4 +379,71 @@ async function getOrCreateFolder(accessToken: string, folderPath: string) {
 function getNombrePeriodo(mes: number, anio: number) {
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   return `${meses[mes - 1]} ${anio}`;
+}
+
+// Genera PDF individual con los datos extraídos del resumen GEFISCAL para un trabajador
+async function generarPDFIndividual(trab: any, periodo: string): Promise<string | null> {
+  try {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([595, 842]); // A4 en puntos
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+    const fmt = (v: any) => v != null && !isNaN(v)
+      ? `${Number(v).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+      : '—';
+
+    const line = (y: number, label: string, value: string, bold_label = false) => {
+      page.drawText(label, { x: 60, y, size: 11, font: bold_label ? bold : font, color: rgb(0.13, 0.13, 0.13) });
+      page.drawText(value, { x: 380, y, size: 11, font: bold ? bold : font, color: rgb(0.13, 0.13, 0.13) });
+    };
+
+    // Título
+    page.drawText('SIMANTEC SL — NÓMINA INDIVIDUAL', { x: 60, y: 790, size: 16, font: bold, color: rgb(0, 0, 0) });
+    page.drawText(`Período: ${periodo}`, { x: 60, y: 765, size: 12, font, color: rgb(0.2, 0.2, 0.2) });
+
+    // Datos del trabajador
+    line(715, 'Trabajador:', (trab.nombre || '—').toUpperCase(), true);
+    line(695, 'DNI / NIF:', trab.dni || '—');
+
+    // Línea separadora
+    page.drawLine({ start: { x: 60, y: 680 }, end: { x: 535, y: 680 }, thickness: 1, color: rgb(0.4, 0.4, 0.4) });
+
+    // Detalle económico
+    page.drawText('Desglose económico', { x: 60, y: 660, size: 12, font: bold, color: rgb(0.13, 0.13, 0.13) });
+    let y = 635;
+    const rows: [string, any][] = [
+      ['Total devengado', trab.total_devengado],
+      ['Prorrata pagas extra', trab.prorrata_pagas_extra],
+      ['Anticipos y deducciones', trab.anticipos_deducciones],
+      ['Cuotas obreras (SS trabajador)', trab.cuotas_obreras],
+      ['Retención IRPF', trab.retencion_irpf],
+      ['LÍQUIDO A PERCIBIR', trab.liquido_percibir],
+      ['Coste S.S. empresa', trab.coste_ss_empresa],
+      ['COSTE TOTAL EMPRESA', trab.coste_empresa],
+    ];
+    for (const [label, value] of rows) {
+      const esDestacado = label.includes('LÍQUIDO') || label.includes('COSTE TOTAL');
+      page.drawText(label, { x: 60, y, size: 11, font: esDestacado ? bold : font, color: rgb(0.13, 0.13, 0.13) });
+      page.drawText(fmt(value), { x: 380, y, size: 11, font: esDestacado ? bold : font, color: rgb(0.13, 0.13, 0.13) });
+      if (esDestacado) {
+        page.drawLine({ start: { x: 60, y: y - 4 }, end: { x: 535, y: y - 4 }, thickness: 0.5, color: rgb(0.6, 0.6, 0.6) });
+      }
+      y -= 22;
+    }
+
+    if (trab.tipo_anticipo) {
+      page.drawText(`Anticipo/Deducción: ${trab.tipo_anticipo}`, { x: 60, y: y - 5, size: 10, font, color: rgb(0.4, 0.4, 0.4) });
+    }
+
+    // Pie
+    page.drawText('Documento generado automáticamente desde el resumen de costes GEFISCAL.', { x: 60, y: 50, size: 8, font, color: rgb(0.55, 0.55, 0.55) });
+    page.drawText('SIMANTEC SL — CIF B-12345678', { x: 60, y: 35, size: 8, font, color: rgb(0.55, 0.55, 0.55) });
+
+    const bytes = await doc.save();
+    return btoa(String.fromCharCode(...bytes));
+  } catch (e) {
+    console.error('Error generando PDF individual:', e.message);
+    return null;
+  }
 }
