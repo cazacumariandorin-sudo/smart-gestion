@@ -47,15 +47,22 @@
       ],
       "type": "string"
     },
+    "claves_por_usuario": {
+      "type": "object",
+      "description": "Mapa { user_id (User.id): claveAES_cifrada_con_RSA_publica_del_usuario }. Una entrada por participante. Permite descifrar el mensaje_cifrado (AES) a cada destinatario con su clave privada RSA.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
     "conversacion_id": {
       "type": "string"
     },
     "destinatarios": {
-      "type": "array",
-      "description": "Emails de los participantes de la conversaci\u00f3n en el momento del env\u00edo",
       "items": {
         "type": "string"
-      }
+      },
+      "type": "array",
+      "description": "Emails de los participantes de la conversaci\u00f3n en el momento del env\u00edo"
     },
     "editado": {
       "default": false,

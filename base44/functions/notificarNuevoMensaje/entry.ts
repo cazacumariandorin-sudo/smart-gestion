@@ -52,35 +52,15 @@ Deno.serve(async (req) => {
     }
     await base44.asServiceRole.entities.ChatConversacion.update(conversacion_id, updateData);
 
-    // Enviar notificaciones push a los participantes (excepto al remitente)
-    const remitenteEmail = mensaje?.autor_email || user.email;
-    const conversacionNombre = conversacion.nombre || 'Chat';
-
-    const participantesParaNotificar = (conversacion.participantes || [])
-      .filter(p => p.user_email && p.user_email !== remitenteEmail);
-
-    for (const participante of participantesParaNotificar) {
-      try {
-        await base44.integrations.Core.SendEmail({
-          to: participante.user_email,
-          subject: `Nuevo mensaje en ${conversacionNombre}`,
-          body: `
-            <p>Hola ${participante.nombre_display || participante.user_email},</p>
-            <p>Tienes un nuevo mensaje en la conversación <strong>${conversacionNombre}</strong>.</p>
-            <p>Abre la aplicación para verlo.</p>
-          `,
-          from_name: 'SmartGestión Chat'
-        });
-      } catch (emailError) {
-        console.error(`Error enviando email a ${participante.user_email}:`, emailError);
-      }
-    }
+    // Notificaciones por email DESACTIVADAS a petición — el chat es en tiempo real
+    // dentro de la app y no debe spamear el correo de los usuarios por cada mensaje.
+    // Se mantiene solo la actualización de la conversación (último mensaje) arriba.
 
     return Response.json({
       success: true,
       conversacion_id,
       mensaje_id,
-      notificados: participantesParaNotificar.map(p => p.user_email)
+      notificados: []
     });
 
   } catch (error) {
