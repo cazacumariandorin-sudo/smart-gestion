@@ -25,6 +25,7 @@ import {
   generarClavesRSA, cifrarAES, descifrarAES,
   cifrarClaveAESConRSA, descifrarClaveAESConRSA,
   guardarClavesEnStorage, obtenerDeStorage, generarClaveAES,
+  guardarParClaves, cargarParClaves,
 } from '@/lib/chatCrypto';
 
 export default function Chat() {
@@ -48,14 +49,32 @@ export default function Chat() {
     base44.auth.me().then(setCurrentUser).catch(console.error);
   }, []);
 
-  // Inicializar claves E2E
+  // Inicializar claves E2E — reutiliza el par persistido en IndexedDB para que
+  // los mensajes cifrados con claves públicas anteriores sigan siendo
+  // descifrables tras recargar la página.
   useEffect(() => {
     if (!currentUser) return;
     const initClaves = async () => {
       setCargandoClaves(true);
+      try {
+        const existente = await cargarParClaves(currentUser.email);
+        if (existente) {
+          setClavesE2E(existente);
+          guardarClavesEnStorage(existente.publicKeyBase64);
+          // Re-registrar por si la entrada del backend quedó desfasada
+          await base44.functions.invoke('gestionClavesChat', {
+            action: 'registrar', publicKeyBase64: existente.publicKeyBase64,
+          }).catch((e) => console.error('Error registrando clave:', e));
+          setCargandoClaves(false);
+          return;
+        }
+      } catch (e) {
+        console.error('Error cargando claves persistentes:', e);
+      }
       const { publicKeyBase64, privateKey } = await generarClavesRSA();
       setClavesE2E({ publicKeyBase64, privateKey });
       guardarClavesEnStorage(publicKeyBase64);
+      guardarParClaves(currentUser.email, publicKeyBase64, privateKey).catch(() => {});
       try {
         await base44.functions.invoke('gestionClavesChat', { action: 'registrar', publicKeyBase64 });
       } catch (e) {
@@ -114,12 +133,13 @@ export default function Chat() {
                 const texto = await descifrarAES(msg.mensaje_cifrado, claveAES);
                 result[msg.id] = texto || '[No se pudo descifrar]';
               } else {
-                result[msg.id] = '[Sin clave de descifrado]';
+                result[msg.id] = '[No se pudo descifrar]';
               }
             } else {
-              // fallback: intentar con clave privada directa (mensajes previos)
-              const texto = await descifrarAES(msg.mensaje_cifrado, clavesE2E.privateKey);
-              result[msg.id] = texto || '[No se pudo descifrar]';
+              // Mensaje previo sin clave AES por usuario asignada: no se puede
+              // descifrar (la AES estaba cifrada solo para destinatarios que no
+              // incluyen al usuario actual con la clave vigente).
+              result[msg.id] = '[No se pudo descifrar]';
             }
           } catch {
             result[msg.id] = '[Error al descifrar]';

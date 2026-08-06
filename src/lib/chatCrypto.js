@@ -133,6 +133,61 @@ export async function descifrarClaveAESConRSA(claveCifradaBase64, privateKey) {
   }
 }
 
+// ── Persistencia del par de claves en IndexedDB ─────────────────────────
+// Clave privada RSA en memoria se pierde al recargar → las claves AES de
+// mensajes antiguos (cifradas con la clave pública anterior) ya no se pueden
+// descifrar y aparece "[No se pudo descifrar]". IndexedDB persiste el par
+// (por email) entre recargas para no rotar claves en cada carga.
+const DB_NAME = 'chat_crypto';
+const STORE = 'keypairs';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function guardarParClaves(email, publicKeyBase64, privateKey) {
+  try {
+    const privJWK = await window.crypto.subtle.exportKey('jwk', privateKey);
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put({ publicKeyBase64, privateKeyJWK: privJWK }, email);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    return false;
+  }
+}
+
+export async function cargarParClaves(email) {
+  try {
+    const db = await openDB();
+    const rec = await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).get(email);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    if (!rec) return null;
+    const privateKey = await window.crypto.subtle.importKey(
+      'jwk',
+      rec.privateKeyJWK,
+      { name: 'RSA-OAEP', hash: 'SHA-256' },
+      true,
+      ['decrypt']
+    );
+    return { publicKeyBase64: rec.publicKeyBase64, privateKey };
+  } catch {
+    return null;
+  }
+}
+
 // Almacenar claves en sessionStorage (solo sesión actual)
 const STORAGE_KEY = 'chat_crypto_keys';
 
