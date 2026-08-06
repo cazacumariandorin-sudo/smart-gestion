@@ -311,9 +311,10 @@ export default function InformesTab() {
   const [opFilter, setOpFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
 
-  const { isAdmin, isJefeObra, isControlHorarioOnly, user, role } = useUserRole();
-  const canSeeAll = isAdmin || isJefeObra;
-  const isOperarioRole = role === 'operario';
+  const { isAdmin, isJefeObra, user, role } = useUserRole();
+  const canSeeAll = isAdmin || isJefeObra || role === 'gerencia' || role === 'director_comercial';
+  // Roles restringidos: solo ven y totalizan SUS propios fichajes (diario, semanal, mensual)
+  const isOwnDataOnly = ['operario', 'control_horario', 'técnico', 'usuario_demo', 'cliente_obra'].includes(role);
 
   const { data: fichajes = [], isLoading: fichajesLoading, isError: fichajesError, error: fichajesErrorObj, refetch: refetchFichajes } = useFichajesShared();
   const { data: operarios = [] } = useQuery({
@@ -321,12 +322,15 @@ export default function InformesTab() {
     queryFn: () => base44.entities.Operario.list('name', 200),
   });
 
-  const myOperario = (isControlHorarioOnly || isOperarioRole)
-    ? operarios.find(o => o.user_email === user?.email || o.email === user?.email)
+  const myOperario = isOwnDataOnly
+    ? (operarios.find(o => o.user_email === user?.email) ||
+       operarios.find(o => o.email === user?.email) ||
+       operarios.find(o => o.user_id === user?.id))
     : null;
 
   const filtered = useMemo(() => fichajes.filter(f => {
-    if ((isControlHorarioOnly || isOperarioRole) && (!myOperario || f.operario_id !== myOperario.id)) return false;
+    // Roles restringidos (técnico, operario, control_horario, demo, cliente) solo ven SUS fichajes
+    if (isOwnDataOnly && (!myOperario || f.operario_id !== myOperario.id)) return false;
     if (mode === 'calendario') {
       // En modo calendario NO filtrar por mes aquí:
       // CalendarioHorarioView tiene sus propias flechas de navegación y filtra
@@ -334,7 +338,7 @@ export default function InformesTab() {
       if (opFilter !== 'all' && f.operario_id !== opFilter) return false;
     }
     return true;
-  }), [fichajes, opFilter, mode, isControlHorarioOnly, isOperarioRole, myOperario]);
+  }), [fichajes, opFilter, mode, isOwnDataOnly, myOperario]);
 
   const generatePDF = () => {
     const doc = new jsPDF();
@@ -428,7 +432,7 @@ export default function InformesTab() {
       ) : (
         <>
           {mode === 'calendario' && <CalendarioHorarioView fichajes={filtered} canSeeAll={canSeeAll} />}
-          {mode === 'tabla' && <TablaView fichajes={fichajes} />}
+          {mode === 'tabla' && <TablaView fichajes={filtered} />}
           {mode === 'duplicados' && isAdmin && <DuplicadosView fichajes={fichajes} />}
         </>
       )}
