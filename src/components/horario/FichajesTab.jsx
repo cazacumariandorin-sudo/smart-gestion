@@ -7,7 +7,7 @@ import NetworkStatusBanner from '@/components/layout/NetworkStatusBanner';
 import { calcularHoras } from '@/lib/horasUtils';
 import { recalcularPrevision } from '@/hooks/useRecalcularPrevision';
 import { useConsolidarJornada } from '@/hooks/useConsolidarJornada';
-import { Plus, Search, Trash2, Pencil, Save, Loader2, Clock, ChevronDown, ChevronUp, ClipboardList, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Trash2, Pencil, Save, Loader2, Clock, ChevronDown, ChevronUp, ClipboardList, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import DuplicadosFichajesModal from '@/components/horario/DuplicadosFichajesModal';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import QueryErrorFallback from '@/components/QueryErrorFallback';
 
@@ -203,7 +203,15 @@ export default function FichajesTab() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Buscar operario u obra..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-full sm:w-40" />
+        <div className="flex items-center gap-1">
+          <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => setMonthFilter(prev => format(subMonths(parseISO((prev || monthFilter) + '-01'), 1), 'yyyy-MM'))} title="Mes anterior">
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-full sm:w-40 text-center" />
+          <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => setMonthFilter(prev => format(addMonths(parseISO((prev || monthFilter) + '-01'), 1), 'yyyy-MM'))} title="Mes siguiente">
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
         {canSeeAll && (
           <MobileSelect value={opFilter} onValueChange={setOpFilter} placeholder="Operario" triggerClassName="w-full sm:w-44">
             <MobileSelectItem value="all">Todos</MobileSelectItem>
