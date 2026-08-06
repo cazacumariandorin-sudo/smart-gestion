@@ -236,6 +236,7 @@ Responde SOLO con JSON válido, sin texto adicional.`
 
       const nominaData: any = {
         operario_id: operarioMatch?.id || null,
+        operario_user_email: operarioMatch?.user_email || '',
         operario_name: operarioMatch?.name || trab.nombre,
         operario_dni: dniLimpio || operarioMatch?.dni || '',
         mes: mesReal,
