@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import Anthropic from 'npm:@anthropic-ai/sdk@0.52.0';
 import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib@1.17.1';
 
 const ROOT_FOLDER_ID = '1yJzcwSzo2acrswgmtKLbNTKVd7WxUtF1';
@@ -30,6 +29,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Faltan parámetros: pdf_base64 (o pdf_url), mes, anio' }, { status: 400 });
     }
 
+    // InvokeLLM necesita una URL pública; si no hay pdf_url, subimos el PDF a Base44.
+    if (!pdf_url) {
+      try {
+        const pdfBase64Clean = pdf_base64.includes(',') ? pdf_base64.split(',')[1] : pdf_base64;
+        const pdfBytes = Uint8Array.from(atob(pdfBase64Clean), c => c.charCodeAt(0));
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const upload = await base44.integrations.Core.UploadFile({ file: blob as any });
+        pdf_url = upload.file_url;
+      } catch (e) {
+        return Response.json({ error: 'No se pudo subir el PDF para análisis IA', detalle: e.message }, { status: 500 });
+      }
+    }
+
     const loteId = `NOMINAS_${anio}_${String(mes).padStart(2, '0')}_${Date.now()}`;
     const operarios = await base44.asServiceRole.entities.Operario.list();
 
@@ -40,64 +52,58 @@ Deno.serve(async (req) => {
       if (conn?.accessToken) { accessToken = conn.accessToken; useGdrive = true; }
     } catch { /* sin Drive */ }
 
-    const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
-
-    // ── PASO 1: detectar el tipo de documento ────────────────────────────────
-    const deteccionResp = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
-      max_tokens: 200,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: `¿Este PDF es (A) un resumen estadístico de costes de nómina con todos los trabajadores en formato tabla (tipo GEFISCAL "Resumen estadístico de costes"), o (B) un conjunto de nóminas individuales una por página?
-Responde SOLO con la letra A o B, sin explicación.`
-          },
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf_base64 } }
-        ]
-      }]
+    // ── PASO 1: detectar el tipo de documento (via Base44 InvokeLLM) ──────────
+    const deteccionResp = await base44.integrations.Core.InvokeLLM({
+      prompt: `¿Este PDF es (A) un resumen estadístico de costes de nómina con todos los trabajadores en formato tabla (tipo GEFISCAL "Resumen estadístico de costes"), o (B) un conjunto de nóminas individuales una por página?
+Responde SOLO con el valor "resumen_costes" (opción A) o "nomina_individual" (opción B).`,
+      file_urls: [pdf_url],
+      response_json_schema: {
+        type: 'object',
+        properties: { tipo: { type: 'string', enum: ['resumen_costes', 'nomina_individual'] } },
+        required: ['tipo'],
+      },
     });
 
-    const tipoDetectado = deteccionResp.content[0].text.trim().toUpperCase().startsWith('A') ? 'resumen_costes' : 'nomina_individual';
+    const tipoDetectado = deteccionResp?.tipo === 'resumen_costes' ? 'resumen_costes' : 'nomina_individual';
     console.log('Tipo documento detectado:', tipoDetectado);
+
+    const schemaTrabajadores = {
+      type: 'object',
+      properties: {
+        trabajadores: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              pagina: { type: 'integer' },
+              dni: { type: 'string' },
+              nombre: { type: 'string' },
+              anticipos_deducciones: { type: 'number' },
+              tipo_anticipo: { type: 'string' },
+              liquido_percibir: { type: 'number' },
+              total_devengado: { type: 'number' },
+              prorrata_pagas_extra: { type: 'number' },
+              cuotas_obreras: { type: 'number' },
+              retencion_irpf: { type: 'number' },
+              coste_ss_empresa: { type: 'number' },
+              coste_empresa: { type: 'number' },
+              mes_documento: { type: 'integer' },
+              anio_documento: { type: 'integer' },
+            },
+          },
+        },
+      },
+      required: ['trabajadores'],
+    };
 
     let trabajadoresPDF: any[] = [];
 
     if (tipoDetectado === 'resumen_costes') {
       // ── FORMATO GEFISCAL: resumen estadístico de costes ──────────────────
-      const extractResp = await anthropic.messages.create({
-        model: 'claude-opus-4-5',
-        max_tokens: 4096,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `Este PDF es un "Resumen estadístico de costes" de nóminas generado por GEFISCAL.
+      const promptResumen = `Este PDF es un "Resumen estadístico de costes" de nóminas generado por GEFISCAL.
 Contiene una tabla con filas por trabajador. Extrae TODOS los trabajadores (ignora las filas de totales/subtotales).
 
-Para cada trabajador extrae:
-{
-  "trabajadores": [
-    {
-      "dni": "49011070W",
-      "nombre": "BORJA GARCIA MANUEL-ANTONIO",
-      "anticipos_deducciones": 0.00,
-      "tipo_anticipo": "",
-      "liquido_percibir": 870.16,
-      "total_devengado": 1046.92,
-      "prorrata_pagas_extra": 0.00,
-      "cuotas_obreras": 34.38,
-      "retencion_irpf": 142.38,
-      "coste_ss_empresa": 196.55,
-      "coste_empresa": 1243.47,
-      "mes_documento": 7,
-      "anio_documento": 2026
-    }
-  ]
-}
-
+Para cada trabajador extrae los campos del esquema JSON.
 Notas:
 - "anticipos_deducciones" es la columna "Anticipos y deducción" (puede ser ANTICIPO, DTO ESPECIE, etc.)
 - "tipo_anticipo": extrae la etiqueta si aparece en la fila (ANTICIPO / DTO ESPECIE / vacío)
@@ -107,63 +113,48 @@ Notas:
 - "coste_empresa": columna "Coste total" (la última columna)
 - "mes_documento" y "anio_documento": extráelos del título/encabezado del documento
 - Ignora filas que empiecen por "Total para", "DTO ESPECIE", "ANTICIPO" (son subtotales)
-Responde SOLO con JSON válido, sin texto adicional.`
-            },
-            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf_base64 } }
-          ]
-        }]
+- "pagina" no aplica en este formato (omítelo)`;
+
+      const extractResp = await base44.integrations.Core.InvokeLLM({
+        prompt: promptResumen,
+        file_urls: [pdf_url],
+        response_json_schema: schemaTrabajadores,
+        model: 'claude_opus_4_8',
       });
 
       try {
-        let jsonText = extractResp.content[0].text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-        trabajadoresPDF = JSON.parse(jsonText).trabajadores || [];
+        trabajadoresPDF = (extractResp?.trabajadores) || [];
+        if (!Array.isArray(trabajadoresPDF) || trabajadoresPDF.length === 0) {
+          throw new Error('IA no devolvió trabajadores');
+        }
       } catch (e) {
         console.error('Error parse resumen costes:', e.message);
         return Response.json({ error: 'Error al parsear resumen de costes', detalle: e.message }, { status: 500 });
       }
     } else {
       // ── FORMATO NÓMINAS INDIVIDUALES (una por página) ────────────────────
-      const extractResp = await anthropic.messages.create({
-        model: 'claude-opus-4-5',
-        max_tokens: 4096,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `Analiza este PDF de nóminas con múltiples trabajadores (una nómina por página).
+      const promptIndividual = `Analiza este PDF de nóminas con múltiples trabajadores (una nómina por página).
 
-Para CADA trabajador extrae:
-{
-  "trabajadores": [
-    {
-      "pagina": 1,
-      "nombre": "APELLIDO1 APELLIDO2 NOMBRE",
-      "dni": "12345678X",
-      "mes_documento": 7,
-      "anio_documento": 2026,
-      "liquido_percibir": 1671.17,
-      "total_devengado": 2090.53,
-      "cuotas_obreras": 88.50,
-      "retencion_irpf": 330.86,
-      "coste_ss_empresa": 620.00,
-      "coste_empresa": 2871.33,
-      "anticipos_deducciones": 0.00,
-      "tipo_anticipo": ""
-    }
-  ]
-}
+Para CADA trabajador extrae los campos del esquema JSON:
+- "pagina": número de página dentro del PDF donde está esa nómina
+- "nombre": APELLIDO1 APELLIDO2 NOMBRE
+- "dni": DNI/NIF del trabajador
+- "mes_documento" y "anio_documento": del documento
+- "liquido_percibir", "total_devengado", "cuotas_obreras", "retencion_irpf", "coste_ss_empresa", "coste_empresa"
+- "anticipos_deducciones" y "tipo_anticipo" si aparecen`;
 
-Responde SOLO con JSON válido, sin texto adicional.`
-            },
-            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf_base64 } }
-          ]
-        }]
+      const extractResp = await base44.integrations.Core.InvokeLLM({
+        prompt: promptIndividual,
+        file_urls: [pdf_url],
+        response_json_schema: schemaTrabajadores,
+        model: 'claude_opus_4_8',
       });
 
       try {
-        let jsonText = extractResp.content[0].text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-        trabajadoresPDF = JSON.parse(jsonText).trabajadores || [];
+        trabajadoresPDF = (extractResp?.trabajadores) || [];
+        if (!Array.isArray(trabajadoresPDF) || trabajadoresPDF.length === 0) {
+          throw new Error('IA no devolvió trabajadores');
+        }
       } catch (e) {
         return Response.json({ error: 'Error al procesar el PDF con IA', detalle: e.message }, { status: 500 });
       }
