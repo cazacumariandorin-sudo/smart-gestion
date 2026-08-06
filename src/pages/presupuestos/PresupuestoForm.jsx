@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Trash2, FileText, Loader2, Upload, Search } from "lucide-react";
+import { X, Plus, Trash2, FileText, Loader2, Upload, Search, ClipboardCheck } from "lucide-react";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import OcrUploader from "@/components/gastos/OcrUploader";
 
@@ -43,21 +44,68 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
         queryFn: () => base44.entities.Client.list('name', 200),
     });
 
-    // Cargar partes de trabajo filtrados por cliente seleccionado
-    const { data: partesTrabajo = [], refetch: refetchPartes } = useQuery({
+    // Cargar partes de trabajo + partes diarios filtrados por cliente seleccionado
+    const { data: partesTrabajo = [], refetch: refetchPartes, isLoading: isLoadingPartes } = useQuery({
         queryKey: ['partes_trabajo_presupuesto', formData.cliente_id],
         queryFn: async () => {
             if (!formData.cliente_id) return [];
             setLoadingPartes(true);
-            const allPartes = await base44.entities.WorkOrder.list('-created_date', 200);
+            const [workOrders, partesDiarios] = await Promise.all([
+                base44.entities.WorkOrder.list('-created_date', 200),
+                base44.entities.ParteDiarioObra.list('-fecha', 300),
+            ]);
             setLoadingPartes(false);
-            // Filtrar por cliente seleccionado
-            return allPartes.filter(p => p.client_id === formData.cliente_id);
+
+            // Partes de trabajo (WorkOrder) del cliente
+            const wosNorm = workOrders
+                .filter(p => p.client_id === formData.cliente_id)
+                .map(w => ({
+                    id: w.id,
+                    tipo: 'parte_trabajo',
+                    titulo: w.titulo || `Parte ${w.id.slice(-4)}`,
+                    obra_name: w.obra_name || 'Sin obra',
+                    fecha: w.created_date,
+                    sub: `${w.trabajadores?.length || 0} trabajadores`,
+                    descripcion_auto: [w.titulo, w.description].filter(Boolean).join('\n'),
+                }));
+
+            // ParteDiarioObra no incluye client_id: resolver obras del cliente y filtrar por obra_id
+            const partesCliente = partesDiarios.filter(p => p.client_id === formData.cliente_id);
+            let pdsFiltrados = partesCliente;
+            if (partesCliente.length === 0 && partesDiarios.length > 0) {
+                const [obrasCiviles, obrasSolar] = await Promise.all([
+                    base44.entities.Obra.list('name', 300),
+                    base44.entities.SolarObra.list('name', 300),
+                ]);
+                const idsCliente = new Set([
+                    ...obrasCiviles.filter(o => o.client_id === formData.cliente_id).map(o => o.id),
+                    ...obrasSolar.filter(o => o.client_id === formData.cliente_id).map(o => o.id),
+                ]);
+                // añadir obras referenciadas por WorkOrder del cliente
+                workOrders.filter(w => w.client_id === formData.cliente_id && w.obra_id).forEach(w => idsCliente.add(w.obra_id));
+                pdsFiltrados = partesDiarios.filter(p => p.obra_id && idsCliente.has(p.obra_id));
+            }
+
+            const pdsNorm = pdsFiltrados.map(p => ({
+                id: p.id,
+                tipo: 'parte_diario',
+                titulo: `Parte diario ${format(new Date(p.fecha), 'dd/MM/yyyy', { locale: es })}`,
+                obra_name: p.obra_name || 'Sin obra',
+                fecha: p.fecha,
+                sub: p.tecnico_name || '',
+                descripcion_auto: [
+                    p.trabajos_realizados,
+                    p.materiales_necesarios ? `Materiales: ${p.materiales_necesarios}` : null,
+                    p.trabajos_pendientes ? `Pendiente: ${p.trabajos_pendientes}` : null,
+                ].filter(Boolean).join('\n'),
+            }));
+
+            return [...wosNorm, ...pdsNorm].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
         },
         enabled: !!formData.cliente_id,
     });
 
-    // Filtrar partes por búsqueda
+    // Filtrar partes por búsqueda (título u obra)
     const partesFiltrados = partesTrabajo.filter(parte => {
         if (!busquedaPartes) return true;
         const search = busquedaPartes.toLowerCase();
@@ -65,6 +113,8 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
         const obra = (parte.obra_name || "").toLowerCase();
         return titulo.includes(search) || obra.includes(search);
     });
+
+    const partesSeleccionados = partesTrabajo.filter(p => formData.partes_trabajo_ids.includes(p.id));
 
     const handleDatosOcrExtraidos = (datos) => {
         if (datos?.conceptos && datos.conceptos.length > 0) {
@@ -103,12 +153,26 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
         }));
     };
 
-    const handleToggleParteTrabajo = (parteId) => {
+    const handleToggleParteTrabajo = (parte) => {
+        const ya = formData.partes_trabajo_ids.includes(parte.id);
+
+        // Autocompletar descripción: al añadir, anexamos el resumen del parte si no está ya presente
+        let nuevaDesc = formData.descripcion;
+        if (!ya && parte.descripcion_auto) {
+            const marca = parte.descripcion_auto.trim().slice(0, 40);
+            if (!formData.descripcion.includes(marca)) {
+                nuevaDesc = formData.descripcion
+                    ? `${formData.descripcion}\n— ${parte.titulo} (${parte.obra_name}):\n${parte.descripcion_auto}`
+                    : `— ${parte.titulo} (${parte.obra_name}):\n${parte.descripcion_auto}`;
+            }
+        }
+
         setFormData(prev => ({
             ...prev,
-            partes_trabajo_ids: prev.partes_trabajo_ids.includes(parteId)
-                ? prev.partes_trabajo_ids.filter(id => id !== parteId)
-                : [...prev.partes_trabajo_ids, parteId]
+            partes_trabajo_ids: ya
+                ? prev.partes_trabajo_ids.filter(id => id !== parte.id)
+                : [...prev.partes_trabajo_ids, parte.id],
+            descripcion: nuevaDesc,
         }));
     };
 
@@ -289,34 +353,46 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                             </div>
                         </div>
 
-                        {/* Partes de trabajo vinculados */}
+                        {/* Partes de trabajo / diarios vinculados */}
                         {formData.cliente_id && (
                             <div className="space-y-3">
                                 <Label className="flex items-center justify-between">
                                     <span className="flex items-center gap-2">
                                         <FileText className="w-4 h-4" />
-                                        Partes de Trabajo de este Cliente
+                                        Partes de Trabajo y Partes Diarios del Cliente
                                     </span>
-                                    {loadingPartes && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                                    {(loadingPartes || isLoadingPartes) && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
                                 </Label>
-                                
+
+                                {/* Selecciones activas */}
+                                {partesSeleccionados.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {partesSeleccionados.map(p => (
+                                            <Badge key={p.id} variant="default" className="gap-1 text-[10px]">
+                                                {p.tipo === 'parte_diario' ? <ClipboardCheck className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                                                {p.titulo}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                )}
+
                                 {/* Buscador de partes */}
                                 {partesTrabajo.length > 0 && (
                                     <div className="relative">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                         <input
                                             type="text"
-                                            placeholder="Buscar por título o obra..."
+                                            placeholder="Buscar por título u obra..."
                                             value={busquedaPartes}
                                             onChange={(e) => setBusquedaPartes(e.target.value)}
                                             className="w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                                         />
                                     </div>
                                 )}
-                                
+
                                 {partesFiltrados.length === 0 ? (
                                     <p className="text-sm text-muted-foreground">
-                                        {busquedaPartes ? 'No se encontraron partes con esa búsqueda' : 'No hay partes de trabajo para este cliente'}
+                                        {busquedaPartes ? 'No se encontraron partes con esa búsqueda' : 'No hay partes de trabajo ni partes diarios para este cliente'}
                                     </p>
                                 ) : (
                                     <div className="grid gap-2 md:grid-cols-2 max-h-64 overflow-y-auto">
@@ -326,13 +402,15 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                                                 type="button"
                                                 variant={formData.partes_trabajo_ids.includes(parte.id) ? "default" : "outline"}
                                                 className="justify-start h-auto py-2 px-3"
-                                                onClick={() => handleToggleParteTrabajo(parte.id)}
+                                                onClick={() => handleToggleParteTrabajo(parte)}
                                             >
-                                                <FileText className="w-4 h-4 mr-2 shrink-0" />
+                                                {parte.tipo === 'parte_diario'
+                                                    ? <ClipboardCheck className="w-4 h-4 mr-2 shrink-0" />
+                                                    : <FileText className="w-4 h-4 mr-2 shrink-0" />}
                                                 <div className="text-left">
-                                                    <p className="text-xs font-medium">{parte.titulo || `Parte ${parte.id.slice(-4)}`}</p>
+                                                    <p className="text-xs font-medium">{parte.titulo}</p>
                                                     <p className="text-[10px] text-muted-foreground">
-                                                        {parte.obra_name || 'Sin obra'} · {parte.trabajadores?.length || 0} trabajadores
+                                                        {parte.obra_name} {parte.sub ? `· ${parte.sub}` : ''}
                                                     </p>
                                                 </div>
                                             </Button>
