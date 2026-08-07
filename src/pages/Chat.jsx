@@ -194,8 +194,12 @@ export default function Chat() {
         if (msg.tipo_mensaje === 'cifrado' && msg.mensaje_cifrado) {
           // Intentar descifrar con clave AES del mensaje (claves_por_usuario)
           try {
-            if (msg.claves_por_usuario && currentUser?.id && msg.claves_por_usuario[currentUser.id]) {
-              const claveAES = await descifrarClaveAESConRSA(msg.claves_por_usuario[currentUser.id], clavesE2E.privateKey);
+            const claveParaMi = msg.claves_por_usuario && (
+              (currentUser?.id && msg.claves_por_usuario[currentUser.id])
+              || (currentUser?.email && msg.claves_por_usuario[currentUser.email])
+            );
+            if (claveParaMi) {
+              const claveAES = await descifrarClaveAESConRSA(claveParaMi, clavesE2E.privateKey);
               if (claveAES) {
                 const texto = await descifrarAES(msg.mensaje_cifrado, claveAES);
                 result[msg.id] = texto || '[No se pudo descifrar]';
@@ -275,8 +279,13 @@ export default function Chat() {
             });
             if (resp?.data?.clave_publica) {
               const claveCifrada = await cifrarClaveAESConRSA(claveAES, resp.data.clave_publica);
-              if (claveCifrada && p.user_id) {
-                clavesPorUsuario[p.user_id] = claveCifrada;
+              // Se indexa por user_id cuando existe (caso normal) y, como
+              // respaldo, también por email: si el Operario del destinatario
+              // no tiene user_id enlazado, sin este respaldo nunca recibiría
+              // copia de la clave AES y no podría descifrar ningún mensaje.
+              if (claveCifrada) {
+                if (p.user_id) clavesPorUsuario[p.user_id] = claveCifrada;
+                if (p.user_email) clavesPorUsuario[p.user_email] = claveCifrada;
               }
             }
           }
@@ -588,6 +597,15 @@ export default function Chat() {
         currentUser={currentUser}
         messages={messages}
         onSalir={handleSalirConversacion}
+      />
+
+      <ChatRecuperarClaveDialog
+        open={!!dialogoClaveModo}
+        modo={dialogoClaveModo}
+        onRecuperar={handleRecuperarConPin}
+        onCrearConPIN={handleCrearRespaldoPin}
+        onContinuarSinRecuperar={handleContinuarSinRecuperar}
+        onCancelar={() => setDialogoClaveModo(null)}
       />
     </div>
     </ChatErrorBoundary>
