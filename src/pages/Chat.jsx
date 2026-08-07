@@ -18,6 +18,7 @@ import ChatDateSeparator from '@/components/chat/ChatDateSeparator';
 import ChatInfoPanel from '@/components/chat/ChatInfoPanel';
 import ChatInput from '@/components/chat/ChatInput';
 import ChatErrorBoundary from '@/components/chat/ChatErrorBoundary';
+import ChatRecuperarClaveDialog from '@/components/chat/ChatRecuperarClaveDialog';
 import {
   safeToISO, safeTimeFormat, toValidDate,
 } from '@/lib/chatDateUtils';
@@ -26,6 +27,7 @@ import {
   cifrarClaveAESConRSA, descifrarClaveAESConRSA,
   guardarClavesEnStorage, obtenerDeStorage, generarClaveAES,
   guardarParClaves, cargarParClaves,
+  cifrarClavePrivadaConPIN, descifrarClavePrivadaConPIN,
 } from '@/lib/chatCrypto';
 
 export default function Chat() {
@@ -41,6 +43,7 @@ export default function Chat() {
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [replyMsg, setReplyMsg] = useState(null);
   const [mostrandoChat, setMostrandoChat] = useState(false); // móvil: true = panel mensajes
+  const [dialogoClaveModo, setDialogoClaveModo] = useState(null); // 'recuperar' | 'crear_respaldo' | 'confirmar_sobrescritura' | null
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
 
@@ -49,9 +52,31 @@ export default function Chat() {
     base44.auth.me().then(setCurrentUser).catch(console.error);
   }, []);
 
+  // Genera un par de claves nuevo, lo guarda local y opcionalmente sube un
+  // respaldo cifrado con PIN. `forzar` sobrescribe la clave pública activa
+  // en el servidor aunque ya hubiera otra distinta (usar solo tras avisar).
+  const generarYRegistrarClaveNueva = async (pin, forzar) => {
+    const { publicKeyBase64, privateKey } = await generarClavesRSA();
+    setClavesE2E({ publicKeyBase64, privateKey });
+    guardarClavesEnStorage(publicKeyBase64);
+    guardarParClaves(currentUser.email, publicKeyBase64, privateKey).catch(() => {});
+    let respaldoCifrado;
+    if (pin) {
+      try { respaldoCifrado = await cifrarClavePrivadaConPIN(privateKey, pin); } catch (e) { console.error('Error cifrando respaldo:', e); }
+    }
+    try {
+      await base44.functions.invoke('gestionClavesChat', { action: 'registrar', publicKeyBase64, respaldoCifrado, forzar });
+    } catch (e) {
+      console.error('Error registrando clave:', e);
+    }
+    setCargandoClaves(false);
+  };
+
   // Inicializar claves E2E — reutiliza el par persistido en IndexedDB para que
   // los mensajes cifrados con claves públicas anteriores sigan siendo
-  // descifrables tras recargar la página.
+  // descifrables tras recargar la página. Si este dispositivo no tiene clave
+  // local pero el servidor ya conoce una activa para el usuario, se intenta
+  // recuperar con PIN antes de generar (y así romper) una clave nueva.
   useEffect(() => {
     if (!currentUser) return;
     const initClaves = async () => {
@@ -71,19 +96,61 @@ export default function Chat() {
       } catch (e) {
         console.error('Error cargando claves persistentes:', e);
       }
-      const { publicKeyBase64, privateKey } = await generarClavesRSA();
-      setClavesE2E({ publicKeyBase64, privateKey });
-      guardarClavesEnStorage(publicKeyBase64);
-      guardarParClaves(currentUser.email, publicKeyBase64, privateKey).catch(() => {});
+
+      // Sin clave local: comprobar si el servidor ya tiene una clave activa
+      // (dispositivo nuevo / datos de navegación borrados) antes de generar.
       try {
-        await base44.functions.invoke('gestionClavesChat', { action: 'registrar', publicKeyBase64 });
+        const verif = await base44.functions.invoke('gestionClavesChat', { action: 'verificar_propia' });
+        if (verif?.data?.existe) {
+          setDialogoClaveModo(verif.data.tiene_respaldo ? 'recuperar' : 'confirmar_sobrescritura');
+          setCargandoClaves(false);
+          return;
+        }
       } catch (e) {
-        console.error('Error registrando clave:', e);
+        console.error('Error verificando clave existente:', e);
       }
+
+      // Primera vez: generar clave y pedir PIN de respaldo
+      setDialogoClaveModo('crear_respaldo');
       setCargandoClaves(false);
     };
     initClaves();
   }, [currentUser]);
+
+  const handleRecuperarConPin = async (pin) => {
+    try {
+      const resp = await base44.functions.invoke('gestionClavesChat', { action: 'obtener_respaldo' });
+      const respaldoCifrado = resp?.data?.respaldoCifrado;
+      const publicKeyBase64 = resp?.data?.publicKeyBase64;
+      if (!respaldoCifrado) return false;
+      const privateKey = await descifrarClavePrivadaConPIN(respaldoCifrado, pin);
+      if (!privateKey) return false;
+      setClavesE2E({ publicKeyBase64, privateKey });
+      guardarClavesEnStorage(publicKeyBase64);
+      guardarParClaves(currentUser.email, publicKeyBase64, privateKey).catch(() => {});
+      setDialogoClaveModo(null);
+      toast.success('Acceso al chat cifrado recuperado');
+      return true;
+    } catch (e) {
+      console.error('Error recuperando clave con PIN:', e);
+      return false;
+    }
+  };
+
+  const handleCrearRespaldoPin = async (pin) => {
+    setCargandoClaves(true);
+    await generarYRegistrarClaveNueva(pin, false);
+    setDialogoClaveModo(null);
+    toast.success('PIN de recuperación guardado');
+  };
+
+  const handleContinuarSinRecuperar = async () => {
+    // Usuario decidió (tras el aviso) generar una clave nueva sin PIN de
+    // respaldo, o saltarse el PIN en el primer uso.
+    setCargandoClaves(true);
+    await generarYRegistrarClaveNueva(null, true);
+    setDialogoClaveModo(null);
+  };
 
   // Suscripción en tiempo real
   useEffect(() => {
