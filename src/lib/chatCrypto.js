@@ -188,6 +188,57 @@ export async function cargarParClaves(email) {
   }
 }
 
+// ── Respaldo de la clave privada protegido con PIN ──────────────────────
+// Permite recuperar la clave privada en un dispositivo/navegador nuevo sin
+// mandar la clave privada en claro al servidor: se deriva una clave AES a
+// partir del PIN (PBKDF2) y se usa solo para envolver la clave privada RSA
+// antes de subir el blob resultante a ChatClavePublica.clave_privada_cifrada.
+async function derivarClaveDesdePIN(pin, saltBytes) {
+  const encoder = new TextEncoder();
+  const baseKey = await window.crypto.subtle.importKey(
+    'raw', encoder.encode(pin), 'PBKDF2', false, ['deriveKey']
+  );
+  return window.crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: saltBytes, iterations: 210000, hash: 'SHA-256' },
+    baseKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+export async function cifrarClavePrivadaConPIN(privateKey, pin) {
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const claveDerivada = await derivarClaveDesdePIN(pin, salt);
+  const privJWK = await window.crypto.subtle.exportKey('jwk', privateKey);
+  const data = new TextEncoder().encode(JSON.stringify(privJWK));
+  const ciphertext = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, claveDerivada, data);
+  const combined = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
+  combined.set(salt, 0);
+  combined.set(iv, salt.length);
+  combined.set(new Uint8Array(ciphertext), salt.length + iv.length);
+  return btoa(String.fromCharCode(...combined));
+}
+
+export async function descifrarClavePrivadaConPIN(blobBase64, pin) {
+  try {
+    const combined = Uint8Array.from(atob(blobBase64), c => c.charCodeAt(0));
+    const salt = combined.slice(0, 16);
+    const iv = combined.slice(16, 28);
+    const data = combined.slice(28);
+    const claveDerivada = await derivarClaveDesdePIN(pin, salt);
+    const decrypted = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv }, claveDerivada, data);
+    const privJWK = JSON.parse(new TextDecoder().decode(decrypted));
+    return window.crypto.subtle.importKey(
+      'jwk', privJWK, { name: 'RSA-OAEP', hash: 'SHA-256' }, true, ['decrypt']
+    );
+  } catch (error) {
+    console.error('Error descifrando respaldo con PIN (PIN incorrecto o dato corrupto):', error);
+    return null;
+  }
+}
+
 // Almacenar claves en sessionStorage (solo sesión actual)
 const STORAGE_KEY = 'chat_crypto_keys';
 
