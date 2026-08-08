@@ -3,6 +3,7 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query'
 import GlobalLoadingBar from '@/components/GlobalLoadingBar';
+import GlobalErrorBoundary from '@/components/GlobalErrorBoundary';
 import { setupGlobalErrorHandling, setCurrentUserForDiag } from '@/lib/errorHandler';
 import { iniciarVigilanciaSilenciosa } from '@/lib/vigilanciaSilente';
 import { queryClientInstance } from '@/lib/query-client'
@@ -331,7 +332,11 @@ const AuthenticatedApp = () => {
     }
   }
 
-  return <AnimatedRoutes />;
+  return (
+    <GlobalErrorBoundary>
+      <AnimatedRoutes />
+    </GlobalErrorBoundary>
+  );
 };
 
 function App() {
