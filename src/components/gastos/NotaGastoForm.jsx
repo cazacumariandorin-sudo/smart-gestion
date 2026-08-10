@@ -47,11 +47,39 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [operarioSeleccionado, setOperarioSeleccionado] = useState(null);
   const [showObraModal, setShowObraModal] = useState(false);
   const [pendingSave, setPendingSave] = useState(false);
+  const [sugerencia, setSugerencia] = useState(null); // { categoria_sugerida, confianza, patron_id }
   const { user } = useAuth();
 
   useEffect(() => {
-    if (open) { setPaso('captura'); setForm(defaultForm); setArchivos([]); setOcrRaw(''); setCaptureData(null); setIaNoDispo(false); setPosibleDup(null); setOperarioSeleccionado(null); setShowObraModal(false); setPendingSave(false); }
+    if (open) { setPaso('captura'); setForm(defaultForm); setArchivos([]); setOcrRaw(''); setCaptureData(null); setIaNoDispo(false); setPosibleDup(null); setOperarioSeleccionado(null); setShowObraModal(false); setPendingSave(false); setSugerencia(null); }
   }, [open]);
+
+  // Lookup de patrón de gasto (comercio → categoría) cuando el operario escribe el comercio.
+  // Solo sugiere si confianza ≥ 0.7 y el patrón sigue activo.
+  useEffect(() => {
+    if (!operarioEfectivo?.id) { setSugerencia(null); return; }
+    const nombre = (form.nombre_comercio || '').trim();
+    if (nombre.length < 3) { setSugerencia(null); return; }
+    const norm = nombre.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+    const t = setTimeout(async () => {
+      try {
+        const matches = await base44.entities.PatronGasto.filter({ operario_id: operarioEfectivo.id, nombre_comercio_normalizado: norm });
+        if (matches && matches.length > 0 && matches[0].activo !== false && (matches[0].confianza || 0) >= 0.7) {
+          setSugerencia({ categoria_sugerida: matches[0].categoria_sugerida, confianza: matches[0].confianza, patron_id: matches[0].id });
+        } else {
+          setSugerencia(null);
+        }
+      } catch { setSugerencia(null); }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [form.nombre_comercio, operarioEfectivo?.id]);
+
+  // Auto-aplicar la sugerencia solo si el usuario aún no eligió categoría.
+  useEffect(() => {
+    if (sugerencia && !form.categoria && sugerencia.categoria_sugerida) {
+      setField('categoria', sugerencia.categoria_sugerida);
+    }
+  }, [sugerencia]);
 
   const operarioEfectivo = (isAdmin && operarioSeleccionado) ? (operarios.find(op => op.id === operarioSeleccionado) || operario) : operario;
 
@@ -59,7 +87,24 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     (payload) => base44.entities.RegistroGasto.create(payload),
     'notas_gasto',
     (prev, payload) => [{ id: `optimistic-${Date.now()}`, ...payload }, ...prev],
-    (data) => { toast.success(`Registro ${data?.numero_nota || ''} creado correctamente`, { description: `${data?.categoria || '—'} · ${data?.importe ? data.importe.toFixed(2) + ' €' : '—'}`, duration: 5000 }); onCreated?.({ operario_id: operarioEfectivo?.id }); onClose(); },
+    (data) => {
+      toast.success(`Registro ${data?.numero_nota || ''} creado correctamente`, { description: `${data?.categoria || '—'} · ${data?.importe ? data.importe.toFixed(2) + ' €' : '—'}`, duration: 5000 });
+      // Aprendizaje de patrón (fire-and-forget). Permite corregir/reforzar la sugerencia aplicada.
+      if (operarioEfectivo?.id && form.nombre_comercio && form.categoria) {
+        try {
+          base44.functions?.invoke?.('aprenderPatronGasto', {
+            operario_id: operarioEfectivo.id,
+            operario_email: operarioEfectivo.user_email || user?.email || '',
+            nombre_comercio: form.nombre_comercio,
+            nif_comercio: form.nif_comercio || '',
+            categoria_confirmada: form.categoria,
+            categoria_sugerida: sugerencia?.categoria_sugerida || null,
+          })?.catch?.(() => {});
+        } catch {}
+      }
+      onCreated?.({ operario_id: operarioEfectivo?.id });
+      onClose();
+    },
     (err) => toast.error('Error al crear: ' + err.message)
   );
 
@@ -190,7 +235,17 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
               )}
               <div className="space-y-1.5"><Label className="text-xs">Fecha del documento</Label><Input type="date" value={form.fecha_documento} onChange={e => setField('fecha_documento', e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label className="text-xs">Categoría *</Label><MobileSelect value={form.categoria} onValueChange={v => setField('categoria', v)} placeholder="Categoría">{CATEGORIAS.map(c => <MobileSelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</MobileSelectItem>)}</MobileSelect></div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs flex items-center gap-1.5">
+                    Categoría *
+                    {sugerencia && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium" title={`Patrón aprendido · ${Math.round((sugerencia.confianza || 0) * 100)}% de confianza`}>
+                        ✨ {sugerencia.categoria_sugerida} · {Math.round((sugerencia.confianza || 0) * 100)}%
+                      </span>
+                    )}
+                  </Label>
+                  <MobileSelect value={form.categoria} onValueChange={v => setField('categoria', v)} placeholder="Categoría">{CATEGORIAS.map(c => <MobileSelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</MobileSelectItem>)}</MobileSelect>
+                </div>
                 <div className="space-y-1.5"><Label className="text-xs">Importe (€) *</Label><Input type="number" step="0.01" placeholder="0.00" value={form.importe} onChange={e => setField('importe', e.target.value)} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
