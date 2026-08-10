@@ -1,0 +1,161 @@
+{
+  "name": "PatronGasto",
+  "type": "object",
+  "properties": {
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario al que pertenece este patr\u00f3n"
+    },
+    "operario_email": {
+      "type": "string",
+      "description": "Email del usuario vinculado (para RLS y filtros r\u00e1pidos)"
+    },
+    "nombre_comercio_normalizado": {
+      "type": "string",
+      "description": "Nombre del comercio normalizado: UPPERCASE, sin espacios laterales, sin signos. Clave de coincidencia."
+    },
+    "nombre_comercio_display": {
+      "type": "string",
+      "description": "Nombre tal como se guard\u00f3 la primera vez (para mostrar al usuario)"
+    },
+    "nif_comercio": {
+      "type": "string",
+      "description": "NIF/CIF del comercio (si se extrajo del OCR). Ayuda a desambiguar comercios con nombre similar."
+    },
+    "categoria_sugerida": {
+      "type": "string",
+      "enum": [
+        "material",
+        "combustible",
+        "peaje",
+        "parking",
+        "comida",
+        "otros"
+      ],
+      "description": "Categor\u00eda que el sistema sugiere para este comercio"
+    },
+    "veces_confirmado": {
+      "type": "integer",
+      "default": 0,
+      "description": "Veces que el operario confirm\u00f3 la categor\u00eda sugerida tal cual"
+    },
+    "veces_corregido": {
+      "type": "integer",
+      "default": 0,
+      "description": "Veces que el operario cambi\u00f3 la categor\u00eda sugerida por otra distinta"
+    },
+    "categoria_mas_corregida": {
+      "type": "string",
+      "enum": [
+        "material",
+        "combustible",
+        "peaje",
+        "parking",
+        "comida",
+        "otros"
+      ],
+      "description": "Categor\u00eda a la que m\u00e1s se corrigi\u00f3 (para reorientar la sugerencia)"
+    },
+    "confianza": {
+      "type": "number",
+      "default": 0,
+      "description": "Confianza 0-1 = veces_confirmado / (veces_confirmado + veces_corregido). Si solo confirmaciones, tiende a 1; si solo correcciones, tiende a 0."
+    },
+    "ultima_aplicacion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la \u00faltima vez que se aplic\u00f3/confirm\u00f3 este patr\u00f3n"
+    },
+    "ultima_correccion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la \u00faltima correcci\u00f3n (si aplica)"
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si el patr\u00f3n sigue siendo v\u00e1lido. Se desactiva si el operario marca expl\u00edcitamente ignorar."
+    }
+  },
+  "required": [
+    "operario_id",
+    "nombre_comercio_normalizado",
+    "categoria_sugerida"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "data.operario_email": "{{user.email}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "data.operario_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "data.operario_email": "{{user.email}}"
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.operario_email": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}
