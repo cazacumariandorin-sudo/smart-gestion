@@ -11,13 +11,15 @@ import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Search, FileBarChart2, Receipt, ChevronDown, ChevronRight, Building2 } from 'lucide-react';
+import { Plus, Search, FileBarChart2, Receipt, ChevronDown, ChevronRight, Building2, CalendarRange } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NotaGastoForm from '@/components/gastos/NotaGastoForm';
 import NotaGastoCard from '@/components/gastos/NotaGastoCard';
 import NotaGastoDetalle from '@/components/gastos/NotaGastoDetalle';
 import InformeGastos from '@/components/gastos/InformeGastos';
 import ResumenPeriodoGastos from '@/components/gastos/ResumenPeriodoGastos';
+import CiclosMensualesPanel from '@/components/gastos/CiclosMensualesPanel';
+import BannerCicloActivo from '@/components/gastos/BannerCicloActivo';
 import { useAuth } from '@/lib/AuthContext';
 import { useTecnicoName } from '@/hooks/useTecnicoName';
 
@@ -108,6 +110,7 @@ export default function NotasGastos() {
 
   const [showForm, setShowForm] = useState(false);
   const [notaSeleccionada, setNotaSeleccionada] = useState(null);
+  // tab: 'notas' (registros) | 'ciclos' (ciclos mensuales 26→25) | 'informe'
   const [tab, setTab] = useState('notas');
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
@@ -199,9 +202,18 @@ export default function NotasGastos() {
               <FileBarChart2 className="w-4 h-4" />
               <span className="hidden sm:inline">Informe</span>
             </Button>
-            <Button 
-              onClick={() => setShowForm(true)} 
-              size="sm" 
+            <Button
+              variant={tab === 'ciclos' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTab(tab === 'ciclos' ? 'notas' : 'ciclos')}
+              className="gap-1.5"
+            >
+              <CalendarRange className="w-4 h-4" />
+              <span className="hidden sm:inline">Ciclos</span>
+            </Button>
+            <Button
+              onClick={() => setShowForm(true)}
+              size="sm"
               className="gap-1.5"
               disabled={!puedeCrearRegistro}
             >
@@ -213,108 +225,118 @@ export default function NotasGastos() {
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="p-4 sm:p-6 lg:p-8">
 
-      {!vistaAdmin && tab !== 'informe' && (
-        <ResumenPeriodoGastos
-          operario={operarioActual}
-          notas={notasRaw}
-          isAdmin={isAdmin}
-          onPeriodosCerrados={() => qc.invalidateQueries({ queryKey: ['notas_gasto'] })}
-        />
-      )}
-
-      {tab === 'informe' && (
-        <div className="mb-6">
-          <InformeGastos operario={operarioActual} notas={notasRaw} isAdmin={isAdmin} />
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-2 mb-4">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar por número, comercio, concepto..."
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-          />
-        </div>
-        <MobileSelect value={filtroEstado} onValueChange={setFiltroEstado} placeholder="Estado" triggerClassName="w-44">
-          {ESTADOS.map(e => <MobileSelectItem key={e} value={e}>{ESTADO_LABELS[e] || e}</MobileSelectItem>)}
-        </MobileSelect>
-        <MobileSelect value={filtroCategoria} onValueChange={setFiltroCategoria} placeholder="Categoría" triggerClassName="w-36">
-          {CATEGORIAS.map(c => <MobileSelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</MobileSelectItem>)}
-        </MobileSelect>
-        <MobileSelect value={filtroObra} onValueChange={setFiltroObra} placeholder="Obra" triggerClassName="w-40">
-          <MobileSelectItem value="todas">Todas las obras</MobileSelectItem>
-          {todasObras.map(obra => (
-            <MobileSelectItem key={obra.id} value={obra.id}>{obra.name}</MobileSelectItem>
-          ))}
-        </MobileSelect>
-        {isAdmin && tecnicos.length > 0 && (
-          <MobileSelect value={filtroOperario} onValueChange={setFiltroOperario} placeholder="Operario" triggerClassName="w-40">
-            <MobileSelectItem value="todos">Todos los operarios</MobileSelectItem>
-            {tecnicos.filter(op => op.active !== false).map(op => (
-              <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
-            ))}
-          </MobileSelect>
-        )}
-        {isAdmin && (
-          <button
-            onClick={() => setFiltroSinObra(v => !v)}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-colors',
-              filtroSinObra
-                ? 'bg-orange-500 text-white border-orange-500'
-                : 'bg-background border-border text-muted-foreground hover:border-orange-400 hover:text-orange-600'
-            )}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            Sin obra
-          </button>
-        )}
-      </div>
-
-      {notas.length > 0 && (
-        <div className="flex items-center gap-3 mb-4 px-1 flex-wrap">
-          <span className="text-sm text-muted-foreground">{Object.keys(operariosConNotas).length} operario{Object.keys(operariosConNotas).length !== 1 ? 's' : ''}</span>
-          <span className="font-semibold text-sm">Total: {totalFiltrado.toFixed(2)} €</span>
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map(i => <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />)}
-        </div>
-      ) : Object.keys(operariosConNotas).length === 0 ? (
-        <div className="text-center py-16 border border-dashed rounded-xl">
-          <Receipt className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground mb-3">
-            {busqueda || filtroEstado !== 'todos' || filtroCategoria !== 'todas' || filtroOperario !== 'todos' || filtroObra !== 'todas'
-              ? 'No hay registros con estos filtros'
-              : 'No hay registros de gasto aún'}
-          </p>
-          <Button 
-            size="sm" 
-            onClick={() => setShowForm(true)} 
-            className="gap-1.5"
-            disabled={!puedeCrearRegistro}
-          >
-            <Plus className="w-4 h-4" /> Crear primer registro
-          </Button>
-        </div>
+      {tab === 'ciclos' ? (
+        <CiclosMensualesPanel />
       ) : (
-        <div>
-          {Object.values(operariosConNotas).map(operario => (
-            <OperarioGroup
-              key={operario.id}
-              operario={operario}
-              notas={operario.notas}
-              onVerNota={setNotaSeleccionada}
-              isOpen={operarioAbierto === operario.id}
-              onToggle={() => setOperarioAbierto(operarioAbierto === operario.id ? null : operario.id)}
+        <>
+          <div className="mb-4">
+            <BannerCicloActivo />
+          </div>
+
+          {!vistaAdmin && (
+            <ResumenPeriodoGastos
+              operario={operarioActual}
+              notas={notasRaw}
+              isAdmin={isAdmin}
+              onPeriodosCerrados={() => qc.invalidateQueries({ queryKey: ['notas_gasto'] })}
             />
-          ))}
-        </div>
+          )}
+
+          {tab === 'informe' && (
+            <div className="mb-6">
+              <InformeGastos operario={operarioActual} notas={notasRaw} isAdmin={isAdmin} />
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            <div className="relative flex-1 min-w-48">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Buscar por número, comercio, concepto..."
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+              />
+            </div>
+            <MobileSelect value={filtroEstado} onValueChange={setFiltroEstado} placeholder="Estado" triggerClassName="w-44">
+              {ESTADOS.map(e => <MobileSelectItem key={e} value={e}>{ESTADO_LABELS[e] || e}</MobileSelectItem>)}
+            </MobileSelect>
+            <MobileSelect value={filtroCategoria} onValueChange={setFiltroCategoria} placeholder="Categoría" triggerClassName="w-36">
+              {CATEGORIAS.map(c => <MobileSelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</MobileSelectItem>)}
+            </MobileSelect>
+            <MobileSelect value={filtroObra} onValueChange={setFiltroObra} placeholder="Obra" triggerClassName="w-40">
+              <MobileSelectItem value="todas">Todas las obras</MobileSelectItem>
+              {todasObras.map(obra => (
+                <MobileSelectItem key={obra.id} value={obra.id}>{obra.name}</MobileSelectItem>
+              ))}
+            </MobileSelect>
+            {isAdmin && tecnicos.length > 0 && (
+              <MobileSelect value={filtroOperario} onValueChange={setFiltroOperario} placeholder="Operario" triggerClassName="w-40">
+                <MobileSelectItem value="todos">Todos los operarios</MobileSelectItem>
+                {tecnicos.filter(op => op.active !== false).map(op => (
+                  <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
+                ))}
+              </MobileSelect>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => setFiltroSinObra(v => !v)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-colors',
+                  filtroSinObra
+                    ? 'bg-orange-500 text-white border-orange-500'
+                    : 'bg-background border-border text-muted-foreground hover:border-orange-400 hover:text-orange-600'
+                )}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                Sin obra
+              </button>
+            )}
+          </div>
+
+          {notas.length > 0 && (
+            <div className="flex items-center gap-3 mb-4 px-1 flex-wrap">
+              <span className="text-sm text-muted-foreground">{Object.keys(operariosConNotas).length} operario{Object.keys(operariosConNotas).length !== 1 ? 's' : ''}</span>
+              <span className="font-semibold text-sm">Total: {totalFiltrado.toFixed(2)} €</span>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map(i => <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />)}
+            </div>
+          ) : Object.keys(operariosConNotas).length === 0 ? (
+            <div className="text-center py-16 border border-dashed rounded-xl">
+              <Receipt className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground mb-3">
+                {busqueda || filtroEstado !== 'todos' || filtroCategoria !== 'todas' || filtroOperario !== 'todos' || filtroObra !== 'todas'
+                  ? 'No hay registros con estos filtros'
+                  : 'No hay registros de gasto aún'}
+              </p>
+              <Button
+                size="sm"
+                onClick={() => setShowForm(true)}
+                className="gap-1.5"
+                disabled={!puedeCrearRegistro}
+              >
+                <Plus className="w-4 h-4" /> Crear primer registro
+              </Button>
+            </div>
+          ) : (
+            <div>
+              {Object.values(operariosConNotas).map(operario => (
+                <OperarioGroup
+                  key={operario.id}
+                  operario={operario}
+                  notas={operario.notas}
+                  onVerNota={setNotaSeleccionada}
+                  isOpen={operarioAbierto === operario.id}
+                  onToggle={() => setOperarioAbierto(operarioAbierto === operario.id ? null : operario.id)}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       </div>
