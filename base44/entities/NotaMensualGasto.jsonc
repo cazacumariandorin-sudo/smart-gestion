@@ -1,11 +1,55 @@
 {
+  "name": "NotaMensualGasto",
+  "type": "object",
   "properties": {
-    "aprobado_por": {
-      "type": "string"
-    },
     "ciclo_mes": {
       "description": "Mes del ciclo YYYY-MM",
       "type": "string"
+    },
+    "numero_ciclo": {
+      "description": "C\u00f3digo legible del ciclo (CIC-YYYY-MM-<operario_short>). Sirve para referencia humana y ordenaci\u00f3n.",
+      "type": "string"
+    },
+    "operario_id": {
+      "type": "string"
+    },
+    "operario_name": {
+      "type": "string"
+    },
+    "fecha_apertura": {
+      "description": "Fecha en que se abri\u00f3 autom\u00e1ticamente el ciclo (d\u00eda 26 del mes anterior o por backfill).",
+      "format": "date",
+      "type": "string"
+    },
+    "fecha_cierre": {
+      "description": "D\u00eda 25 del mes del ciclo (o fecha real de cierre si se cerr\u00f3 antes/tarde).",
+      "format": "date",
+      "type": "string"
+    },
+    "registros_ids": {
+      "description": "IDs de RegistroGasto incluidos en el ciclo",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "total_registros": {
+      "default": 0,
+      "type": "number"
+    },
+    "total_importe": {
+      "default": 0,
+      "type": "number"
+    },
+    "importe_adelanto": {
+      "default": 0,
+      "description": "Adelanto recibido ese mes",
+      "type": "number"
+    },
+    "saldo_pendiente": {
+      "default": 0,
+      "description": "total_importe - importe_adelanto",
+      "type": "number"
     },
     "estado": {
       "default": "borrador",
@@ -19,21 +63,6 @@
       ],
       "type": "string"
     },
-    "fecha_aprobacion": {
-      "type": "string"
-    },
-    "fecha_cierre": {
-      "format": "date",
-      "type": "string"
-    },
-    "fecha_pago": {
-      "type": "string"
-    },
-    "importe_adelanto": {
-      "default": 0,
-      "description": "Adelanto recibido ese mes",
-      "type": "number"
-    },
     "metodo_pago": {
       "enum": [
         "transferencia",
@@ -43,37 +72,28 @@
       ],
       "type": "string"
     },
-    "notas_gerencia": {
+    "aprobado_por": {
       "type": "string"
     },
-    "operario_id": {
-      "type": "string"
-    },
-    "operario_name": {
+    "fecha_aprobacion": {
       "type": "string"
     },
     "pagado_por": {
       "type": "string"
     },
-    "registros_ids": {
-      "description": "IDs de RegistroGasto incluidos",
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
+    "fecha_pago": {
+      "type": "string"
     },
-    "saldo_pendiente": {
-      "default": 0,
-      "description": "total_importe - importe_adelanto",
-      "type": "number"
+    "notas_gerencia": {
+      "type": "string"
     },
-    "total_importe": {
-      "default": 0,
-      "type": "number"
+    "export_contabilidad_url": {
+      "description": "URL del PDF \u00edndice + ZIP de tickets subido a Drive (Fase 4). Se rellena al ejecutar exportarCicloContabilidad.",
+      "type": "string"
     },
-    "total_registros": {
-      "default": 0,
-      "type": "number"
+    "fecha_export_contabilidad": {
+      "description": "Fecha ISO en que se export\u00f3 el ciclo a contabilidad.",
+      "type": "string"
     }
   },
   "required": [
@@ -105,11 +125,6 @@
         }
       ]
     },
-    "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
     "read": {
       "$or": [
         {
@@ -128,7 +143,18 @@
           }
         },
         {
-          "created_by": "{{user.email}}"
+          "$and": [
+            {
+              "$or": [
+                {
+                  "data.operario_email": "{{user.email}}"
+                },
+                {
+                  "created_by": "{{user.email}}"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -160,8 +186,11 @@
           ]
         }
       ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
     }
-  },
-  "type": "object",
-  "name": "NotaMensualGasto"
+  }
 }
