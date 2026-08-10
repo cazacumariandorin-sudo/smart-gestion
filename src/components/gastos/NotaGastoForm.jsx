@@ -50,6 +50,10 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [sugerencia, setSugerencia] = useState(null); // { categoria_sugerida, confianza, patron_id }
   const { user } = useAuth();
 
+  // Resuelve el operario efectivo delante de cualquier hook que lo consuma
+  // (evita TDZ: el array de dependencias del useEffect de sugerencia lo lee en render).
+  const operarioEfectivo = (isAdmin && operarioSeleccionado) ? (operarios.find(op => op.id === operarioSeleccionado) || operario) : operario;
+
   useEffect(() => {
     if (open) { setPaso('captura'); setForm(defaultForm); setArchivos([]); setOcrRaw(''); setCaptureData(null); setIaNoDispo(false); setPosibleDup(null); setOperarioSeleccionado(null); setShowObraModal(false); setPendingSave(false); setSugerencia(null); }
   }, [open]);
@@ -80,8 +84,6 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       setField('categoria', sugerencia.categoria_sugerida);
     }
   }, [sugerencia]);
-
-  const operarioEfectivo = (isAdmin && operarioSeleccionado) ? (operarios.find(op => op.id === operarioSeleccionado) || operario) : operario;
 
   const createMutation = useOptimisticMutation(
     (payload) => base44.entities.RegistroGasto.create(payload),
