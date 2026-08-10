@@ -130,6 +130,22 @@
     "operario_name": {
       "type": "string"
     },
+    "operario_email": {
+      "type": "string",
+      "description": "Email del usuario vinculado al operario (denormalizado para RLS y filtros r\u00e1pidos por usuario)"
+    },
+    "nota_mensual_id": {
+      "type": "string",
+      "description": "ID de la NotaMensualGasto a la que pertenece este registro (enlace al ciclo 26\u219225). Opcional para retrocompatibilidad con registros pre-migraci\u00f3n."
+    },
+    "ciclo_mes": {
+      "type": "string",
+      "description": "Clave mes YYYY-MM del ciclo al que pertenece (denormalizada de NotaMensualGasto.ciclo_mes para filtros r\u00e1pidos)"
+    },
+    "orden_en_ciclo": {
+      "type": "integer",
+      "description": "N\u00famero secuencial del registro dentro del ciclo del operario (1, 2, 3...)."
+    },
     "validado_por": {
       "type": "string"
     },
