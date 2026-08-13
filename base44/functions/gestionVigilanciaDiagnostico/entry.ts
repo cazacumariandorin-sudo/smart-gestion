@@ -282,6 +282,59 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ────────────────────────────────────────────
+    // INFORME_PERIODO — agrupa en una sola respuesta todas las vigilancias
+    // (con sus eventos) cuyo período se solapa con el rango pedido, para que
+    // el frontend genere un único documento consolidado. Lo pide el gerente
+    // bajo demanda (no es un job programado).
+    // ────────────────────────────────────────────
+    if (action === 'informe_periodo') {
+      const { fecha_desde, fecha_hasta, max_vigilancias = 50, max_eventos_por_vigilancia = 500 } = body;
+      if (!fecha_desde || !fecha_hasta) {
+        return Response.json({ error: 'Faltan fecha_desde y fecha_hasta' }, { status: 400 });
+      }
+      const desde = new Date(fecha_desde);
+      const hasta = new Date(fecha_hasta);
+
+      const todas = await base44.entities.VigilanciaDiagnostico.list('-fecha_inicio', 500);
+      // Se incluye toda vigilancia cuyo intervalo [inicio, fin_real o fin_prevista]
+      // se solape con [desde, hasta] — así no se pierden las que empezaron un
+      // día y acabaron al siguiente periodo.
+      const enRango = todas.filter(v => {
+        const inicio = new Date(v.fecha_inicio);
+        const fin = new Date(v.fecha_fin_real || v.fecha_fin_prevista);
+        return inicio <= hasta && fin >= desde;
+      }).slice(0, max_vigilancias);
+
+      const vigilancias = [];
+      for (const v of enRango) {
+        const eventos = await base44.entities.VigilanciaEvento.filter(
+          { vigilancia_id: v.id },
+          '-timestamp',
+          max_eventos_por_vigilancia
+        ).catch(() => []);
+
+        const rutas = {};
+        for (const e of eventos) {
+          if (e.tipo_evento === 'nav' && e.ruta) rutas[e.ruta] = (rutas[e.ruta] || 0) + 1;
+        }
+
+        vigilancias.push({
+          vigilancia: v,
+          total_eventos: eventos.length,
+          rutas_top: Object.entries(rutas).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([ruta, count]) => ({ ruta, count })),
+          eventos
+        });
+      }
+
+      return Response.json({
+        fecha_desde,
+        fecha_hasta,
+        total_vigilancias: vigilancias.length,
+        vigilancias
+      });
+    }
+
     return Response.json({ error: `Acción desconocida: ${action}` }, { status: 400 });
   } catch (error) {
     console.error('gestionVigilanciaDiagnostico error:', error);
