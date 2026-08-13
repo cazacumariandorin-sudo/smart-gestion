@@ -40,6 +40,10 @@
       "type": "string",
       "description": "C\u00f3digo QR o de barras extra\u00eddo del documento (identificador \u00fanico de transacci\u00f3n)"
     },
+    "numero_factura": {
+      "type": "string",
+      "description": "N\u00famero de factura / albar\u00e1n / proforma impreso en el documento (extra\u00eddo por OCR+IA)"
+    },
     "duplicado_confirmado": {
       "default": false,
       "type": "boolean"

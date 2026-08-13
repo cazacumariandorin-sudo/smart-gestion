@@ -37,7 +37,8 @@ Deno.serve(async (req) => {
   - "comida" (restaurantes, cafeterías, bares, hostelería,€ consumición)
   - "material" (ferretería, materiales, suministros, recambios, commissioners de Obra)
   - "otros" (si no encaja en ninguno de los anteriores)
-- codigo_validacion_fiscal: número de factura simplificada o código fiscal si aparece; si no, cadena vacía.
+- numero_factura: número de FACTURA / ALBARÁN / PROFORMA impreso en el documento (suele estar cerca del emisor o en el encabezado, con prefijos como "FAC", "FACTURA", "FACT", "ALB", "ALBARÁN", "Nº", "N.º", "PROFORMA", "PF"). IMPORTANTE: sepáralo del código legal/QR. Si el documento es factura/albarán/proforma, devuelve el número legible que el operario podría usar para cruzar con contabilidad (ej: "FAC-2026-001", "ALB/2026/123", "PROFORMA 456", "Nº 00087"). En tickets simplificados que no tienen número de factura, devuelve cadena vacía "". NO uses el código de validación QR aquí (va en codigo_validacion_fiscal).
+- codigo_validacion_fiscal: número de factura simplificada, código QR o de barras que aparece como identificador fiscal único; si no aparece, cadena vacía.
 - ocr_raw: transcripción COMPLETA del texto visible, línea por línea, tal cual aparece.`;
 
     const schema = {
@@ -49,6 +50,7 @@ Deno.serve(async (req) => {
         nif_comercio: { type: 'string' },
         concepto: { type: 'string' },
         categoria: { type: 'string', enum: ['combustible', 'peaje', 'parking', 'comida', 'material', 'otros'] },
+        numero_factura: { type: 'string' },
         codigo_validacion_fiscal: { type: 'string' },
         ocr_raw: { type: 'string' },
       },

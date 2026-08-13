@@ -104,6 +104,7 @@ export const HUBS = [
       { label: 'Dashboard', path: '/economico-dashboard', icon: BarChart2, module: 'economico-dashboard' },
       { label: 'Mis Gastos', path: '/notas-gastos', icon: Receipt, module: 'notas-gastos' },
       { label: 'Gestión Gastos', path: '/notas-gastos?vista=admin', icon: ClipboardCheck, module: 'notas-gastos', roles: ['admin', 'gerencia', 'director_comercial'] },
+      { label: 'Fotos Contabilidad', path: '/fotos-contabilidad', icon: Images, module: 'notas-gastos', roles: ['admin', 'gerencia', 'director_comercial'] },
       { label: 'Pedidos', path: '/orders', icon: CreditCard, module: 'orders' },
       { label: 'Nóminas', path: '/nominas', icon: Banknote, module: 'nominas' },
       { label: 'Presupuestos', path: '/presupuestos', icon: FileText, module: 'presupuestos' },
