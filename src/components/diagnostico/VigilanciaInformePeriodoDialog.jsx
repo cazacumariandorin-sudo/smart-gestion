@@ -16,13 +16,19 @@ const LLAMAR = (action, payload = {}) =>
  * personalizado). Junta en un único documento los logs de todas las
  * vigilancias del periodo — se genera bajo demanda, a petición del gerente.
  */
-export default function VigilanciaInformePeriodoDialog({ open, onClose, generadoPor }) {
+export default function VigilanciaInformePeriodoDialog({ open, onClose }) {
   const [tipoPeriodo, setTipoPeriodo] = useState('semanal'); // 'semanal' | 'mensual' | 'personalizado'
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [cargando, setCargando] = useState(false);
   const [informe, setInforme] = useState(null); // { texto, totalVigilancias, etiquetaPeriodo, fechaDesde, fechaHasta }
   const [copiado, setCopiado] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    base44.auth.me().then(u => setCurrentUserEmail(u?.email || '')).catch(() => {});
+  }, [open]);
 
   const reset = () => {
     setInforme(null);
