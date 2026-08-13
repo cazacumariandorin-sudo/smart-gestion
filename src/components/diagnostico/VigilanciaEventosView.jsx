@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Filter, ClipboardCopy, Download, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { generarTextoLogVigilancia, TIPO_BADGE_LABEL } from '@/lib/vigilanciaLog';
 
 const LLAMAR = (action, payload = {}) =>
   base44.functions.invoke('gestionVigilanciaDiagnostico', { action, ...payload }).then(r => r?.data || r);
@@ -28,54 +29,6 @@ function fmtHora(ts) {
     const d = new Date(ts);
     return d.toLocaleTimeString('es-ES', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
   } catch { return ts; }
-}
-
-function fmtCompleta(iso) {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  } catch { return iso || '—'; }
-}
-
-// Genera el log en texto plano, listo para copiar/pegar en un informe, ticket
-// o chat: cabecera con los datos de la vigilancia + listado cronológico de
-// eventos (usa la misma lista ya filtrada que ve el usuario en pantalla).
-function generarTextoLog({ vig, resumen, eventos }) {
-  const lineas = [];
-  lineas.push('='.repeat(60));
-  lineas.push('LOG DE VIGILANCIA — SMART GESTIÓN (Simantec)');
-  lineas.push('='.repeat(60));
-  lineas.push(`Usuario vigilado: ${vig?.user_full_name || vig?.user_email || '—'} (${vig?.user_email || '—'})`);
-  lineas.push(`Rol: ${vig?.user_role_snapshot || '—'}`);
-  lineas.push(`Motivo: ${vig?.motivo || '—'}`);
-  lineas.push(`Iniciada por: ${vig?.iniciado_por || '—'}`);
-  lineas.push(`Inicio: ${fmtCompleta(vig?.fecha_inicio)}`);
-  lineas.push(`Fin prevista: ${fmtCompleta(vig?.fecha_fin_prevista)}`);
-  lineas.push(`Fin real: ${vig?.fecha_fin_real ? fmtCompleta(vig.fecha_fin_real) : '—'}`);
-  lineas.push(`Estado: ${vig?.estado || '—'}`);
-  lineas.push(`Total de eventos: ${resumen?.total_eventos ?? eventos.length}`);
-  if (resumen?.rutas_top?.length > 0) {
-    lineas.push(`Rutas más visitadas: ${resumen.rutas_top.map(rt => `${rt.ruta} (${rt.count})`).join(', ')}`);
-  }
-  lineas.push('-'.repeat(60));
-  lineas.push('EVENTOS (orden cronológico)');
-  lineas.push('-'.repeat(60));
-  if (eventos.length === 0) {
-    lineas.push('Sin eventos registrados.');
-  } else {
-    eventos.forEach((e) => {
-      const hora = fmtCompleta(e.timestamp);
-      const tipo = (TIPO_BADGE[e.tipo_evento]?.label || e.tipo_evento || '').toUpperCase();
-      let linea = `[${hora}] ${tipo.padEnd(8)} ${e.ruta || ''}`;
-      if (e.datos && Object.keys(e.datos).length > 0) {
-        linea += ` — ${JSON.stringify(e.datos)}`;
-      }
-      lineas.push(linea);
-    });
-  }
-  lineas.push('='.repeat(60));
-  lineas.push(`Generado: ${fmtCompleta(new Date().toISOString())}`);
-  return lineas.join('\n');
 }
 
 export default function VigilanciaEventosView({ vigilanciaId, onBack }) {
@@ -107,7 +60,7 @@ export default function VigilanciaEventosView({ vigilanciaId, onBack }) {
   const vig = resumen?.vigilancia;
 
   const handleCopiarLog = async () => {
-    const texto = generarTextoLog({ vig, resumen, eventos: eventosFiltrados });
+    const texto = generarTextoLogVigilancia({ vig, resumen, eventos: eventosFiltrados });
     try {
       await navigator.clipboard.writeText(texto);
       setCopiado(true);
@@ -120,7 +73,7 @@ export default function VigilanciaEventosView({ vigilanciaId, onBack }) {
   };
 
   const handleDescargarLog = () => {
-    const texto = generarTextoLog({ vig, resumen, eventos: eventosFiltrados });
+    const texto = generarTextoLogVigilancia({ vig, resumen, eventos: eventosFiltrados });
     const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
