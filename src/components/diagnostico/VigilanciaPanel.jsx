@@ -9,9 +9,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Eye, Square, Play, Clock, User, FileSearch, GitCompare, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { Eye, Square, Play, Clock, User, FileSearch, GitCompare, AlertCircle, CheckCircle2, XCircle, CalendarRange } from 'lucide-react';
 import VigilanciaEventosView from '@/components/diagnostico/VigilanciaEventosView';
 import VigilanciaComparativa from '@/components/diagnostico/VigilanciaComparativa';
+import VigilanciaInformePeriodoDialog from '@/components/diagnostico/VigilanciaInformePeriodoDialog';
 
 const LLAMAR = (action, payload = {}) =>
   base44.functions.invoke('gestionVigilanciaDiagnostico', { action, ...payload }).then(r => r?.data || r);
@@ -29,6 +30,7 @@ export default function VigilanciaPanel({ esGerencia }) {
   const [modoComparativa, setModoComparativa] = useState(false);
   const [vigA, setVigA] = useState('');
   const [vigB, setVigB] = useState('');
+  const [showInformePeriodo, setShowInformePeriodo] = useState(false);
 
   const { data: usuariosData } = useQuery({
     queryKey: ['vig-usuarios'],
@@ -123,6 +125,9 @@ export default function VigilanciaPanel({ esGerencia }) {
           <span className="text-muted-foreground">Máx. 3 simultáneas · máx. 48h</span>
         </div>
         <div className="flex gap-1">
+          <Button size="sm" variant="outline" onClick={() => setShowInformePeriodo(true)}>
+            <CalendarRange className="w-3.5 h-3.5 mr-1" /> Informe de periodo
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setModoComparativa(true)} disabled={activas.length < 2}>
             <GitCompare className="w-3.5 h-3.5 mr-1" /> Comparar
           </Button>
@@ -131,6 +136,12 @@ export default function VigilanciaPanel({ esGerencia }) {
           </Button>
         </div>
       </div>
+
+      <VigilanciaInformePeriodoDialog
+        open={showInformePeriodo}
+        onClose={() => setShowInformePeriodo(false)}
+        generadoPor={undefined}
+      />
 
       {activas.length >= limite && (
         <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2">
