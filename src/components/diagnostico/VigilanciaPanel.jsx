@@ -140,7 +140,6 @@ export default function VigilanciaPanel({ esGerencia }) {
       <VigilanciaInformePeriodoDialog
         open={showInformePeriodo}
         onClose={() => setShowInformePeriodo(false)}
-        generadoPor={undefined}
       />
 
       {activas.length >= limite && (
