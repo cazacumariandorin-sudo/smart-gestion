@@ -1,0 +1,207 @@
+{
+  "name": "MaterialPrecioHistorico",
+  "type": "object",
+  "properties": {
+    "material_id": {
+      "type": "string",
+      "description": "ID del MaterialCatalog al que pertenece este precio hist\u00f3rico"
+    },
+    "material_referencia": {
+      "type": "string",
+      "description": "Referencia del material (denormalizada para filtros y matching OCR)"
+    },
+    "fabricante_id": {
+      "type": "string",
+      "description": "ID del Fabricante"
+    },
+    "fabricante_name": {
+      "type": "string",
+      "description": "Nombre del fabricante (denormalizado para mostrar)"
+    },
+    "fecha_documento": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del documento que origin\u00f3 este precio"
+    },
+    "fecha_efectiva": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha a partir de la cual aplica el precio (por defecto la del documento)"
+    },
+    "pvp": {
+      "type": "number",
+      "description": "PVP p\u00fablico de venta (si figura en el documento)"
+    },
+    "descuento_empresa": {
+      "type": "number",
+      "description": "% descuento aplicado a Simantec (si figura o se deduce)"
+    },
+    "iva": {
+      "type": "number",
+      "description": "% IVA aplicado a la l\u00ednea"
+    },
+    "precio_neto": {
+      "type": "number",
+      "description": "Precio realmente pagado por unidad (con descuento incluido, sin IVA)"
+    },
+    "precio_anterior": {
+      "type": "number",
+      "description": "\u00daltimo precio_neto guardado para ese material (denormalizado para ver el salto)"
+    },
+    "variacion_pct": {
+      "type": "number",
+      "description": "((precio_nuevo - precio_anterior) / precio_anterior) * 100. null = primer registro"
+    },
+    "origen_cambio": {
+      "type": "string",
+      "enum": [
+        "primer_registro",
+        "subida_pvp",
+        "cambio_descuento",
+        "ambos",
+        "cambio_valoracion_no_deducible"
+      ],
+      "description": "Causa deducible del cambio de precio"
+    },
+    "documento_origen_id": {
+      "type": "string",
+      "description": "ID del MaterialDocumentoOrigen que origin\u00f3 este precio"
+    },
+    "documento_tipo": {
+      "type": "string",
+      "enum": [
+        "factura",
+        "albaran",
+        "ticket",
+        "proforma"
+      ],
+      "default": "factura"
+    },
+    "documento_numero": {
+      "type": "string",
+      "description": "N\u00ba impreso en el documento (factura/albar\u00e1n/proforma)"
+    },
+    "documento_url": {
+      "type": "string",
+      "description": "URL del archivo procesado (CDN/Drive) para abrir el original"
+    },
+    "proveedor_nombre": {
+      "type": "string"
+    },
+    "proveedor_nif": {
+      "type": "string"
+    },
+    "obra_id": {
+      "type": "string"
+    },
+    "obra_name": {
+      "type": "string"
+    },
+    "linea_ocr_raw": {
+      "type": "string",
+      "description": "Texto crudo de la l\u00ednea original (auditor\u00eda)"
+    },
+    "confianza": {
+      "type": "string",
+      "enum": [
+        "alta",
+        "media",
+        "baja"
+      ],
+      "default": "media"
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "material_id",
+    "fecha_documento",
+    "precio_neto"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

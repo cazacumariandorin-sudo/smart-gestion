@@ -1,0 +1,142 @@
+{
+  "name": "MaterialDocumentoOrigen",
+  "type": "object",
+  "properties": {
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "factura",
+        "albaran",
+        "ticket",
+        "proforma"
+      ],
+      "default": "factura"
+    },
+    "numero_documento": {
+      "type": "string"
+    },
+    "fecha_documento": {
+      "type": "string",
+      "format": "date"
+    },
+    "proveedor_nombre": {
+      "type": "string"
+    },
+    "proveedor_nif": {
+      "type": "string"
+    },
+    "archivo_url_mejorado": {
+      "type": "string",
+      "description": "URL del archivo pre-procesado tipo CamScanner (el usado para OCR)"
+    },
+    "archivo_url_original": {
+      "type": "string",
+      "description": "URL del archivo original sin procesar (opcional)"
+    },
+    "obra_id": {
+      "type": "string"
+    },
+    "obra_name": {
+      "type": "string"
+    },
+    "operario_id": {
+      "type": "string"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente_revision",
+        "procesado",
+        "descartado"
+      ],
+      "default": "procesado"
+    },
+    "lineas_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "tipo",
+    "fecha_documento"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
