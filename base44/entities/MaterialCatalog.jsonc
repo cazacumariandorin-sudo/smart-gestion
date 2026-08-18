@@ -8,7 +8,19 @@
     },
     "code": {
       "type": "string",
-      "description": "C\u00f3digo / referencia"
+      "description": "C\u00f3digo / referencia (legacy \u2014 usar 'referencia' para nuevos OCR)"
+    },
+    "referencia": {
+      "type": "string",
+      "description": "C\u00f3digo de fabricante/proveedor (clave de matching OCR + fabricante)"
+    },
+    "fabricante_id": {
+      "type": "string",
+      "description": "ID del Fabricante"
+    },
+    "fabricante_name": {
+      "type": "string",
+      "description": "Nombre del fabricante (denormalizado)"
     },
     "category": {
       "type": "string",
@@ -20,11 +32,32 @@
     },
     "unit_price": {
       "type": "number",
-      "description": "Precio unitario (\u20ac)"
+      "description": "Precio unitario legacy \u2014 usar 'precio_neto' como lectura viva"
+    },
+    "pvp": {
+      "type": "number",
+      "description": "PVP p\u00fablico de venta (snapshot del \u00faltimo precio conocido)"
+    },
+    "descuento_empresa": {
+      "type": "number",
+      "description": "% descuento aplicado a Simantec (snapshot del \u00faltimo precio conocido)"
+    },
+    "iva": {
+      "type": "number",
+      "description": "% IVA aplicado (snapshot del \u00faltimo precio conocido)"
+    },
+    "precio_neto": {
+      "type": "number",
+      "description": "\u00daltimo precio neto conocido (snapshot del \u00faltimo MaterialPrecioHistorico). NO se edita manualmente: lo actualiza el backend al crear un nuevo hist\u00f3rico."
+    },
+    "fecha_ultimo_precio": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del \u00faltimo precio registrado (snapshot)"
     },
     "supplier": {
       "type": "string",
-      "description": "Proveedor"
+      "description": "Proveedor (legacy \u2014 ahora vinculable a Fabricante)"
     },
     "description": {
       "type": "string",
@@ -71,6 +104,11 @@
         },
         {
           "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -82,6 +120,11 @@
         {
           "user_condition": {
             "role": "operario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
           }
         }
       ]

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Trash2, Plus, TrendingUp, TrendingDown } from 'lucide-react';
-import { cn } from '@/lib/ui-utils';
+import { cn } from '@/lib/utils';
 
 const UNIDADES = ['ud', 'm', 'm²', 'm³', 'kg', 'ml', 'l', 'h', 'día', 'mes', 'caja', 'paquete'];
 
