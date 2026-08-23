@@ -8,7 +8,7 @@ import DetalleSesionDiagnostico from '@/components/diagnostico/DetalleSesionDiag
 import GestionAccesosDiagnostico from '@/components/diagnostico/GestionAccesosDiagnostico';
 import VigilanciaPanel from '@/components/diagnostico/VigilanciaPanel';
 import { base44 } from '@/api/base44Client';
-import { Bug, Users, Activity, ShieldCheck, Eye } from 'lucide-react';
+import { Bug, Users, Activity, ShieldCheck, Eye, AlertTriangle } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import PageHeader from '@/components/layout/PageHeader';
@@ -81,8 +81,28 @@ export default function DiagnosticoApp() {
     );
   }
 
-  // Si no autorizado → fuera
-  if (!checkAcceso?.autorizado || forbidden) {
+  // Si la función backend no está accesible (p. ej. plan sin funciones backend),
+  // mostrar un aviso en pantalla en vez de redirigir silenciosamente al dashboard.
+  if (forbidden) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6 space-y-3 text-center">
+            <AlertTriangle className="w-10 h-10 mx-auto text-amber-500" />
+            <h2 className="text-lg font-semibold">Diagnóstico no disponible</h2>
+            <p className="text-sm text-muted-foreground">
+              No se pudo conectar con el servicio de diagnóstico. La función backend
+              <code className="bg-muted px-1 rounded mx-0.5 text-xs">getDiagnosticoData</code>
+              no está accesible en el plan actual — revisa la suscripción o inténtalo más tarde.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Si el backend respondió explícitamente con autorizado=false → fuera
+  if (!checkAcceso?.autorizado) {
     return <Navigate to="/" replace />;
   }
 
