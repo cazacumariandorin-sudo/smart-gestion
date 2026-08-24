@@ -1,16 +1,7 @@
 import { useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { subirImagen } from '@/lib/uploadPhoto';
 import ImageCompressorInput from '@/components/ui/ImageCompressorInput';
 import { Camera, X, Loader2 } from 'lucide-react';
-
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-  });
-}
 
 export default function ParteFotosInput({ fotos, onChange }) {
   const [subiendo, setSubiendo] = useState(false);
@@ -18,14 +9,8 @@ export default function ParteFotosInput({ fotos, onChange }) {
   const handleFile = async (result) => {
     setSubiendo(true);
     try {
-      const base64 = await fileToBase64(result.file);
-      const now = new Date();
-      const res = await base44.functions.invoke('subirArchivoConFallback', {
-        file_base64: base64,
-        ruta_drive: `Partes_Diarios/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`,
-        entidad_tipo: 'ParteDiarioObra',
-      });
-      onChange([...fotos, { url: res.data.file_url, storage: res.data.storage, drive_file_id: res.data.drive_file_id }]);
+      const { file_url, storage, drive_file_id } = await subirImagen(result.file);
+      onChange([...fotos, { url: file_url, storage, drive_file_id }]);
     } finally {
       setSubiendo(false);
     }

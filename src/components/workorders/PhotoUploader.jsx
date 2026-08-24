@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { subirImagen } from '@/lib/uploadPhoto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Camera, Upload, Trash2, Loader2, ImageIcon, X } from 'lucide-react';
@@ -25,40 +26,26 @@ export default function PhotoUploader({ workOrderId, clientId, clientName, proje
 
   const handleFiles = async (files) => {
     setUploading(true);
-    for (const file of Array.from(files)) {
-      // Convert file to base64
-      const base64 = await fileToBase64(file);
-      
-      // Upload to Google Drive (if connected) or local storage
-      const res = await base44.functions.invoke('uploadFileToGdrive', { 
-        file: base64, 
-        folder_path: 'Partes_Trabajo/Fotos' 
-      });
-      
-      await base44.entities.WorkPhoto.create({
-        work_order_id: workOrderId,
-        client_id: clientId,
-        client_name: clientName,
-        project,
-        date,
-        photo_url: res.data.file_url,
-        caption: '',
-        storage: res.data.storage,
-        drive_file_id: res.data.drive_file_id,
-      });
+    try {
+      for (const file of Array.from(files)) {
+        const { file_url } = await subirImagen(file);
+        await base44.entities.WorkPhoto.create({
+          work_order_id: workOrderId,
+          client_id: clientId,
+          client_name: clientName,
+          project,
+          date,
+          photo_url: file_url,
+          caption: '',
+          storage: 'cdn',
+          drive_file_id: null,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ['photos', workOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['all_photos'] });
+    } finally {
+      setUploading(false);
     }
-    queryClient.invalidateQueries({ queryKey: ['photos', workOrderId] });
-    queryClient.invalidateQueries({ queryKey: ['all_photos'] });
-    setUploading(false);
-  };
-
-  const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
   };
 
   return (

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Camera, Upload, X, ZoomIn, Download, Trash2, Loader2, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { subirImagen } from '@/lib/uploadPhoto';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -54,37 +55,34 @@ export default function ObraFotosPanel({ obra }) {
   const handleUpload = async () => {
     if (!pendingFile) return;
     setUploading(true);
-    const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
-      file_base64: pendingFile,
-      ruta_drive: `Obras/${obra?.name || 'Sin_Obra'}/Fotos`,
-      entidad_tipo: 'FotoProyecto',
-      entidad_id: null,
-    });
-    const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
-    const now = new Date();
-    await base44.entities.FotoProyecto.create({
-      foto_url: file_url,
-      categoria: 'obra',
-      proyecto_id: obra.id,
-      proyecto_name: obra.name,
-      proyecto_tipo: 'obra',
-      referencia_id: obra.id,
-      referencia_tipo: 'Obra',
-      referencia_nombre: obra.name,
-      operario_id: user?.id || user?.email || '',
-      operario_name: user?.full_name || user?.email || '',
-      fecha_foto: format(now, 'yyyy-MM-dd'),
-      hora_foto: format(now, 'HH:mm'),
-      fecha_hora_subida: now.toISOString(),
-      titulo: titulo || pendingFile.name,
-      descripcion,
-    });
-    qc.invalidateQueries({ queryKey: ['fotos-obra', obra.id] });
-    qc.invalidateQueries({ queryKey: ['fotos-proyecto'] });
-    setUploading(false);
-    setShowForm(false);
-    setPendingFile(null);
-    setPreviewUrl(null);
+    try {
+      const { file_url } = await subirImagen(pendingFile);
+      const now = new Date();
+      await base44.entities.FotoProyecto.create({
+        foto_url: file_url,
+        categoria: 'obra',
+        proyecto_id: obra.id,
+        proyecto_name: obra.name,
+        proyecto_tipo: 'obra',
+        referencia_id: obra.id,
+        referencia_tipo: 'Obra',
+        referencia_nombre: obra.name,
+        operario_id: user?.id || user?.email || '',
+        operario_name: user?.full_name || user?.email || '',
+        fecha_foto: format(now, 'yyyy-MM-dd'),
+        hora_foto: format(now, 'HH:mm'),
+        fecha_hora_subida: now.toISOString(),
+        titulo: titulo || pendingFile.name,
+        descripcion,
+      });
+      qc.invalidateQueries({ queryKey: ['fotos-obra', obra.id] });
+      qc.invalidateQueries({ queryKey: ['fotos-proyecto'] });
+      setShowForm(false);
+      setPendingFile(null);
+      setPreviewUrl(null);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDownload = (foto) => {
