@@ -71,13 +71,21 @@ export default function TicketCapture({ onDone, onSkip }) {
       const file_url = subida?.file_url;
       if (!file_url) throw new Error('No se pudo subir el archivo al almacenamiento');
 
-      const res = await base44.functions.invoke('procesarOcrNota', {
-        file_url,
-        file_tipo: file.type,
-      });
-
-      const r = res?.data;
-      const textoOcr = r?.ocr_raw || '';
+      // La función backend de OCR (procesarOcrNota) no está disponible en el
+      // plan actual (HTTP 402). La foto ya está en el CDN; la adjuntamos igual
+      // y dejamos que el usuario rellene los datos a mano.
+      let r = null;
+      let textoOcr = '';
+      try {
+        const res = await base44.functions.invoke('procesarOcrNota', {
+          file_url,
+          file_tipo: file.type,
+        });
+        r = res?.data;
+        textoOcr = r?.ocr_raw || '';
+      } catch (ocrErr) {
+        console.warn('OCR no disponible en este plan:', ocrErr?.message);
+      }
 
       setOcrRaw(textoOcr);
       setEstado('ok');
@@ -87,8 +95,8 @@ export default function TicketCapture({ onDone, onSkip }) {
         preview: URL.createObjectURL(file),
         ocr_raw: textoOcr,
         datos: r?.datos || null,
-        ocr_ok: r?.success && textoOcr.length > 5,
-        error_ocr: r?.error || null,
+        ocr_ok: !!(r?.success) && textoOcr.length > 5,
+        error_ocr: null,
       });
 
     } catch (err) {
