@@ -19,18 +19,27 @@ export default function OcrUploader({ onDatosExtraidos, onArchivoSubido }) {
       setEstado('procesando');
       setMensaje('Extrayendo datos con OCR+IA...');
 
-      const res = await base44.functions.invoke('procesarOcrNota', {
-        file_url,
-        file_tipo: file.type
-      });
+      // La función backend de OCR (procesarOcrNota) puede no estar disponible
+      // en el plan actual (HTTP 402). El archivo ya está subido al CDN; lo
+      // adjuntamos igual y dejamos al usuario rellenar a mano.
+      try {
+        const res = await base44.functions.invoke('procesarOcrNota', {
+          file_url,
+          file_tipo: file.type
+        });
 
-      if (res.data?.success && res.data?.datos) {
-        onDatosExtraidos(res.data.datos);
+        if (res.data?.success && res.data?.datos) {
+          onDatosExtraidos(res.data.datos);
+          setEstado('ok');
+          setMensaje(`Datos extraídos (confianza: ${res.data.datos.confianza || 'media'})`);
+        } else {
+          setEstado('ok');
+          setMensaje('Foto adjuntada · rellena los datos a mano (OCR no disponible)');
+        }
+      } catch (ocrErr) {
+        console.warn('OCR no disponible en este plan:', ocrErr?.message);
         setEstado('ok');
-        setMensaje(`Datos extraídos (confianza: ${res.data.datos.confianza || 'media'})`);
-      } else {
-        setEstado('error');
-        setMensaje('No se pudieron extraer datos automáticamente');
+        setMensaje('Foto adjuntada · rellena los datos a mano (OCR no disponible)');
       }
     } catch (e) {
       setEstado('error');
