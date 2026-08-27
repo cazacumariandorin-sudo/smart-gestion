@@ -8,6 +8,7 @@ import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { useLocation } from "react-router-dom";
+import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -15,7 +16,10 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const location = useLocation();
-  const from = location.state?.from?.pathname || "/";
+  // Honor ?returnTo= (MCP consent flow) first; fall back to ProtectedRoute's
+  // `from` state, then to "/".
+  const returnTo = safeReturnTo();
+  const from = returnTo && returnTo !== "/" ? returnTo : (location.state?.from?.pathname || "/");
 
   const handleSubmit = async (e) => {
     e.preventDefault();

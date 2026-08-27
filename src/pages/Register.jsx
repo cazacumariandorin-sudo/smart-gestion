@@ -10,6 +10,7 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { toast } from "@/components/ui/use-toast";
 import { useLocation } from "react-router-dom";
+import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -20,7 +21,10 @@ export default function Register() {
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const location = useLocation();
-  const from = location.state?.from?.pathname || "/";
+  // Honor ?returnTo= (MCP consent flow) first; fall back to ProtectedRoute's
+  // `from` state, then to "/".
+  const returnTo = safeReturnTo();
+  const from = returnTo && returnTo !== "/" ? returnTo : (location.state?.from?.pathname || "/");
 
   const handleSubmit = async (e) => {
     e.preventDefault();

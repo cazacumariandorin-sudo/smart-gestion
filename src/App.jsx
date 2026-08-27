@@ -28,6 +28,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import OAuthConsent from './pages/OAuthConsent';
 
 // Lazy load pages for performance
 const Clients = lazy(() => import('./pages/Clients'));
@@ -276,6 +277,7 @@ function AnimatedRoutes() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/oauth/consent" element={<OAuthConsent />} />
 
           {/* Legacy PascalCase redirects */}
           <Route path="/AdminBackup" element={<Navigate to="/admin-backup" replace />} />
