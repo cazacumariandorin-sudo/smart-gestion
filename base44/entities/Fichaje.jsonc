@@ -110,21 +110,6 @@
           }
         },
         {
-          "user_condition": {
-            "role": "control_horario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "t\u00e9cnico"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "operario"
-          }
-        },
-        {
           "created_by": "{{user.email}}"
         }
       ]
