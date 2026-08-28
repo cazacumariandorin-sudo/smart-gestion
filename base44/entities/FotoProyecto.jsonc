@@ -127,6 +127,20 @@
     "notas": {
       "type": "string",
       "description": "Notas adicionales"
+    },
+    "eliminada": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si la foto fue marcada como eliminada (borrado l\u00f3gico). Las vistas la excluyen por defecto; solo un admin puede restaurarla."
+    },
+    "eliminada_por": {
+      "type": "string",
+      "description": "Email del usuario que marc\u00f3 la foto como eliminada"
+    },
+    "fecha_eliminacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del borrado l\u00f3gico"
     }
   },
   "required": [

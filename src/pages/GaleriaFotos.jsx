@@ -4,8 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Image, Search, X, ZoomIn, Filter, Plus, Upload, Loader2, Download, Share2, Eye, EyeOff } from 'lucide-react';
+import { Image, Search, X, ZoomIn, Filter, Plus, Upload, Loader2, Download, Share2, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { subirImagen } from '@/lib/uploadPhoto';
+import { imagenNoVacia } from '@/lib/fotoValidacion';
+import FotoGestionDialog, { puedeGestionarFoto } from '@/components/fotos/FotoGestionDialog';
+import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
@@ -37,6 +41,7 @@ export default function GaleriaFotos() {
   const qc = useQueryClient();
   const { isOperario, isAdmin, isGerencia } = useUserRole();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [filterOperario, setFilterOperario] = useState('');
@@ -45,6 +50,7 @@ export default function GaleriaFotos() {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [descargando, setDescargando] = useState(false);
   const [mostrarInactivas, setMostrarInactivas] = useState(false);
+  const [borrarFoto, setBorrarFoto] = useState(null);
 
   const obrasMap = useObrasActivasMap();
   const puedeVerInactivas = isAdmin || isGerencia;
@@ -99,12 +105,14 @@ export default function GaleriaFotos() {
     queryFn: () => base44.entities.FotoProyecto.list('-fecha_foto', 200),
   });
 
-  const operarios = [...new Set(fotos.map(f => f.operario_name).filter(Boolean))];
-  const proyectos = [...new Set(fotos.map(f => f.proyecto_name).filter(Boolean))];
+  const fotosVisibles = fotos.filter(f => !f.eliminada);
 
-  const obras = [...new Set(fotos.map(f => f.proyecto_name).filter(Boolean))].sort();
+  const operarios = [...new Set(fotosVisibles.map(f => f.operario_name).filter(Boolean))];
+  const proyectos = [...new Set(fotosVisibles.map(f => f.proyecto_name).filter(Boolean))];
 
-  const filtradas = fotos.filter(f => {
+  const obras = [...new Set(fotosVisibles.map(f => f.proyecto_name).filter(Boolean))].sort();
+
+  const filtradas = fotosVisibles.filter(f => {
     const matchSearch = !search || 
       f.titulo?.toLowerCase().includes(search.toLowerCase()) ||
       f.proyecto_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -162,31 +170,19 @@ export default function GaleriaFotos() {
   const handleFileUpload = async (file) => {
     setUploading(true);
     try {
-      const base64 = await fileToBase64(file);
-      const now = new Date();
-      const res = await base44.functions.invoke('subirArchivoConFallback', {
-        file_base64: base64,
-        ruta_drive: `Fotos_Proyecto/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}`,
-        entidad_tipo: 'FotoProyecto',
-      });
-      setUploadForm(p => ({
-        ...p,
-        foto_url: res.data.file_url,
-        storage: res.data.storage,
-        drive_file_id: res.data.drive_file_id,
-      }));
+      if (!(await imagenNoVacia(file))) {
+        toast({
+          title: 'Foto en blanco',
+          description: 'La imagen no tiene contenido. Inténtalo de nuevo.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const { file_url, storage, drive_file_id } = await subirImagen(file);
+      setUploadForm(p => ({ ...p, foto_url: file_url, storage, drive_file_id }));
     } finally {
       setUploading(false);
     }
-  };
-
-  const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
   };
 
   const handleSave = () => {
@@ -324,6 +320,11 @@ export default function GaleriaFotos() {
                 <Button variant="ghost" size="icon" onClick={() => handleCompartir(selectedFoto)} title="Compartir">
                   <Share2 className="w-4 h-4" />
                 </Button>
+                {puedeGestionarFoto(selectedFoto, user) && (
+                  <Button variant="ghost" size="icon" onClick={() => setBorrarFoto(selectedFoto)} title="Eliminar" className="text-destructive hover:text-destructive">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
                 <Button variant="ghost" size="icon" onClick={() => setSelectedFoto(null)}>
                   <X className="w-4 h-4" />
                 </Button>
@@ -431,6 +432,15 @@ export default function GaleriaFotos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {borrarFoto && (
+        <FotoGestionDialog
+          foto={borrarFoto}
+          open={!!borrarFoto}
+          onOpenChange={(o) => !o && setBorrarFoto(null)}
+          onDone={() => { setBorrarFoto(null); setSelectedFoto(null); }}
+        />
+      )}
     </div>
   );
 }

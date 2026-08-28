@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,19 +8,20 @@ import { Badge } from '@/components/ui/badge';
 import { Camera, Upload, X, ZoomIn, Download, Trash2, Loader2, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { subirImagen } from '@/lib/uploadPhoto';
+import { imagenNoVacia } from '@/lib/fotoValidacion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { useToast } from '@/components/ui/use-toast';
+import FotoGestionDialog, { puedeGestionarFoto } from '@/components/fotos/FotoGestionDialog';
 
 export default function ObraFotosPanel({ obra }) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const { toast } = useToast();
   const fileRef = useRef();
   const [uploading, setUploading] = useState(false);
   const [selectedFoto, setSelectedFoto] = useState(null);
+  const [borrarFoto, setBorrarFoto] = useState(null);
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -31,25 +32,33 @@ export default function ObraFotosPanel({ obra }) {
     queryKey: ['fotos-obra', obra.id],
     queryFn: () => base44.entities.FotoProyecto.filter({ proyecto_id: obra.id }, '-fecha_hora_subida', 100),
   });
+  const fotosVisibles = fotos.filter(f => !f.eliminada);
 
-  const deleteM = useMutation({
-    mutationFn: id => base44.entities.FotoProyecto.delete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['fotos-obra', obra.id] });
-      qc.invalidateQueries({ queryKey: ['fotos-proyecto'] });
-      setSelectedFoto(null);
-    },
-  });
+  const refrescar = () => {
+    qc.invalidateQueries({ queryKey: ['fotos-obra', obra.id] });
+    qc.invalidateQueries({ queryKey: ['fotos-proyecto'] });
+    setSelectedFoto(null);
+    setBorrarFoto(null);
+  };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
+    // Validar que la captura no esté en blanco / archivo vacío
+    if (!(await imagenNoVacia(file))) {
+      toast({
+        title: 'Foto en blanco',
+        description: 'La imagen no tiene contenido (tal vez la cámara no terminó de capturar). Inténtalo de nuevo.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setPendingFile(file);
     setPreviewUrl(URL.createObjectURL(file));
     setTitulo('');
     setDescripcion('');
     setShowForm(true);
-    e.target.value = '';
   };
 
   const handleUpload = async () => {
@@ -157,7 +166,7 @@ export default function ObraFotosPanel({ obra }) {
       {/* Grid */}
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground text-sm">Cargando fotos...</div>
-      ) : fotos.length === 0 ? (
+      ) : fotosVisibles.length === 0 ? (
         <div className="text-center py-10 border border-dashed rounded-xl">
           <Image className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-40" />
           <p className="text-sm text-muted-foreground">No hay fotos en esta obra</p>
@@ -165,9 +174,9 @@ export default function ObraFotosPanel({ obra }) {
         </div>
       ) : (
         <>
-          <p className="text-xs text-muted-foreground">{fotos.length} foto{fotos.length !== 1 ? 's' : ''}</p>
+          <p className="text-xs text-muted-foreground">{fotosVisibles.length} foto{fotosVisibles.length !== 1 ? 's' : ''}</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {fotos.map(foto => (
+            {fotosVisibles.map(foto => (
               <div
                 key={foto.id}
                 className="group relative aspect-square rounded-xl overflow-hidden bg-muted cursor-pointer hover:shadow-md transition-all"
@@ -214,25 +223,11 @@ export default function ObraFotosPanel({ obra }) {
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(selectedFoto)}>
                   <Download className="w-4 h-4" />
                 </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>¿Eliminar foto?</AlertDialogTitle>
-                      <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => deleteM.mutate(selectedFoto.id)} className="bg-destructive text-destructive-foreground">
-                        Eliminar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                {puedeGestionarFoto(selectedFoto, user) && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setBorrarFoto(selectedFoto)} title="Eliminar">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedFoto(null)}>
                   <X className="w-4 h-4" />
                 </Button>
@@ -251,6 +246,15 @@ export default function ObraFotosPanel({ obra }) {
             </div>
           </div>
         </div>
+      )}
+
+      {borrarFoto && (
+        <FotoGestionDialog
+          foto={borrarFoto}
+          open={!!borrarFoto}
+          onOpenChange={(o) => !o && setBorrarFoto(null)}
+          onDone={refrescar}
+        />
       )}
     </div>
   );

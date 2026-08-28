@@ -20,11 +20,23 @@ export async function compressImageToWebP(file, maxWidthPx = 1200, quality = 0.8
     const url = URL.createObjectURL(file);
 
     img.onload = () => {
+      // Sanity check: si el File estaba en blanco/corrupto, naturalWidth es 0
+      if (!img.naturalWidth || !img.naturalHeight) {
+        URL.revokeObjectURL(url);
+        resolve({ file, compressed: false, originalSize: file.size, finalSize: file.size, savingPercent: 0 });
+        return;
+      }
       const scale = Math.min(1, maxWidthPx / img.width);
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        resolve({ file, compressed: false, originalSize: file.size, finalSize: file.size, savingPercent: 0 });
+        return;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
       canvas.toBlob(
         (blob) => {
