@@ -50,6 +50,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -60,7 +65,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -84,6 +89,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -99,7 +109,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -125,6 +135,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         },
@@ -137,7 +152,7 @@
           "$and": [
             {
               "user_condition": {
-                "role": "t\u00e9cnico"
+                "role": "técnico"
               }
             },
             {
@@ -180,6 +195,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -187,7 +207,7 @@
           "$and": [
             {
               "user_condition": {
-                "role": "t\u00e9cnico"
+                "role": "técnico"
               }
             },
             {

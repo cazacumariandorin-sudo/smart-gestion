@@ -25,7 +25,7 @@ export function useUserRole() {
 
   // When simulating, treat the simulated role as-is (no admin override)
   const isSimulating = isRealAdmin && !!simulatedRole;
-  const isAdmin = isSimulating ? false : (role === 'admin');
+  const isAdmin = isSimulating ? false : (role === 'admin' || role === 'propietario');
   const isDemo = role === 'usuario_demo';
   const isGerencia = role === 'gerencia' || isAdmin;
   const isJefeObra = role === 'jefe_obra' || isAdmin;

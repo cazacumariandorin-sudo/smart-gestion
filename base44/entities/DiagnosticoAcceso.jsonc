@@ -4,7 +4,7 @@
   "properties": {
     "user_email": {
       "type": "string",
-      "description": "Email del usuario autorizado a acceder al m\u00f3dulo de Diagn\u00f3stico (IT externo)"
+      "description": "Email del usuario autorizado a acceder al módulo de Diagnóstico (IT externo)"
     },
     "user_id": {
       "type": "string",
@@ -23,11 +23,11 @@
         "consultor"
       ],
       "default": "tecnico_it",
-      "description": "Rol funcional del autorizado en el m\u00f3dulo de diagn\u00f3stico"
+      "description": "Rol funcional del autorizado en el módulo de diagnóstico"
     },
     "autorizado_por": {
       "type": "string",
-      "description": "Email del gerente que autoriz\u00f3 el acceso"
+      "description": "Email del gerente que autorizó el acceso"
     },
     "fecha_autorizacion": {
       "type": "string",
@@ -36,16 +36,16 @@
     "fecha_expiracion": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha opcional de expiraci\u00f3n del acceso"
+      "description": "Fecha opcional de expiración del acceso"
     },
     "activo": {
       "type": "boolean",
       "default": true,
-      "description": "Si el acceso est\u00e1 activo"
+      "description": "Si el acceso está activo"
     },
     "notas": {
       "type": "string",
-      "description": "Notas de la autorizaci\u00f3n"
+      "description": "Notas de la autorización"
     }
   },
   "required": [
@@ -62,6 +62,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
@@ -72,6 +77,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -93,6 +103,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
@@ -103,6 +118,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

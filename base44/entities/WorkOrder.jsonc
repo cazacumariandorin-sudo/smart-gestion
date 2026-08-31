@@ -26,7 +26,7 @@
       "type": "string"
     },
     "firma_cliente_ip": {
-      "description": "IP desde la que firm\u00f3 el cliente",
+      "description": "IP desde la que firmó el cliente",
       "type": "string"
     },
     "firma_cliente_nif": {
@@ -64,11 +64,11 @@
       "type": "string"
     },
     "firma_token": {
-      "description": "Token \u00fanico para enlace de firma remota del cliente",
+      "description": "Token único para enlace de firma remota del cliente",
       "type": "string"
     },
     "firma_token_expiry": {
-      "description": "Fecha de expiraci\u00f3n del token de firma",
+      "description": "Fecha de expiración del token de firma",
       "format": "date-time",
       "type": "string"
     },
@@ -103,7 +103,7 @@
       "type": "string"
     },
     "order_number": {
-      "description": "N\u00famero de parte generado autom\u00e1ticamente",
+      "description": "Número de parte generado automáticamente",
       "type": "string"
     },
     "project": {
@@ -161,6 +161,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -190,6 +195,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -210,7 +220,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -253,6 +263,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -290,6 +305,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

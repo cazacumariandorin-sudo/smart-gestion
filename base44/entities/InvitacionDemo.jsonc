@@ -4,15 +4,15 @@
   "properties": {
     "codigo": {
       "type": "string",
-      "description": "C\u00f3digo \u00fanico UUID del link de invitaci\u00f3n"
+      "description": "Código único UUID del link de invitación"
     },
     "generada_por_email": {
       "type": "string",
-      "description": "Email del usuario que gener\u00f3 la invitaci\u00f3n"
+      "description": "Email del usuario que generó la invitación"
     },
     "generada_por_nombre": {
       "type": "string",
-      "description": "Nombre del usuario que gener\u00f3 la invitaci\u00f3n"
+      "description": "Nombre del usuario que generó la invitación"
     },
     "email_destino": {
       "type": "string",
@@ -20,17 +20,17 @@
     },
     "duracion_dias": {
       "type": "number",
-      "description": "Duraci\u00f3n en d\u00edas: 7, 15, 30 o 60"
+      "description": "Duración en días: 7, 15, 30 o 60"
     },
     "fecha_generacion": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha/hora de generaci\u00f3n"
+      "description": "Fecha/hora de generación"
     },
     "fecha_expiracion": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha/hora de expiraci\u00f3n del link"
+      "description": "Fecha/hora de expiración del link"
     },
     "usada": {
       "type": "boolean",
@@ -40,7 +40,7 @@
     "fecha_uso": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha en que se us\u00f3"
+      "description": "Fecha en que se usó"
     },
     "demo_user_id": {
       "type": "string",
@@ -53,7 +53,7 @@
     "activa": {
       "type": "boolean",
       "default": true,
-      "description": "Si la invitaci\u00f3n est\u00e1 activa (no revocada)"
+      "description": "Si la invitación está activa (no revocada)"
     }
   },
   "required": [
@@ -73,6 +73,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
           "created_by": "{{user.email}}"
         }
       ]
@@ -85,14 +90,28 @@
           }
         },
         {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
           "created_by": "{{user.email}}"
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

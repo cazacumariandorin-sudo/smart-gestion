@@ -4,7 +4,7 @@
   "properties": {
     "numero_nota": {
       "type": "string",
-      "description": "Autonum\u00e9rico NG-YYYY-MM-NNN"
+      "description": "Autonumérico NG-YYYY-MM-NNN"
     },
     "operario_id": {
       "type": "string",
@@ -21,7 +21,7 @@
     "fecha_apertura": {
       "type": "string",
       "format": "date",
-      "description": "Fecha apertura autom\u00e1tica"
+      "description": "Fecha apertura automática"
     },
     "fecha_cierre": {
       "type": "string",
@@ -88,6 +88,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -115,6 +120,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -136,9 +146,18 @@
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

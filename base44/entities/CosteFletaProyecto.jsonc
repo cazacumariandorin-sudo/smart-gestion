@@ -3,19 +3,19 @@
   "type": "object",
   "properties": {
     "coste_combustible_total": {
-      "description": "Coste total en combustible (\u20ac)",
+      "description": "Coste total en combustible (€)",
       "type": "number"
     },
     "coste_por_km": {
-      "description": "Coste por km usado para el c\u00e1lculo (\u20ac/km)",
+      "description": "Coste por km usado para el cálculo (€/km)",
       "type": "number"
     },
     "coste_total_estimado": {
-      "description": "Coste total estimado de desplazamientos (\u20ac)",
+      "description": "Coste total estimado de desplazamientos (€)",
       "type": "number"
     },
     "fecha_calculo": {
-      "description": "Fecha del \u00faltimo c\u00e1lculo",
+      "description": "Fecha del último cálculo",
       "format": "date",
       "type": "string"
     },
@@ -24,11 +24,11 @@
       "type": "number"
     },
     "mes": {
-      "description": "Mes del c\u00e1lculo (YYYY-MM)",
+      "description": "Mes del cálculo (YYYY-MM)",
       "type": "string"
     },
     "num_viajes": {
-      "description": "N\u00famero de viajes al proyecto",
+      "description": "Número de viajes al proyecto",
       "type": "number"
     },
     "proyecto_id": {
@@ -40,7 +40,7 @@
       "type": "string"
     },
     "vehiculos_implicados": {
-      "description": "Matr\u00edculas de veh\u00edculos que han ido a este proyecto",
+      "description": "Matrículas de vehículos que han ido a este proyecto",
       "items": {
         "type": "string"
       },
@@ -61,6 +61,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -76,6 +81,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -104,6 +114,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -119,6 +134,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

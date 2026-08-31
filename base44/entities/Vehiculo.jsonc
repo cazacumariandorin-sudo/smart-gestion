@@ -4,7 +4,7 @@
   "properties": {
     "matricula": {
       "type": "string",
-      "description": "Matr\u00edcula del veh\u00edculo"
+      "description": "Matrícula del vehículo"
     },
     "modelo": {
       "type": "string",
@@ -12,7 +12,7 @@
     },
     "anio": {
       "type": "integer",
-      "description": "A\u00f1o"
+      "description": "Año"
     },
     "color": {
       "type": "string",
@@ -142,6 +142,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -171,6 +176,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -191,7 +201,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -213,6 +223,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -244,6 +259,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

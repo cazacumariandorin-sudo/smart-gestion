@@ -30,7 +30,7 @@
     },
     "operarios_asignados": {
       "type": "array",
-      "description": "Operarios asignados a esta previsi\u00f3n",
+      "description": "Operarios asignados a esta previsión",
       "items": {
         "type": "object",
         "properties": {
@@ -66,7 +66,7 @@
         "cancelada"
       ],
       "default": "planificada",
-      "description": "Estado de la previsi\u00f3n"
+      "description": "Estado de la previsión"
     },
     "horas_reales_acumuladas": {
       "type": "number",
@@ -86,7 +86,7 @@
     "ultimo_fichaje_fecha": {
       "type": "string",
       "format": "date",
-      "description": "Fecha del \u00faltimo Fichaje en esta obra"
+      "description": "Fecha del último Fichaje en esta obra"
     },
     "operarios_activos_hoy": {
       "type": "array",
@@ -121,6 +121,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -145,6 +150,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -160,7 +170,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -190,6 +200,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -228,6 +243,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

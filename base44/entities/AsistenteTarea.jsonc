@@ -71,7 +71,7 @@
     },
     "contexto_ia": {
       "type": "string",
-      "description": "Razonamiento del asistente que gener\u00f3 la tarea"
+      "description": "Razonamiento del asistente que generó la tarea"
     },
     "creada_por": {
       "type": "string",
@@ -92,11 +92,11 @@
     },
     "modulo": {
       "type": "string",
-      "description": "M\u00f3dulo del dashboard al que pertenece: obras, personas, economico, flota, nominas, sistema..."
+      "description": "Módulo del dashboard al que pertenece: obras, personas, economico, flota, nominas, sistema..."
     },
     "origen_solicitud": {
       "type": "string",
-      "description": "Nombre o email del trabajador/cliente que origin\u00f3 la solicitud"
+      "description": "Nombre o email del trabajador/cliente que originó la solicitud"
     }
   },
   "required": [
@@ -109,6 +109,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -131,6 +136,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -176,6 +186,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -194,6 +209,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

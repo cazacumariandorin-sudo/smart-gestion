@@ -8,7 +8,7 @@
     },
     "code": {
       "type": "string",
-      "description": "C\u00f3digo / referencia interna"
+      "description": "Código / referencia interna"
     },
     "client_id": {
       "type": "string",
@@ -20,7 +20,7 @@
     },
     "address": {
       "type": "string",
-      "description": "Direcci\u00f3n de la instalaci\u00f3n"
+      "description": "Dirección de la instalación"
     },
     "potencia_kw": {
       "type": "number",
@@ -28,7 +28,7 @@
     },
     "num_paneles": {
       "type": "number",
-      "description": "N\u00famero de paneles"
+      "description": "Número de paneles"
     },
     "tipo_instalacion": {
       "type": "string",
@@ -38,7 +38,7 @@
         "aislada",
         "hibrida"
       ],
-      "description": "Tipo de instalaci\u00f3n solar"
+      "description": "Tipo de instalación solar"
     },
     "start_date": {
       "type": "string",
@@ -63,7 +63,7 @@
     },
     "budget": {
       "type": "number",
-      "description": "Presupuesto (\u20ac)"
+      "description": "Presupuesto (€)"
     },
     "contact_person": {
       "type": "string",
@@ -71,11 +71,11 @@
     },
     "contact_phone": {
       "type": "string",
-      "description": "Tel\u00e9fono de contacto"
+      "description": "Teléfono de contacto"
     },
     "description": {
       "type": "string",
-      "description": "Descripci\u00f3n / alcance"
+      "description": "Descripción / alcance"
     },
     "notes": {
       "type": "string",
@@ -113,6 +113,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -142,6 +147,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -162,7 +172,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -184,6 +194,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -220,6 +235,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

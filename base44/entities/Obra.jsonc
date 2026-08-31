@@ -8,7 +8,7 @@
     },
     "code": {
       "type": "string",
-      "description": "C\u00f3digo / referencia interna"
+      "description": "Código / referencia interna"
     },
     "client_id": {
       "type": "string",
@@ -20,7 +20,7 @@
     },
     "address": {
       "type": "string",
-      "description": "Direcci\u00f3n de la obra"
+      "description": "Dirección de la obra"
     },
     "start_date": {
       "type": "string",
@@ -45,11 +45,11 @@
     },
     "budget": {
       "type": "number",
-      "description": "Presupuesto (\u20ac)"
+      "description": "Presupuesto (€)"
     },
     "description": {
       "type": "string",
-      "description": "Descripci\u00f3n / alcance"
+      "description": "Descripción / alcance"
     },
     "contact_person": {
       "type": "string",
@@ -57,7 +57,7 @@
     },
     "contact_phone": {
       "type": "string",
-      "description": "Tel\u00e9fono de contacto"
+      "description": "Teléfono de contacto"
     },
     "notes": {
       "type": "string",
@@ -73,6 +73,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -106,6 +111,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -126,7 +136,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -158,6 +168,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -194,6 +209,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

@@ -9,7 +9,7 @@
     },
     "version": {
       "type": "string",
-      "description": "Versi\u00f3n de la app al momento del backup"
+      "description": "Versión de la app al momento del backup"
     },
     "data_summary": {
       "type": "object",
@@ -42,7 +42,7 @@
     },
     "error_message": {
       "type": "string",
-      "description": "Mensaje de error si algo fall\u00f3"
+      "description": "Mensaje de error si algo falló"
     },
     "notes": {
       "type": "string",
@@ -54,24 +54,60 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

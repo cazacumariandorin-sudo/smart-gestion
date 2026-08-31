@@ -15,7 +15,7 @@
     },
     "registro_nombre": {
       "type": "string",
-      "description": "Nombre/email desnormalizado para lectura r\u00e1pida del log"
+      "description": "Nombre/email desnormalizado para lectura rápida del log"
     },
     "accion": {
       "type": "string",
@@ -28,7 +28,7 @@
     },
     "usuario_email": {
       "type": "string",
-      "description": "Email del usuario que accedi\u00f3/descifr\u00f3 el dato"
+      "description": "Email del usuario que accedió/descifró el dato"
     },
     "fecha": {
       "type": "string",
@@ -51,6 +51,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
@@ -65,20 +70,43 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
       ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

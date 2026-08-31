@@ -12,11 +12,11 @@
     },
     "address": {
       "type": "string",
-      "description": "Direcci\u00f3n"
+      "description": "Dirección"
     },
     "postal_code": {
       "type": "string",
-      "description": "C\u00f3digo postal"
+      "description": "Código postal"
     },
     "notes": {
       "type": "string",
@@ -29,11 +29,11 @@
     },
     "client_id_code": {
       "type": "string",
-      "description": "ID \u00fanico generado"
+      "description": "ID único generado"
     },
     "contacto_admin": {
       "type": "object",
-      "description": "Contacto Administraci\u00f3n",
+      "description": "Contacto Administración",
       "properties": {
         "nombre": {
           "type": "string"
@@ -48,7 +48,7 @@
     },
     "contacto_facturacion": {
       "type": "object",
-      "description": "Contacto Facturaci\u00f3n",
+      "description": "Contacto Facturación",
       "properties": {
         "nombre": {
           "type": "string"
@@ -63,7 +63,7 @@
     },
     "tecnicos": {
       "type": "array",
-      "description": "T\u00e9cnicos de contacto (hasta 4)",
+      "description": "Técnicos de contacto (hasta 4)",
       "items": {
         "type": "object",
         "properties": {
@@ -96,6 +96,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -121,6 +126,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -166,6 +176,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -193,6 +208,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

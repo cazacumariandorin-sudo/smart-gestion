@@ -3,7 +3,7 @@
   "type": "object",
   "properties": {
     "descripcion": {
-      "description": "Descripci\u00f3n detallada de la alerta",
+      "description": "Descripción detallada de la alerta",
       "type": "string"
     },
     "fecha": {
@@ -12,21 +12,21 @@
       "type": "string"
     },
     "fecha_resolucion": {
-      "description": "Fecha en que se resolvi\u00f3",
+      "description": "Fecha en que se resolvió",
       "format": "date",
       "type": "string"
     },
     "fecha_archivado": {
-      "description": "Fecha en que el aviso se archiv\u00f3 autom\u00e1ticamente (repostajes: 23:59 del d\u00eda)",
+      "description": "Fecha en que el aviso se archivó automáticamente (repostajes: 23:59 del día)",
       "format": "date",
       "type": "string"
     },
     "km_actuales": {
-      "description": "Km del veh\u00edculo cuando se gener\u00f3 la alerta",
+      "description": "Km del vehículo cuando se generó la alerta",
       "type": "number"
     },
     "km_limite": {
-      "description": "Km l\u00edmite que activ\u00f3 la alerta",
+      "description": "Km límite que activó la alerta",
       "type": "number"
     },
     "notas_resolucion": {
@@ -39,7 +39,7 @@
       "type": "boolean"
     },
     "resuelta_por": {
-      "description": "Email del usuario que resolvi\u00f3",
+      "description": "Email del usuario que resolvió",
       "type": "string"
     },
     "tipo": {
@@ -76,15 +76,15 @@
       "type": "string"
     },
     "vehiculo_id": {
-      "description": "ID del veh\u00edculo",
+      "description": "ID del vehículo",
       "type": "string"
     },
     "vehiculo_matricula": {
-      "description": "Matr\u00edcula del veh\u00edculo",
+      "description": "Matrícula del vehículo",
       "type": "string"
     },
     "vehiculo_modelo": {
-      "description": "Modelo del veh\u00edculo",
+      "description": "Modelo del vehículo",
       "type": "string"
     },
     "avisos_visible": {
@@ -93,11 +93,11 @@
       "type": "boolean"
     },
     "reportada_por_nombre": {
-      "description": "Nombre de quien report\u00f3 la incidencia / repostaje",
+      "description": "Nombre de quien reportó la incidencia / repostaje",
       "type": "string"
     },
     "lugar": {
-      "description": "Lugar gen\u00e9rico del aviso (ej. repostaje: Gasolinera, En obra, Almac\u00e9n...)",
+      "description": "Lugar genérico del aviso (ej. repostaje: Gasolinera, En obra, Almacén...)",
       "type": "string"
     }
   },
@@ -113,6 +113,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -137,7 +142,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         }
       ]
@@ -147,6 +152,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -212,7 +222,7 @@
           "$and": [
             {
               "user_condition": {
-                "role": "t\u00e9cnico"
+                "role": "técnico"
               }
             },
             {
@@ -298,6 +308,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -313,6 +328,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

@@ -4,7 +4,7 @@
   "properties": {
     "nombre": {
       "type": "string",
-      "description": "Nombre o raz\u00f3n social de la empresa"
+      "description": "Nombre o razón social de la empresa"
     },
     "cif": {
       "type": "string",
@@ -12,7 +12,7 @@
     },
     "domicilio": {
       "type": "string",
-      "description": "Direcci\u00f3n fiscal"
+      "description": "Dirección fiscal"
     },
     "localidad": {
       "type": "string",
@@ -37,7 +37,7 @@
     "activa": {
       "type": "boolean",
       "default": true,
-      "description": "Si la empresa est\u00e1 activa"
+      "description": "Si la empresa está activa"
     },
     "es_principal": {
       "type": "boolean",
@@ -62,6 +62,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
@@ -72,6 +77,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -91,7 +101,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -110,15 +120,29 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

@@ -25,17 +25,17 @@
     },
     "descripcion": {
       "type": "string",
-      "description": "Descripci\u00f3n de la alerta"
+      "description": "Descripción de la alerta"
     },
     "visto": {
       "type": "boolean",
       "default": false,
-      "description": "Si el admin vio la notificaci\u00f3n"
+      "description": "Si el admin vio la notificación"
     },
     "resuelto": {
       "type": "boolean",
       "default": false,
-      "description": "Si se resolvi\u00f3 manualmente"
+      "description": "Si se resolvió manualmente"
     }
   },
   "required": [
@@ -52,6 +52,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -73,15 +78,29 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

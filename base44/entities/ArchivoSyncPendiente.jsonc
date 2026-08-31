@@ -38,32 +38,32 @@
         "error"
       ],
       "default": "pendiente",
-      "description": "Estado actual de la sincronizaci\u00f3n"
+      "description": "Estado actual de la sincronización"
     },
     "intentos": {
       "type": "number",
       "default": 0,
-      "description": "N\u00famero de intentos de subida fallidos"
+      "description": "Número de intentos de subida fallidos"
     },
     "error_mensaje": {
       "type": "string",
-      "description": "Mensaje de error del \u00faltimo intento fallido"
+      "description": "Mensaje de error del último intento fallido"
     },
     "drive_file_id": {
       "type": "string",
-      "description": "ID del archivo en Drive (disponible tras sincronizaci\u00f3n exitosa)"
+      "description": "ID del archivo en Drive (disponible tras sincronización exitosa)"
     },
     "drive_url": {
       "type": "string",
-      "description": "URL final en Drive (disponible tras sincronizaci\u00f3n exitosa)"
+      "description": "URL final en Drive (disponible tras sincronización exitosa)"
     },
     "subido_por_email": {
       "type": "string",
-      "description": "Email del usuario que subi\u00f3 el archivo"
+      "description": "Email del usuario que subió el archivo"
     },
     "tamano_bytes": {
       "type": "number",
-      "description": "Tama\u00f1o aproximado del archivo en bytes"
+      "description": "Tamaño aproximado del archivo en bytes"
     }
   },
   "rls": {
@@ -79,6 +79,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -88,14 +93,32 @@
       ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   },
   "required": [],

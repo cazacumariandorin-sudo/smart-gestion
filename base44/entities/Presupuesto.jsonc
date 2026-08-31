@@ -4,11 +4,11 @@
   "properties": {
     "titulo": {
       "type": "string",
-      "description": "T\u00edtulo descriptivo del presupuesto (opcional, se autogenera si est\u00e1 vac\u00edo)"
+      "description": "Título descriptivo del presupuesto (opcional, se autogenera si está vacío)"
     },
     "codigo_registro": {
       "type": "string",
-      "description": "ID \u00fanico estandarizado: PRES-SG-AAAA-NNN (ej: PRES-SG-2026-001)"
+      "description": "ID único estandarizado: PRES-SG-AAAA-NNN (ej: PRES-SG-2026-001)"
     },
     "cliente_id": {
       "type": "string",
@@ -25,7 +25,7 @@
     },
     "importe": {
       "type": "number",
-      "description": "Importe total (\u20ac)"
+      "description": "Importe total (€)"
     },
     "estado": {
       "type": "string",
@@ -40,7 +40,7 @@
     },
     "conceptos": {
       "type": "array",
-      "description": "L\u00edneas del presupuesto",
+      "description": "Líneas del presupuesto",
       "items": {
         "type": "object",
         "properties": {
@@ -72,11 +72,11 @@
     "es_duplicado_confirmado": {
       "type": "boolean",
       "default": false,
-      "description": "Si es true, el usuario confirm\u00f3 que es duplicado autorizado"
+      "description": "Si es true, el usuario confirmó que es duplicado autorizado"
     },
     "descripcion": {
       "type": "string",
-      "description": "Descripci\u00f3n del presupuesto (autocompletada desde partes)"
+      "description": "Descripción del presupuesto (autocompletada desde partes)"
     },
     "notas": {
       "type": "string",
@@ -98,6 +98,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -126,6 +131,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -141,7 +151,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         }
       ]
@@ -151,6 +161,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -175,6 +190,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

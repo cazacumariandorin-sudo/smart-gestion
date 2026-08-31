@@ -25,11 +25,11 @@
     },
     "concepto": {
       "type": "string",
-      "description": "Concepto / descripci\u00f3n del trabajo"
+      "description": "Concepto / descripción del trabajo"
     },
     "unidad": {
       "type": "string",
-      "description": "Unidad de medida (m, m\u00b2, m\u00b3, ud, kg...)"
+      "description": "Unidad de medida (m, m², m³, ud, kg...)"
     },
     "cantidad": {
       "type": "number",
@@ -37,11 +37,11 @@
     },
     "precio_unitario": {
       "type": "number",
-      "description": "Precio unitario (\u20ac)"
+      "description": "Precio unitario (€)"
     },
     "total": {
       "type": "number",
-      "description": "Total (\u20ac)"
+      "description": "Total (€)"
     },
     "horas_ejecutadas": {
       "type": "number",
@@ -70,7 +70,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -83,6 +83,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -114,6 +119,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -139,6 +149,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

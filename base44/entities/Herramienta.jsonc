@@ -16,7 +16,7 @@
         "maquina_tiros",
         "otros"
       ],
-      "description": "Categor\u00eda de la herramienta"
+      "description": "Categoría de la herramienta"
     },
     "modelo": {
       "type": "string",
@@ -24,7 +24,7 @@
     },
     "numero_serie": {
       "type": "string",
-      "description": "N\u00famero de serie (\u00fanico)"
+      "description": "Número de serie (único)"
     },
     "estado": {
       "type": "string",
@@ -39,7 +39,7 @@
     },
     "valor_compra": {
       "type": "number",
-      "description": "Valor de compra (\u20ac)"
+      "description": "Valor de compra (€)"
     },
     "fecha_compra": {
       "type": "string",
@@ -48,7 +48,7 @@
     },
     "ubicacion": {
       "type": "string",
-      "description": "Ubicaci\u00f3n f\u00edsica (almac\u00e9n, obra, etc.)"
+      "description": "Ubicación física (almacén, obra, etc.)"
     },
     "notas": {
       "type": "string",
@@ -69,6 +69,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -84,6 +89,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -117,15 +127,29 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

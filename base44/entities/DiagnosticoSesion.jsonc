@@ -4,7 +4,7 @@
   "properties": {
     "user_email": {
       "type": "string",
-      "description": "Email del usuario que report\u00f3 / sufri\u00f3 el error"
+      "description": "Email del usuario que reportó / sufrió el error"
     },
     "user_id": {
       "type": "string",
@@ -12,7 +12,7 @@
     },
     "user_role": {
       "type": "string",
-      "description": "Rol del usuario (admin, gerencia, t\u00e9cnico, operario...)"
+      "description": "Rol del usuario (admin, gerencia, técnico, operario...)"
     },
     "tipo": {
       "type": "string",
@@ -39,15 +39,15 @@
     },
     "mensaje_error": {
       "type": "string",
-      "description": "Mensaje t\u00e9cnico del error / excepci\u00f3n"
+      "description": "Mensaje técnico del error / excepción"
     },
     "stack_trace": {
       "type": "string",
-      "description": "Traza completa del error (primeras N l\u00edneas)"
+      "description": "Traza completa del error (primeras N líneas)"
     },
     "ruta": {
       "type": "string",
-      "description": "window.location.pathname donde ocurri\u00f3"
+      "description": "window.location.pathname donde ocurrió"
     },
     "ruta_completa": {
       "type": "string",
@@ -71,23 +71,23 @@
     },
     "resolucion_pantalla": {
       "type": "string",
-      "description": "Resoluci\u00f3n de pantalla (ancho x alto)"
+      "description": "Resolución de pantalla (ancho x alto)"
     },
     "viewport": {
       "type": "string",
-      "description": "Tama\u00f1o del viewport (ancho x alto)"
+      "description": "Tamaño del viewport (ancho x alto)"
     },
     "nivel_bateria": {
       "type": "number",
-      "description": "Nivel de bater\u00eda (0-1) si est\u00e1 disponible"
+      "description": "Nivel de batería (0-1) si está disponible"
     },
     "cargando_bateria": {
       "type": "boolean",
-      "description": "Si el dispositivo est\u00e1 cargando"
+      "description": "Si el dispositivo está cargando"
     },
     "calidad_red": {
       "type": "string",
-      "description": "Tipo de conexi\u00f3n efectiva (4g, 3g, 2g, slow-2g)"
+      "description": "Tipo de conexión efectiva (4g, 3g, 2g, slow-2g)"
     },
     "downlink_mbps": {
       "type": "number",
@@ -103,18 +103,18 @@
     },
     "ultima_accion": {
       "type": "string",
-      "description": "\u00daltima acci\u00f3n registrada antes del fallo"
+      "description": "Última acción registrada antes del fallo"
     },
     "historial_navegacion": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "\u00daltimas rutas visitadas antes del error"
+      "description": "Últimas rutas visitadas antes del error"
     },
     "notas_usuario": {
       "type": "string",
-      "description": "Descripci\u00f3n del fallo escrita por el usuario (en reportes manuales)"
+      "description": "Descripción del fallo escrita por el usuario (en reportes manuales)"
     },
     "pasos_reproducir": {
       "type": "string",
@@ -122,11 +122,11 @@
     },
     "cookies_habilitadas": {
       "type": "boolean",
-      "description": "Si las cookies est\u00e1n habilitadas en el navegador"
+      "description": "Si las cookies están habilitadas en el navegador"
     },
     "memoria_uso_mb": {
       "type": "number",
-      "description": "Memoria usada (MB) si performance.memory est\u00e1 disponible"
+      "description": "Memoria usada (MB) si performance.memory está disponible"
     },
     "estado": {
       "type": "string",
@@ -146,7 +146,7 @@
     },
     "revisado_por": {
       "type": "string",
-      "description": "Email del responsable que revis\u00f3 el incidente"
+      "description": "Email del responsable que revisó el incidente"
     },
     "fecha_revision": {
       "type": "string",
@@ -169,6 +169,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
@@ -183,6 +188,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
@@ -193,6 +203,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

@@ -4,7 +4,7 @@
   "properties": {
     "codigo": {
       "type": "string",
-      "description": "C\u00f3digo \u00fanico de la regla (ej: VAC-01, ACC-01)"
+      "description": "Código único de la regla (ej: VAC-01, ACC-01)"
     },
     "categoria": {
       "type": "string",
@@ -18,15 +18,15 @@
         "datos",
         "general"
       ],
-      "description": "Categor\u00eda de la regla"
+      "description": "Categoría de la regla"
     },
     "titulo": {
       "type": "string",
-      "description": "T\u00edtulo corto de la regla"
+      "description": "Título corto de la regla"
     },
     "descripcion": {
       "type": "string",
-      "description": "Descripci\u00f3n completa de la regla"
+      "description": "Descripción completa de la regla"
     },
     "tipo": {
       "type": "string",
@@ -52,25 +52,25 @@
     "decision_requerida": {
       "type": "boolean",
       "default": false,
-      "description": "Si requiere decisi\u00f3n expl\u00edcita de Direcci\u00f3n"
+      "description": "Si requiere decisión explícita de Dirección"
     },
     "decision_tomada": {
       "type": "string",
-      "description": "Decisi\u00f3n tomada por Direcci\u00f3n"
+      "description": "Decisión tomada por Dirección"
     },
     "decision_fecha": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha de la decisi\u00f3n"
+      "description": "Fecha de la decisión"
     },
     "decision_por": {
       "type": "string",
-      "description": "Email de quien tom\u00f3 la decisi\u00f3n"
+      "description": "Email de quien tomó la decisión"
     },
     "ultima_verificacion": {
       "type": "string",
       "format": "date-time",
-      "description": "\u00daltima vez que se verific\u00f3 esta regla"
+      "description": "Última vez que se verificó esta regla"
     },
     "notas": {
       "type": "string",
@@ -79,7 +79,7 @@
     "activa": {
       "type": "boolean",
       "default": true,
-      "description": "Si la regla est\u00e1 activa"
+      "description": "Si la regla está activa"
     }
   },
   "required": [
@@ -97,6 +97,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
@@ -107,6 +112,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -130,15 +140,29 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

@@ -4,7 +4,7 @@
   "properties": {
     "material_id": {
       "type": "string",
-      "description": "ID del MaterialCatalog al que pertenece este precio hist\u00f3rico"
+      "description": "ID del MaterialCatalog al que pertenece este precio histórico"
     },
     "material_referencia": {
       "type": "string",
@@ -21,7 +21,7 @@
     "fecha_documento": {
       "type": "string",
       "format": "date",
-      "description": "Fecha del documento que origin\u00f3 este precio"
+      "description": "Fecha del documento que originó este precio"
     },
     "fecha_efectiva": {
       "type": "string",
@@ -30,7 +30,7 @@
     },
     "pvp": {
       "type": "number",
-      "description": "PVP p\u00fablico de venta (si figura en el documento)"
+      "description": "PVP público de venta (si figura en el documento)"
     },
     "descuento_empresa": {
       "type": "number",
@@ -38,7 +38,7 @@
     },
     "iva": {
       "type": "number",
-      "description": "% IVA aplicado a la l\u00ednea"
+      "description": "% IVA aplicado a la línea"
     },
     "precio_neto": {
       "type": "number",
@@ -46,7 +46,7 @@
     },
     "precio_anterior": {
       "type": "number",
-      "description": "\u00daltimo precio_neto guardado para ese material (denormalizado para ver el salto)"
+      "description": "Último precio_neto guardado para ese material (denormalizado para ver el salto)"
     },
     "variacion_pct": {
       "type": "number",
@@ -65,7 +65,7 @@
     },
     "documento_origen_id": {
       "type": "string",
-      "description": "ID del MaterialDocumentoOrigen que origin\u00f3 este precio"
+      "description": "ID del MaterialDocumentoOrigen que originó este precio"
     },
     "documento_tipo": {
       "type": "string",
@@ -79,7 +79,7 @@
     },
     "documento_numero": {
       "type": "string",
-      "description": "N\u00ba impreso en el documento (factura/albar\u00e1n/proforma)"
+      "description": "Nº impreso en el documento (factura/albarán/proforma)"
     },
     "documento_url": {
       "type": "string",
@@ -99,7 +99,7 @@
     },
     "linea_ocr_raw": {
       "type": "string",
-      "description": "Texto crudo de la l\u00ednea original (auditor\u00eda)"
+      "description": "Texto crudo de la línea original (auditoría)"
     },
     "confianza": {
       "type": "string",
@@ -130,6 +130,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -150,6 +155,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -183,6 +193,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -199,9 +214,18 @@
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

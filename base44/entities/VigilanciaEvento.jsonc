@@ -8,7 +8,7 @@
     },
     "user_email": {
       "type": "string",
-      "description": "Email del usuario vigilado (denormalizado para filtros r\u00e1pidos)"
+      "description": "Email del usuario vigilado (denormalizado para filtros rápidos)"
     },
     "tipo_evento": {
       "type": "string",
@@ -24,12 +24,12 @@
         "network_request",
         "custom"
       ],
-      "description": "Tipo del evento de telemetr\u00eda"
+      "description": "Tipo del evento de telemetría"
     },
     "timestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "Timestamp exacto en que ocurri\u00f3 el evento en el cliente"
+      "description": "Timestamp exacto en que ocurrió el evento en el cliente"
     },
     "ruta": {
       "type": "string",
@@ -37,7 +37,7 @@
     },
     "datos": {
       "type": "object",
-      "description": "Payload espec\u00edfico del tipo de evento (accion, url, status, message, etc.)",
+      "description": "Payload específico del tipo de evento (accion, url, status, message, etc.)",
       "additionalProperties": true
     }
   },
@@ -57,6 +57,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
@@ -71,20 +76,43 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
       ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

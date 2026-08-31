@@ -18,7 +18,7 @@
       "type": "string"
     },
     "documento_titulo": {
-      "description": "T\u00edtulo del documento",
+      "description": "Título del documento",
       "type": "string"
     },
     "email_firmante": {
@@ -26,17 +26,17 @@
       "type": "string"
     },
     "fecha_creacion": {
-      "description": "Fecha de creaci\u00f3n del proceso de firma",
+      "description": "Fecha de creación del proceso de firma",
       "format": "date-time",
       "type": "string"
     },
     "fecha_expiracion": {
-      "description": "Fecha de expiraci\u00f3n del enlace de firma",
+      "description": "Fecha de expiración del enlace de firma",
       "format": "date-time",
       "type": "string"
     },
     "fecha_firma": {
-      "description": "Fecha y hora exacta en que se firm\u00f3",
+      "description": "Fecha y hora exacta en que se firmó",
       "format": "date-time",
       "type": "string"
     },
@@ -57,7 +57,7 @@
       "type": "string"
     },
     "firmante_tipo": {
-      "description": "Qui\u00e9n firma",
+      "description": "Quién firma",
       "enum": [
         "operario",
         "cliente",
@@ -71,7 +71,7 @@
       "type": "string"
     },
     "ip_firma": {
-      "description": "IP desde la que se realiz\u00f3 la firma",
+      "description": "IP desde la que se realizó la firma",
       "type": "string"
     },
     "notas": {
@@ -121,11 +121,11 @@
       "type": "string"
     },
     "token": {
-      "description": "Token \u00fanico para enlace de firma p\u00fablica",
+      "description": "Token único para enlace de firma pública",
       "type": "string"
     },
     "user_agent": {
-      "description": "Dispositivo/navegador desde el que se firm\u00f3",
+      "description": "Dispositivo/navegador desde el que se firmó",
       "type": "string"
     }
   },
@@ -141,6 +141,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -164,6 +169,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
@@ -174,6 +184,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -201,6 +216,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

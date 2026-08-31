@@ -8,11 +8,11 @@
     },
     "code": {
       "type": "string",
-      "description": "C\u00f3digo / referencia (legacy \u2014 usar 'referencia' para nuevos OCR)"
+      "description": "Código / referencia (legacy — usar 'referencia' para nuevos OCR)"
     },
     "referencia": {
       "type": "string",
-      "description": "C\u00f3digo de fabricante/proveedor (clave de matching OCR + fabricante)"
+      "description": "Código de fabricante/proveedor (clave de matching OCR + fabricante)"
     },
     "fabricante_id": {
       "type": "string",
@@ -24,48 +24,48 @@
     },
     "category": {
       "type": "string",
-      "description": "Categor\u00eda"
+      "description": "Categoría"
     },
     "unit": {
       "type": "string",
-      "description": "Unidad de medida (m, kg, ud, m\u00b2, ...)"
+      "description": "Unidad de medida (m, kg, ud, m², ...)"
     },
     "unit_price": {
       "type": "number",
-      "description": "Precio unitario legacy \u2014 usar 'precio_neto' como lectura viva"
+      "description": "Precio unitario legacy — usar 'precio_neto' como lectura viva"
     },
     "pvp": {
       "type": "number",
-      "description": "PVP p\u00fablico de venta (snapshot del \u00faltimo precio conocido)"
+      "description": "PVP público de venta (snapshot del último precio conocido)"
     },
     "descuento_empresa": {
       "type": "number",
-      "description": "% descuento aplicado a Simantec (snapshot del \u00faltimo precio conocido)"
+      "description": "% descuento aplicado a Simantec (snapshot del último precio conocido)"
     },
     "iva": {
       "type": "number",
-      "description": "% IVA aplicado (snapshot del \u00faltimo precio conocido)"
+      "description": "% IVA aplicado (snapshot del último precio conocido)"
     },
     "precio_neto": {
       "type": "number",
-      "description": "\u00daltimo precio neto conocido (snapshot del \u00faltimo MaterialPrecioHistorico). NO se edita manualmente: lo actualiza el backend al crear un nuevo hist\u00f3rico."
+      "description": "Último precio neto conocido (snapshot del último MaterialPrecioHistorico). NO se edita manualmente: lo actualiza el backend al crear un nuevo histórico."
     },
     "fecha_ultimo_precio": {
       "type": "string",
       "format": "date",
-      "description": "Fecha del \u00faltimo precio registrado (snapshot)"
+      "description": "Fecha del último precio registrado (snapshot)"
     },
     "supplier": {
       "type": "string",
-      "description": "Proveedor (legacy \u2014 ahora vinculable a Fabricante)"
+      "description": "Proveedor (legacy — ahora vinculable a Fabricante)"
     },
     "description": {
       "type": "string",
-      "description": "Descripci\u00f3n / especificaciones"
+      "description": "Descripción / especificaciones"
     },
     "manual_url": {
       "type": "string",
-      "description": "URL del manual / ficha t\u00e9cnica"
+      "description": "URL del manual / ficha técnica"
     },
     "active": {
       "type": "boolean",
@@ -85,6 +85,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -100,6 +105,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -124,7 +134,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         }
       ]
@@ -134,6 +144,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -149,9 +164,18 @@
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

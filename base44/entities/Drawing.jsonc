@@ -7,7 +7,7 @@
     },
     "reference": {
       "type": "string",
-      "description": "Referencia / c\u00f3digo interno del plano"
+      "description": "Referencia / código interno del plano"
     },
     "client_id": {
       "type": "string",
@@ -55,6 +55,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -70,7 +75,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -94,6 +99,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -114,7 +124,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -140,6 +150,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -152,7 +167,7 @@
           "$and": [
             {
               "user_condition": {
-                "role": "t\u00e9cnico"
+                "role": "técnico"
               }
             },
             {
@@ -195,6 +210,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -202,7 +222,7 @@
           "$and": [
             {
               "user_condition": {
-                "role": "t\u00e9cnico"
+                "role": "técnico"
               }
             },
             {

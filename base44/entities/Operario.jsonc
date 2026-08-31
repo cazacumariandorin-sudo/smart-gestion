@@ -4,7 +4,7 @@
   "properties": {
     "num_empleado": {
       "type": "string",
-      "description": "N\u00famero de empleado \u00fanico \u2014 formato SMT-AAAA-NNNNN. Generado autom\u00e1ticamente al crear el t\u00e9cnico."
+      "description": "Número de empleado único — formato SMT-AAAA-NNNNN. Generado automáticamente al crear el técnico."
     },
     "name": {
       "type": "string",
@@ -16,15 +16,15 @@
     },
     "email": {
       "type": "string",
-      "description": "Correo electr\u00f3nico personal"
+      "description": "Correo electrónico personal"
     },
     "phone": {
       "type": "string",
-      "description": "Tel\u00e9fono"
+      "description": "Teléfono"
     },
     "role": {
       "type": "string",
-      "description": "Puesto / categor\u00eda profesional"
+      "description": "Puesto / categoría profesional"
     },
     "active": {
       "type": "boolean",
@@ -46,7 +46,7 @@
     "vinculacion_fecha": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha en que se realiz\u00f3 el v\u00ednculo con el usuario de la app"
+      "description": "Fecha en que se realizó el vínculo con el usuario de la app"
     },
     "vinculacion_tipo": {
       "type": "string",
@@ -57,12 +57,12 @@
         "demo",
         "sin_vincular"
       ],
-      "description": "C\u00f3mo se realiz\u00f3 el v\u00ednculo"
+      "description": "Cómo se realizó el vínculo"
     },
     "es_temporal": {
       "type": "boolean",
       "default": false,
-      "description": "True si fue creado autom\u00e1ticamente por el sistema tras 7 d\u00edas sin vinculaci\u00f3n manual"
+      "description": "True si fue creado automáticamente por el sistema tras 7 días sin vinculación manual"
     },
     "categoria": {
       "type": "string",
@@ -76,15 +76,15 @@
         "subcontrata",
         "temporal"
       ],
-      "description": "Categor\u00eda profesional del trabajador"
+      "description": "Categoría profesional del trabajador"
     },
     "especialidad": {
       "type": "string",
-      "description": "Especialidad t\u00e9cnica del trabajador (ej: instalaci\u00f3n fotovoltaica, electricidad, alba\u00f1iler\u00eda)"
+      "description": "Especialidad técnica del trabajador (ej: instalación fotovoltaica, electricidad, albañilería)"
     },
     "coste_hora": {
       "type": "number",
-      "description": "Coste por hora en EUR (para c\u00e1lculo de rentabilidad de proyecto)"
+      "description": "Coste por hora en EUR (para cálculo de rentabilidad de proyecto)"
     },
     "empresa_id": {
       "type": "string",
@@ -112,6 +112,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -131,6 +136,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -146,7 +156,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -159,6 +169,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -182,9 +197,18 @@
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

@@ -11,11 +11,11 @@
         "solar_cliente",
         "solar_obra"
       ],
-      "description": "Tipo de entidad donde se detect\u00f3 el duplicado"
+      "description": "Tipo de entidad donde se detectó el duplicado"
     },
     "entidad_id_nuevo": {
       "type": "string",
-      "description": "ID del registro que el usuario intent\u00f3 crear"
+      "description": "ID del registro que el usuario intentó crear"
     },
     "entidad_id_existente": {
       "type": "string",
@@ -41,7 +41,7 @@
         "prefijo",
         "importe_fecha"
       ],
-      "description": "Algoritmo que detect\u00f3 el duplicado"
+      "description": "Algoritmo que detectó el duplicado"
     },
     "accion_usuario": {
       "type": "string",
@@ -51,16 +51,16 @@
         "cancelado",
         "ignorado"
       ],
-      "description": "Qu\u00e9 decidi\u00f3 el usuario al ver el aviso"
+      "description": "Qué decidió el usuario al ver el aviso"
     },
     "es_nuevo_confirmado": {
       "type": "boolean",
       "default": false,
-      "description": "True si el usuario confirm\u00f3 que es un registro distinto al existente"
+      "description": "True si el usuario confirmó que es un registro distinto al existente"
     },
     "user_email": {
       "type": "string",
-      "description": "Email del usuario que activ\u00f3 la comprobaci\u00f3n"
+      "description": "Email del usuario que activó la comprobación"
     },
     "user_role": {
       "type": "string",
@@ -73,16 +73,16 @@
     },
     "contexto": {
       "type": "string",
-      "description": "Informaci\u00f3n adicional: importe, fecha_documento, etc. (para duplicados de gastos)"
+      "description": "Información adicional: importe, fecha_documento, etc. (para duplicados de gastos)"
     },
     "falso_positivo": {
       "type": "boolean",
       "default": false,
-      "description": "Marcado por admin si el sistema se equivoc\u00f3 al detectar el duplicado (para mejorar el algoritmo)"
+      "description": "Marcado por admin si el sistema se equivocó al detectar el duplicado (para mejorar el algoritmo)"
     },
     "falso_positivo_motivo": {
       "type": "string",
-      "description": "Por qu\u00e9 era un falso positivo"
+      "description": "Por qué era un falso positivo"
     }
   },
   "required": [
@@ -104,6 +104,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
@@ -118,15 +123,29 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

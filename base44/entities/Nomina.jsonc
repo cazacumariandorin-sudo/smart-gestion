@@ -8,7 +8,7 @@
     },
     "operario_user_email": {
       "type": "string",
-      "description": "Email del usuario de la app vinculado al operario (para RLS y filtros r\u00e1pidos)"
+      "description": "Email del usuario de la app vinculado al operario (para RLS y filtros rápidos)"
     },
     "operario_name": {
       "type": "string",
@@ -24,7 +24,7 @@
     },
     "anio": {
       "type": "integer",
-      "description": "A\u00f1o"
+      "description": "Año"
     },
     "periodo": {
       "type": "string",
@@ -45,7 +45,7 @@
         "resumen_costes"
       ],
       "default": "nomina_individual",
-      "description": "Tipo de documento: n\u00f3mina individual o resumen GEFISCAL"
+      "description": "Tipo de documento: nómina individual o resumen GEFISCAL"
     },
     "liquido_percibir": {
       "type": "number"
@@ -108,6 +108,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
@@ -118,6 +123,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -144,15 +154,29 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

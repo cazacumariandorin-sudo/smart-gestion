@@ -21,12 +21,12 @@
     "fecha_asignacion": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de asignaci\u00f3n"
+      "description": "Fecha de asignación"
     },
     "fecha_devolucion": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de devoluci\u00f3n (null si sigue en uso)"
+      "description": "Fecha de devolución (null si sigue en uso)"
     },
     "estado_asignacion": {
       "type": "string",
@@ -34,10 +34,10 @@
         "asignada",
         "devuelta",
         "perdida",
-        "da\u00f1ada"
+        "dañada"
       ],
       "default": "asignada",
-      "description": "Estado de la asignaci\u00f3n"
+      "description": "Estado de la asignación"
     },
     "obra_id": {
       "type": "string",
@@ -67,6 +67,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -82,6 +87,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -122,15 +132,29 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

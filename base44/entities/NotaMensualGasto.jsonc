@@ -7,7 +7,7 @@
       "type": "string"
     },
     "numero_ciclo": {
-      "description": "C\u00f3digo legible del ciclo (CIC-YYYY-MM-<operario_short>). Sirve para referencia humana y ordenaci\u00f3n.",
+      "description": "Código legible del ciclo (CIC-YYYY-MM-<operario_short>). Sirve para referencia humana y ordenación.",
       "type": "string"
     },
     "operario_id": {
@@ -17,12 +17,12 @@
       "type": "string"
     },
     "fecha_apertura": {
-      "description": "Fecha en que se abri\u00f3 autom\u00e1ticamente el ciclo (d\u00eda 26 del mes anterior o por backfill).",
+      "description": "Fecha en que se abrió automáticamente el ciclo (día 26 del mes anterior o por backfill).",
       "format": "date",
       "type": "string"
     },
     "fecha_cierre": {
-      "description": "D\u00eda 25 del mes del ciclo (o fecha real de cierre si se cerr\u00f3 antes/tarde).",
+      "description": "Día 25 del mes del ciclo (o fecha real de cierre si se cerró antes/tarde).",
       "format": "date",
       "type": "string"
     },
@@ -88,11 +88,11 @@
       "type": "string"
     },
     "export_contabilidad_url": {
-      "description": "URL del PDF \u00edndice + ZIP de tickets subido a Drive (Fase 4). Se rellena al ejecutar exportarCicloContabilidad.",
+      "description": "URL del PDF índice + ZIP de tickets subido a Drive (Fase 4). Se rellena al ejecutar exportarCicloContabilidad.",
       "type": "string"
     },
     "fecha_export_contabilidad": {
-      "description": "Fecha ISO en que se export\u00f3 el ciclo a contabilidad.",
+      "description": "Fecha ISO en que se exportó el ciclo a contabilidad.",
       "type": "string"
     }
   },
@@ -110,6 +110,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -120,7 +125,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         }
       ]
@@ -130,6 +135,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -167,6 +177,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -188,9 +203,18 @@
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

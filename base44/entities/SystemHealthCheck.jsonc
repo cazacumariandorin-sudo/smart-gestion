@@ -5,7 +5,7 @@
     "fecha_ejecucion": {
       "type": "string",
       "format": "date-time",
-      "description": "Momento en que se ejecut\u00f3 esta comprobaci\u00f3n"
+      "description": "Momento en que se ejecutó esta comprobación"
     },
     "tipo_ejecucion": {
       "type": "string",
@@ -13,11 +13,11 @@
         "programada",
         "manual"
       ],
-      "description": "Si fue el cron de las 6:00 o una comprobaci\u00f3n pedida por Gerencia"
+      "description": "Si fue el cron de las 6:00 o una comprobación pedida por Gerencia"
     },
     "solicitada_por_email": {
       "type": "string",
-      "description": "Email de quien pidi\u00f3 la comprobaci\u00f3n manual"
+      "description": "Email de quien pidió la comprobación manual"
     },
     "estado_global": {
       "type": "string",
@@ -26,7 +26,7 @@
         "error",
         "en_progreso"
       ],
-      "description": "Resultado consolidado de toda la comprobaci\u00f3n"
+      "description": "Resultado consolidado de toda la comprobación"
     },
     "modulos_prioritarios_resultado": {
       "type": "array",
@@ -99,15 +99,29 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     },
     "read": {
       "$or": [
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -126,15 +140,29 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         }
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

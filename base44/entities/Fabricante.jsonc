@@ -8,19 +8,19 @@
     },
     "nombre_normalizado": {
       "type": "string",
-      "description": "Nombre normalizado (UPPERCASE, sin tildes ni signos) \u2014 clave de matching OCR"
+      "description": "Nombre normalizado (UPPERCASE, sin tildes ni signos) — clave de matching OCR"
     },
     "pais": {
       "type": "string",
-      "description": "Pa\u00eds"
+      "description": "País"
     },
     "web": {
       "type": "string",
-      "description": "P\u00e1gina web"
+      "description": "Página web"
     },
     "telefono": {
       "type": "string",
-      "description": "Tel\u00e9fono"
+      "description": "Teléfono"
     },
     "email": {
       "type": "string",
@@ -28,7 +28,7 @@
     },
     "categorias": {
       "type": "string",
-      "description": "Categor\u00edas de productos"
+      "description": "Categorías de productos"
     },
     "notas": {
       "type": "string",
@@ -44,6 +44,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -72,6 +77,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -92,7 +102,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         }
       ]
@@ -102,6 +112,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -117,9 +132,18 @@
       ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }

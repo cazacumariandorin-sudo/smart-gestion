@@ -38,11 +38,11 @@
     },
     "codigo_validacion_fiscal": {
       "type": "string",
-      "description": "C\u00f3digo QR o de barras extra\u00eddo del documento (identificador \u00fanico de transacci\u00f3n)"
+      "description": "Código QR o de barras extraído del documento (identificador único de transacción)"
     },
     "numero_factura": {
       "type": "string",
-      "description": "N\u00famero de factura / albar\u00e1n / proforma impreso en el documento (extra\u00eddo por OCR+IA)"
+      "description": "Número de factura / albarán / proforma impreso en el documento (extraído por OCR+IA)"
     },
     "duplicado_confirmado": {
       "default": false,
@@ -85,7 +85,7 @@
     },
     "justificacion_tardia": {
       "type": "string",
-      "description": "Motivo por el que el gasto se registra con m\u00e1s de 30 d\u00edas de retraso"
+      "description": "Motivo por el que el gasto se registra con más de 30 días de retraso"
     },
     "nif_comercio": {
       "type": "string"
@@ -136,38 +136,38 @@
     },
     "operario_email": {
       "type": "string",
-      "description": "Email del usuario vinculado al operario (denormalizado para RLS y filtros r\u00e1pidos por usuario)"
+      "description": "Email del usuario vinculado al operario (denormalizado para RLS y filtros rápidos por usuario)"
     },
     "nota_mensual_id": {
       "type": "string",
-      "description": "ID de la NotaMensualGasto a la que pertenece este registro (enlace al ciclo 26\u219225). Opcional para retrocompatibilidad con registros pre-migraci\u00f3n."
+      "description": "ID de la NotaMensualGasto a la que pertenece este registro (enlace al ciclo 26→25). Opcional para retrocompatibilidad con registros pre-migración."
     },
     "ciclo_mes": {
       "type": "string",
-      "description": "Clave mes YYYY-MM del ciclo al que pertenece (denormalizada de NotaMensualGasto.ciclo_mes para filtros r\u00e1pidos)"
+      "description": "Clave mes YYYY-MM del ciclo al que pertenece (denormalizada de NotaMensualGasto.ciclo_mes para filtros rápidos)"
     },
     "orden_en_ciclo": {
       "type": "integer",
-      "description": "N\u00famero secuencial del registro dentro del ciclo del operario (1, 2, 3...)."
+      "description": "Número secuencial del registro dentro del ciclo del operario (1, 2, 3...)."
     },
     "validado_por": {
       "type": "string"
     },
     "aprobado_por": {
       "type": "string",
-      "description": "Email de quien aprob\u00f3 el gasto (gerencia o director_comercial)"
+      "description": "Email de quien aprobó el gasto (gerencia o director_comercial)"
     },
     "fecha_aprobacion": {
       "type": "string",
-      "description": "Fecha ISO de la aprobaci\u00f3n"
+      "description": "Fecha ISO de la aprobación"
     },
     "pagado_por": {
       "type": "string",
-      "description": "Email del administrador que registr\u00f3 el pago"
+      "description": "Email del administrador que registró el pago"
     },
     "fecha_pago": {
       "type": "string",
-      "description": "Fecha ISO en que se realiz\u00f3 el reembolso"
+      "description": "Fecha ISO en que se realizó el reembolso"
     },
     "importe_pagado_real": {
       "type": "number",
@@ -185,7 +185,7 @@
     "ia_no_disponible": {
       "type": "boolean",
       "default": false,
-      "description": "True si la IA no pudo extraer datos del ticket al crear el registro \u2014 \u00fatil para auditor\u00eda"
+      "description": "True si la IA no pudo extraer datos del ticket al crear el registro — útil para auditoría"
     }
   },
   "required": [
@@ -202,6 +202,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -229,6 +234,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {
@@ -267,6 +277,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

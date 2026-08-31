@@ -4,7 +4,7 @@
   "properties": {
     "titulo": {
       "type": "string",
-      "description": "T\u00edtulo de la nota de gastos"
+      "description": "Título de la nota de gastos"
     },
     "operario_id": {
       "type": "string",
@@ -28,11 +28,11 @@
         "peaje",
         "otro"
       ],
-      "description": "Categor\u00eda del gasto"
+      "description": "Categoría del gasto"
     },
     "importe": {
       "type": "number",
-      "description": "Importe en \u20ac"
+      "description": "Importe en €"
     },
     "cif": {
       "type": "string",
@@ -44,15 +44,15 @@
     },
     "direccion": {
       "type": "string",
-      "description": "Direcci\u00f3n del proveedor"
+      "description": "Dirección del proveedor"
     },
     "codigo_postal": {
       "type": "string",
-      "description": "C\u00f3digo postal"
+      "description": "Código postal"
     },
     "descripcion": {
       "type": "string",
-      "description": "Descripci\u00f3n detallada del gasto"
+      "description": "Descripción detallada del gasto"
     },
     "notas": {
       "type": "string",
@@ -97,7 +97,7 @@
     "fecha_inicio": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de inicio del per\u00edodo"
+      "description": "Fecha de inicio del período"
     },
     "fecha_cierre": {
       "type": "string",
@@ -122,6 +122,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         },
@@ -139,6 +144,11 @@
         },
         {
           "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         },
@@ -152,6 +162,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         },
         {

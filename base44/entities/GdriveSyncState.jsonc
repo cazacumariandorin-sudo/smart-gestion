@@ -24,12 +24,12 @@
     },
     "page_token": {
       "type": "string",
-      "description": "\u00daltimo page token para webhooks de cambios"
+      "description": "Último page token para webhooks de cambios"
     },
     "ultima_sync": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha de \u00faltima sincronizaci\u00f3n"
+      "description": "Fecha de última sincronización"
     },
     "estado": {
       "type": "string",
@@ -39,11 +39,11 @@
         "pendiente"
       ],
       "default": "activo",
-      "description": "Estado de la sincronizaci\u00f3n"
+      "description": "Estado de la sincronización"
     },
     "errores": {
       "type": "string",
-      "description": "Descripci\u00f3n de errores si los hay"
+      "description": "Descripción de errores si los hay"
     }
   },
   "required": [
@@ -52,24 +52,60 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
     }
   }
 }
