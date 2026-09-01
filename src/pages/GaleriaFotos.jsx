@@ -20,6 +20,7 @@ import { useUserRole } from '@/lib/useUserRole';
 import { useAuth } from '@/lib/AuthContext';
 import ClientObraTree from '@/components/documentos/ClientObraTree';
 import { useObrasActivasMap, esItemVisible } from '@/hooks/useObrasActivasMap';
+import ObraPickerInput from '@/components/fotos/ObraPickerInput';
 
 const CATEGORIAS = ['parte_trabajo', 'obra', 'nota_gastos', 'presupuesto', 'averia'];
 const CAT_LABELS = {
@@ -94,6 +95,7 @@ export default function GaleriaFotos() {
     titulo: '',
     descripcion: '',
     categoria: 'obra',
+    proyecto_id: '',
     proyecto_name: '',
     foto_url: '',
     storage: '',
@@ -148,7 +150,7 @@ export default function GaleriaFotos() {
         titulo: data.titulo,
         descripcion: data.descripcion,
         categoria: data.categoria,
-        proyecto_id: data.proyecto_name || 'sin_proyecto',
+        proyecto_id: data.proyecto_id || data.proyecto_name || 'sin_proyecto',
         proyecto_name: data.proyecto_name,
         proyecto_tipo: 'obra',
         operario_id: user?.id || 'desconocido',
@@ -163,7 +165,7 @@ export default function GaleriaFotos() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['fotos-proyecto'] });
       setUploadDialogOpen(false);
-      setUploadForm({ titulo: '', descripcion: '', categoria: 'obra', proyecto_name: '', foto_url: '', storage: '', drive_file_id: '' });
+      setUploadForm({ titulo: '', descripcion: '', categoria: 'obra', proyecto_id: '', proyecto_name: '', foto_url: '', storage: '', drive_file_id: '' });
     },
   });
 
@@ -371,10 +373,10 @@ export default function GaleriaFotos() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Proyecto / Obra</Label>
-              <Input 
-                value={uploadForm.proyecto_name} 
-                onChange={e => setUploadForm(p => ({ ...p, proyecto_name: e.target.value }))} 
-                placeholder="Nombre de la obra..." 
+              <ObraPickerInput
+                obrasMap={obrasMap}
+                value={{ proyecto_id: uploadForm.proyecto_id, proyecto_name: uploadForm.proyecto_name }}
+                onChange={(v) => setUploadForm(p => ({ ...p, proyecto_id: v.proyecto_id, proyecto_name: v.proyecto_name }))}
               />
             </div>
             <div className="space-y-1.5">
