@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import {
-  Wallet, Banknote, Scale, Clock, Download, ChevronDown, ChevronRight, PieChart, Loader2,
+  Wallet, Banknote, Scale, Clock, Download, ChevronDown, ChevronRight, PieChart, Loader2, BarChart3,
 } from 'lucide-react';
+import RegularizacionPeriodo from '@/components/economico/RegularizacionPeriodo';
 import {
   PERIODOS, subPeriodosDe, enPeriodo, etiquetaPeriodo,
 } from '@/lib/periodosRegularizacion';
@@ -66,6 +67,7 @@ export default function ContabilidadAnalitica() {
   const [anio, setAnio] = useState(now.getFullYear());
   const [dimension, setDimension] = useState('operario');
   const [expanded, setExpanded] = useState(null);
+  const [verRegularizacion, setVerRegularizacion] = useState(false);
 
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ['eco-registros'],
@@ -78,6 +80,10 @@ export default function ContabilidadAnalitica() {
   const { data: solarObras = [] } = useQuery({
     queryKey: ['eco-solar-obras'],
     queryFn: () => base44.entities.SolarObra.list('name', 300),
+  });
+  const { data: adelantos = [] } = useQuery({
+    queryKey: ['eco-adelantos'],
+    queryFn: () => base44.entities.AdelantoParcialCiclo.list('-fecha_creacion_real', 500),
   });
 
   // Mapa obra_id → client_name (combina obras civiles y solares)
@@ -184,12 +190,72 @@ export default function ContabilidadAnalitica() {
     );
   }
 
+  if (verRegularizacion) {
+    return (
+      <div className="space-y-5">
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <BarChart3 className="w-4 h-4 text-primary" /> Regularización de saldos — {etiquetaPeriodo(periodo, subPeriodo, anio)}
+            </div>
+            <button
+              onClick={() => setVerRegularizacion(false)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border bg-background border-border text-muted-foreground hover:bg-muted"
+            >
+              Volver al desglose
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Periodo</label>
+              <MobileSelect value={periodo} onValueChange={(v) => { setPeriodo(v); setSubPeriodo(1); }}>
+                {PERIODOS.map(p => <MobileSelectItem key={p.key} value={p.key}>{p.label}</MobileSelectItem>)}
+              </MobileSelect>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Subperiodo</label>
+              <MobileSelect value={String(subPeriodo)} onValueChange={(v) => setSubPeriodo(parseInt(v, 10))}>
+                {subPeriodos.map(s => <MobileSelectItem key={s.key} value={String(s.key)}>{s.label}</MobileSelectItem>)}
+              </MobileSelect>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Año</label>
+              <MobileSelect value={String(anio)} onValueChange={(v) => setAnio(parseInt(v, 10))}>
+                {anios.map(a => <MobileSelectItem key={a} value={String(a)}>{a}</MobileSelectItem>)}
+              </MobileSelect>
+            </div>
+          </div>
+        </div>
+        <RegularizacionPeriodo
+          registros={registros}
+          adelantos={adelantos}
+          periodo={periodo}
+          subPeriodo={subPeriodo}
+          anio={anio}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Selectores de periodo */}
       <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          <PieChart className="w-4 h-4 text-primary" /> Contabilidad analítica — {etiquetaPeriodo(periodo, subPeriodo, anio)}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            {verRegularizacion ? <BarChart3 className="w-4 h-4 text-primary" /> : <PieChart className="w-4 h-4 text-primary" />}
+            {verRegularizacion ? 'Regularización de saldos' : 'Contabilidad analítica'} — {etiquetaPeriodo(periodo, subPeriodo, anio)}
+          </div>
+          <button
+            onClick={() => setVerRegularizacion(v => !v)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+              verRegularizacion
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-background border-border text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            {verRegularizacion ? 'Volver al desglose' : 'Ver regularización'}
+          </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
