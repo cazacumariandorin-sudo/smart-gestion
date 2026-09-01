@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileSpreadsheet, ExternalLink, Loader2, FileText, CheckCircle2, FileClock } from 'lucide-react';
+import { FileSpreadsheet, ExternalLink, Loader2, FileText, CheckCircle2, FileClock, Lock, Unlock } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/lib/AuthContext';
+import { useUserRole } from '@/lib/useUserRole';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import AdelantoParcialDialog from '@/components/gastos/AdelantoParcialDialog';
 
 const ESTADO_LABELS = {
@@ -27,11 +34,65 @@ const ESTADO_COLORS = {
 
 export default function CicloCard({ nota, onExported, canExport }) {
   const { toast } = useToast();
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const { isAdmin, isGerencia } = useUserRole();
+  const canManage = isAdmin || isGerencia;
   const [exporting, setExporting] = useState(false);
   const [showAdelanto, setShowAdelanto] = useState(false);
+  const [cerrando, setCerrando] = useState(false);
+  const [reabriendo, setReabriendo] = useState(false);
 
   const yaExportada = nota.estado === 'en_contabilidad' && !!nota.export_contabilidad_url;
   const sinRegistros = (nota.total_registros || 0) === 0;
+  const estaCerrada = nota.estado === 'pagada';
+
+  const recalcYCerrar = async () => {
+    setCerrando(true);
+    try {
+      const regs = await base44.entities.RegistroGasto.filter({ nota_mensual_id: nota.id });
+      const total = regs.reduce((s, r) => s + (r.importe || 0), 0);
+      const adels = await base44.entities.AdelantoParcialCiclo.filter({ nota_mensual_id: nota.id });
+      const adelantoPagado = adels.filter(a => a.estado === 'pagada').reduce((s, a) => s + (a.importe || 0), 0);
+      await base44.entities.NotaMensualGasto.update(nota.id, {
+        estado: 'pagada',
+        fecha_cierre: new Date().toISOString().slice(0, 10),
+        pagado_por: user?.email,
+        fecha_pago: new Date().toISOString(),
+        total_importe: Number(total.toFixed(2)),
+        total_registros: regs.length,
+        importe_adelanto: Number(adelantoPagado.toFixed(2)),
+        saldo_pendiente: Number((total - adelantoPagado).toFixed(2)),
+      });
+      toast({ title: 'Ciclo cerrado', description: `${nota.numero_ciclo || nota.ciclo_mes} procesado y cerrado.` });
+      qc.invalidateQueries({ queryKey: ['nota_mensual_gasto'] });
+    } catch (e) {
+      toast({ title: 'No se pudo cerrar el ciclo', description: e.message, variant: 'destructive' });
+    } finally {
+      setCerrando(false);
+    }
+  };
+
+  const reabrirCiclo = async () => {
+    setReabriendo(true);
+    try {
+      await base44.entities.NotaMensualGasto.update(nota.id, {
+        estado: 'en_contabilidad',
+        fecha_cierre: null,
+        pagado_por: null,
+        fecha_pago: null,
+      });
+      toast({
+        title: 'Ciclo reabierto',
+        description: 'Ahora puedes añadir el justificante tardío y volver a cerrarlo.',
+      });
+      qc.invalidateQueries({ queryKey: ['nota_mensual_gasto'] });
+    } catch (e) {
+      toast({ title: 'No se pudo reabrir el ciclo', description: e.message, variant: 'destructive' });
+    } finally {
+      setReabriendo(false);
+    }
+  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -116,6 +177,50 @@ export default function CicloCard({ nota, onExported, canExport }) {
                 <FileClock className="w-4 h-4" />
                 <span className="hidden sm:inline">Informe parcial</span>
               </Button>
+            )}
+            {canManage && !estaCerrada && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5" disabled={cerrando}>
+                    {cerrando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                    <span className="hidden sm:inline">Cerrar ciclo</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Cerrar el ciclo {nota.numero_ciclo || nota.ciclo_mes}?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Se procesará y cerrará el ciclo (estado: pagada) con la fecha de cierre de hoy. El operario ya no podrá añadir gastos a este ciclo salvo que gerencia/admin lo reabra.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={recalcYCerrar}>Cerrar ciclo</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            {canManage && estaCerrada && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 border-amber-300 text-amber-700" disabled={reabriendo}>
+                    {reabriendo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlock className="w-4 h-4" />}
+                    <span className="hidden sm:inline">Reabrir</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Reabrir el ciclo {nota.numero_ciclo || nota.ciclo_mes}?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      El ciclo vuelve a contabilidad para añadir justificantes tardíos olvidados por el operario. Tras regularizarlo, vuelve a cerrarlo.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={reabrirCiclo}>Reabrir ciclo</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
             {canExport && (
               <Button
