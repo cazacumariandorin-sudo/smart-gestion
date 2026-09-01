@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import ObraSelector from './ObraSelector';
 import TicketCapture from './TicketCapture';
 import ObraObligatoriaModal from './ObraObligatoriaModal';
-import { Loader2, AlertTriangle, UserCheck, RefreshCw, Clock, ScanLine, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertTriangle, UserCheck, RefreshCw, Clock, ScanLine, CheckCircle2, FileText } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -116,8 +116,9 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const esGastoTardio = useMemo(() => { if (!form.fecha_documento) return false; return Math.floor((Date.now() - new Date(form.fecha_documento)) / 86400000) > 30; }, [form.fecha_documento]);
 
-  const handleDone = ({ ocr_raw, ocr_ok, preview, archivo, error_ocr, datos, precisa_precision, precision_motivo }) => {
-    setOcrRaw(ocr_raw || ''); setIaNoDispo(!ocr_ok); setCaptureData({ preview, archivo }); setArchivos(archivo ? [archivo] : []); setPaso('formulario');
+  const handleDone = ({ ocr_raw, ocr_ok, preview, archivos, archivo, error_ocr, datos, precisa_precision, precision_motivo }) => {
+    const lista = Array.isArray(archivos) && archivos.length ? archivos : (archivo ? [archivo] : []);
+    setOcrRaw(ocr_raw || ''); setIaNoDispo(!ocr_ok); setCaptureData({ preview, archivos: lista }); setArchivos(lista); setPaso('formulario');
     setPrecisaPrecision(!!precisa_precision); setPrecisionMotivo(precision_motivo || '');
     if (datos) {
       const catNormalizada = (datos.categoria || '').toLowerCase().trim();
@@ -191,7 +192,9 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
             </div>
           </DialogHeader>
 
-          {paso === 'captura' && <TicketCapture onDone={handleDone} onSkip={() => setPaso('formulario')} />}
+          <div className={paso === 'captura' ? '' : 'hidden'}>
+            <TicketCapture onDone={handleDone} onSkip={() => setPaso('formulario')} />
+          </div>
 
           {paso === 'formulario' && (
             <div className="space-y-4 py-2">
@@ -203,14 +206,27 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
                   </MobileSelect>
                 </div>
               )}
-              {captureData?.preview ? (
-                <div className="flex items-center gap-3 p-2.5 bg-muted/40 rounded-xl border">
-                  <img src={captureData.preview} alt="ticket" className="w-12 h-12 object-cover rounded-lg border shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate">{captureData.archivo?.nombre || 'Ticket'}</p>
-                    <p className="text-[10px] text-muted-foreground">{ocrRaw ? '✓ Datos extraídos por OCR+IA' : 'Sin extracción automática'}</p>
+              {(captureData?.archivos?.length || captureData?.preview) ? (
+                <div className="p-2.5 bg-muted/40 rounded-xl border">
+                  <div className="flex items-center gap-3">
+                    <div className="flex -space-x-2 shrink-0">
+                      {(captureData.archivos || []).slice(0, 4).map((a, i) => (
+                        a.tipo?.startsWith('image/') ? (
+                          <img key={i} src={i === 0 ? captureData.preview : a.url} alt={`página ${i + 1}`} className="w-10 h-10 object-cover rounded-lg border-2 border-background shrink-0" />
+                        ) : (
+                          <div key={i} className="w-10 h-10 rounded-lg border-2 border-background bg-muted flex items-center justify-center shrink-0"><FileText className="w-4 h-4 text-muted-foreground" /></div>
+                        )
+                      ))}
+                      {(captureData.archivos?.length || 1) > 4 && (
+                        <div className="w-10 h-10 rounded-lg border-2 border-background bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">+{(captureData.archivos?.length || 1) - 4}</div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{(captureData.archivos?.length || 1)} página{(captureData.archivos?.length || 1) !== 1 ? 's' : ''} adjunta{(captureData.archivos?.length || 1) !== 1 ? 's' : ''}</p>
+                      <p className="text-[10px] text-muted-foreground">{ocrRaw ? '✓ Datos extraídos por OCR+IA' : 'Sin extracción automática'}</p>
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-8 shrink-0 gap-1" onClick={() => setPaso('captura')} title="Añadir o cambiar páginas"><ScanLine className="w-3.5 h-3.5" /> Editar</Button>
                   </div>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => setPaso('captura')} title="Volver a capturar"><RefreshCw className="w-3.5 h-3.5" /></Button>
                 </div>
               ) : (
                 <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setPaso('captura')}><ScanLine className="w-3.5 h-3.5" /> Añadir ticket / factura</Button>
