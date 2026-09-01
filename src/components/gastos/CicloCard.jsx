@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileSpreadsheet, ExternalLink, Loader2, FileText, CheckCircle2 } from 'lucide-react';
+import { FileSpreadsheet, ExternalLink, Loader2, FileText, CheckCircle2, FileClock } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
+import AdelantoParcialDialog from '@/components/gastos/AdelantoParcialDialog';
 
 const ESTADO_LABELS = {
   borrador: 'Borrador',
@@ -27,6 +28,7 @@ const ESTADO_COLORS = {
 export default function CicloCard({ nota, onExported, canExport }) {
   const { toast } = useToast();
   const [exporting, setExporting] = useState(false);
+  const [showAdelanto, setShowAdelanto] = useState(false);
 
   const yaExportada = nota.estado === 'en_contabilidad' && !!nota.export_contabilidad_url;
   const sinRegistros = (nota.total_registros || 0) === 0;
@@ -110,6 +112,12 @@ export default function CicloCard({ nota, onExported, canExport }) {
               </Button>
             )}
             {canExport && (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowAdelanto(true)} disabled={sinRegistros}>
+                <FileClock className="w-4 h-4" />
+                <span className="hidden sm:inline">Informe parcial</span>
+              </Button>
+            )}
+            {canExport && (
               <Button
                 variant={yaExportada ? 'secondary' : 'default'}
                 size="sm"
@@ -134,6 +142,10 @@ export default function CicloCard({ nota, onExported, canExport }) {
           </div>
         </div>
       </CardContent>
+
+      {showAdelanto && (
+        <AdelantoParcialDialog nota={nota} open={showAdelanto} onClose={() => setShowAdelanto(false)} />
+      )}
     </Card>
   );
 }

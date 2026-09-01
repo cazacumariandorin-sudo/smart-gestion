@@ -1,0 +1,194 @@
+{
+  "name": "AdelantoParcialCiclo",
+  "type": "object",
+  "properties": {
+    "nota_mensual_id": {
+      "type": "string",
+      "description": "ID del NotaMensualGasto (ciclo mensual) al que pertenece este adelanto parcial."
+    },
+    "ciclo_mes": {
+      "type": "string",
+      "description": "Clave mes YYYY-MM del ciclo (denormalizada para filtros r\u00e1pidos)."
+    },
+    "numero_ciclo": {
+      "type": "string",
+      "description": "C\u00f3digo legible del ciclo padre (denormalizado)."
+    },
+    "operario_id": {
+      "type": "string"
+    },
+    "operario_name": {
+      "type": "string"
+    },
+    "operario_email": {
+      "type": "string",
+      "description": "Email del usuario vinculado al operario (denormalizado para RLS y filtros)."
+    },
+    "registros_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de RegistroGasto incluidos en este adelanto parcial."
+    },
+    "total_registros": {
+      "type": "number",
+      "default": 0
+    },
+    "importe": {
+      "type": "number",
+      "default": 0,
+      "description": "Suma de importes de los registros incluidos en el adelanto."
+    },
+    "fecha_creacion_real": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha real en que se gener\u00f3 el adelanto (por motivos fortuitos, puede ser antes del cierre del ciclo)."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "enviada",
+        "pagada",
+        "rechazada"
+      ],
+      "default": "borrador",
+      "description": "borrador \u2192 enviada (en contabilidad) \u2192 pagada. Al pasar a pagada se descuenta del saldo del ciclo mensual total."
+    },
+    "motivo": {
+      "type": "string",
+      "description": "Motivo fortuito por el que se anticipa el pago antes del cierre del ciclo."
+    },
+    "enviada_por": {
+      "type": "string",
+      "description": "Email de quien envi\u00f3 el adelanto a contabilidad."
+    },
+    "fecha_envio": {
+      "type": "string",
+      "description": "Fecha ISO del env\u00edo a contabilidad."
+    },
+    "pagada_por": {
+      "type": "string",
+      "description": "Email del administrador que registr\u00f3 el pago del adelanto."
+    },
+    "fecha_pago": {
+      "type": "string",
+      "description": "Fecha ISO en que se realiz\u00f3 el pago del adelanto."
+    },
+    "metodo_pago": {
+      "type": "string",
+      "enum": [
+        "transferencia",
+        "efectivo",
+        "tarjeta_empresa",
+        "sepa"
+      ]
+    },
+    "notas": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "nota_mensual_id",
+    "ciclo_mes",
+    "operario_id",
+    "importe"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "data.operario_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    }
+  }
+}
