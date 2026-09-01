@@ -277,9 +277,9 @@ export default function TicketCapture({ onDone, onSkip }) {
           )}
 
           {/* Botón continuar */}
-          <Button onClick={continuar} disabled={algunProcesando || !paginas.length} className="w-full gap-2">
-            {algunProcesando ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            {algunProcesando ? 'Procesando páginas…' : `Continuar con ${paginas.length} página${paginas.length !== 1 ? 's' : ''}`}
+          <Button onClick={continuar} disabled={algunaProcesando || !paginas.length} className="w-full gap-2">
+            {algunaProcesando ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            {algunaProcesando ? 'Procesando páginas…' : `Continuar con ${paginas.length} página${paginas.length !== 1 ? 's' : ''}`}
           </Button>
         </>
       )}
