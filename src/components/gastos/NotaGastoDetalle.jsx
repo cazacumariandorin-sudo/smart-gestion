@@ -10,6 +10,7 @@ import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Lock, CheckCircle2, XCircle, Edit2, Trash2, FileText, Image, ExternalLink, Loader2, Save, UserCheck, CreditCard, Send } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
+import CambiarCicloGasto from '@/components/gastos/CambiarCicloGasto';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/lib/useUserRole';
@@ -260,6 +261,11 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                 </div>
               )}
             </div>
+          )}
+
+          {/* Cambiar ciclo mensual — gerencia / admin */}
+          {!editando && canManage && nota.operario_id && (
+            <CambiarCicloGasto nota={nota} />
           )}
 
           {/* Formulario de pago — solo admin cuando estado es en_administracion */}
