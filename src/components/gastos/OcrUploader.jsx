@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Upload, Camera, FileText, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { extraerDatosGasto, evaluarPrecision } from '@/lib/ocrGastos';
 
 export default function OcrUploader({ onDatosExtraidos, onArchivoSubido }) {
   const [estado, setEstado] = useState('idle'); // idle | uploading | procesando | ok | error
@@ -19,25 +20,19 @@ export default function OcrUploader({ onDatosExtraidos, onArchivoSubido }) {
       setEstado('procesando');
       setMensaje('Extrayendo datos con OCR+IA...');
 
-      // La función backend de OCR (procesarOcrNota) puede no estar disponible
-      // en el plan actual (HTTP 402). El archivo ya está subido al CDN; lo
-      // adjuntamos igual y dejamos al usuario rellenar a mano.
-      try {
-        const res = await base44.functions.invoke('procesarOcrNota', {
-          file_url,
-          file_tipo: file.type
-        });
-
-        if (res.data?.success && res.data?.datos) {
-          onDatosExtraidos(res.data.datos);
-          setEstado('ok');
-          setMensaje(`Datos extraídos (confianza: ${res.data.datos.confianza || 'media'})`);
-        } else {
-          setEstado('ok');
-          setMensaje('Foto adjuntada · rellena los datos a mano (OCR no disponible)');
-        }
-      } catch (ocrErr) {
-        console.warn('OCR no disponible en este plan:', ocrErr?.message);
+      // OCR primario vía InvokeLLM (modelo por defecto, ~1 crédito).
+      // Funciona en el plan Starter — no requiere función backend.
+      const { datos, error } = await extraerDatosGasto(file_url);
+      if (datos && !error) {
+        const { precisa, motivo } = evaluarPrecision(datos);
+        onDatosExtraidos({ ...datos, precisa_precision: precisa, precision_motivo: motivo });
+        const conf = typeof datos.confianza === 'number' ? Math.round(datos.confianza * 100) : 'media';
+        setEstado('ok');
+        setMensaje(precisa
+          ? `Datos extraídos · precisan revisión (${conf}%): ${motivo}`
+          : `Datos extraídos (confianza: ${conf}%)`);
+      } else {
+        console.warn('OCR InvokeLLM no devolvió datos:', error);
         setEstado('ok');
         setMensaje('Foto adjuntada · rellena los datos a mano (OCR no disponible)');
       }

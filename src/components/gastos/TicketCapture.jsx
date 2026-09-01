@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Camera, Upload, SkipForward, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { extraerDatosGasto, evaluarPrecision } from '@/lib/ocrGastos';
 
 async function comprimirImagen(file) {
   return new Promise((resolve) => {
@@ -71,32 +72,30 @@ export default function TicketCapture({ onDone, onSkip }) {
       const file_url = subida?.file_url;
       if (!file_url) throw new Error('No se pudo subir el archivo al almacenamiento');
 
-      // La función backend de OCR (procesarOcrNota) no está disponible en el
-      // plan actual (HTTP 402). La foto ya está en el CDN; la adjuntamos igual
-      // y dejamos que el usuario rellene los datos a mano.
-      let r = null;
+      // OCR primario vía InvokeLLM (modelo por defecto, ~1 crédito).
+      // Funciona en el plan Starter — no requiere función backend.
+      const { datos, error } = await extraerDatosGasto(file_url);
       let textoOcr = '';
-      try {
-        const res = await base44.functions.invoke('procesarOcrNota', {
-          file_url,
-          file_tipo: file.type,
-        });
-        r = res?.data;
-        textoOcr = r?.ocr_raw || '';
-      } catch (ocrErr) {
-        console.warn('OCR no disponible en este plan:', ocrErr?.message);
+      if (datos && !error) {
+        textoOcr = JSON.stringify(datos, null, 2);
+      } else {
+        console.warn('OCR InvokeLLM no devolvió datos:', error);
       }
 
       setOcrRaw(textoOcr);
       setEstado('ok');
 
+      const { precisa, motivo } = datos ? evaluarPrecision(datos) : { precisa: false, motivo: '' };
+
       onDone({
         archivo: { url: file_url, nombre: file.name, tipo: file.type, storage: 'cdn' },
         preview: URL.createObjectURL(file),
         ocr_raw: textoOcr,
-        datos: r?.datos || null,
-        ocr_ok: !!(r?.success) && textoOcr.length > 5,
-        error_ocr: null,
+        datos: datos || null,
+        precisa_precision: precisa,
+        precision_motivo: motivo,
+        ocr_ok: !!(datos) && textoOcr.length > 5,
+        error_ocr: error || null,
       });
 
     } catch (err) {

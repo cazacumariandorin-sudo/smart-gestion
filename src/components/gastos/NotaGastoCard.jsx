@@ -64,6 +64,11 @@ export default function NotaGastoCard({ nota, onVer }) {
                 🏗 Sin obra
               </Badge>
             )}
+            {nota.precisa_precision && (
+              <Badge className="text-[10px] bg-amber-100 text-amber-800 border-amber-300" title={nota.precision_motivo || 'Precisa revisión de precisión'}>
+                🔍 Precisa precisión
+              </Badge>
+            )}
           </div>
 
           <p className="text-sm font-semibold truncate">{nota.nombre_comercio || nota.concepto || 'Sin descripción'}</p>

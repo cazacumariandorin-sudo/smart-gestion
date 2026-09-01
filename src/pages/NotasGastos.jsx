@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Search, FileBarChart2, Receipt, ChevronDown, ChevronRight, Building2, CalendarRange } from 'lucide-react';
+import { Plus, Search, FileBarChart2, Receipt, ChevronDown, ChevronRight, Building2, CalendarRange, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NotaGastoForm from '@/components/gastos/NotaGastoForm';
 import NotaGastoCard from '@/components/gastos/NotaGastoCard';
@@ -20,6 +20,7 @@ import InformeGastos from '@/components/gastos/InformeGastos';
 import ResumenPeriodoGastos from '@/components/gastos/ResumenPeriodoGastos';
 import CiclosMensualesPanel from '@/components/gastos/CiclosMensualesPanel';
 import BannerCicloActivo from '@/components/gastos/BannerCicloActivo';
+import PrecisionPanel from '@/components/gastos/PrecisionPanel';
 import { useAuth } from '@/lib/AuthContext';
 import { useTecnicoName } from '@/hooks/useTecnicoName';
 
@@ -166,6 +167,7 @@ export default function NotasGastos() {
 
   const totalFiltrado = notas.reduce((s, n) => s + (n.importe || 0), 0);
   const pendientes = notasRaw.filter(n => n.estado === 'pendiente').length;
+  const pendientesPrecision = notasRaw.filter(n => n.precisa_precision && n.archivos?.length > 0).length;
 
   const operariosConNotas = {};
   notas.forEach(nota => {
@@ -211,6 +213,22 @@ export default function NotasGastos() {
               <CalendarRange className="w-4 h-4" />
               <span className="hidden sm:inline">Ciclos</span>
             </Button>
+            {(isAdmin || isGerencia) && (
+              <Button
+                variant={tab === 'precision' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTab(tab === 'precision' ? 'notas' : 'precision')}
+                className={cn('gap-1.5', pendientesPrecision > 0 && tab !== 'precision' && 'border-amber-400 text-amber-700')}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden sm:inline">Precisión</span>
+                {pendientesPrecision > 0 && (
+                  <span className="ml-0.5 inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">
+                    {pendientesPrecision}
+                  </span>
+                )}
+              </Button>
+            )}
             <Button
               onClick={() => setShowForm(true)}
               size="sm"
@@ -227,6 +245,8 @@ export default function NotasGastos() {
 
       {tab === 'ciclos' ? (
         <CiclosMensualesPanel />
+      ) : tab === 'precision' ? (
+        <PrecisionPanel notas={notasRaw} onVerNota={setNotaSeleccionada} />
       ) : (
         <>
           <div className="mb-4">
