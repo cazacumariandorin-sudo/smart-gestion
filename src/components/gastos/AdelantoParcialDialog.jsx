@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
   Loader2, FileSpreadsheet, Send, CreditCard, CheckCircle2, XCircle,
-  Plus, AlertTriangle, Receipt, ArrowRight,
+  Plus, AlertTriangle, Receipt, ArrowRight, Wallet,
 } from 'lucide-react';
 
 const ESTADO_LABELS = {
@@ -46,6 +46,12 @@ export default function AdelantoParcialDialog({ nota, open, onClose }) {
   const [metodoPago, setMetodoPago] = useState('transferencia');
   const [creando, setCreando] = useState(false);
   const [actualizandoId, setActualizandoId] = useState(null);
+  // Adelanto de liquidez (entrega de dinero al operario, no atada a gastos)
+  const [liqImporte, setLiqImporte] = useState('');
+  const [liqMotivo, setLiqMotivo] = useState('');
+  const [liqFecha, setLiqFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [liqMetodo, setLiqMetodo] = useState('efectivo');
+  const [creandoLiq, setCreandoLiq] = useState(false);
 
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ['adelantos_parciales', nota?.id] });
@@ -159,6 +165,44 @@ export default function AdelantoParcialDialog({ nota, open, onClose }) {
     }
   };
 
+  const crearAdelantoLiquidez = async () => {
+    const importe = parseFloat(liqImporte);
+    if (!importe || isNaN(importe) || importe <= 0) { toast.error('Introduce un importe válido'); return; }
+    if (!liqMotivo.trim()) { toast.error('Indica el motivo del adelanto de liquidez'); return; }
+    setCreandoLiq(true);
+    try {
+      await base44.entities.AdelantoParcialCiclo.create({
+        nota_mensual_id: nota.id,
+        ciclo_mes: nota.ciclo_mes,
+        numero_ciclo: nota.numero_ciclo,
+        operario_id: nota.operario_id,
+        operario_name: nota.operario_name,
+        operario_email: nota.operario_email,
+        registros_ids: [],
+        total_registros: 0,
+        importe: Number(importe.toFixed(2)),
+        fecha_creacion_real: liqFecha,
+        estado: 'pagada',
+        motivo: liqMotivo.trim(),
+        metodo_pago: liqMetodo,
+        pagada_por: user?.email,
+        fecha_pago: new Date().toISOString(),
+        notas: 'Adelanto de liquidez entregado al operario antes del cierre del ciclo.',
+      });
+      toast.success('Adelanto de liquidez registrado');
+      setLiqImporte('');
+      setLiqMotivo('');
+      setLiqFecha(new Date().toISOString().slice(0, 10));
+      invalidar();
+      await recalcAdelantoPadre();
+      invalidar();
+    } catch (e) {
+      toast.error(e.message || 'No se pudo registrar el adelanto de liquidez');
+    } finally {
+      setCreandoLiq(false);
+    }
+  };
+
   const cambiarEstado = async (adelanto, nuevoEstado, extra = {}) => {
     setActualizandoId(adelanto.id);
     try {
@@ -233,8 +277,13 @@ export default function AdelantoParcialDialog({ nota, open, onClose }) {
                         <Badge variant="outline" className={cn('text-xs', ESTADO_COLORS[a.estado])}>
                           {ESTADO_LABELS[a.estado]}
                         </Badge>
+                        {(a.total_registros || 0) === 0 && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 gap-1">
+                            <Wallet className="w-3 h-3" /> Liquidez
+                          </Badge>
+                        )}
                         <span className="text-sm font-semibold">{(a.importe || 0).toFixed(2)} €</span>
-                        <span className="text-xs text-muted-foreground">{a.total_registros || 0} reg.</span>
+                        {(a.total_registros || 0) > 0 && <span className="text-xs text-muted-foreground">{a.total_registros} reg.</span>}
                       </div>
                       {a.motivo && <p className="text-xs text-muted-foreground mt-0.5 truncate">{a.motivo}</p>}
                     </div>
@@ -268,6 +317,44 @@ export default function AdelantoParcialDialog({ nota, open, onClose }) {
 
           {canManage && (
             <>
+              {/* Adelanto de liquidez — entrega de dinero al operario, no atada a gastos */}
+              <div className="border-t pt-3 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Wallet className="w-4 h-4 text-blue-600" />
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Adelanto de liquidez</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Registra una entrega de dinero al operario antes del cierre del ciclo. Se descuenta del saldo para saber si la empresa debe al trabajador o el trabajador a la empresa.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="space-y-1 col-span-2 sm:col-span-1">
+                    <Label className="text-[10px]">Importe (€) *</Label>
+                    <Input type="number" step="0.01" value={liqImporte} onChange={e => setLiqImporte(e.target.value)} placeholder="0.00" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">Fecha</Label>
+                    <Input type="date" value={liqFecha} onChange={e => setLiqFecha(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">Método</Label>
+                    <MobileSelect value={liqMetodo} onValueChange={setLiqMetodo}>
+                      <MobileSelectItem value="efectivo">Efectivo</MobileSelectItem>
+                      <MobileSelectItem value="transferencia">Transferencia</MobileSelectItem>
+                      <MobileSelectItem value="tarjeta_empresa">Tarjeta empresa</MobileSelectItem>
+                      <MobileSelectItem value="sepa">SEPA</MobileSelectItem>
+                    </MobileSelect>
+                  </div>
+                  <div className="space-y-1 col-span-2 sm:col-span-1">
+                    <Label className="text-[10px]">Motivo *</Label>
+                    <Input value={liqMotivo} onChange={e => setLiqMotivo(e.target.value)} placeholder="Ej: anticipo de liquidez" />
+                  </div>
+                </div>
+                <Button onClick={crearAdelantoLiquidez} disabled={creandoLiq || !liqImporte || !liqMotivo.trim()} className="gap-1.5 w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+                  {creandoLiq ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wallet className="w-4 h-4" />}
+                  Registrar adelanto de liquidez
+                </Button>
+              </div>
+
               <div className="border-t pt-3">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase">
