@@ -112,7 +112,7 @@ export default function CicloCard({ nota, onExported, canExport }) {
               </Button>
             )}
             {canExport && (
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowAdelanto(true)} disabled={sinRegistros}>
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowAdelanto(true)}>
                 <FileClock className="w-4 h-4" />
                 <span className="hidden sm:inline">Informe parcial</span>
               </Button>
