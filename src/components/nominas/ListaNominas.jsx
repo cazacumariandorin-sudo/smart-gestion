@@ -319,7 +319,7 @@ function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, onV
               <div className="text-right shrink-0 hidden sm:block">
                 {trab.nominas.some(n => n.liquido_percibir) && (
                   <p className="text-xs text-green-700 font-medium">
-                    Último: {(trab.nominas.sort((a,b) => b.anio - a.anio || b.mes - a.mes)[0].liquido_percibir || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                    Último: {([...trab.nominas].sort((a,b) => b.anio - a.anio || b.mes - a.mes)[0].liquido_percibir || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
                   </p>
                 )}
               </div>
@@ -447,7 +447,7 @@ export default function ListaNominas({ esAdmin }) {
 
   const queryClient = useQueryClient();
 
-  const { data: nominas = [], isLoading } = useQuery({
+  const { data: nominas = [], isLoading, error } = useQuery({
     queryKey: ['nominas'],
     queryFn: () => base44.entities.Nomina.list('-created_date', 500),
   });
@@ -497,6 +497,19 @@ export default function ListaNominas({ esAdmin }) {
   if (isLoading) return (
     <div className="flex items-center justify-center py-12">
       <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  if (error) return (
+    <div className="flex flex-col items-center justify-center py-12 text-center space-y-2">
+      <AlertTriangle className="w-8 h-8 text-amber-500" />
+      <p className="text-sm font-medium">No se pudieron cargar las nóminas</p>
+      <p className="text-xs text-muted-foreground max-w-xs">
+        Ha ocurrido un error de conexión o de permisos. Si el problema persiste, contacta con administración.
+      </p>
+      <Button variant="outline" size="sm" className="mt-2" onClick={() => queryClient.invalidateQueries({ queryKey: ['nominas'] })}>
+        Reintentar
+      </Button>
     </div>
   );
 
