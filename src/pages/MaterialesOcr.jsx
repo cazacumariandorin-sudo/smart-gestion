@@ -22,6 +22,7 @@ const TIPO_COLOR = {
 export default function MaterialesOcr() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [notasOpen, setNotasOpen] = useState(false);
+  const [presetFile, setPresetFile] = useState(null);
   const qc = useQueryClient();
   const { canAccess } = useUserRole();
 
@@ -38,9 +39,15 @@ export default function MaterialesOcr() {
 
   // Al seleccionar una nota de gasto, abre el diálogo principal con el archivo cargado.
   // El flujo de OCR + revisión + guardado se gestiona dentro de MaterialesOcrDialog.
-  const handleSelectFromNota = () => {
+  const handleSelectFromNota = ({ file_url, registro }) => {
     setNotasOpen(false);
+    setPresetFile({ file_url, registro });
     setDialogOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    setPresetFile(null);
   };
 
   return (
@@ -51,6 +58,9 @@ export default function MaterialesOcr() {
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
           <Button onClick={() => setDialogOpen(true)} className="gap-2" size="lg">
             <ScanLine className="w-4 h-4" /> Cargar factura / albarán (OCR+IA)
+          </Button>
+          <Button onClick={() => setNotasOpen(true)} variant="outline" className="gap-2" size="lg">
+            <FileImage className="w-4 h-4" /> Cargar de notas de gastos existentes
           </Button>
           <p className="text-xs text-muted-foreground">
             Escanea el documento (recorte + enderezado + contraste), el OCR extrae cada línea de producto y la guardas en el catálogo con histórico de precios.
@@ -105,7 +115,8 @@ export default function MaterialesOcr() {
         </div>
       </div>
 
-      <MaterialesOcrDialog open={dialogOpen} onClose={() => setDialogOpen(false)} onSaved={onSaved} />
+      <MaterialesOcrDialog open={dialogOpen} onClose={handleDialogClose} onSaved={onSaved} presetFile={presetFile} />
+      <NotasGastosSourceDialog open={notasOpen} onClose={() => setNotasOpen(false)} onSelect={handleSelectFromNota} />
     </div>
   );
 }
