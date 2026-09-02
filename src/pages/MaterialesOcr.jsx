@@ -5,8 +5,11 @@ import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import MaterialesOcrDialog from '@/components/materiales/MaterialesOcrDialog';
-import { ScanLine, FileText, ExternalLink, Plus, Box } from 'lucide-react';
+import NotasGastosSourceDialog from '@/components/materiales/NotasGastosSourceDialog';
+import { ocrDocumentoMateriales } from '@/lib/materialesOcrClient';
+import { ScanLine, FileText, ExternalLink, Plus, Box, FileImage } from 'lucide-react';
 import { useUserRole } from '@/lib/useUserRole';
+import { toast } from 'sonner';
 
 const TIPO_LABEL = { factura: 'Factura', albaran: 'Albarán', ticket: 'Ticket', proforma: 'Proforma' };
 const TIPO_COLOR = {
@@ -18,6 +21,7 @@ const TIPO_COLOR = {
 
 export default function MaterialesOcr() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [notasOpen, setNotasOpen] = useState(false);
   const qc = useQueryClient();
   const { canAccess } = useUserRole();
 
@@ -30,6 +34,13 @@ export default function MaterialesOcr() {
     qc.invalidateQueries({ queryKey: ['materiales_documento_origen'] });
     qc.invalidateQueries({ queryKey: ['material_catalog'] });
     qc.invalidateQueries({ queryKey: ['material_precio_historico'] });
+  };
+
+  // Al seleccionar una nota de gasto, abre el diálogo principal con el archivo cargado.
+  // El flujo de OCR + revisión + guardado se gestiona dentro de MaterialesOcrDialog.
+  const handleSelectFromNota = () => {
+    setNotasOpen(false);
+    setDialogOpen(true);
   };
 
   return (

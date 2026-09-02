@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, ScanLine, Upload, CheckCircle2, AlertTriangle, Save, RefreshCw } from 'lucide-react';
+import { Loader2, ScanLine, Upload, CheckCircle2, AlertTriangle, Save, RefreshCw, FileImage } from 'lucide-react';
 import DocumentScanner from './DocumentScanner';
 import LineasMaterialesEditor from './LineasMaterialesEditor';
+import NotasGastosSourceDialog from './NotasGastosSourceDialog';
+import { ocrDocumentoMateriales, guardarMaterialesOcr } from '@/lib/materialesOcrClient';
 import { toast } from 'sonner';
 
 const TIPOS_DOC = [
@@ -18,7 +20,7 @@ const TIPOS_DOC = [
   { value: 'proforma', label: 'Proforma' },
 ];
 
-export default function MaterialesOcrDialog({ open, onClose, onSaved, operario = null }) {
+export default function MaterialesOcrDialog({ open, onClose, onSaved, operario = null, presetFile = null }) {
   const { user } = useAuth();
   const [paso, setPaso] = useState('captura'); // captura | ocr | revision | guardando
   const [scanResult, setScanResult] = useState(null); // { file, preview }
@@ -26,6 +28,7 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
   const [ocrError, setOcrError] = useState('');
   const [metaDoc, setMetaDoc] = useState({ tipo: 'factura', numero: '', fecha: new Date().toISOString().slice(0, 10), proveedor_nombre: '', proveedor_nif: '', obra_id: '', obra_name: '', obra_tipo: '' });
   const [lineas, setLineas] = useState([]);
+  const [notasOpen, setNotasOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -35,6 +38,10 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
       setOcrError('');
       setMetaDoc({ tipo: 'factura', numero: '', fecha: new Date().toISOString().slice(0, 10), proveedor_nombre: '', proveedor_nif: '', obra_id: '', obra_name: '', obra_tipo: '' });
       setLineas([]);
+      // Si viene con un archivo preseleccionado (desde notas de gastos), lanza OCR directo.
+      if (presetFile?.file_url) {
+        handleSelectFromNotaGasto(presetFile);
+      }
     }
   }, [open]);
 
@@ -50,11 +57,8 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
       const file_url = subida?.file_url;
       if (!file_url) throw new Error('No se pudo subir el archivo');
       setScanResult(prev => ({ ...prev, file_url }));
-      const res = await base44.functions.invoke('procesarFacturaMateriales', { file_url, file_tipo: 'image/jpeg' });
-      const data = res?.data;
-      if (!data?.success) throw new Error(data?.error || 'OCR no devolvió datos');
-      const d = data.datos || {};
-      setOcrData({ ...d, modelo: data.modelo, fallback: data.fallback });
+      const { datos: d, modelo, fallback } = await ocrDocumentoMateriales(file_url, 'image/jpeg');
+      setOcrData({ ...d, modelo, fallback });
       setMetaDoc(m => ({
         ...m,
         tipo: d.tipo_documento_inferido && TIPOS_DOC.some(t => t.value === d.tipo_documento_inferido) ? d.tipo_documento_inferido : m.tipo,
@@ -71,11 +75,48 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
     }
   };
 
+  // Cargar desde una nota de gasto existente (RegistroGasto con archivo).
+  const handleSelectFromNotaGasto = async ({ file_url, registro }) => {
+    if (!file_url) { toast.error('La nota de gasto no tiene archivo válido'); return; }
+    setPaso('ocr');
+    setOcrError('');
+    setScanResult({ file: null, preview: file_url, file_url });
+    try {
+      const { datos: d, modelo, fallback } = await ocrDocumentoMateriales(file_url, 'image/jpeg');
+      setOcrData({ ...d, modelo, fallback });
+      setMetaDoc(m => ({
+        ...m,
+        tipo: d.tipo_documento_inferido && TIPOS_DOC.some(t => t.value === d.tipo_documento_inferido) ? d.tipo_documento_inferido : m.tipo,
+        numero: d.numero_documento || registro?.numero_factura || m.numero,
+        fecha: d.fecha_documento || registro?.fecha_documento || m.fecha,
+        proveedor_nombre: d.proveedor || registro?.nombre_comercio || m.proveedor_nombre,
+        proveedor_nif: d.nif_proveedor || registro?.nif_comercio || m.proveedor_nif,
+        obra_id: registro?.obra_id || m.obra_id,
+        obra_name: registro?.obra_name || m.obra_name,
+        obra_tipo: registro?.obra_tipo || m.obra_tipo,
+      }));
+      setLineas(Array.isArray(d.lineas) ? d.lineas : []);
+      setPaso('revision');
+    } catch (err) {
+      setOcrError(String(err?.message || err).slice(0, 200));
+      // Pre-rellenar metadatos del registro aunque el OCR falle.
+      setMetaDoc(m => ({
+        ...m,
+        numero: registro?.numero_factura || m.numero,
+        fecha: registro?.fecha_documento || m.fecha,
+        proveedor_nombre: registro?.nombre_comercio || m.proveedor_nombre,
+        proveedor_nif: registro?.nif_comercio || m.proveedor_nif,
+        obra_id: registro?.obra_id || m.obra_id,
+        obra_name: registro?.obra_name || m.obra_name,
+      }));
+      setPaso('revision');
+    }
+  };
+
   const handleSkipScanner = async () => {
     setPaso('ocr');
     setOcrError('');
-    // Sin scanner: dejar que el usuario suba manualmente luego /水平的提高menteDocumento
-    // Para mantenerlo simple: pedimos file input aquí
+    // Sin scanner: el usuario sube el archivo manualmente.
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*,.pdf';
@@ -87,11 +128,8 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
         const file_url = subida?.file_url;
         if (!file_url) throw new Error('No se pudo subir el archivo');
         setScanResult({ file: f, preview: URL.createObjectURL(f), file_url });
-        const res = await base44.functions.invoke('procesarFacturaMateriales', { file_url, file_tipo: f.type });
-        const data = res?.data;
-        if (!data?.success) throw new Error(data?.error || 'OCR no devolvió datos');
-        const d = data.datos || {};
-        setOcrData({ ...d, modelo: data.modelo, fallback: data.fallback });
+        const { datos: d, modelo, fallback } = await ocrDocumentoMateriales(file_url, f.type);
+        setOcrData({ ...d, modelo, fallback });
         setMetaDoc(m => ({
           ...m,
           tipo: d.tipo_documento_inferido && TIPOS_DOC.some(t => t.value === d.tipo_documento_inferido) ? d.tipo_documento_inferido : m.tipo,
@@ -143,8 +181,7 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
           precio_neto: Number(l.precio_neto || 0),
         })),
       };
-      const res = await base44.functions.invoke('guardarMaterialesOcr', payload);
-      const data = res?.data;
+      const data = await guardarMaterialesOcr(payload.documento, payload.lineas);
       if (!data?.success) throw new Error(data?.error || 'Error al guardar');
       const nuevas = (data.resultados || []).filter(r => r.material_existia !== true).length;
       const cambios = (data.resultados || []).filter(r => r.variacion_pct != null).length;
@@ -178,7 +215,22 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
         </DialogHeader>
 
         {paso === 'captura' && (
-          <DocumentScanner onDone={handleScannerDone} onSkip={handleSkipScanner} />
+          <>
+            <DocumentScanner onDone={handleScannerDone} onSkip={handleSkipScanner} />
+            <div className="pt-3 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setNotasOpen(true)}
+                className="w-full gap-2"
+              >
+                <FileImage className="w-4 h-4" />
+                Cargar de notas de gastos existentes
+              </Button>
+              <p className="text-[11px] text-muted-foreground text-center mt-1.5">
+                Busca entre las notas ya cargadas y úsalas como fuente, con función de eliminar duplicados.
+              </p>
+            </div>
+          </>
         )}
 
         {paso === 'ocr' && (
@@ -251,6 +303,12 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
             </Button>
           </DialogFooter>
         )}
+
+        <NotasGastosSourceDialog
+          open={notasOpen}
+          onClose={() => setNotasOpen(false)}
+          onSelect={handleSelectFromNotaGasto}
+        />
       </DialogContent>
     </Dialog>
   );
