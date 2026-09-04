@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
@@ -19,7 +19,7 @@ import NotaGastoDetalle from '@/components/gastos/NotaGastoDetalle';
 import InformeGastos from '@/components/gastos/InformeGastos';
 import ResumenPeriodoGastos from '@/components/gastos/ResumenPeriodoGastos';
 import CiclosMensualesPanel from '@/components/gastos/CiclosMensualesPanel';
-import BannerCicloActivo from '@/components/gastos/BannerCicloActivo';
+import BannerCicloActivo, { calcularCiclo } from '@/components/gastos/BannerCicloActivo';
 import PrecisionPanel from '@/components/gastos/PrecisionPanel';
 import { useAuth } from '@/lib/AuthContext';
 import { useTecnicoName } from '@/hooks/useTecnicoName';
@@ -121,6 +121,30 @@ export default function NotasGastos() {
   const [filtroSinObra, setFiltroSinObra] = useState(false);
   const [operarioAbierto, setOperarioAbierto] = useState(null);
 
+  // Ciclo activo por defecto; gerencia/admin puede cambiar a ciclos históricos
+  const cicloActivoMes = useMemo(() => calcularCiclo(new Date()).cicloMes, []);
+  const [filtroCiclo, setFiltroCiclo] = useState(cicloActivoMes);
+
+  // Calcula el ciclo de un registro a partir de ciclo_mes (denormalizado) o de su fecha
+  const cicloDeRegistro = useCallback((n) => {
+    if (n.ciclo_mes) return n.ciclo_mes;
+    const ref = n.fecha_documento || n.fecha_creacion_real || n.created_date;
+    if (!ref) return null;
+    const fecha = new Date(ref);
+    if (isNaN(fecha.getTime())) return null;
+    return calcularCiclo(fecha).cicloMes;
+  }, []);
+
+  // Lista de ciclos disponibles (activo + todos los que aparecen en los registros)
+  const ciclosDisponibles = useMemo(() => {
+    const set = new Set([cicloActivoMes]);
+    notasRaw.forEach(n => {
+      const c = cicloDeRegistro(n);
+      if (c) set.add(c);
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [notasRaw, cicloActivoMes, cicloDeRegistro]);
+
   const { data: notasRaw = [], isLoading } = useQuery({
     queryKey: ['notas_gasto'],
     queryFn: () => base44.entities.RegistroGasto.list('-created_date', 1000),
@@ -162,7 +186,8 @@ export default function NotasGastos() {
     const matchOp = filtroOperario === 'todos' || n.operario_id === filtroOperario;
     const matchObra = filtroObra === 'todas' || n.obra_id === filtroObra;
     const matchSinObra = !filtroSinObra || n.sin_obra === true;
-    return matchBusq && matchEstado && matchCat && matchOp && matchObra && matchSinObra;
+    const matchCiclo = filtroCiclo === 'todos' || cicloDeRegistro(n) === filtroCiclo;
+    return matchBusq && matchEstado && matchCat && matchOp && matchObra && matchSinObra && matchCiclo;
   });
 
   const totalFiltrado = notas.reduce((s, n) => s + (n.importe || 0), 0);
@@ -250,7 +275,12 @@ export default function NotasGastos() {
       ) : (
         <>
           <div className="mb-4">
-            <BannerCicloActivo />
+            <BannerCicloActivo
+              cicloMes={filtroCiclo}
+              ciclosDisponibles={ciclosDisponibles}
+              onCicloChange={setFiltroCiclo}
+              permitirCambiar={ciclosDisponibles.length > 1}
+            />
           </div>
 
           {!vistaAdmin && (
