@@ -135,16 +135,6 @@ export default function NotasGastos() {
     return calcularCiclo(fecha).cicloMes;
   }, []);
 
-  // Lista de ciclos disponibles (activo + todos los que aparecen en los registros)
-  const ciclosDisponibles = useMemo(() => {
-    const set = new Set([cicloActivoMes]);
-    notasRaw.forEach(n => {
-      const c = cicloDeRegistro(n);
-      if (c) set.add(c);
-    });
-    return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [notasRaw, cicloActivoMes, cicloDeRegistro]);
-
   const { data: notasRaw = [], isLoading } = useQuery({
     queryKey: ['notas_gasto'],
     queryFn: () => base44.entities.RegistroGasto.list('-created_date', 1000),
@@ -160,6 +150,16 @@ export default function NotasGastos() {
     enabled: isAdmin || isGerencia || isDirComercial || isJefeObra,
   });
   const todasObras = [...obrasRaw, ...solarObrasRaw.map(o => ({ ...o, _tipo: 'solar' }))];
+
+  // Lista de ciclos disponibles (activo + todos los que aparecen en los registros)
+  const ciclosDisponibles = useMemo(() => {
+    const set = new Set([cicloActivoMes]);
+    notasRaw.forEach(n => {
+      const c = cicloDeRegistro(n);
+      if (c) set.add(c);
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [notasRaw, cicloActivoMes, cicloDeRegistro]);
 
   const operarioActual = {
     id: operarioId || user?.id,
