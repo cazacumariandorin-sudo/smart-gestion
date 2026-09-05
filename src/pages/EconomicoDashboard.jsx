@@ -7,6 +7,7 @@ import { useUserRole } from '@/lib/useUserRole';
 import { Wallet, TrendingUp, FileText, Banknote, AlertTriangle, PieChart } from 'lucide-react';
 import EconomicoObrasChart from '@/components/economico/EconomicoObrasChart';
 import ContabilidadAnalitica from '@/components/economico/ContabilidadAnalitica';
+import AdelantosPanel from '@/components/adelantos/AdelantosPanel';
 
 function KpiCard({ icon: Icon, label, value, color }) {
   return (
@@ -25,8 +26,9 @@ function KpiCard({ icon: Icon, label, value, color }) {
 const eur = (n) => `${(n || 0).toLocaleString('es-ES', { maximumFractionDigits: 0 })} €`;
 
 export default function EconomicoDashboard() {
-  const { isAdmin, isGerencia } = useUserRole();
+  const { isAdmin, isGerencia, isDirComercial } = useUserRole();
   const puedeAnalitica = isAdmin || isGerencia;
+  const puedeAdelantos = isAdmin || isGerencia || isDirComercial;
   const [tab, setTab] = useState('resumen');
 
   const { data: registros = [] } = useQuery({ queryKey: ['eco-registros'], queryFn: () => base44.entities.RegistroGasto.list('-fecha_documento', 500) });
@@ -110,11 +112,17 @@ export default function EconomicoDashboard() {
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="w-full sm:w-auto">
               <TabsTrigger value="resumen">Resumen</TabsTrigger>
+              {puedeAdelantos && (
+                <TabsTrigger value="adelantos" className="gap-1.5">
+                  <Wallet className="w-4 h-4" /> Adelantos
+                </TabsTrigger>
+              )}
               <TabsTrigger value="analitica" className="gap-1.5">
                 <PieChart className="w-4 h-4" /> Contabilidad analítica
               </TabsTrigger>
             </TabsList>
             <TabsContent value="resumen">{resumen}</TabsContent>
+            {puedeAdelantos && <TabsContent value="adelantos"><AdelantosPanel /></TabsContent>}
             <TabsContent value="analitica"><ContabilidadAnalitica /></TabsContent>
           </Tabs>
         ) : (

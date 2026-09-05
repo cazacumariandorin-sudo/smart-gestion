@@ -1,0 +1,260 @@
+{
+  "name": "Adelanto",
+  "type": "object",
+  "properties": {
+    "operario_id": {
+      "type": "string",
+      "description": "ID del operario destinatario del adelanto"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario (desnormalizado)"
+    },
+    "operario_email": {
+      "type": "string",
+      "description": "Email del usuario vinculado al operario (denormalizado para RLS y filtros r\u00e1pidos)"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "gastos",
+        "dieta"
+      ],
+      "description": "Adelanto de gastos (gasolina, material, peajes, parking...) o adelanto de dieta (anticipo de vi\u00e1ticos). 'dieta' reservado para el futuro m\u00f3dulo Dietas."
+    },
+    "importe": {
+      "type": "number",
+      "description": "Importe entregado al t\u00e9cnico"
+    },
+    "fecha_entrega": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha real de entrega del dinero al t\u00e9cnico"
+    },
+    "concepto": {
+      "type": "string",
+      "description": "Motivo / concepto del adelanto"
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "Obra asociada (opcional)"
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra (desnormalizado)"
+    },
+    "obra_tipo": {
+      "type": "string",
+      "enum": [
+        "obra_civil",
+        "solar",
+        "oficina",
+        "almacen",
+        "otro"
+      ]
+    },
+    "autorizado_por": {
+      "type": "string",
+      "description": "Email de gerencia/admin que autoriza el adelanto"
+    },
+    "fecha_autorizacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO de la autorizaci\u00f3n"
+    },
+    "entregado_por": {
+      "type": "string",
+      "description": "Email de quien entrega/marca el dinero como entregado"
+    },
+    "fecha_entrega_real": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO de la entrega efectiva"
+    },
+    "metodo_pago": {
+      "type": "string",
+      "enum": [
+        "transferencia",
+        "efectivo",
+        "tarjeta_empresa",
+        "sepa"
+      ]
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente_entrega",
+        "entregado",
+        "justificado",
+        "parcialmente_justificado",
+        "pendiente_devolucion",
+        "anulado"
+      ],
+      "default": "pendiente_entrega",
+      "description": "Ciclo de vida: pendiente_entrega \u2192 entregado \u2192 justificado/parcialmente_justificado/pendiente_devolucion. anulado cancela."
+    },
+    "justificacion_importe": {
+      "type": "number",
+      "default": 0,
+      "description": "Suma de RegistroGasto del mismo ciclo ya cruzados contra este adelanto"
+    },
+    "justificacion_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de RegistroGasto usados para justificar este adelanto"
+    },
+    "saldo_adelanto": {
+      "type": "number",
+      "description": "importe \u2212 justificacion_importe (lo que queda por justificar o devolver)"
+    },
+    "ciclo_mes": {
+      "type": "string",
+      "description": "Clave mes YYYY-MM del ciclo al que se imputa (denormalizada)"
+    },
+    "nota_mensual_id": {
+      "type": "string",
+      "description": "ID de NotaMensualGasto. Puede apuntar a un ciclo ya abierto pero incompleto (adelanto anticipado por liquidez) o quedar vac\u00edo si el ciclo a\u00fan no existe."
+    },
+    "dieta_tipo": {
+      "type": "string",
+      "description": "RESERVADO futuro m\u00f3dulo Dietas: nacional/internacional/media_dieta/dieta_completa"
+    },
+    "dieta_detalle": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "RESERVADO futuro m\u00f3dulo Dietas: JSON abierto (d\u00edas, tarifas, trayectos, km, justificaci\u00f3n espec\u00edfica...)"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Notas internas"
+    }
+  },
+  "required": [
+    "operario_id",
+    "tipo",
+    "importe",
+    "fecha_entrega",
+    "concepto"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "director_comercial"
+              }
+            },
+            {
+              "data.tipo": "gastos"
+            }
+          ]
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "director_comercial"
+              }
+            },
+            {
+              "data.tipo": "gastos"
+            }
+          ]
+        },
+        {
+          "$and": [
+            {
+              "data.operario_email": "{{user.email}}"
+            },
+            {
+              "data.tipo": "gastos"
+            }
+          ]
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "director_comercial"
+              }
+            },
+            {
+              "data.tipo": "gastos"
+            }
+          ]
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

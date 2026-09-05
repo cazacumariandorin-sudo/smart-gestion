@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Search, FileBarChart2, Receipt, ChevronDown, ChevronRight, Building2, CalendarRange, Sparkles } from 'lucide-react';
+import { Plus, Search, FileBarChart2, Receipt, ChevronDown, ChevronRight, Building2, CalendarRange, Sparkles, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NotaGastoForm from '@/components/gastos/NotaGastoForm';
 import NotaGastoCard from '@/components/gastos/NotaGastoCard';
@@ -21,6 +21,7 @@ import ResumenPeriodoGastos from '@/components/gastos/ResumenPeriodoGastos';
 import CiclosMensualesPanel from '@/components/gastos/CiclosMensualesPanel';
 import BannerCicloActivo, { calcularCiclo } from '@/components/gastos/BannerCicloActivo';
 import PrecisionPanel from '@/components/gastos/PrecisionPanel';
+import MisAdelantosTab from '@/components/adelantos/MisAdelantosTab';
 import { useAuth } from '@/lib/AuthContext';
 import { useTecnicoName } from '@/hooks/useTecnicoName';
 
@@ -238,6 +239,17 @@ export default function NotasGastos() {
               <CalendarRange className="w-4 h-4" />
               <span className="hidden sm:inline">Ciclos</span>
             </Button>
+            {!vistaAdmin && (
+              <Button
+                variant={tab === 'mis-adelantos' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTab(tab === 'mis-adelantos' ? 'notas' : 'mis-adelantos')}
+                className="gap-1.5"
+              >
+                <Wallet className="w-4 h-4" />
+                <span className="hidden sm:inline">Mis adelantos</span>
+              </Button>
+            )}
             {(isAdmin || isGerencia) && (
               <Button
                 variant={tab === 'precision' ? 'default' : 'outline'}
@@ -268,7 +280,9 @@ export default function NotasGastos() {
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="p-4 sm:p-6 lg:p-8">
 
-      {tab === 'ciclos' ? (
+      {tab === 'mis-adelantos' ? (
+        <MisAdelantosTab />
+      ) : tab === 'ciclos' ? (
         <CiclosMensualesPanel />
       ) : tab === 'precision' ? (
         <PrecisionPanel notas={notasRaw} onVerNota={setNotaSeleccionada} />

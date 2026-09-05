@@ -7,7 +7,7 @@
       "type": "string"
     },
     "numero_ciclo": {
-      "description": "Código legible del ciclo (CIC-YYYY-MM-<operario_short>). Sirve para referencia humana y ordenación.",
+      "description": "C\u00f3digo legible del ciclo (CIC-YYYY-MM-<operario_short>). Sirve para referencia humana y ordenaci\u00f3n.",
       "type": "string"
     },
     "operario_id": {
@@ -17,12 +17,12 @@
       "type": "string"
     },
     "fecha_apertura": {
-      "description": "Fecha en que se abrió automáticamente el ciclo (día 26 del mes anterior o por backfill).",
+      "description": "Fecha en que se abri\u00f3 autom\u00e1ticamente el ciclo (d\u00eda 26 del mes anterior o por backfill).",
       "format": "date",
       "type": "string"
     },
     "fecha_cierre": {
-      "description": "Día 25 del mes del ciclo (o fecha real de cierre si se cerró antes/tarde).",
+      "description": "D\u00eda 25 del mes del ciclo (o fecha real de cierre si se cerr\u00f3 antes/tarde).",
       "format": "date",
       "type": "string"
     },
@@ -43,12 +43,32 @@
     },
     "importe_adelanto": {
       "default": 0,
-      "description": "Adelanto recibido ese mes",
+      "description": "CALCULADO a partir de Adelanto tipo=gastos del ciclo. Para ciclos anteriores a la implementaci\u00f3n de Adelanto, conserva el valor hist\u00f3rico manual (ver es_historico_adelanto).",
       "type": "number"
+    },
+    "total_adelantos_gastos": {
+      "default": 0,
+      "description": "Suma de Adelanto tipo=gastos entregados del ciclo (campo calculado).",
+      "type": "number"
+    },
+    "total_adelantos_dieta": {
+      "default": 0,
+      "description": "Suma de Adelanto tipo=dieta del ciclo (informativo, no resta del c\u00e1lculo de gastos).",
+      "type": "number"
+    },
+    "importe_neto_liquidar": {
+      "default": 0,
+      "description": "total_importe \u2212 total_adelantos_gastos. Positivo = empresa debe al t\u00e9cnico; negativo = t\u00e9cnico debe devolver.",
+      "type": "number"
+    },
+    "es_historico_adelanto": {
+      "default": false,
+      "description": "True si el ciclo tiene importe_adelanto anterior a la implementaci\u00f3n de Adelanto (no se recalcula autom\u00e1ticamente). Gerencia lo revisa manualmente.",
+      "type": "boolean"
     },
     "saldo_pendiente": {
       "default": 0,
-      "description": "total_importe - importe_adelanto",
+      "description": "Alias de importe_neto_liquidar (retrocompatibilidad).",
       "type": "number"
     },
     "estado": {
@@ -88,11 +108,11 @@
       "type": "string"
     },
     "export_contabilidad_url": {
-      "description": "URL del PDF índice + ZIP de tickets subido a Drive (Fase 4). Se rellena al ejecutar exportarCicloContabilidad.",
+      "description": "URL del PDF \u00edndice + ZIP de tickets subido a Drive (Fase 4). Se rellena al ejecutar exportarCicloContabilidad.",
       "type": "string"
     },
     "fecha_export_contabilidad": {
-      "description": "Fecha ISO en que se exportó el ciclo a contabilidad.",
+      "description": "Fecha ISO en que se export\u00f3 el ciclo a contabilidad.",
       "type": "string"
     }
   },
@@ -125,7 +145,7 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         }
       ]

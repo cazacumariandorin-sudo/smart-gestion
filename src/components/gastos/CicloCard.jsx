@@ -13,6 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import AdelantoParcialDialog from '@/components/gastos/AdelantoParcialDialog';
+import { aplicarConciliacionCierre } from '@/lib/adelantosConciliacion';
 
 const ESTADO_LABELS = {
   borrador: 'Borrador',
@@ -50,22 +51,13 @@ export default function CicloCard({ nota, onExported, canExport }) {
   const recalcYCerrar = async () => {
     setCerrando(true);
     try {
-      const regs = await base44.entities.RegistroGasto.filter({ nota_mensual_id: nota.id });
-      const total = regs.reduce((s, r) => s + (r.importe || 0), 0);
-      const adels = await base44.entities.AdelantoParcialCiclo.filter({ nota_mensual_id: nota.id });
-      const adelantoPagado = adels.filter(a => a.estado === 'pagada').reduce((s, a) => s + (a.importe || 0), 0);
-      await base44.entities.NotaMensualGasto.update(nota.id, {
-        estado: 'pagada',
-        fecha_cierre: new Date().toISOString().slice(0, 10),
-        pagado_por: user?.email,
-        fecha_pago: new Date().toISOString(),
-        total_importe: Number(total.toFixed(2)),
-        total_registros: regs.length,
-        importe_adelanto: Number(adelantoPagado.toFixed(2)),
-        saldo_pendiente: Number((total - adelantoPagado).toFixed(2)),
+      const c = await aplicarConciliacionCierre(nota, user, { estado: 'pagada' });
+      toast({
+        title: 'Ciclo cerrado',
+        description: `${nota.numero_ciclo || nota.ciclo_mes} · Gastos ${c.total_gastos.toFixed(2)} € − Adelantos ${c.total_adelantos_gastos.toFixed(2)} € = Neto ${c.importe_neto_liquidar.toFixed(2)} €${c.es_historico_adelanto ? ' (histórico, no recalculado)' : ''}`,
       });
-      toast({ title: 'Ciclo cerrado', description: `${nota.numero_ciclo || nota.ciclo_mes} procesado y cerrado.` });
       qc.invalidateQueries({ queryKey: ['nota_mensual_gasto'] });
+      qc.invalidateQueries({ queryKey: ['adelantos'] });
     } catch (e) {
       toast({ title: 'No se pudo cerrar el ciclo', description: e.message, variant: 'destructive' });
     } finally {
