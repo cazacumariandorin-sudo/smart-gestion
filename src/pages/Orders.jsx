@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import ObraSelector from '@/components/gastos/ObraSelector';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -153,11 +154,6 @@ export default function Orders() {
   const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setOcrFile(null); setOcrDone(false); setOcrError(''); setDialogOpen(true); };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyOrder); };
   const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
-
-  const handleObraChange = (name) => {
-    const obra = obras.find(o => o.name === name);
-    setForm(p => ({ ...p, obra_name: name, obra_id: obra?.id || '' }));
-  };
 
   // Items management
   const addItem = () => setForm(p => ({ ...p, items: [...p.items, { ...emptyItem }] }));
@@ -397,14 +393,11 @@ export default function Orders() {
                 </MobileSelect>
               </div>
               <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Obra *</Label>
-                <MobileSelect value={form.obra_name} onValueChange={handleObraChange} placeholder="Seleccionar obra...">
-                  {obras.map(o => <MobileSelectItem key={o.id} value={o.name}>{o.name}{o.code ? ` (${o.code})` : ''}</MobileSelectItem>)}
-                  <MobileSelectItem value="__manual">— Escribir manualmente —</MobileSelectItem>
-                </MobileSelect>
-                {form.obra_name === '__manual' && (
-                  <Input value="" onChange={e => setField('obra_name', e.target.value)} placeholder="Nombre de la obra..." className="mt-1" />
-                )}
+                <ObraSelector
+                  value={form.obra_id}
+                  obraName={form.obra_name}
+                  onChange={(o) => setForm(p => ({ ...p, obra_id: o.obra_id || '', obra_name: o.obra_name || '' }))}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Fecha pedido</Label>
