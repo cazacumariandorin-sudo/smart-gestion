@@ -299,7 +299,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
           )}
         </DialogContent>
       </Dialog>
-      <ObraObligatoriaModal open={showObraModal} onAsignarObra={handleObraAsignada} onContinuarSinObra={handleContinuarSinObra} />
+      <ObraObligatoriaModal open={showObraModal} onAsignarObra={handleObraAsignada} onContinuarSinObra={handleContinuarSinObra} onClose={() => { setShowObraModal(false); setPendingSave(false); }} />
       <AlertDialog open={showDupAlert} onOpenChange={setShowDupAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>

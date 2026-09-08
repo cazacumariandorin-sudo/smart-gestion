@@ -4,22 +4,32 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 import ObraSelector from './ObraSelector';
 
-export default function ObraObligatoriaModal({ open, onAsignarObra, onContinuarSinObra }) {
+export default function ObraObligatoriaModal({ open, onAsignarObra, onContinuarSinObra, onClose }) {
   const [seleccion, setSeleccion] = useState({ obra_id: '', obra_name: '', obra_tipo: '' });
+
+  const reset = () => setSeleccion({ obra_id: '', obra_name: '', obra_tipo: '' });
 
   const handleAsignar = () => {
     if (!seleccion.obra_id) return;
     onAsignarObra(seleccion);
-    setSeleccion({ obra_id: '', obra_name: '', obra_tipo: '' });
+    reset();
   };
 
   const handleSinObra = () => {
-    setSeleccion({ obra_id: '', obra_name: '', obra_tipo: '' });
+    reset();
     onContinuarSinObra();
   };
 
+  // Cerrable con X / overlay / Escape: vuelve al formulario sin guardar.
+  const handleOpenChange = (isOpen) => {
+    if (!isOpen) {
+      reset();
+      onClose?.();
+    }
+  };
+
   return (
-    <Dialog open={open}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
