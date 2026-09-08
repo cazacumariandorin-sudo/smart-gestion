@@ -547,7 +547,7 @@ export default function Orders() {
           </Tabs>
           <DialogFooter>
             <Button variant="outline" onClick={close_}>{t('cancel')}</Button>
-            <Button onClick={handleSave} disabled={!form.obra_name || isPending} className="gap-2 min-w-28">
+            <Button onClick={handleSave} disabled={!form.title || isPending} className="gap-2 min-w-28">
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {t('save')}
             </Button>
           </DialogFooter>
