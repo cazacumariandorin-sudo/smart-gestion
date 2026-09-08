@@ -5,11 +5,34 @@ import { registrarLoginSesion, registrarLogoutSesion } from '@/lib/diagnosticoUt
 
 const AuthContext = createContext();
 
+/**
+ * AuthLoadTimeoutError — se lanza cuando auth.me() cuelga más del umbral y
+ * existía una sesión previa (P3-z). GlobalErrorBoundary lo captura y ofrece
+ * "Recargar" al usuario, distinguiendo un cuelgue de red de una sesión caducada.
+ */
+export class AuthLoadTimeoutError extends Error {
+  constructor(message = 'La sesión tardó demasiado en cargar. Revisa la conexión y recarga.') {
+    super(message);
+    this.name = 'AuthLoadTimeoutError';
+  }
+}
+
+/** ¿Existía token de sesión antes de intentar auth.me()? (para decidir P3-z) */
+function hadSessionBefore() {
+  try {
+    if (appParams.token) return true;
+    const ls = typeof window !== 'undefined' ? window.localStorage : null;
+    if (ls && (ls.getItem('base44_access_token') || ls.getItem('token'))) return true;
+  } catch { /* sin-op */ }
+  return false;
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
+  // P1/A1: estado de carga único. isLoadingAuth/isLoadingPublicSettings se exponen
+  // como alias del mismo valor para no romper consumidores existentes.
+  const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState(null);
   const userLoadedRef = useRef(false);
@@ -19,21 +42,29 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAppState = async () => {
-    setIsLoadingPublicSettings(true);
-    setIsLoadingAuth(true);
+    setIsLoading(true);
     setAuthError(null);
     setAppPublicSettings({ id: appParams.appId });
 
-    // Safety timeout: if auth.me() hangs, redirect to login rather than
-    // showing a blank screen or incorrectly treating user as unauthenticated.
+    const hadSession = hadSessionBefore();
+
+    // P3-z: safety timeout híbrido a 10s.
+    // - Si había sesión previa: lanzar AuthLoadTimeoutError (probable cuelgue de red → Recargar).
+    // - Si no había sesión: mantener auth_required → /login (flujo normal de invitado).
     const timeoutId = setTimeout(() => {
       if (!userLoadedRef.current) {
-        console.warn('Auth check timeout - redirecting to login');
-        setIsLoadingAuth(false);
-        setIsLoadingPublicSettings(false);
-        setAuthError({ type: 'auth_required', message: 'Authentication required' });
+        console.warn('Auth check timeout - hadSession:', hadSession);
+        setIsLoading(false);
+        // P3-z: si había sesión, marcamos auth_load_timeout (App.jsx lo convierte en un
+        // error de render capturado por GlobalErrorBoundary → "Recargar"). Si no,
+        // auth_required → /login (flujo normal de invitado).
+        setAuthError(
+          hadSession
+            ? { type: 'auth_load_timeout', message: 'La sesión tardó demasiado en cargar.' }
+            : { type: 'auth_required', message: 'Authentication required' }
+        );
       }
-    }, 8000);
+    }, 10000);
 
     try {
       // Always try auth.me() — the SDK manages session tokens internally.
@@ -96,8 +127,7 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       setAuthError({ type: 'auth_required', message: 'Authentication required' });
     } finally {
-      setIsLoadingAuth(false);
-      setIsLoadingPublicSettings(false);
+      setIsLoading(false);
     }
   };
 
@@ -120,8 +150,10 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={{
       user,
       isAuthenticated,
-      isLoadingAuth,
-      isLoadingPublicSettings,
+      isLoading,
+      // Alias de compatibilidad (P1/A1): mismo valor, invariante garantizada por construcción.
+      isLoadingAuth: isLoading,
+      isLoadingPublicSettings: isLoading,
       authError,
       appPublicSettings,
       logout,

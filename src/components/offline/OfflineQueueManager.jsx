@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { getQueue, removeFromQueue, updateQueue, getDeadLetters } from '@/utils/offlineQueue';
+import { useToast } from '@/components/ui/use-toast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ export function OfflineQueueManager() {
   const [expanded, setExpanded] = useState(null);
   const [showDeadLetters, setShowDeadLetters] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
 
   // Recargar cola cuando cambia
   useEffect(() => {
@@ -42,15 +44,27 @@ export function OfflineQueueManager() {
     window.addEventListener('offlineQueue:synced', handleQueueChange);
     window.addEventListener('offlineQueue:updated', handleQueueChange);
 
+    // P4: cuota localStorage llena → toast visible al usuario
+    const handleQuota = (e) => {
+      toast({
+        title: 'Almacenamiento local lleno',
+        description: 'No se pudo guardar un dato offline (memoria del navegador llena). Libera espacio o sincroniza pendientes.',
+        variant: 'destructive',
+        duration: 5000,
+      });
+    };
+    window.addEventListener('offlineQueue:quota-exceeded', handleQuota);
+
     // Recargar cada 5 segundos
     const interval = setInterval(refreshQueue, 5000);
 
     return () => {
       window.removeEventListener('offlineQueue:synced', handleQueueChange);
       window.removeEventListener('offlineQueue:updated', handleQueueChange);
+      window.removeEventListener('offlineQueue:quota-exceeded', handleQuota);
       clearInterval(interval);
     };
-  }, []);
+  }, [toast]);
 
   if (queue.length === 0 && deadLetters.length === 0) {
     return null;

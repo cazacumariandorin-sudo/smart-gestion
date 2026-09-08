@@ -227,6 +227,22 @@ Grep de `isLoadingAuth` / `isLoadingPublicSettings` y del `isLoading` derivado d
 ## Pendiente de decisión (gerencia/administración)
 
 - [x] Aprobar Opción **A1** (estado combinado único con alias de compatibilidad). — **Verificado vía auditoría de consumidores.**
-- [ ] Aprobar **P3-z** (timeout 10s híbrido: boundary si había sesión, /login si no).
-- [ ] Aprobar notificación de cuota vía **CustomEvent + toast** (frente a `sonner` directo).
-- [ ] Confirmar umbral de purga de dead letters en **30 días**.
+- [x] Aprobar **P3-z** (timeout 10s híbrido: boundary si había sesión, /login si no). — **Implementado.**
+- [x] Aprobar notificación de cuota vía **CustomEvent + toast** (frente a `sonner` directo). — **Implementado.**
+- [x] Confirmar umbral de purga de dead letters en **30 días**. — **Implementado (purgeOldDeadLetters(30)).**
+
+---
+
+## Implementación (2026-09-08)
+
+### Bloque A — P1 + P3
+- `src/lib/AuthContext.jsx`: `useState(true)` único (`isLoading`); `isLoadingAuth`/`isLoadingPublicSettings` = alias del mismo valor. Timeout de 10s híbrido (P3-z): `auth_load_timeout` si había sesión (`AuthLoadTimeoutError`), `auth_required` si no. `AuthLoadTimeoutError` exportada.
+- `src/components/FullScreenLoader.jsx` (nuevo): spinner a pantalla completa reutilizable.
+- `src/components/ProtectedRoute.jsx`: `return <FullScreenLoader />` en vez de `return null` (fin de pantalla blanca silenciosa).
+- `src/App.jsx`: `AuthenticatedApp` usa `isLoading` + `<FullScreenLoader>`; rama `auth_load_timeout` renderiza `<AuthTimeoutThrower>` dentro de `GlobalErrorBoundary` (el throw ocurre durante el render, así el boundary sí lo captura — un throw en `setTimeout` no llegaría).
+
+### Bloque B — P2 + P4
+- `src/utils/offlineQueue.js`: `QueueValidationError` (exportada); `safeSetItem` con detección de `QuotaExceededError`, purga de dead letters >30d (`purgeOldDeadLetters`) y reintento único, dispatch `offlineQueue:quota-exceeded` si persiste; `saveQueue`/`saveQueueMeta`/`saveDeadLetter` delegan en `safeSetItem`; `processOfflineQueue` valida payload antes de la API (CREATE no vacío, UPDATE/DELETE con `id`) → dead letter inmediato sin gastar reintentos; resultado ampliado con `rejected` (retrocompatible).
+- `src/components/offline/OfflineQueueManager.jsx`: listener `offlineQueue:quota-exceeded` → toast destructivo visible 5s.
+
+**Sin regresión:** flujo feliz idéntico; backoff exponencial de red intacto; firma de `processOfflineQueue` retrocompatible (`rejected` añadido, no rota lectores existentes de `synced`/`failed`/`remaining`).

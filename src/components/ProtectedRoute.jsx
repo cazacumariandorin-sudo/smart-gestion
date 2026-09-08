@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useUserRole } from '@/lib/useUserRole';
 import { useAuth } from '@/lib/AuthContext';
+import FullScreenLoader from '@/components/FullScreenLoader';
 
 /**
  * Wraps a page route and redirects to /login if unauthenticated,
@@ -11,8 +12,8 @@ export default function ProtectedRoute({ module, children }) {
   const { canAccess } = useUserRole();
   const location = useLocation();
 
-  // Still loading auth — don't decide yet
-  if (isLoadingAuth) return null;
+  // Still loading auth — muestra loader en vez de pantalla blanca silenciosa (P1)
+  if (isLoadingAuth) return <FullScreenLoader label="Cargando sesión…" />;
 
   // Not authenticated — send to /login preserving intended destination
   if (!isAuthenticated || !user) {

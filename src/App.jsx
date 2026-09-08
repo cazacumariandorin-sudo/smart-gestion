@@ -20,6 +20,8 @@ import { I18nProvider } from './lib/i18n';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import FullScreenLoader from '@/components/FullScreenLoader';
+import { AuthLoadTimeoutError } from '@/lib/AuthContext';
 import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
@@ -314,25 +316,34 @@ function AnimatedRoutes() {
   );
 }
 
+// P3-z: lanza el error durante el render para que GlobalErrorBoundary lo capture
+// y muestre "Recargar". (Un throw dentro de setTimeout no llegaría al boundary.)
+function AuthTimeoutThrower() {
+  throw new AuthLoadTimeoutError();
+}
+
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
+  const { isLoading, authError, navigateToLogin, user } = useAuth();
   useNetworkInfo(); // detección de red disponible para toda la app (timeouts adaptativos)
 
   useEffect(() => {
     if (user) setCurrentUserForDiag(user);
   }, [user]);
 
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-      </div>
-    );
+  if (isLoading) {
+    return <FullScreenLoader label="Cargando sesión…" />;
   }
 
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
+    } else if (authError.type === 'auth_load_timeout') {
+      // Sesión previa + cuelgue de red → boundary con "Recargar".
+      return (
+        <GlobalErrorBoundary>
+          <AuthTimeoutThrower />
+        </GlobalErrorBoundary>
+      );
     } else if (authError.type === 'auth_required') {
       // Redirect handled by ProtectedRoute / AnimatedRoutes
     }
