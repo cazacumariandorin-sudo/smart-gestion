@@ -5,6 +5,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { subirArchivo } from '@/lib/subirArchivo';
+import { extraerDatosPedido, evaluarPrecisionPedido, reprocesarPrecisionPedido } from '@/lib/ocrPedidos';
 import { toast } from 'sonner';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useI18n } from '@/lib/i18n';
@@ -100,50 +101,28 @@ export default function Orders() {
       const uploadRes = await subirArchivo(file, { ruta_drive: 'Pedidos', entidad_tipo: 'Order', entidad_id: null });
       const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
       if (!file_url) throw new Error('No se pudo subir el archivo al almacenamiento');
-      // Salvaguarda: si la IA no responde en 120s, mostramos error en vez de spinner infinito
-      const llmPromise = base44.integrations.Core.InvokeLLM({
-        prompt: `Extrae todos los datos del siguiente documento de pedido/albarán/factura de compra.
-Devuelve un JSON con exactamente esta estructura:
-{
-  "order_number": "número de pedido o albarán si existe, si no cadena vacía",
-  "supplier": "nombre del proveedor/vendedor",
-  "date": "fecha en formato YYYY-MM-DD, si no hay usa la fecha de hoy",
-  "notes": "observaciones o comentarios relevantes",
-  "items": [
-    {
-      "nombre": "descripción del artículo",
-      "cantidad": número,
-      "unidad": "unidad (ud, m, kg, etc)",
-      "precio": número con decimales
-    }
-  ]
-}
-Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de artículos que aparezcan.`,
-        file_urls: [file_url],
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            order_number: { type: 'string' },
-            supplier: { type: 'string' },
-            date: { type: 'string' },
-            notes: { type: 'string' },
-            items: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  nombre: { type: 'string' },
-                  cantidad: { type: 'number' },
-                  unidad: { type: 'string' },
-                  precio: { type: 'number' },
-                }
-              }
-            }
-          }
+
+      // 1) Pasada primaria: InvokeLLM nativo (modelo por defecto, plan Starter, ~1 crédito)
+      const primaria = await extraerDatosPedido(file_url);
+      if (primaria.error) throw new Error(primaria.error);
+      let data = primaria.datos;
+
+      // 2) Evaluar si necesita refuerzo
+      const { precisa, motivo } = evaluarPrecisionPedido(data);
+      let usRefuerzo = false;
+      if (precisa) {
+        // 3) Refuerzo: modelo superior gemini_3_flash (plan superior, ~5 créditos)
+        toast.info('Mejorando precisión con IA superior…');
+        const refuerzo = await reprocesarPrecisionPedido(file_url);
+        if (!refuerzo.error && refuerzo.datos) {
+          data = refuerzo.datos;
+          usRefuerzo = true;
+        } else if (refuerzo.error) {
+          // Si el refuerzo falla, nos quedamos con la pasada primaria
+          console.warn('Refuerzo IA falló (' + motivo + '):', refuerzo.error);
         }
-      });
-      const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error('La IA tardó demasiado. Prueba con una imagen más clara o rellena manualmente.')), 120000));
-      const data = await Promise.race([llmPromise, timeoutPromise]);
+      }
+
       const items = (data.items || []).map(it => ({
         nombre: it.nombre || '',
         cantidad: it.cantidad || 1,
