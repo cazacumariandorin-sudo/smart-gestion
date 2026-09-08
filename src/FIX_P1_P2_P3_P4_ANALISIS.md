@@ -205,9 +205,28 @@ return { synced, failed, rejected, remaining: remaining.length };
 
 ---
 
+## Auditoría de consumidores (grep realizado 2026-09-08)
+
+Grep de `isLoadingAuth` / `isLoadingPublicSettings` y del `isLoading` derivado de `useUserRole` en todo `src/`:
+
+| Consumidor | Campo leído | Uso | ¿Depende de desincronización? |
+|------------|------------|-----|-------------------------------|
+| `App.jsx:318,325` | ambos | `isLoadingPublicSettings \|\| isLoadingAuth` → spinner global | No (OR; con alias = `isLoading \|\| isLoading` = `isLoading`) |
+| `ProtectedRoute.jsx:10,15` | `isLoadingAuth` | `if (isLoadingAuth) return null` | No (puerta única "auth no listo") |
+| `useUserRole.js:10,64` | `isLoadingAuth` | re-exporta como `isLoading` | No (pasa-through) |
+| `UserRoleDiagnostic.jsx:13,22` | `isLoading` (de useUserRole) | `if (isLoading \|\| closed)` → estado carga | No (puerta única) |
+| `Dashboard.jsx:110,232` | `isLoading: roleLoading` (de useUserRole) | `!roleLoading && visibleHubs.length === 0` | No (puerta única; más seguro con combinado) |
+| `DiagnosticoApp.jsx:21,76` | `isLoading` (de useUserRole) | `if (isLoading \|\| loadingAcceso)` → loader | No (puerta única) |
+
+**Conclusión:** 6 consumidores, **ninguno depende de que `isLoadingAuth` e `isLoadingPublicSettings` puedan estar desincronizados**. Todos tratan el flag como una única puerta "auth no listo". El alias combinado satisface los 6 de forma idéntica (y en `Dashboard.jsx` ligeramente más seguro: no mostrará el diagnóstico prematuramente si las settings públicas tardaran). **El diseño A1 se confirma seguro.**
+
+`useUserRole.js` no necesita cambios: como re-exporta `isLoadingAuth` como `isLoading`, y `isLoadingAuth` pasa a ser alias del combinado, el `isLoading` derivado se actualiza solo.
+
+---
+
 ## Pendiente de decisión (gerencia/administración)
 
-- [ ] Aprobar Opción **A1** (estado combinado único con alias de compatibilidad).
+- [x] Aprobar Opción **A1** (estado combinado único con alias de compatibilidad). — **Verificado vía auditoría de consumidores.**
 - [ ] Aprobar **P3-z** (timeout 10s híbrido: boundary si había sesión, /login si no).
 - [ ] Aprobar notificación de cuota vía **CustomEvent + toast** (frente a `sonner` directo).
 - [ ] Confirmar umbral de purga de dead letters en **30 días**.
