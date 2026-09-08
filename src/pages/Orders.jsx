@@ -4,7 +4,6 @@ import PageHeader from '@/components/layout/PageHeader';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
-import { subirArchivo } from '@/lib/subirArchivo';
 import { extraerDatosPedido, evaluarPrecisionPedido, reprocesarPrecisionPedido } from '@/lib/ocrPedidos';
 import { toast } from 'sonner';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
@@ -98,8 +97,9 @@ export default function Orders() {
     setOcrDone(false);
     setOcrError('');
     try {
-      const uploadRes = await subirArchivo(file, { ruta_drive: 'Pedidos', entidad_tipo: 'Order', entidad_id: null });
-      const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
+      // Subida nativa Base44 (Core.UploadFile, plan Starter) — mismo patrón que el módulo de gastos
+      const subida = await base44.integrations.Core.UploadFile({ file });
+      const file_url = subida?.file_url;
       if (!file_url) throw new Error('No se pudo subir el archivo al almacenamiento');
 
       // 1) Pasada primaria: InvokeLLM nativo (modelo por defecto, plan Starter, ~1 crédito)
@@ -189,8 +189,8 @@ export default function Orders() {
   const handleFileUpload = async (file) => {
     setUploadingFile(true);
     try {
-      const uploadRes = await subirArchivo(file, { ruta_drive: 'Pedidos', entidad_tipo: 'Order', entidad_id: null });
-      const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
+      const subida = await base44.integrations.Core.UploadFile({ file });
+      const file_url = subida?.file_url;
       if (!file_url) throw new Error('No se pudo subir el archivo');
       setForm(p => ({ ...p, file_url }));
       toast.success('Documento adjuntado');
