@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { subirArchivo } from '@/lib/subirArchivo';
 import { toast } from 'sonner';
 import {
   Plus, Trash2, Loader2, Save, Upload, Sparkles, CheckCircle2,
@@ -96,13 +97,8 @@ export default function ObraMaterialesPanel({ obra }) {
   // OCR from file/photo
   const handleOcrUpload = async (file) => {
     setUploading(true); setOcrDone(false);
-    const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
-      file_base64: file,
-      ruta_drive: 'Obras/Materiales',
-      entidad_tipo: 'ObraMaterial',
-      entidad_id: null,
-    });
-    const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
+    const uploadRes = await subirArchivo(file, { ruta_drive: 'Obras/Materiales', entidad_tipo: 'ObraMaterial', entidad_id: null });
+    const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
     set('file_url', file_url);
     setUploading(false);
     setOcrLoading(true);
@@ -524,13 +520,9 @@ Extrae los datos y devuelve un JSON con:
                       onChange={async e => {
                         if (!e.target.files[0]) return;
                         setUploading(true);
-                        const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
-                          file_base64: e.target.files[0],
-                          ruta_drive: 'Obras/Materiales',
-                          entidad_tipo: 'ObraMaterial',
-                          entidad_id: null,
-                        });
-                        const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
+                        const f = e.target.files[0];
+                        const uploadRes = await subirArchivo(f, { ruta_drive: 'Obras/Materiales', entidad_tipo: 'ObraMaterial', entidad_id: null });
+                        const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
                         set('file_url', file_url);
                         setUploading(false);
                         toast.success('Archivo adjuntado');

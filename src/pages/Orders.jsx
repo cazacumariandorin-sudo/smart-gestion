@@ -4,6 +4,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
+import { subirArchivo } from '@/lib/subirArchivo';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useI18n } from '@/lib/i18n';
 import { Plus, Search, Pencil, Trash2, ShoppingCart, Loader2, Save, Package, X, ChevronDown, ChevronUp, Upload, FileText, ExternalLink, Eye, Download, Sparkles, CheckCircle2 } from 'lucide-react';
@@ -92,13 +93,8 @@ export default function Orders() {
     setOcrFile(file);
     setOcrLoading(true);
     setOcrDone(false);
-    const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
-      file_base64: file,
-      ruta_drive: 'Pedidos',
-      entidad_tipo: 'Order',
-      entidad_id: null,
-    });
-    const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
+    const uploadRes = await subirArchivo(file, { ruta_drive: 'Pedidos', entidad_tipo: 'Order', entidad_id: null });
+    const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
     const result = await base44.integrations.Core.InvokeLLM({
       prompt: `Extrae todos los datos del siguiente documento de pedido/albarán/factura de compra.
 Devuelve un JSON con exactamente esta estructura:
@@ -200,13 +196,8 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
 
   const handleFileUpload = async (file) => {
     setUploadingFile(true);
-    const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
-      file_base64: file,
-      ruta_drive: 'Pedidos',
-      entidad_tipo: 'Order',
-      entidad_id: null,
-    });
-    const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
+    const uploadRes = await subirArchivo(file, { ruta_drive: 'Pedidos', entidad_tipo: 'Order', entidad_id: null });
+    const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
     setForm(p => ({ ...p, file_url }));
     setUploadingFile(false);
   };

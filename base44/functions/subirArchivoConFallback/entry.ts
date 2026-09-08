@@ -16,6 +16,11 @@ Deno.serve(async (req) => {
 
     const { file_base64, ruta_drive, nombre, entidad_tipo, entidad_id } = await req.json();
     if (!file_base64) return Response.json({ error: 'file_base64 requerido' }, { status: 400 });
+    // file_base64 debe ser un data URL base64 (string). Un File crudo serializado
+    // como JSON llega como {} y provocaba un 500 "startsWith is not a function".
+    if (typeof file_base64 !== 'string' || !file_base64.startsWith('data:')) {
+      return Response.json({ error: 'file_base64 debe ser un data URL base64 (string "data:..."), no un File crudo' }, { status: 400 });
+    }
 
     const mimeType = file_base64.startsWith('data:')
       ? file_base64.split(';')[0].split(':')[1]

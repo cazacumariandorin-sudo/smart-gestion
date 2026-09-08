@@ -4,6 +4,7 @@ import { Send, Paperclip, X, Reply } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { corregirTextoIA, MIN_LEN_AUTOCORRECCION } from '@/lib/correction';
 import { base44 } from '@/api/base44Client';
+import { subirArchivo } from '@/lib/subirArchivo';
 import { toast } from 'sonner';
 
 export default function ChatInput({ onSend, disabled, replyMsg, onCancelReply }) {
@@ -51,13 +52,8 @@ export default function ChatInput({ onSend, disabled, replyMsg, onCancelReply })
     try {
       const uploaded = [];
       for (const file of files) {
-        const uploadRes = await base44.functions.invoke('subirArchivoConFallback', {
-          file_base64: file,
-          ruta_drive: 'Chat/Adjuntos',
-          entidad_tipo: 'ChatMensaje',
-          entidad_id: null,
-        });
-        const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
+        const uploadRes = await subirArchivo(file, { ruta_drive: 'Chat/Adjuntos', entidad_tipo: 'ChatMensaje', entidad_id: null });
+        const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
         uploaded.push({ nombre: file.name, url: file_url, tipo: file.type, size_bytes: file.size });
       }
       setAdjuntos(prev => [...prev, ...uploaded]);
