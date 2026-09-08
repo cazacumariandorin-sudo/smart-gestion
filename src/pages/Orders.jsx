@@ -1,12 +1,12 @@
 import { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '@/components/layout/PageHeader';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useI18n } from '@/lib/i18n';
-import { Plus, Search, Pencil, Trash2, ShoppingCart, Loader2, Save, Truck, Package, Euro, X, ChevronDown, ChevronUp, Upload, FileText, ExternalLink, Eye, Download, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ShoppingCart, Loader2, Save, Package, X, ChevronDown, ChevronUp, Upload, FileText, ExternalLink, Eye, Download, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useUserRole } from '@/lib/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,20 +22,20 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+// Estados reales del esquema de la entidad Order (estado: pendiente, en_curso, entregado, cancelado)
 const statusCfg = {
-  pendiente:   { label: 'Pendiente',   className: 'bg-amber-100 text-amber-700 border-amber-200' },
-  confirmado:  { label: 'Confirmado',  className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  en_transito: { label: 'En tránsito', className: 'bg-purple-100 text-purple-700 border-purple-200' },
-  entregado:   { label: 'Entregado',   className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  cancelado:   { label: 'Cancelado',   className: 'bg-red-100 text-red-700 border-red-200' },
+  pendiente: { label: 'Pendiente',  className: 'bg-amber-100 text-amber-700 border-amber-200' },
+  en_curso:  { label: 'En curso',   className: 'bg-blue-100 text-blue-700 border-blue-200' },
+  entregado: { label: 'Entregado',  className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  cancelado: { label: 'Cancelado',  className: 'bg-red-100 text-red-700 border-red-200' },
 };
 
 const emptyOrder = {
-  order_number: '', client_id: '', client_name: '', project: '',
-  date: new Date().toISOString().split('T')[0], expected_delivery: '',
-  status: 'pendiente', supplier: '', items: [], notes: '', tracking_number: '', total_amount: 0,
+  title: '', obra_id: '', obra_name: '', proveedor: '',
+  fecha_pedido: new Date().toISOString().split('T')[0], fecha_entrega: '',
+  estado: 'pendiente', importe: 0, items: [], notas: '', file_url: '',
 };
-const emptyItem = { material_id: '', material_name: '', quantity: 1, unit: '', unit_price: 0, total_price: 0 };
+const emptyItem = { nombre: '', cantidad: 1, unidad: '', precio: 0 };
 
 export default function Orders() {
   const { t } = useI18n();
@@ -44,30 +44,29 @@ export default function Orders() {
 
   const onRefresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['orders'] });
-    qc.invalidateQueries({ queryKey: ['clients'] });
+    qc.invalidateQueries({ queryKey: ['obras'] });
   }, [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
   const showPrices = role === 'admin';
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [clientFilter, setClientFilter] = useState('all');
+  const [obraFilter, setObraFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyOrder);
   const [expandedId, setExpandedId] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [ocrFile, setOcrFile] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrDone, setOcrDone] = useState(false);
 
-  const { data: orders = [], isLoading } = useQuery({ queryKey: ['orders'], queryFn: () => base44.entities.Order.list('-date', 300) });
-  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list('name', 200) });
+  const { data: orders = [], isLoading } = useQuery({ queryKey: ['orders'], queryFn: () => base44.entities.Order.list('-fecha_pedido', 300) });
   const { data: materials = [] } = useQuery({ queryKey: ['material_catalog'], queryFn: () => base44.entities.MaterialCatalog.list('name', 500) });
   const { data: obras = [] } = useQuery({ queryKey: ['obras'], queryFn: () => base44.entities.Obra.list('name', 300) });
 
+  // Genera el código legible (PED-26-0000X) y lo guarda en el campo real del esquema: `title`
   const asignarIdOrder = async (id) => {
-    try { await base44.functions.invoke('generarIdUnico', { entidad: 'Order', record_id: id, campo_id: 'codigo_registro' }); } catch {}
+    try { await base44.functions.invoke('generarIdUnico', { entidad: 'Order', record_id: id, campo_id: 'title' }); } catch {}
     qc.invalidateQueries({ queryKey: ['orders'] });
   };
   const createM = useOptimisticMutation(
@@ -110,11 +109,10 @@ Devuelve un JSON con exactamente esta estructura:
   "notes": "observaciones o comentarios relevantes",
   "items": [
     {
-      "material_name": "descripción del artículo",
-      "quantity": número,
-      "unit": "unidad (ud, m, kg, etc)",
-      "unit_price": número con decimales,
-      "total_price": número con decimales
+      "nombre": "descripción del artículo",
+      "cantidad": número,
+      "unidad": "unidad (ud, m, kg, etc)",
+      "precio": número con decimales
     }
   ]
 }
@@ -132,11 +130,10 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
             items: {
               type: 'object',
               properties: {
-                material_name: { type: 'string' },
-                quantity: { type: 'number' },
-                unit: { type: 'string' },
-                unit_price: { type: 'number' },
-                total_price: { type: 'number' },
+                nombre: { type: 'string' },
+                cantidad: { type: 'number' },
+                unidad: { type: 'string' },
+                precio: { type: 'number' },
               }
             }
           }
@@ -145,51 +142,46 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
     });
     const data = result;
     const items = (data.items || []).map(it => ({
-      material_id: '',
-      material_name: it.material_name || '',
-      quantity: it.quantity || 1,
-      unit: it.unit || '',
-      unit_price: it.unit_price || 0,
-      total_price: it.total_price || (it.quantity * it.unit_price) || 0,
+      nombre: it.nombre || '',
+      cantidad: it.cantidad || 1,
+      unidad: it.unidad || '',
+      precio: it.precio || 0,
     }));
-    const total_amount = items.reduce((s, it) => s + (it.total_price || 0), 0);
+    const importe = items.reduce((s, it) => s + ((it.cantidad || 0) * (it.precio || 0)), 0);
     setForm(p => ({
       ...p,
-      order_number: data.order_number || p.order_number,
-      supplier: data.supplier || p.supplier,
-      date: data.date || p.date,
-      notes: data.notes || p.notes,
+      title: data.order_number || p.title,
+      proveedor: data.supplier || p.proveedor,
+      fecha_pedido: data.date || p.fecha_pedido,
+      notas: data.notes || p.notas,
       items,
-      total_amount,
+      importe,
+      file_url: file_url || p.file_url,
     }));
-    setUploadedFiles(prev => [...prev, { name: file.name, url: file_url, type: file.name.split('.').pop()?.toLowerCase() }]);
     setOcrLoading(false);
     setOcrDone(true);
   };
 
-  const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setUploadedFiles(o?.attached_files || []); setOcrFile(null); setOcrDone(false); setDialogOpen(true); };
+  const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setOcrFile(null); setOcrDone(false); setDialogOpen(true); };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyOrder); };
   const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
-  const handleClientChange = (id) => {
-    const c = clients.find(c => c.id === id);
-    setForm(p => ({ ...p, client_id: id, client_name: c?.name || '' }));
+  const handleObraChange = (name) => {
+    const obra = obras.find(o => o.name === name);
+    setForm(p => ({ ...p, obra_name: name, obra_id: obra?.id || '' }));
   };
 
   // Items management
   const addItem = () => setForm(p => ({ ...p, items: [...p.items, { ...emptyItem }] }));
   const removeItem = (i) => setForm(p => {
     const items = p.items.filter((_, idx) => idx !== i);
-    return { ...p, items, total_amount: items.reduce((s, it) => s + (it.total_price || 0), 0) };
+    return { ...p, items, importe: items.reduce((s, it) => s + ((it.cantidad || 0) * (it.precio || 0)), 0) };
   });
   const updateItem = (i, field, val) => setForm(p => {
     const items = [...p.items];
     items[i] = { ...items[i], [field]: val };
-    if (field === 'quantity' || field === 'unit_price') {
-      items[i].total_price = (parseFloat(items[i].quantity) || 0) * (parseFloat(items[i].unit_price) || 0);
-    }
-    const total_amount = items.reduce((s, it) => s + (it.total_price || 0), 0);
-    return { ...p, items, total_amount };
+    const importe = items.reduce((s, it) => s + ((parseFloat(it.cantidad) || 0) * (parseFloat(it.precio) || 0)), 0);
+    return { ...p, items, importe };
   });
   const selectMaterial = (i, matId) => {
     const mat = materials.find(m => m.id === matId);
@@ -198,13 +190,11 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
       const items = [...p.items];
       items[i] = {
         ...items[i],
-        material_id: mat.id,
-        material_name: mat.name,
-        unit: mat.unit || '',
-        unit_price: mat.unit_price || 0,
-        total_price: (parseFloat(items[i].quantity) || 1) * (mat.unit_price || 0),
+        nombre: mat.name,
+        unidad: mat.unit || '',
+        precio: mat.unit_price || 0,
       };
-      return { ...p, items, total_amount: items.reduce((s, it) => s + (it.total_price || 0), 0) };
+      return { ...p, items, importe: items.reduce((s, it) => s + ((parseFloat(it.cantidad) || 0) * (parseFloat(it.precio) || 0)), 0) };
     });
   };
 
@@ -217,31 +207,35 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
       entidad_id: null,
     });
     const file_url = uploadRes.data?.cdn_url_para_llm || uploadRes.data?.file_url;
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    setUploadedFiles(prev => [...prev, { name: file.name, url: file_url, type: ext }]);
+    setForm(p => ({ ...p, file_url }));
     setUploadingFile(false);
   };
 
   const handleSave = () => {
     const data = {
       ...form,
-      total_amount: form.items.reduce((s, it) => s + (it.total_price || 0), 0),
-      attached_files: uploadedFiles,
+      items: form.items.map(it => ({
+        nombre: it.nombre || '',
+        cantidad: parseFloat(it.cantidad) || 0,
+        unidad: it.unidad || '',
+        precio: parseFloat(it.precio) || 0,
+      })),
+      importe: form.items.reduce((s, it) => s + ((parseFloat(it.cantidad) || 0) * (parseFloat(it.precio) || 0)), 0),
     };
     if (editing) updateM.mutate({ id: editing.id, d: data });
     else createM.mutate(data);
   };
 
   const quickStatus = (order, newStatus) => {
-    updateM.mutate({ id: order.id, d: { status: newStatus } });
+    updateM.mutate({ id: order.id, d: { estado: newStatus } });
   };
 
   const filtered = orders.filter(o => {
     const q = search.toLowerCase();
-    const matchQ = !search || o.project?.toLowerCase().includes(q) || o.client_name?.toLowerCase().includes(q) || o.order_number?.toLowerCase().includes(q) || o.supplier?.toLowerCase().includes(q);
-    const matchS = statusFilter === 'all' || o.status === statusFilter;
-    const matchC = clientFilter === 'all' || o.client_id === clientFilter;
-    return matchQ && matchS && matchC;
+    const matchQ = !search || o.title?.toLowerCase().includes(q) || o.obra_name?.toLowerCase().includes(q) || o.proveedor?.toLowerCase().includes(q);
+    const matchS = statusFilter === 'all' || o.estado === statusFilter;
+    const matchO = obraFilter === 'all' || o.obra_name === obraFilter;
+    return matchQ && matchS && matchO;
   });
 
   const isPending = createM.isPending || updateM.isPending;
@@ -263,9 +257,9 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder={t('search') + '...'} value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <MobileSelect value={clientFilter} onValueChange={setClientFilter} placeholder={t('client')} triggerClassName="w-full sm:w-44">
+        <MobileSelect value={obraFilter} onValueChange={setObraFilter} placeholder="Obra" triggerClassName="w-full sm:w-44">
           <MobileSelectItem value="all">{t('all')}</MobileSelectItem>
-          {clients.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
+          {obras.map(o => <MobileSelectItem key={o.id} value={o.name}>{o.name}</MobileSelectItem>)}
         </MobileSelect>
         <MobileSelect value={statusFilter} onValueChange={setStatusFilter} placeholder={t('status')} triggerClassName="w-full sm:w-40">
           <MobileSelectItem value="all">{t('all')}</MobileSelectItem>
@@ -276,7 +270,7 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
       {/* Summary badges */}
       <div className="flex gap-2 flex-wrap mb-6">
         {Object.entries(statusCfg).map(([k, v]) => {
-          const count = orders.filter(o => o.status === k).length;
+          const count = orders.filter(o => o.estado === k).length;
           if (!count) return null;
           return <Badge key={k} variant="outline" className={`${v.className} text-xs`}>{v.label}: {count}</Badge>;
         })}
@@ -293,33 +287,32 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
       ) : (
         <div className="space-y-3">
           {filtered.map(order => {
-            const cfg = statusCfg[order.status] || statusCfg.pendiente;
+            const cfg = statusCfg[order.estado] || statusCfg.pendiente;
             const isExpanded = expandedId === order.id;
+            const importeTotal = (order.items || []).reduce((s, it) => s + ((it.cantidad || 0) * (it.precio || 0)), 0) || order.importe || 0;
             return (
               <Card key={order.id} className="overflow-hidden">
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {order.order_number && <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{order.order_number}</span>}
-                        <h3 className="font-semibold text-sm truncate">{order.project}</h3>
+                        {order.title && <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{order.title}</span>}
+                        <h3 className="font-semibold text-sm truncate">{order.obra_name || <span className="text-muted-foreground italic">Sin obra</span>}</h3>
                         <Badge variant="outline" className={`${cfg.className} text-[10px]`}>{cfg.label}</Badge>
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
-                        <span>{order.client_name}</span>
-                        {order.supplier && <span>· {order.supplier}</span>}
-                        {order.date && <span>· {format(parseISO(order.date), 'd MMM yyyy', { locale: es })}</span>}
-                        {showPrices && order.total_amount > 0 && <span className="font-semibold text-foreground">· {order.total_amount.toFixed(2)} €</span>}
+                        {order.proveedor && <span>{order.proveedor}</span>}
+                        {order.fecha_pedido && <span>· {format(parseISO(order.fecha_pedido), 'd MMM yyyy', { locale: es })}</span>}
+                        {showPrices && importeTotal > 0 && <span className="font-semibold text-foreground">· {importeTotal.toFixed(2)} €</span>}
+                        {order.fecha_entrega && <span className="text-amber-600">· Entrega: {format(parseISO(order.fecha_entrega), 'd MMM yyyy', { locale: es })}</span>}
                       </div>
-                      {order.tracking_number && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                          <Truck className="w-3 h-3" /> {order.tracking_number}
-                        </p>
+                      {order.notas && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{order.notas}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {/* Quick status change */}
-                      <Select value={order.status} onValueChange={v => quickStatus(order, v)}>
+                      <Select value={order.estado} onValueChange={v => quickStatus(order, v)}>
                         <SelectTrigger className="h-7 w-32 text-xs border-0 bg-transparent p-0 shadow-none focus:ring-0">
                           <SelectValue />
                         </SelectTrigger>
@@ -350,38 +343,32 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
                         <div className="space-y-1.5">
                           {order.items.map((item, i) => (
                             <div key={i} className="flex items-center justify-between text-xs bg-card rounded-lg px-3 py-2">
-                              <span className="font-medium">{item.material_name}</span>
+                              <span className="font-medium">{item.nombre || '—'}</span>
                               <div className="flex items-center gap-4 text-muted-foreground">
-                                <span>{item.quantity} {item.unit}</span>
-                                {showPrices && item.unit_price > 0 && <span>{item.unit_price.toFixed(2)} €/{item.unit}</span>}
-                                {showPrices && item.total_price > 0 && <span className="font-semibold text-foreground">{item.total_price.toFixed(2)} €</span>}
+                                <span>{item.cantidad || 0} {item.unidad || ''}</span>
+                                {showPrices && item.precio > 0 && <span>{item.precio.toFixed(2)} €/{item.unidad || 'ud'}</span>}
+                                {showPrices && <span className="font-semibold text-foreground">{((item.cantidad || 0) * (item.precio || 0)).toFixed(2)} €</span>}
                               </div>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
-                    {order.notes && <p className="text-xs text-muted-foreground italic">{order.notes}</p>}
-                    {order.attached_files?.length > 0 && (
+                    {order.notas && <p className="text-xs text-muted-foreground italic">{order.notas}</p>}
+                    {order.file_url && (
                       <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">ARCHIVOS ADJUNTOS</p>
-                        <div className="space-y-1.5">
-                          {order.attached_files.map((f, i) => (
-                            <div key={i} className="flex items-center gap-2 text-xs bg-card rounded-lg px-3 py-2">
-                             <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
-                             <span className="flex-1 truncate font-medium">{f.name}</span>
-                             <div className="flex items-center gap-2 shrink-0">
-                               <a href={f.url} target="_blank" rel="noopener noreferrer"
-                                 className="flex items-center gap-1 text-primary hover:underline">
-                                 <Eye className="w-3 h-3" /> Ver
-                               </a>
-                               <a href={f.url} download={f.name}
-                                 className="flex items-center gap-1 text-muted-foreground hover:underline">
-                                 <Download className="w-3 h-3" /> Descargar
-                               </a>
-                             </div>
-                            </div>
-                          ))}
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">DOCUMENTO ADJUNTO</p>
+                        <div className="flex items-center gap-2 text-xs bg-card rounded-lg px-3 py-2">
+                          <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span className="flex-1 truncate font-medium">Documento del pedido</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <a href={order.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
+                              <Eye className="w-3 h-3" /> Ver
+                            </a>
+                            <a href={order.file_url} download className="flex items-center gap-1 text-muted-foreground hover:underline">
+                              <Download className="w-3 h-3" /> Descargar
+                            </a>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -402,56 +389,43 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
             <TabsList className="mb-4">
               <TabsTrigger value="datos">📋 Datos del pedido</TabsTrigger>
               <TabsTrigger value="importar">✨ Importar OCR</TabsTrigger>
-              <TabsTrigger value="archivos">📎 Archivos</TabsTrigger>
+              <TabsTrigger value="archivos">📎 Archivo</TabsTrigger>
             </TabsList>
           <TabsContent value="datos">
           <div className="space-y-4 py-2">
             {/* Header info */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">{t('order_number')}</Label>
-                <Input value={form.order_number} onChange={e => setField('order_number', e.target.value)} placeholder="PED-001" />
+                <Label className="text-xs">Nº de pedido</Label>
+                <Input value={form.title} onChange={e => setField('title', e.target.value)} placeholder="PED-001 (se autogenera si vacío)" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">{t('status')}</Label>
-                <MobileSelect value={form.status} onValueChange={v => setField('status', v)} placeholder="Estado">
+                <MobileSelect value={form.estado} onValueChange={v => setField('estado', v)} placeholder="Estado">
                   {Object.entries(statusCfg).map(([k, v]) => <MobileSelectItem key={k} value={k}>{v.label}</MobileSelectItem>)}
                 </MobileSelect>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">{t('client')} *</Label>
-                <MobileSelect value={form.client_id} onValueChange={handleClientChange} placeholder="Seleccionar cliente...">
-                  {clients.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
-                </MobileSelect>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">{t('project')} *</Label>
-                <MobileSelect value={form.project} onValueChange={v => setField('project', v)} placeholder="Seleccionar obra...">
+              <div className="space-y-1.5 col-span-2">
+                <Label className="text-xs">Obra *</Label>
+                <MobileSelect value={form.obra_name} onValueChange={handleObraChange} placeholder="Seleccionar obra...">
                   {obras.map(o => <MobileSelectItem key={o.id} value={o.name}>{o.name}{o.code ? ` (${o.code})` : ''}</MobileSelectItem>)}
                   <MobileSelectItem value="__manual">— Escribir manualmente —</MobileSelectItem>
                 </MobileSelect>
-                {form.project === '__manual' && (
-                  <Input value="" onChange={e => setField('project', e.target.value)} placeholder="Nombre de la obra..." className="mt-1" />
-                )}
-                {form.project && form.project !== '__manual' && !obras.find(o => o.name === form.project) && (
-                  <Input value={form.project} onChange={e => setField('project', e.target.value)} placeholder="Nombre de la obra..." className="mt-1" />
+                {form.obra_name === '__manual' && (
+                  <Input value="" onChange={e => setField('obra_name', e.target.value)} placeholder="Nombre de la obra..." className="mt-1" />
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">{t('date')}</Label>
-                <Input type="date" value={form.date} onChange={e => setField('date', e.target.value)} />
+                <Label className="text-xs">Fecha pedido</Label>
+                <Input type="date" value={form.fecha_pedido} onChange={e => setField('fecha_pedido', e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">{t('expected_delivery')}</Label>
-                <Input type="date" value={form.expected_delivery} onChange={e => setField('expected_delivery', e.target.value)} />
+                <Label className="text-xs">Fecha entrega</Label>
+                <Input type="date" value={form.fecha_entrega} onChange={e => setField('fecha_entrega', e.target.value)} />
               </div>
               <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">{t('supplier')}</Label>
-                <Input value={form.supplier} onChange={e => setField('supplier', e.target.value)} placeholder="Nombre del proveedor" />
-              </div>
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">{t('tracking')}</Label>
-                <Input value={form.tracking_number} onChange={e => setField('tracking_number', e.target.value)} placeholder="Número de seguimiento..." />
+                <Label className="text-xs">Proveedor</Label>
+                <Input value={form.proveedor} onChange={e => setField('proveedor', e.target.value)} placeholder="Nombre del proveedor" />
               </div>
             </div>
 
@@ -467,34 +441,33 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
               {form.items.map((item, i) => (
                 <div key={i} className="bg-muted/40 rounded-lg p-3 space-y-2">
                   <div className="flex gap-2">
-                    <MobileSelect value={item.material_id} onValueChange={v => selectMaterial(i, v)} placeholder="Material..." triggerClassName="flex-1 h-8 text-xs">
+                    <MobileSelect value={item.nombre} onValueChange={v => selectMaterial(i, v)} placeholder="Material..." triggerClassName="flex-1 h-8 text-xs">
                       <MobileSelectItem value="_manual">— Introducir manualmente —</MobileSelectItem>
                       {materials.map(m => <MobileSelectItem key={m.id} value={m.id}>{m.name} {m.unit_price > 0 ? `(${m.unit_price}€/${m.unit})` : ''}</MobileSelectItem>)}
                     </MobileSelect>
                     <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive" onClick={() => removeItem(i)}><X className="w-3.5 h-3.5" /></Button>
                   </div>
-                  {(item.material_id === '_manual' || !item.material_id) && (
-                    <Input placeholder="Nombre del material" value={item.material_name} onChange={e => updateItem(i, 'material_name', e.target.value)} className="h-8 text-xs" />
+                  {(item.nombre === '_manual' || !item.nombre || !materials.find(m => m.id === item.nombre)) && (
+                    <Input placeholder="Nombre del material" value={item.nombre === '_manual' ? '' : item.nombre} onChange={e => updateItem(i, 'nombre', e.target.value)} className="h-8 text-xs" />
                   )}
-                  <div className={`grid gap-2 ${showPrices ? 'grid-cols-4' : 'grid-cols-2'}`}>
-                    <Input type="number" placeholder="Cant." value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} className="h-8 text-xs" min="0" step="0.01" />
-                    <Input placeholder="Ud." value={item.unit} onChange={e => updateItem(i, 'unit', e.target.value)} className="h-8 text-xs" />
-                    {showPrices && <Input type="number" placeholder="€/ud" value={item.unit_price} onChange={e => updateItem(i, 'unit_price', e.target.value)} className="h-8 text-xs" min="0" step="0.01" />}
-                    {showPrices && <div className="h-8 flex items-center justify-end text-xs font-semibold text-primary">{(item.total_price || 0).toFixed(2)} €</div>}
+                  <div className={`grid gap-2 ${showPrices ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                    <Input type="number" placeholder="Cant." value={item.cantidad} onChange={e => updateItem(i, 'cantidad', e.target.value)} className="h-8 text-xs" min="0" step="0.01" />
+                    <Input placeholder="Ud." value={item.unidad} onChange={e => updateItem(i, 'unidad', e.target.value)} className="h-8 text-xs" />
+                    {showPrices && <Input type="number" placeholder="€/ud" value={item.precio} onChange={e => updateItem(i, 'precio', e.target.value)} className="h-8 text-xs" min="0" step="0.01" />}
                   </div>
                 </div>
               ))}
               {showPrices && form.items.length > 0 && (
                 <div className="flex items-center justify-end gap-2 pt-1">
                   <span className="text-sm text-muted-foreground">Total:</span>
-                  <span className="text-lg font-bold text-primary">{form.total_amount?.toFixed(2) || '0.00'} €</span>
+                  <span className="text-lg font-bold text-primary">{form.importe?.toFixed(2) || '0.00'} €</span>
                 </div>
               )}
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs">{t('notes')}</Label>
-              <Textarea value={form.notes} onChange={e => setField('notes', e.target.value)} rows={2} placeholder="Observaciones..." />
+              <Textarea value={form.notas} onChange={e => setField('notas', e.target.value)} rows={2} placeholder="Observaciones..." />
             </div>
           </div>
           </TabsContent>
@@ -542,8 +515,8 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 p-3">
                   <p className="text-xs font-semibold text-emerald-700 mb-1">Resumen extraído:</p>
                   <p className="text-xs text-emerald-600">· {form.items.length} línea(s) de artículos</p>
-                  {form.supplier && <p className="text-xs text-emerald-600">· Proveedor: {form.supplier}</p>}
-                  {form.order_number && <p className="text-xs text-emerald-600">· Nº pedido: {form.order_number}</p>}
+                  {form.proveedor && <p className="text-xs text-emerald-600">· Proveedor: {form.proveedor}</p>}
+                  {form.title && <p className="text-xs text-emerald-600">· Nº pedido: {form.title}</p>}
                   <p className="text-xs text-muted-foreground mt-1">Puedes editar los datos en la pestaña "Datos del pedido".</p>
                 </div>
               )}
@@ -559,29 +532,24 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
                 <input type="file" accept=".pdf,.xls,.xlsx,.doc,.docx" className="hidden"
                   onChange={e => e.target.files[0] && handleFileUpload(e.target.files[0])} />
               </label>
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-2">
-                  {uploadedFiles.map((f, i) => (
-                    <div key={i} className="flex items-center gap-3 p-2.5 border rounded-lg bg-muted/30">
-                      <FileText className="w-4 h-4 text-primary shrink-0" />
-                      <span className="text-xs flex-1 font-medium truncate">{f.name}</span>
-                      <a href={f.url} target="_blank" rel="noopener noreferrer">
-                        <Button variant="ghost" size="icon" className="h-7 w-7"><ExternalLink className="w-3.5 h-3.5" /></Button>
-                      </a>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setUploadedFiles(prev => prev.filter((_, idx) => idx !== i))}>
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  ))}
+              {form.file_url && (
+                <div className="flex items-center gap-3 p-2.5 border rounded-lg bg-muted/30">
+                  <FileText className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-xs flex-1 font-medium truncate">Documento adjunto</span>
+                  <a href={form.file_url} target="_blank" rel="noopener noreferrer">
+                    <Button variant="ghost" size="icon" className="h-7 w-7"><ExternalLink className="w-3.5 h-3.5" /></Button>
+                  </a>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setForm(p => ({ ...p, file_url: '' }))}>
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               )}
-
             </div>
           </TabsContent>
           </Tabs>
           <DialogFooter>
             <Button variant="outline" onClick={close_}>{t('cancel')}</Button>
-            <Button onClick={handleSave} disabled={!form.client_id || !form.project || isPending} className="gap-2 min-w-28">
+            <Button onClick={handleSave} disabled={!form.obra_name || isPending} className="gap-2 min-w-28">
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {t('save')}
             </Button>
           </DialogFooter>
