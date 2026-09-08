@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import {
   Wallet, Banknote, Scale, Clock, Download, ChevronDown, ChevronRight, PieChart, Loader2, BarChart3,
+  FileText, AlertTriangle,
 } from 'lucide-react';
 import RegularizacionPeriodo from '@/components/economico/RegularizacionPeriodo';
+import MargenPorObra from '@/components/economico/MargenPorObra';
 import {
   PERIODOS, subPeriodosDe, enPeriodo, etiquetaPeriodo,
 } from '@/lib/periodosRegularizacion';
@@ -85,6 +87,25 @@ export default function ContabilidadAnalitica() {
     queryKey: ['eco-adelantos'],
     queryFn: () => base44.entities.AdelantoParcialCiclo.list('-fecha_creacion_real', 500),
   });
+
+  // Análisis económico agregado por backend (KPIs + margen por obra del periodo)
+  const { data: analisis, isLoading: analisisLoading } = useQuery({
+    queryKey: ['eco-analisis', periodo, subPeriodo, anio],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('calcularAnalisisEconomico', { periodo, subPeriodo: Number(subPeriodo), anio });
+      return res.data;
+    },
+  });
+
+  const kpis = analisis?.kpis || {};
+  const subNomina = useMemo(() => {
+    const efvo = kpis.coste_nominas_periodo_efectivo;
+    if (!efvo) return 'del periodo';
+    const claveEfvo = `${efvo.anio}-${String(efvo.mes).padStart(2, '0')}`;
+    const mismo = enPeriodo(claveEfvo, anio, periodo, Number(subPeriodo));
+    return mismo ? 'del periodo' : `último disponible: ${efvo.label || ''}`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kpis, anio, periodo, subPeriodo]);
 
   // Mapa obra_id → client_name (combina obras civiles y solares)
   const obraClientMap = useMemo(() => {
@@ -164,22 +185,29 @@ export default function ContabilidadAnalitica() {
   const anios = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
 
   const handleExport = () => {
-    const filas = desglose.flatMap(g => g.registros.map(r => ({
-      Dimension: g.key,
-      Operario: r.operario_name || '',
-      Obra: r.obra_name || '',
-      Cliente: obraClientMap[r.obra_id] || '',
-      Categoria: r.categoria || '',
-      Concepto: r.concepto || '',
-      Importe: r.importe || 0,
-      Pagado: r.estado === 'pagada' ? (r.importe_pagado_real || r.importe || 0) : 0,
-      Estado: r.estado,
-      GastoTardio: r.es_gasto_tardio ? 'Sí' : 'No',
-      JustificacionTardia: r.justificacion_tardia || '',
-      CicloMes: r.ciclo_mes || '',
-      FechaDocumento: r.fecha_documento || '',
-    })));
-    exportarCSV(filas, `contabilidad_analitica_${etiquetaPeriodo(periodo, subPeriodo, anio).replace(/\s/g, '_')}.csv`);
+    const lines = [];
+    // Bloque 1 — Margen por obra
+    lines.push('Seccion,Obra,Cliente,Ingreso,Gastos,Materiales,Flota,Nomina imputada,Coste total,Margen EUR,Margen %,% sobre presupuesto,Estado');
+    if (analisis?.obras?.length) {
+      for (const o of analisis.obras) {
+        lines.push(['Margen', o.obra_name, o.cliente, o.ingreso, o.gastos, o.materiales, o.flota, o.nominas_imputadas, o.coste_total, o.margen_eur, o.margen_pct, o.pct_sobre_presupuesto == null ? '' : o.pct_sobre_presupuesto, o.estado].map(csvEscape).join(','));
+      }
+    }
+    lines.push('');
+    // Bloque 2 — Desglose (gastos justificados)
+    lines.push('Seccion,Dimension,Operario,Obra,Cliente,Categoria,Concepto,Importe,Pagado,Estado,GastoTardio,CicloMes,FechaDocumento');
+    for (const g of desglose) {
+      for (const r of g.registros) {
+        lines.push(['Desglose', g.key, r.operario_name || '', r.obra_name || '', obraClientMap[r.obra_id] || '', r.categoria || '', r.concepto || '', r.importe || 0, r.estado === 'pagada' ? (r.importe_pagado_real || r.importe || 0) : 0, r.estado, r.es_gasto_tardio ? 'Sí' : 'No', r.ciclo_mes || '', r.fecha_documento || ''].map(csvEscape).join(','));
+      }
+    }
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analisis_economico_${etiquetaPeriodo(periodo, subPeriodo, anio).replace(/\s/g, '_')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (isLoading) {
@@ -279,17 +307,12 @@ export default function ContabilidadAnalitica() {
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs económicos del periodo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard icon={Wallet} label="Gastos justificados" value={eur(totalJustificado)} sub={`${justificados.length} registros`} color="bg-orange-100 text-orange-600" />
-        <KpiCard icon={Banknote} label="Pagos realizados" value={eur(totalPagado)} sub={`${justificados.filter(r => r.estado === 'pagada').length} pagados`} color="bg-emerald-100 text-emerald-600" />
-        <KpiCard
-          icon={Scale}
-          label="Desviación (pendiente)"
-          value={eur(desviacion)}
-          color={desviacion > 0 ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}
-        />
-        <KpiCard icon={Clock} label="Gastos tardíos" value={eur(totalTardio)} sub={`${tardios.length} justificantes tardíos`} color="bg-blue-100 text-blue-600" />
+        <KpiCard icon={Wallet} label="Gastos aprobados" value={eur(kpis.gastos_aprobados || 0)} sub="del periodo (por ciclo)" color="bg-orange-100 text-orange-600" />
+        <KpiCard icon={FileText} label="Presupuestos activos" value={eur(kpis.presupuestos_activos || 0)} sub="enviados + aceptados" color="bg-purple-100 text-purple-600" />
+        <KpiCard icon={Banknote} label="Coste nóminas" value={eur(kpis.coste_nominas || 0)} sub={subNomina} color="bg-teal-100 text-teal-600" />
+        <KpiCard icon={AlertTriangle} label="Obras con sobrecoste" value={String(kpis.obras_sobrecoste || 0)} sub={`${kpis.obras_sin_presupuesto || 0} sin presupuesto`} color="bg-red-100 text-red-600" />
       </div>
 
       {/* Desglose por dimensión */}
@@ -383,6 +406,9 @@ export default function ContabilidadAnalitica() {
           </div>
         )}
       </div>
+
+      {/* Margen por obra */}
+      <MargenPorObra data={analisis} isLoading={analisisLoading} />
     </div>
   );
 }

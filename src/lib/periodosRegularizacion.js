@@ -5,6 +5,7 @@
  */
 
 export const PERIODOS = [
+  { key: 'mes', label: 'Mes' },
   { key: 'trimestre', label: 'Trimestre' },
   { key: 'semestre', label: 'Semestre' },
   { key: 'anual', label: 'Anual' },
@@ -22,6 +23,14 @@ export function anioDeCiclo(cicloMes) {
 }
 
 export function subPeriodosDe(periodo) {
+  if (periodo === 'mes') {
+    return [
+      { key: 1, label: 'Enero' }, { key: 2, label: 'Febrero' }, { key: 3, label: 'Marzo' },
+      { key: 4, label: 'Abril' }, { key: 5, label: 'Mayo' }, { key: 6, label: 'Junio' },
+      { key: 7, label: 'Julio' }, { key: 8, label: 'Agosto' }, { key: 9, label: 'Septiembre' },
+      { key: 10, label: 'Octubre' }, { key: 11, label: 'Noviembre' }, { key: 12, label: 'Diciembre' },
+    ];
+  }
   if (periodo === 'trimestre') {
     return [
       { key: 1, label: 'Q1 (Ene–Mar)' },
@@ -45,6 +54,7 @@ export function enPeriodo(cicloMes, anio, periodo, subPeriodo) {
   if (a == null || m == null) return false;
   if (a !== anio) return false;
   if (periodo === 'anual') return true;
+  if (periodo === 'mes') return m === subPeriodo;
   if (periodo === 'trimestre') {
     const trims = { 1: [1, 2, 3], 2: [4, 5, 6], 3: [7, 8, 9], 4: [10, 11, 12] };
     return (trims[subPeriodo] || []).includes(m);
@@ -60,5 +70,9 @@ export function etiquetaPeriodo(periodo, subPeriodo, anio) {
   const subs = subPeriodosDe(periodo);
   const sub = subs.find(s => s.key === subPeriodo);
   if (periodo === 'anual') return `Anual ${anio}`;
+  if (periodo === 'mes') {
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    return `${meses[(subPeriodo || 1) - 1] || ''} ${anio}`;
+  }
   return `${sub?.label || ''} ${anio}`;
 }
