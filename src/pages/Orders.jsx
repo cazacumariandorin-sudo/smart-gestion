@@ -5,6 +5,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { subirArchivo } from '@/lib/subirArchivo';
+import { toast } from 'sonner';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useI18n } from '@/lib/i18n';
 import { Plus, Search, Pencil, Trash2, ShoppingCart, Loader2, Save, Package, X, ChevronDown, ChevronUp, Upload, FileText, ExternalLink, Eye, Download, Sparkles, CheckCircle2 } from 'lucide-react';
@@ -60,6 +61,7 @@ export default function Orders() {
   const [ocrFile, setOcrFile] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrDone, setOcrDone] = useState(false);
+  const [ocrError, setOcrError] = useState('');
 
   const { data: orders = [], isLoading } = useQuery({ queryKey: ['orders'], queryFn: () => base44.entities.Order.list('-fecha_pedido', 300) });
   const { data: materials = [] } = useQuery({ queryKey: ['material_catalog'], queryFn: () => base44.entities.MaterialCatalog.list('name', 500) });
@@ -93,10 +95,14 @@ export default function Orders() {
     setOcrFile(file);
     setOcrLoading(true);
     setOcrDone(false);
-    const uploadRes = await subirArchivo(file, { ruta_drive: 'Pedidos', entidad_tipo: 'Order', entidad_id: null });
-    const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `Extrae todos los datos del siguiente documento de pedido/albarán/factura de compra.
+    setOcrError('');
+    try {
+      const uploadRes = await subirArchivo(file, { ruta_drive: 'Pedidos', entidad_tipo: 'Order', entidad_id: null });
+      const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
+      if (!file_url) throw new Error('No se pudo subir el archivo al almacenamiento');
+      // Salvaguarda: si la IA no responde en 120s, mostramos error en vez de spinner infinito
+      const llmPromise = base44.integrations.Core.InvokeLLM({
+        prompt: `Extrae todos los datos del siguiente documento de pedido/albarán/factura de compra.
 Devuelve un JSON con exactamente esta estructura:
 {
   "order_number": "número de pedido o albarán si existe, si no cadena vacía",
@@ -113,52 +119,59 @@ Devuelve un JSON con exactamente esta estructura:
   ]
 }
 Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de artículos que aparezcan.`,
-      file_urls: [file_url],
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          order_number: { type: 'string' },
-          supplier: { type: 'string' },
-          date: { type: 'string' },
-          notes: { type: 'string' },
-          items: {
-            type: 'array',
+        file_urls: [file_url],
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            order_number: { type: 'string' },
+            supplier: { type: 'string' },
+            date: { type: 'string' },
+            notes: { type: 'string' },
             items: {
-              type: 'object',
-              properties: {
-                nombre: { type: 'string' },
-                cantidad: { type: 'number' },
-                unidad: { type: 'string' },
-                precio: { type: 'number' },
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  nombre: { type: 'string' },
+                  cantidad: { type: 'number' },
+                  unidad: { type: 'string' },
+                  precio: { type: 'number' },
+                }
               }
             }
           }
         }
-      }
-    });
-    const data = result;
-    const items = (data.items || []).map(it => ({
-      nombre: it.nombre || '',
-      cantidad: it.cantidad || 1,
-      unidad: it.unidad || '',
-      precio: it.precio || 0,
-    }));
-    const importe = items.reduce((s, it) => s + ((it.cantidad || 0) * (it.precio || 0)), 0);
-    setForm(p => ({
-      ...p,
-      title: data.order_number || p.title,
-      proveedor: data.supplier || p.proveedor,
-      fecha_pedido: data.date || p.fecha_pedido,
-      notas: data.notes || p.notas,
-      items,
-      importe,
-      file_url: file_url || p.file_url,
-    }));
-    setOcrLoading(false);
-    setOcrDone(true);
+      });
+      const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error('La IA tardó demasiado. Prueba con una imagen más clara o rellena manualmente.')), 120000));
+      const data = await Promise.race([llmPromise, timeoutPromise]);
+      const items = (data.items || []).map(it => ({
+        nombre: it.nombre || '',
+        cantidad: it.cantidad || 1,
+        unidad: it.unidad || '',
+        precio: it.precio || 0,
+      }));
+      const importe = items.reduce((s, it) => s + ((it.cantidad || 0) * (it.precio || 0)), 0);
+      setForm(p => ({
+        ...p,
+        title: data.order_number || p.title,
+        proveedor: data.supplier || p.proveedor,
+        fecha_pedido: data.date || p.fecha_pedido,
+        notas: data.notes || p.notas,
+        items,
+        importe,
+        file_url: file_url || p.file_url,
+      }));
+      setOcrDone(true);
+    } catch (e) {
+      console.error('OCR pedido error:', e);
+      setOcrError(e?.message || 'Error al analizar el documento');
+      toast.error('No se pudo procesar el documento: ' + (e?.message || 'error desconocido'));
+    } finally {
+      setOcrLoading(false);
+    }
   };
 
-  const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setOcrFile(null); setOcrDone(false); setDialogOpen(true); };
+  const open_ = (o = null) => { setEditing(o); setForm(o ? { ...o, items: o.items || [] } : emptyOrder); setOcrFile(null); setOcrDone(false); setOcrError(''); setDialogOpen(true); };
   const close_ = () => { setDialogOpen(false); setEditing(null); setForm(emptyOrder); };
   const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -196,10 +209,18 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
 
   const handleFileUpload = async (file) => {
     setUploadingFile(true);
-    const uploadRes = await subirArchivo(file, { ruta_drive: 'Pedidos', entidad_tipo: 'Order', entidad_id: null });
-    const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
-    setForm(p => ({ ...p, file_url }));
-    setUploadingFile(false);
+    try {
+      const uploadRes = await subirArchivo(file, { ruta_drive: 'Pedidos', entidad_tipo: 'Order', entidad_id: null });
+      const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
+      if (!file_url) throw new Error('No se pudo subir el archivo');
+      setForm(p => ({ ...p, file_url }));
+      toast.success('Documento adjuntado');
+    } catch (e) {
+      console.error('Upload pedido error:', e);
+      toast.error('No se pudo subir el documento: ' + (e?.message || 'error desconocido'));
+    } finally {
+      setUploadingFile(false);
+    }
   };
 
   const handleSave = () => {
@@ -501,6 +522,13 @@ Si no encuentras algún campo déjalo vacío/0. Extrae TODAS las líneas de art�
                 <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5" /> {ocrFile.name}
                 </p>
+              )}
+              {ocrError && !ocrLoading && (
+                <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 p-3">
+                  <p className="text-xs font-semibold text-red-700 mb-0.5">No se pudo procesar el documento</p>
+                  <p className="text-xs text-red-600">{ocrError}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Prueba con otra imagen/PDF o rellena los datos manualmente.</p>
+                </div>
               )}
               {ocrDone && (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 p-3">
