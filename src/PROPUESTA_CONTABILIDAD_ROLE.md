@@ -1,7 +1,7 @@
 # Propuesta técnica — Rol `contabilidad` (gestoría externa, solo conciliación)
 
 **App:** Smart Gestión · Simantec S.L. · appId `69de8e23b1cd7ac050397c82`
-**Fecha:** 2026-09-08 · **Estado:** Análisis — pendiente de aprobación de gerencia/administración
+**Fecha:** 2026-09-08 (rev. 2026-09-09) · **Estado:** Aprobada — decisiones ejecutivas resueltas (7.1 nóminas = exposición agregada, 7.2 blindaje = pragmático por defecto). Lista para iniciar F1→F7.
 **Principio rector:** el flujo de aprobación/pago actual (RegistroGasto → aprobación → NotaMensualGasto → pago) **no se modifica**. El rol `contabilidad` se añade **en paralelo**, de solo lectura económica + marca de conciliación, sin capacidad de aprobar, pagar ni editar importes.
 
 ---
@@ -32,7 +32,7 @@ El control de acceso se compone de tres capas encadenadas:
 | `Obra` / `SolarObra` | ✅ **solo si** aporta al cuadre (nombre, cliente, budget) | ❌ | documentos/fotos |
 | `Nomina` | ⚠️ **Pendiente de decisión (ver abajo)** | ❌ | — |
 
-**Nóminas (sensibilidad RRHH):** hoy `Nomina.read` permite a admin/propietario/gerencia/director_comercial y al propio empleado (`operario_user_email`). Añadir `contabilidad` daría a la gestoría acceso a las nóminas **de todos los empleados** (líquido, IRPF, coste empresa). **Recomendación:** **excluir nóminas del alcance inicial** del rol `contabilidad`. Si la gestoría necesita cuadrar coste laboral, exponerle solo un agregado (total coste empresa por mes) vía una vista/función, no el detalle nominal. Gerencia decide.
+**Nóminas (sensibilidad RRHH) — DECISIÓN 7.1 (resuelta):** `contabilidad` **NO** accede al detalle nominal (líquido, IRPF, coste empresa por empleado). Se expone **exposición agregada**: total de coste laboral por mes/obra, calculado server-side por una vista/función (no el registro `Nomina` individual). Concretamente, en F3 **no** se añade `contabilidad` a `Nomina.read`; en su lugar, F3 incluye una función `getCosteLaboralAgregado` (o un campo derivado en `EconomicoDashboard`) que devuelve `{ mes, obra_id?, total_coste_empresa }` sin desglose por persona. Así la gestoría cuadra coste laboral sin ver datos sensibles de RRHH.
 
 **Sin acceso (lista negra explícita):** Obras (salvo lectura mínima de cuadre), Fichajes, ApunteHorario, Vacaciones, Vehículos, AlertaVehiculo, FotoProyecto, WorkOrder, ParteDiarioObra, Chat, Adelanto, AdelantoParcialCiclo, TrabajoExtraObra, MaterialPendiente, Drawing, Manual, Vigilancia*, DiagnosticoSesion, DatosSensibles*, PerformanceMetrics, y **todas las funciones backend de aprobación/pago/cierre** (`cerrarCicloGastosMensual`, `exportarCicloContabilidad`, `aprenderPatronGasto`, `procesarOcr*`, etc.).
 
@@ -52,6 +52,10 @@ El control de acceso se compone de tres capas encadenadas:
 | `conciliado_por` | string | — | Email del usuario `contabilidad` que marcó |
 | `nota_conciliacion` | string | — | Anotación libre de la gestoría (discrepancias, referencias contables) |
 | `estado_conciliacion` | enum `["no_conciliado","conciliado","conciliado_con_discrepancia"]` | `"no_conciliado"` | Estado derivado de la conciliación (punto G) |
+| `discrepancia_tarea_id` | string | — | ID de la `AsistenteTarea` de alta prioridad creada automáticamente al marcar `conciliado_con_discrepancia` (enlace al ciclo de resolución, punto G) |
+| `resolucion_estado` | enum `["sin_discrepancia","pendiente","resuelta","cerrada"]` | `"sin_discrepancia"` | Ciclo de vida de la discrepancia: `sin_discrepancia` (conciliado limpio) → `pendiente` (tarea creada, gerencia aún no actúa) → `resuelta` (gerencia actuó, pendiente de confirmar cierre) → `cerrada` (ciclo cerrado) |
+| `resolucion_por` | string | — | Email de gerencia/admin que cerró la discrepancia |
+| `fecha_resolucion` | string date-time | — | Timestamp del cierre de la discrepancia |
 
 > **Nota crítica sobre RLS por campo (limitación de plataforma):** Base44 aplica RLS **por operación** (create/read/update/delete), **no por campo individual**. La guía oficial lo confirma: *"it gates who may edit the record, not which fields they may touch"*. Por tanto, **no es posible bloquear vía RLS que `gerencia`/`admin` escriban `conciliado_contabilidad`** una vez que tienen `update` sobre el registro (y lo necesitan para el flujo de aprobación/pago). Esto se resuelve con la **función backend de confianza** (sección 3) como **única vía de escritura** de los campos de conciliación, más control de UI. Ver sección 4 (alternativa estricta).
 
@@ -64,18 +68,45 @@ La marca de conciliación se **valida en el backend**, no solo en la UI:
 
 La función rechaza con error explícito si el documento no cumple (impide conciliar algo que la empresa aún no ha aprobado/pagado → preserva el orden del flujo).
 
+> **Validaciones codificadas (P0) — checklist a implementar en `marcarConciliacionContable` antes de F5:**
+> - [ ] `me = await base44.auth.me()`; lanzar `403` si `me.role !== 'contabilidad'` (admin/gerencia **no** concilian; la función rechaza su rol aunque la UI no les muestre el botón).
+> - [ ] Validar que se recibe **exactamente uno** de `registro_id` / `material_doc_id`; si ambos o ninguno → `400`.
+> - [ ] **RegistroGasto:** cargar el registro; rechazar `409 PreconditionFailed` si `estado ∉ {aprobado_gerencia, en_administracion, pagada}`. Mensaje: `"Solo se puede conciliar un gasto ya aprobado/pagado (estado actual: X)"`.
+> - [ ] **MaterialDocumentoOrigen:** cargar el doc; rechazar `409` si `estado !== 'procesado'`. Además verificar que existe al menos un `RegistroGasto` o `NotaMensualGasto` asociado en estado aprobado/pagado (cruzando por `obra_id`+`fecha_documento` o `documento_origen_id`); si no → `409`.
+> - [ ] **Whitelist de campos escritos:** el `update` pasa **únicamente** `{ conciliado_contabilidad, fecha_conciliacion, conciliado_por, nota_conciliacion, estado_conciliacion, discrepancia_tarea_id, resolucion_estado }`. Cualquier otro campo del payload entrante se **ignora** (defensa en profundidad: aunque el caller enviara `importe` o `estado`, no se aplica).
+> - [ ] Si `estado_conciliacion === 'conciliado_con_discrepancia'` → crear `AsistenteTarea` (prioridad `alta`, asignada a gerencia) con descripción `Discrepancia en gasto <numero_nota> de <operario_name> — importe sistema: X€` y guardar su id en `discrepancia_tarea_id`; poner `resolucion_estado = 'pendiente'`.
+> - [ ] Si `estado_conciliacion === 'conciliado'` (limpio) → `resolucion_estado = 'sin_discrepancia'`, `discrepancia_tarea_id = null`.
+> - [ ] Devolver `{ ok: true, registro_id, estado_conciliacion, resolucion_estado, discrepancia_tarea_id }`.
+
 ### F. CIF de Simantec y de obras — ya disponible
 
 - **CIF de Simantec S.L.:** ya en `Empresa.cif` (con `es_principal:true`). **No hace falta crear nada.** La vista de conciliación lo mostrará como dato de cabecera.
 - **Obras:** `Obra` **no lleva CIF** (correcto: una obra es un proyecto, no una persona jurídica). El emisor de facturas emitidas es siempre Simantec (`Empresa.cif`); el receptor es el `Client`. **Acción:** verificar si `Client` tiene campo CIF/NIF (si no, añadirlo — menor, fuera de este alcance si ya existe).
 - **Proveedores:** `proveedor_nif` se toma del documento (OCR) y/o de `Fabricante` si está vinculado.
 
-### G. Criterio de discrepancias — solo anotar, nunca modificar
+### G. Criterio de discrepancias — anotar, derivar a gerencia y cerrar el ciclo
 
 Cuando contabilidad detecte un importe que no cuadra con su sistema:
-1. **No puede** editar `importe` ni `estado` de aprobación/pago (RLS `update` no incluye a `contabilidad`; la función solo toca los 4 campos de conciliación).
+1. **No puede** editar `importe` ni `estado` de aprobación/pago (RLS `update` no incluye a `contabilidad`; la función solo toca los campos de conciliación).
 2. Deja constancia en `nota_conciliacion` y marca `estado_conciliacion = "conciliado_con_discrepancia"`.
-3. La discrepancia aparece como **aviso de alta prioridad** en `AsistenteTarea` para gerencia (reutilizando el patrón ya usado para conflictos de previsión de obra), de modo que gerencia/administración la **resuelven** (corregir importe, pedir abono, etc.). La gestoría **nunca** resuelve la discrepancia en la app.
+3. La función `marcarConciliacionContable` crea **automáticamente** una `AsistenteTarea` de alta prioridad para gerencia (reutilizando el patrón de conflictos de previsión de obra), guarda su id en `discrepancia_tarea_id` y pone `resolucion_estado = "pendiente"`. La gestoría **nunca** resuelve la discrepancia en la app.
+
+**Flujo de resolución y cierre de discrepancias (P2 — era incompleto, ahora detallado):**
+
+| Paso | Actor | Acción | Estado resultante en `RegistroGasto` |
+|---|---|---|---|
+| 0 | `contabilidad` | Marca `conciliado_con_discrepancia` + `nota_conciliacion` | `resolucion_estado = "pendiente"`, `discrepancia_tarea_id = <id>` |
+| 1 | `gerencia`/`admin` | Ve la tarea en `AsistenteTarea` (prioridad alta, origen "Conciliación"). Investiga: corrige `importe`/`estado` del gasto vía el flujo normal de aprobación, o pide abono al proveedor, o contacta la gestoría. | sigue `"pendiente"` |
+| 2 | `gerencia`/`admin` | Marca la `AsistenteTarea` como completada → un *automation* `entity` sobre `AsistenteTarea` (update, `estado === 'completada'` y `origen === 'conciliacion'`) dispara una función `cerrarDiscrepanciaConciliacion` | `resolucion_estado = "resuelta"`, `resolucion_por = <email>`, `fecha_resolucion = now` |
+| 3 | `contabilidad` (opcional) | Revisa el gasto resuelto; si cuadra, re-concilia marcando `estado_conciliacion = "conciliado"` (limpio) → la función pone `resolucion_estado = "cerrada"` y anula `discrepancia_tarea_id`. Si sigue sin cuadrar, vuelve a abrir discrepancia (vuelve a paso 0). | `"cerrada"` |
+
+**Reglas de la función `cerrarDiscrepanciaConciliacion` (nueva, F4):**
+- Se invoca solo vía automation (no la llama nadie directo); recibe `{ tarea_id, entity_id }` del evento de `AsistenteTarea`.
+- Verifica que el `RegistroGasto.discrepancia_tarea_id === tarea_id` y `resolucion_estado === 'pendiente'`.
+- `update(registro_id, { resolucion_estado: 'resuelta', resolucion_por: completada_por, fecha_resolucion: now })` — **no** toca `estado_conciliacion` (eso lo decide contabilidad al re-revisar).
+- Si el gasto ya no existe o fue borrado → no-op + log.
+
+> **Cierre explícito:** una discrepancia queda `"cerrada"` únicamente cuando `contabilidad` re-concilia el gasto como limpio. Esto evita discrepancias "colgadas": o la gestoría cierra, o la marca sigue visible como `pendiente`/`resuelta` para gerencia en `/conciliacion`.
 
 ---
 
@@ -189,7 +220,12 @@ Aquí **solo `contabilidad`** crea/edita la marca (RLS real por entidad, no por 
 6. **Filtros:** por estado de conciliación (pendientes / conciliados / con discrepancia), por proveedor/NIF, por obra. Por defecto muestra "pendientes de conciliar".
 7. **Indicador global:** contador "X de Y conciliados este periodo".
 
-**Indicador en las vistas existentes (NotasGastos, FotosContabilidad):** añadir un mini-badge `✓ Conciliado` / `⚠ Discrepancia` en `NotaGastoCard` y `NotaGastoDetalle`, visible para todos los roles que ya ven gastos, para que gerencia sepa de un vistazo qué validó la gestoría. **Sin botón** de acción (es informativo).
+**Indicador en las vistas existentes (NotasGastos, FotosContabilidad) — simplificado a un único badge (P2 UX):** un solo badge por gasto con 3 estados visuales claros derivados de `estado_conciliacion` + `resolucion_estado`:
+- ⚪ `No conciliado` (gris) — `estado_conciliacion === 'no_conciliado'`
+- ✅ `Conciliado` (verde) — `estado_conciliacion === 'conciliado'` (limpio y cerrado)
+- ⚠️ `Discrepancia` (ámbar/rojo según `resolucion_estado`) — `estado_conciliacion === 'conciliado_con_discrepancia'`, con sub-etiqueta: `Pendiente` / `Resuelta` / `Cerrada`.
+
+Se muestra en `NotaGastoCard` y `NotaGastoDetalle`, visible para todos los roles que ya ven gastos. **Sin botón** de acción (es informativo; el botón de conciliar vive solo en `/conciliacion`).
 
 ---
 
@@ -207,14 +243,38 @@ Aquí **solo `contabilidad`** crea/edita la marca (RLS real por entidad, no por 
 
 ---
 
-## 7. Decisiones pendientes para gerencia/administración
+## 7. Decisiones ejecutivas — resueltas (rev. 2026-09-09)
 
-1. **Nóminas:** ¿entra `contabilidad` al detalle nominal (sensible RRHH) o solo a un agregado de coste laboral? → **Recomendación: excluir detalle.**
-2. **Blindaje del marcado:** ¿suficiente la opción por defecto (campos en documento + función de confianza, asumiendo admin de confianza) o se exige la **alternativa estricta** (entidad `ConciliacionContable` separada, blindaje real contra admin)?
-3. **Obra/SolarObra de lectura:** ¿`contabilidad` ve nombre+cliente+budget de obras para cuadrar, o ni eso? → **Recomendación: sí, solo lectura mínima.**
-4. **Vencimiento del acceso:** ¿caducidad temporal del usuario gestoría (campo `acceso_hasta` ya existe en User)? → Recomendable para contratos por temporada fiscal.
-5. **Auditoría:** ¿se registra quién concilió qué en un log aparte, además de `conciliado_por`? `conciliado_por`+`fecha_conciliacion` cubren trazabilidad básica; ampliar solo si se exige.
+1. **Nóminas (7.1) — RESUELTA: exposición agregada.** `contabilidad` **no** ve detalle nominal. Se expone coste laboral total por mes/obra vía función/vista agregada (ver sección B). `Nomina.read` no se modifica.
+2. **Blindaje del marcado (7.2) — RESUELTA: opción pragmática por defecto.** Campos de conciliación en `RegistroGasto` + función de confianza `marcarConciliacionContable`. Se asume admin/gerencia de confianza (como en el resto del sistema). La alternativa estricta (entidad `ConciliacionContable` separada) queda **documentada en sección 4 como contingencia**, a activar solo si gerencia exige formalmente blindaje contra auto-marcado de admin.
+3. **Obra/SolarObra de lectura (7.3):** `contabilidad` ve nombre+cliente+budget de obras (solo lectura mínima para cuadrar). Confirmado.
+4. **Vencimiento del acceso (7.4) — `acceso_hasta` en User:** se implementará en F1 (alta del rol) / F7 (invitación). El campo `acceso_hasta` (date) se añade a `User.jsonc` (editable); `ProtectedRoute` y/o un middleware de sesión rechaza el acceso si `acceso_hasta < hoy`. Pensado para contratos de gestoría por temporada fiscal.
+5. **Auditoría (7.5):** `conciliado_por` + `fecha_conciliacion` + `resolucion_por` + `fecha_resolucion` cubren la trazabilidad básica exigida. No se crea log aparte salvo que se pida explícitamente.
 
 ---
 
-*Documento listo para revisión. Sin cambios de código aplicados.*
+## 8. Checklist de validación pre-implementación
+
+- [ ] Gerencia/Administración valida decisiones 7.1–7.5 (✅ resueltas en rev. 2026-09-09 — pendiente firma final).
+- [x] Flujo de resolución de discrepancias detallado (sección G: 4 pasos + función `cerrarDiscrepanciaConciliacion` + campo `resolucion_estado`/`resolucion_por`/`fecha_resolucion`).
+- [x] Entidades de lectura (lista B) verificadas — incluyen todos los campos necesarios para la conciliación (`proveedor_nif` añadido a `RegistroGasto`, campos de conciliación en sección D).
+- [ ] Validaciones de precondición (E) codificadas y testeadas en `marcarConciliacionContable` (especificación P0 lista en sección E — implementar en F4).
+- [ ] RLS en las 10 entidades de lectura aplicada sin regresiones (test de permiso por rol en F3).
+- [ ] Prototipo UI de `/conciliacion` + badge único en gastos revisado por UX antes de F5.
+
+## 9. Recomendaciones de implementación (prioridades)
+
+| Prioridad | Acción | Razonamiento |
+|---|---|---|
+| P0 | F4: codificar validaciones de precondición (E) en `marcarConciliacionContable` + `cerrarDiscrepanciaConciliacion` antes de F5 | Sin esto, la integridad de la marca es nula |
+| P1 | Sección 7.1 (Nóminas): resolver antes de F3 — definido como exposición agregada | Evita exponer dato sensible de RRHH |
+| P1 | Sección 7.2 (Blindaje): decidido — pragmático por defecto | Asume admin de confianza, evita duplicar dato |
+| P2 | Sección 5 + G (resolución de discrepancias): flujo de cierre + campos `discrepancia_tarea_id`/`resolucion_estado` | Evita discrepancias "colgadas" |
+| P2 | Sección 5 (indicadores visuales): simplificado a un único badge con estados claros | Mejora UX |
+| P3 | Sección 7.4 (Vencimiento): implementar `acceso_hasta` en `User` durante F1 o F7 | Seguridad operacional para contratos temporales |
+
+**Veredicto:** propuesta sólida y aprobada con las caveats documentadas — pragmática (no criptográficamente aislada), decisiones ejecutivas resueltas, flujo de discrepancias ahora completo.
+
+---
+
+*Documento actualizado (rev. 2026-09-09). Sin cambios de código aplicados aún — a la espera de firma final de gerencia para iniciar F1.*
