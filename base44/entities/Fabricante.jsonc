@@ -8,19 +8,19 @@
     },
     "nombre_normalizado": {
       "type": "string",
-      "description": "Nombre normalizado (UPPERCASE, sin tildes ni signos) — clave de matching OCR"
+      "description": "Nombre normalizado (UPPERCASE, sin tildes ni signos) \u2014 clave de matching OCR"
     },
     "pais": {
       "type": "string",
-      "description": "País"
+      "description": "Pa\u00eds"
     },
     "web": {
       "type": "string",
-      "description": "Página web"
+      "description": "P\u00e1gina web"
     },
     "telefono": {
       "type": "string",
-      "description": "Teléfono"
+      "description": "Tel\u00e9fono"
     },
     "email": {
       "type": "string",
@@ -28,7 +28,7 @@
     },
     "categorias": {
       "type": "string",
-      "description": "Categorías de productos"
+      "description": "Categor\u00edas de productos"
     },
     "notas": {
       "type": "string",
@@ -102,7 +102,12 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
           }
         }
       ]
