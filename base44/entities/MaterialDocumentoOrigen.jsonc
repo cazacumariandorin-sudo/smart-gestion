@@ -54,6 +54,56 @@
     "lineas_count": {
       "type": "number",
       "default": 0
+    },
+    "conciliado_contabilidad": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marca de conciliado por la gestor\u00eda (rol contabilidad). Solo la funci\u00f3n marcarConciliacionContable escribe este campo."
+    },
+    "fecha_conciliacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO en que la gestor\u00eda marc\u00f3 la conciliaci\u00f3n."
+    },
+    "conciliado_por": {
+      "type": "string",
+      "description": "Email del usuario contabilidad que marc\u00f3 la conciliaci\u00f3n."
+    },
+    "nota_conciliacion": {
+      "type": "string",
+      "description": "Anotaci\u00f3n libre de la gestor\u00eda (discrepancias, referencias contables)."
+    },
+    "estado_conciliacion": {
+      "type": "string",
+      "enum": [
+        "no_conciliado",
+        "conciliado",
+        "conciliado_con_discrepancia"
+      ],
+      "default": "no_conciliado",
+      "description": "Estado derivado de la conciliaci\u00f3n."
+    },
+    "discrepancia_tarea_id": {
+      "type": "string",
+      "description": "ID de la AsistenteTarea de alta prioridad creada al marcar conciliado_con_discrepancia."
+    },
+    "resolucion_estado": {
+      "type": "string",
+      "enum": [
+        "sin_discrepancia",
+        "pendiente",
+        "resuelta",
+        "cerrada"
+      ],
+      "default": "sin_discrepancia",
+      "description": "Ciclo de vida de la discrepancia."
+    },
+    "resolucion_por": {
+      "type": "string"
+    },
+    "fecha_resolucion": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [
@@ -115,6 +165,11 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
           }
         }
       ]
