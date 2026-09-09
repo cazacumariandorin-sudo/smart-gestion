@@ -4,11 +4,11 @@
   "properties": {
     "titulo": {
       "type": "string",
-      "description": "Título descriptivo del presupuesto (opcional, se autogenera si está vacío)"
+      "description": "T\u00edtulo descriptivo del presupuesto (opcional, se autogenera si est\u00e1 vac\u00edo)"
     },
     "codigo_registro": {
       "type": "string",
-      "description": "ID único estandarizado: PRES-SG-AAAA-NNN (ej: PRES-SG-2026-001)"
+      "description": "ID \u00fanico estandarizado: PRES-SG-AAAA-NNN (ej: PRES-SG-2026-001)"
     },
     "cliente_id": {
       "type": "string",
@@ -25,7 +25,7 @@
     },
     "importe": {
       "type": "number",
-      "description": "Importe total (€)"
+      "description": "Importe total (\u20ac)"
     },
     "estado": {
       "type": "string",
@@ -40,7 +40,7 @@
     },
     "conceptos": {
       "type": "array",
-      "description": "Líneas del presupuesto",
+      "description": "L\u00edneas del presupuesto",
       "items": {
         "type": "object",
         "properties": {
@@ -72,11 +72,11 @@
     "es_duplicado_confirmado": {
       "type": "boolean",
       "default": false,
-      "description": "Si es true, el usuario confirmó que es duplicado autorizado"
+      "description": "Si es true, el usuario confirm\u00f3 que es duplicado autorizado"
     },
     "descripcion": {
       "type": "string",
-      "description": "Descripción del presupuesto (autocompletada desde partes)"
+      "description": "Descripci\u00f3n del presupuesto (autocompletada desde partes)"
     },
     "notas": {
       "type": "string",
@@ -151,7 +151,12 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
           }
         }
       ]
