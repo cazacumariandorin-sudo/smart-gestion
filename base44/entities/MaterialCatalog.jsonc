@@ -8,11 +8,11 @@
     },
     "code": {
       "type": "string",
-      "description": "Código / referencia (legacy — usar 'referencia' para nuevos OCR)"
+      "description": "C\u00f3digo / referencia (legacy \u2014 usar 'referencia' para nuevos OCR)"
     },
     "referencia": {
       "type": "string",
-      "description": "Código de fabricante/proveedor (clave de matching OCR + fabricante)"
+      "description": "C\u00f3digo de fabricante/proveedor (clave de matching OCR + fabricante)"
     },
     "fabricante_id": {
       "type": "string",
@@ -24,48 +24,48 @@
     },
     "category": {
       "type": "string",
-      "description": "Categoría"
+      "description": "Categor\u00eda"
     },
     "unit": {
       "type": "string",
-      "description": "Unidad de medida (m, kg, ud, m², ...)"
+      "description": "Unidad de medida (m, kg, ud, m\u00b2, ...)"
     },
     "unit_price": {
       "type": "number",
-      "description": "Precio unitario legacy — usar 'precio_neto' como lectura viva"
+      "description": "Precio unitario legacy \u2014 usar 'precio_neto' como lectura viva"
     },
     "pvp": {
       "type": "number",
-      "description": "PVP público de venta (snapshot del último precio conocido)"
+      "description": "PVP p\u00fablico de venta (snapshot del \u00faltimo precio conocido)"
     },
     "descuento_empresa": {
       "type": "number",
-      "description": "% descuento aplicado a Simantec (snapshot del último precio conocido)"
+      "description": "% descuento aplicado a Simantec (snapshot del \u00faltimo precio conocido)"
     },
     "iva": {
       "type": "number",
-      "description": "% IVA aplicado (snapshot del último precio conocido)"
+      "description": "% IVA aplicado (snapshot del \u00faltimo precio conocido)"
     },
     "precio_neto": {
       "type": "number",
-      "description": "Último precio neto conocido (snapshot del último MaterialPrecioHistorico). NO se edita manualmente: lo actualiza el backend al crear un nuevo histórico."
+      "description": "\u00daltimo precio neto conocido (snapshot del \u00faltimo MaterialPrecioHistorico). NO se edita manualmente: lo actualiza el backend al crear un nuevo hist\u00f3rico."
     },
     "fecha_ultimo_precio": {
       "type": "string",
       "format": "date",
-      "description": "Fecha del último precio registrado (snapshot)"
+      "description": "Fecha del \u00faltimo precio registrado (snapshot)"
     },
     "supplier": {
       "type": "string",
-      "description": "Proveedor (legacy — ahora vinculable a Fabricante)"
+      "description": "Proveedor (legacy \u2014 ahora vinculable a Fabricante)"
     },
     "description": {
       "type": "string",
-      "description": "Descripción / especificaciones"
+      "description": "Descripci\u00f3n / especificaciones"
     },
     "manual_url": {
       "type": "string",
-      "description": "URL del manual / ficha técnica"
+      "description": "URL del manual / ficha t\u00e9cnica"
     },
     "active": {
       "type": "boolean",
@@ -134,7 +134,12 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
           }
         }
       ]
