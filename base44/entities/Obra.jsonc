@@ -8,7 +8,7 @@
     },
     "code": {
       "type": "string",
-      "description": "Código / referencia interna"
+      "description": "C\u00f3digo / referencia interna"
     },
     "client_id": {
       "type": "string",
@@ -20,7 +20,7 @@
     },
     "address": {
       "type": "string",
-      "description": "Dirección de la obra"
+      "description": "Direcci\u00f3n de la obra"
     },
     "start_date": {
       "type": "string",
@@ -45,11 +45,11 @@
     },
     "budget": {
       "type": "number",
-      "description": "Presupuesto (€)"
+      "description": "Presupuesto (\u20ac)"
     },
     "description": {
       "type": "string",
-      "description": "Descripción / alcance"
+      "description": "Descripci\u00f3n / alcance"
     },
     "contact_person": {
       "type": "string",
@@ -57,7 +57,7 @@
     },
     "contact_phone": {
       "type": "string",
-      "description": "Teléfono de contacto"
+      "description": "Tel\u00e9fono de contacto"
     },
     "notes": {
       "type": "string",
@@ -136,7 +136,7 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         },
         {
@@ -147,6 +147,11 @@
         {
           "user_condition": {
             "role": "cliente_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
           }
         },
         {
