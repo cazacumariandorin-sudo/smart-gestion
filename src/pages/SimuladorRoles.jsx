@@ -57,6 +57,13 @@ const ROLES = [
     color: 'bg-orange-100 text-orange-700 border-orange-200',
     dot: 'bg-orange-500',
   },
+  {
+    key: 'contabilidad',
+    label: 'Contabilidad (Gestoría)',
+    desc: 'Conciliación contable y lectura de gastos/documentos. Sin datos sensibles ni nóminas detalladas.',
+    color: 'bg-purple-100 text-purple-700 border-purple-200',
+    dot: 'bg-purple-500',
+  },
 ];
 
 export default function SimuladorRoles() {

@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Building2, Plus, Pencil, Star, CheckCircle2, XCircle } from 'lucide-react';
+import { Building2, Plus, Pencil, Star, CheckCircle2, XCircle, ImagePlus, Loader2, Landmark, CreditCard, Briefcase, Calendar } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 const EMPTY = {
@@ -28,6 +28,11 @@ const EMPTY = {
   telefono: '',
   email: '',
   web: '',
+  logo_url: '',
+  actividad_principal: '',
+  iban: '',
+  registro_mercantil: '',
+  fecha_constitucion: '',
   activa: true,
   es_principal: false,
   notas: '',
@@ -39,6 +44,20 @@ export default function Empresas() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
+  const [logoUploading, setLogoUploading] = useState(false);
+
+  const subirLogo = async (file) => {
+    if (!file) return;
+    setLogoUploading(true);
+    try {
+      const res = await base44.integrations.Core.UploadFile({ file });
+      set('logo_url', res.file_url);
+    } catch (e) {
+      toast({ title: 'Error al subir logo', description: e?.message, variant: 'destructive' });
+    } finally {
+      setLogoUploading(false);
+    }
+  };
 
   const { data: empresas = [], isLoading } = useQuery({
     queryKey: ['empresas'],
@@ -104,7 +123,17 @@ export default function Empresas() {
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-slate-500" />
+                  {emp.logo_url ? (
+                    <img
+                      src={emp.logo_url}
+                      alt={emp.nombre}
+                      className="h-10 w-10 rounded-lg object-contain bg-white border"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Building2 className="h-5 w-5 text-primary" />
+                    </div>
+                  )}
                   <div>
                     <div className="font-semibold leading-tight">{emp.nombre}</div>
                     <div className="text-xs text-muted-foreground">{emp.cif}</div>
@@ -114,6 +143,11 @@ export default function Empresas() {
                   <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
                 ) : null}
               </div>
+              {emp.actividad_principal && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Briefcase className="h-3 w-3" /> {emp.actividad_principal}
+                </p>
+              )}
               <div className="text-sm text-muted-foreground space-y-0.5">
                 {emp.domicilio ? <div>{emp.domicilio}</div> : null}
                 {(emp.localidad || emp.provincia || emp.codigo_postal) ? (
@@ -123,6 +157,9 @@ export default function Empresas() {
                 ) : null}
                 {emp.telefono ? <div>Tel: {emp.telefono}</div> : null}
                 {emp.email ? <div>{emp.email}</div> : null}
+                {emp.iban ? <div className="flex items-center gap-1"><CreditCard className="h-3 w-3" /> {emp.iban}</div> : null}
+                {emp.registro_mercantil ? <div className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {emp.registro_mercantil}</div> : null}
+                {emp.fecha_constitucion ? <div className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {emp.fecha_constitucion}</div> : null}
               </div>
               <div className="flex items-center justify-between mt-2">
                 <span className="inline-flex items-center gap-1 text-xs">
@@ -148,6 +185,37 @@ export default function Empresas() {
             <DialogTitle>{editing ? 'Editar empresa' : 'Nueva empresa'}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2 max-h-[60vh] overflow-y-auto pr-1">
+            {/* Logo corporativo */}
+            <div className="sm:col-span-2">
+              <Label>Logotipo corporativo</Label>
+              <div className="flex items-center gap-3">
+                {form.logo_url ? (
+                  <img
+                    src={form.logo_url}
+                    alt="Logo"
+                    className="h-16 w-16 rounded-lg object-contain bg-white border"
+                  />
+                ) : (
+                  <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
+                    <ImagePlus className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border text-sm cursor-pointer hover:bg-accent">
+                  {logoUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                  {logoUploading ? 'Subiendo...' : form.logo_url ? 'Cambiar logo' : 'Subir logo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => subirLogo(e.target.files?.[0])}
+                    disabled={logoUploading}
+                  />
+                </label>
+                {form.logo_url && (
+                  <Button variant="ghost" size="sm" onClick={() => set('logo_url', '')}>Quitar</Button>
+                )}
+              </div>
+            </div>
             <div className="sm:col-span-2">
               <Label>Nombre / Razón social *</Label>
               <Input value={form.nombre} onChange={(e) => set('nombre', e.target.value)} />
@@ -155,6 +223,10 @@ export default function Empresas() {
             <div>
               <Label>CIF / NIF *</Label>
               <Input value={form.cif} onChange={(e) => set('cif', e.target.value)} />
+            </div>
+            <div>
+              <Label>Actividad principal</Label>
+              <Input value={form.actividad_principal} onChange={(e) => set('actividad_principal', e.target.value)} placeholder="Ej: Instalaciones eléctricas y fotovoltaicas" />
             </div>
             <div>
               <Label>Teléfono</Label>
@@ -167,6 +239,18 @@ export default function Empresas() {
             <div>
               <Label>Web</Label>
               <Input value={form.web} onChange={(e) => set('web', e.target.value)} />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>IBAN</Label>
+              <Input value={form.iban} onChange={(e) => set('iban', e.target.value)} placeholder="ES00 0000 0000 0000 0000 0000" />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Registro Mercantil</Label>
+              <Input value={form.registro_mercantil} onChange={(e) => set('registro_mercantil', e.target.value)} placeholder="Tomo, Folio, Sección, Hoja, Inscripción" />
+            </div>
+            <div>
+              <Label>Fecha de constitución</Label>
+              <Input type="date" value={form.fecha_constitucion} onChange={(e) => set('fecha_constitucion', e.target.value)} />
             </div>
             <div className="sm:col-span-2">
               <Label>Domicilio</Label>

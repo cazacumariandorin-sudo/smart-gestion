@@ -34,6 +34,27 @@
     "web": {
       "type": "string"
     },
+    "logo_url": {
+      "type": "string",
+      "description": "URL del logotipo corporativo de la empresa (subido a CDN Base44)"
+    },
+    "actividad_principal": {
+      "type": "string",
+      "description": "Actividad / sector principal (CNAE descriptivo). Ej: Instalaciones el\u00e9ctricas y fotovoltaicas."
+    },
+    "iban": {
+      "type": "string",
+      "description": "IBAN de la cuenta principal (para emitir/recibir facturas y remesas SEPA)"
+    },
+    "registro_mercantil": {
+      "type": "string",
+      "description": "Dato de inscripci\u00f3n en el Registro Mercantil (Tomo, Folio, Secci\u00f3n, Hoja, Inscripci\u00f3n)"
+    },
+    "fecha_constitucion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de constituci\u00f3n de la empresa"
+    },
     "activa": {
       "type": "boolean",
       "default": true,
@@ -45,7 +66,8 @@
       "description": "True si esta es la empresa principal del workspace (SIMANTEC SL)"
     },
     "notas": {
-      "type": "string"
+      "type": "string",
+      "description": "Observaciones"
     }
   },
   "required": [
