@@ -18,11 +18,38 @@ const ESTADOS_VALIDOS_GASTO = ['aprobado_gerencia', 'en_administracion', 'pagada
 export default function Conciliacion() {
   const { isContabilidad } = useUserRole();
   const qc = useQueryClient();
-  const [periodo, setPeriodo] = useState(() => new Date().toISOString().slice(0, 7));
+  const [granularidad, setGranularidad] = useState('mes');
+  const [mesValor, setMesValor] = useState(() => new Date().toISOString().slice(0, 7));
+  const [trimestreAnio, setTrimestreAnio] = useState(() => String(new Date().getFullYear()));
+  const [trimestreQ, setTrimestreQ] = useState(() => String(Math.floor(new Date().getMonth() / 3) + 1));
+  const [anioValor, setAnioValor] = useState(() => String(new Date().getFullYear()));
   const [tipoDoc, setTipoDoc] = useState('registro');
   const [filtroEstadoConc, setFiltroEstadoConc] = useState('pendientes');
   const [busqueda, setBusqueda] = useState('');
   const [conciliar, setConciliar] = useState(null);
+
+  // Calcula el rango de fechas (inicio/fin) según la granularidad elegida
+  const rango = useMemo(() => {
+    if (granularidad === 'mes') {
+      const [y, m] = mesValor.split('-');
+      return { inicio: `${y}-${m}-01`, fin: `${y}-${m}-31`, etiqueta: `${m}/${y}` };
+    }
+    if (granularidad === 'trimestre') {
+      const q = parseInt(trimestreQ, 10);
+      const startMonth = (q - 1) * 3 + 1;
+      const endMonth = startMonth + 2;
+      return {
+        inicio: `${trimestreAnio}-${String(startMonth).padStart(2, '0')}-01`,
+        fin: `${trimestreAnio}-${String(endMonth).padStart(2, '0')}-31`,
+        etiqueta: `T${q} ${trimestreAnio}`,
+      };
+    }
+    // anio
+    return { inicio: `${anioValor}-01-01`, fin: `${anioValor}-12-31`, etiqueta: anioValor };
+  }, [granularidad, mesValor, trimestreAnio, trimestreQ, anioValor]);
+
+  // Clave de cache combinada (cambia al variar cualquier selector de periodo)
+  const periodoKey = `${granularidad}:${rango.inicio}:${rango.fin}`;
 
   // Empresa principal (CIF Simantec)
   const { data: empresa } = useQuery({
@@ -35,14 +62,11 @@ export default function Conciliacion() {
 
   // Gastos conciliables del periodo
   const { data: gastos = [], isLoading: loadingGastos } = useQuery({
-    queryKey: ['conciliacion-gastos', periodo],
+    queryKey: ['conciliacion-gastos', periodoKey],
     queryFn: async () => {
-      const [y, m] = periodo.split('-');
-      const inicio = `${y}-${m}-01`;
-      const fin = `${y}-${m}-31`;
       const list = await base44.entities.RegistroGasto.filter({
         estado: { $in: ESTADOS_VALIDOS_GASTO },
-        fecha_documento: { $gte: inicio, $lte: fin },
+        fecha_documento: { $gte: rango.inicio, $lte: rango.fin },
       }, '-fecha_documento', 200);
       return list;
     },
@@ -51,14 +75,11 @@ export default function Conciliacion() {
 
   // Documentos de materiales del periodo
   const { data: documentos = [], isLoading: loadingDocs } = useQuery({
-    queryKey: ['conciliacion-docs', periodo],
+    queryKey: ['conciliacion-docs', periodoKey],
     queryFn: async () => {
-      const [y, m] = periodo.split('-');
-      const inicio = `${y}-${m}-01`;
-      const fin = `${y}-${m}-31`;
       const list = await base44.entities.MaterialDocumentoOrigen.filter({
         estado: 'procesado',
-        fecha_documento: { $gte: inicio, $lte: fin },
+        fecha_documento: { $gte: rango.inicio, $lte: rango.fin },
       }, '-fecha_documento', 200);
       return list;
     },
@@ -106,9 +127,50 @@ export default function Conciliacion() {
             <p className="text-xs text-muted-foreground">CIF: {empresa?.cif || '—'}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-muted-foreground">Periodo</label>
-          <Input type="month" value={periodo} onChange={e => setPeriodo(e.target.value)} className="w-40" />
+        <div className="flex flex-col gap-2 items-end">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground">Vista por</label>
+            <MobileSelect value={granularidad} onValueChange={setGranularidad} placeholder="Granularidad" triggerClassName="w-32">
+              <MobileSelectItem value="mes">Mes</MobileSelectItem>
+              <MobileSelectItem value="trimestre">Trimestre</MobileSelectItem>
+              <MobileSelectItem value="anio">Año</MobileSelectItem>
+            </MobileSelect>
+          </div>
+          <div className="flex items-center gap-2">
+            {granularidad === 'mes' && (
+              <Input type="month" value={mesValor} onChange={e => setMesValor(e.target.value)} className="w-40" />
+            )}
+            {granularidad === 'trimestre' && (
+              <>
+                <Input
+                  type="number"
+                  min="2000"
+                  max="2100"
+                  value={trimestreAnio}
+                  onChange={e => setTrimestreAnio(e.target.value)}
+                  className="w-24"
+                  aria-label="Año del trimestre"
+                />
+                <MobileSelect value={trimestreQ} onValueChange={setTrimestreQ} placeholder="Trim." triggerClassName="w-28">
+                  <MobileSelectItem value="1">T1 (Ene–Mar)</MobileSelectItem>
+                  <MobileSelectItem value="2">T2 (Abr–Jun)</MobileSelectItem>
+                  <MobileSelectItem value="3">T3 (Jul–Sep)</MobileSelectItem>
+                  <MobileSelectItem value="4">T4 (Oct–Dic)</MobileSelectItem>
+                </MobileSelect>
+              </>
+            )}
+            {granularidad === 'anio' && (
+              <Input
+                type="number"
+                min="2000"
+                max="2100"
+                value={anioValor}
+                onChange={e => setAnioValor(e.target.value)}
+                className="w-28"
+                aria-label="Año"
+              />
+            )}
+          </div>
         </div>
       </Card>
 
@@ -116,7 +178,7 @@ export default function Conciliacion() {
       <div className="flex items-center gap-2 text-sm">
         <ClipboardCheck className="w-4 h-4 text-primary" />
         <span className="font-medium">{totalConciliados} de {totalConciliables}</span>
-        <span className="text-muted-foreground">conciliados este periodo</span>
+        <span className="text-muted-foreground">conciliados · periodo {rango.etiqueta}</span>
       </div>
 
       {/* Selector tipo documento */}
