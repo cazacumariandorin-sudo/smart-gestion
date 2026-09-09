@@ -8,7 +8,7 @@
     },
     "code": {
       "type": "string",
-      "description": "Código / referencia interna"
+      "description": "C\u00f3digo / referencia interna"
     },
     "client_id": {
       "type": "string",
@@ -20,7 +20,7 @@
     },
     "address": {
       "type": "string",
-      "description": "Dirección de la instalación"
+      "description": "Direcci\u00f3n de la instalaci\u00f3n"
     },
     "potencia_kw": {
       "type": "number",
@@ -28,7 +28,7 @@
     },
     "num_paneles": {
       "type": "number",
-      "description": "Número de paneles"
+      "description": "N\u00famero de paneles"
     },
     "tipo_instalacion": {
       "type": "string",
@@ -38,7 +38,7 @@
         "aislada",
         "hibrida"
       ],
-      "description": "Tipo de instalación solar"
+      "description": "Tipo de instalaci\u00f3n solar"
     },
     "start_date": {
       "type": "string",
@@ -63,7 +63,7 @@
     },
     "budget": {
       "type": "number",
-      "description": "Presupuesto (€)"
+      "description": "Presupuesto (\u20ac)"
     },
     "contact_person": {
       "type": "string",
@@ -71,11 +71,11 @@
     },
     "contact_phone": {
       "type": "string",
-      "description": "Teléfono de contacto"
+      "description": "Tel\u00e9fono de contacto"
     },
     "description": {
       "type": "string",
-      "description": "Descripción / alcance"
+      "description": "Descripci\u00f3n / alcance"
     },
     "notes": {
       "type": "string",
@@ -172,7 +172,12 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
           }
         },
         {
