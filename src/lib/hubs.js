@@ -109,6 +109,7 @@ export const HUBS = [
       { label: 'Nóminas', path: '/nominas', icon: Banknote, module: 'nominas' },
       { label: 'Presupuestos', path: '/presupuestos', icon: FileText, module: 'presupuestos' },
       { label: 'Alta Materiales (OCR)', path: '/materiales-ocr', icon: PackageOpen, module: 'notas-gastos', roles: ['admin', 'gerencia', 'director_comercial', 'jefe_obra', 'propietario'] },
+      { label: 'Conciliación', path: '/conciliacion', icon: ClipboardCheck, module: 'conciliacion', roles: ['contabilidad', 'admin', 'gerencia', 'propietario'] },
       { label: 'Datos sensibles', path: '/datos-sensibles', icon: Lock, module: 'users' },
     ],
   },

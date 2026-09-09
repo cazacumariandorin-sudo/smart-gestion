@@ -8,13 +8,14 @@
         "admin",
         "gerencia",
         "director_comercial",
-        "técnico",
+        "t\u00e9cnico",
         "jefe_obra",
         "operario",
         "control_horario",
         "cliente_obra",
         "usuario_demo",
-        "propietario"
+        "propietario",
+        "contabilidad"
       ],
       "default": "operario",
       "description": "Rol de acceso al sistema"
@@ -44,7 +45,7 @@
         "suspendido"
       ],
       "default": "pendiente_activacion",
-      "description": "Estado del ciclo de vida de la cuenta: pendiente_activacion (invitación enviada), activo (invitación aceptada), inactivo (sin acceso voluntario), suspendido (sanción / bloqueo temporal)"
+      "description": "Estado del ciclo de vida de la cuenta: pendiente_activacion (invitaci\u00f3n enviada), activo (invitaci\u00f3n aceptada), inactivo (sin acceso voluntario), suspendido (sanci\u00f3n / bloqueo temporal)"
     },
     "empresa_id": {
       "type": "string",
@@ -57,29 +58,29 @@
     "fecha_vinculacion_empresa": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha en que el usuario quedó vinculado a la empresa como empleado"
+      "description": "Fecha en que el usuario qued\u00f3 vinculado a la empresa como empleado"
     },
     "acceso_hasta": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha de expiración del acceso (solo para demos)"
+      "description": "Fecha de expiraci\u00f3n del acceso. Para demos: caducidad de la cuenta. Para rol contabilidad (gestor\u00eda externa): fin del contrato por temporada fiscal. ProtectedRoute rechaza el acceso si acceso_hasta < hoy."
     },
     "invitado_por": {
       "type": "string",
-      "description": "Email del usuario que invitó"
+      "description": "Email del usuario que invit\u00f3"
     },
     "suspendido_por": {
       "type": "string",
-      "description": "Email del gerente/admin que suspendió la cuenta"
+      "description": "Email del gerente/admin que suspendi\u00f3 la cuenta"
     },
     "fecha_suspension": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha en que se suspendió la cuenta"
+      "description": "Fecha en que se suspendi\u00f3 la cuenta"
     },
     "motivo_suspension": {
       "type": "string",
-      "description": "Motivo de la suspensión de la cuenta"
+      "description": "Motivo de la suspensi\u00f3n de la cuenta"
     },
     "vinculo_estado": {
       "type": "string",
@@ -89,7 +90,7 @@
         "auto_vinculado",
         "demo"
       ],
-      "description": "Estado de vinculación con ficha laboral"
+      "description": "Estado de vinculaci\u00f3n con ficha laboral"
     },
     "vinculo_id": {
       "type": "string",
@@ -101,7 +102,7 @@
     },
     "vinculo_tipo": {
       "type": "string",
-      "description": "Tipo de vinculación"
+      "description": "Tipo de vinculaci\u00f3n"
     },
     "user_id_personalizado": {
       "type": "string",
@@ -110,7 +111,7 @@
     "demo_expires_at": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha de expiración de la cuenta demo"
+      "description": "Fecha de expiraci\u00f3n de la cuenta demo"
     },
     "onboarding_completado": {
       "type": "boolean",

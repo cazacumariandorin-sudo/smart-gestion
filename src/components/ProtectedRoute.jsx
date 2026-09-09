@@ -20,6 +20,11 @@ export default function ProtectedRoute({ module, children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Acceso caducado (acceso_hasta < hoy) — aplica a demos y a gestoría externa (rol contabilidad)
+  if (user.acceso_hasta && new Date(user.acceso_hasta) < new Date()) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
   if (module && !canAccess(module)) {
     return <Navigate to="/" replace />;
   }

@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Loader2 } from 'lucide-react';
 
-const ROLES = ['admin', 'gerencia', 'director_comercial', 'técnico', 'jefe_obra', 'operario', 'control_horario', 'cliente_obra'];
+const ROLES = ['admin', 'gerencia', 'director_comercial', 'técnico', 'jefe_obra', 'operario', 'control_horario', 'cliente_obra', 'contabilidad'];
 
 const ROLE_LABELS = {
   admin: 'ADMIN',
@@ -26,6 +26,7 @@ const ROLE_LABELS = {
   operario: 'OPERARIO',
   control_horario: 'CONTROL HORARIO',
   cliente_obra: 'CLIENTE OBRA',
+  contabilidad: 'CONTABILIDAD (GESTORÍA EXTERNA)',
 };
 
 const TIPO_CUENTA = ['real', 'demo'];
