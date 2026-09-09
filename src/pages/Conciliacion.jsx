@@ -19,7 +19,8 @@ export default function Conciliacion() {
   const { isContabilidad } = useUserRole();
   const qc = useQueryClient();
   const [granularidad, setGranularidad] = useState('mes');
-  const [mesValor, setMesValor] = useState(() => new Date().toISOString().slice(0, 7));
+  const [mesAnio, setMesAnio] = useState(() => String(new Date().getFullYear()));
+  const [mesMes, setMesMes] = useState(() => String(new Date().getMonth() + 1));
   const [trimestreAnio, setTrimestreAnio] = useState(() => String(new Date().getFullYear()));
   const [trimestreQ, setTrimestreQ] = useState(() => String(Math.floor(new Date().getMonth() / 3) + 1));
   const [anioValor, setAnioValor] = useState(() => String(new Date().getFullYear()));
@@ -31,8 +32,8 @@ export default function Conciliacion() {
   // Calcula el rango de fechas (inicio/fin) según la granularidad elegida
   const rango = useMemo(() => {
     if (granularidad === 'mes') {
-      const [y, m] = mesValor.split('-');
-      return { inicio: `${y}-${m}-01`, fin: `${y}-${m}-31`, etiqueta: `${m}/${y}` };
+      const m = String(mesMes).padStart(2, '0');
+      return { inicio: `${mesAnio}-${m}-01`, fin: `${mesAnio}-${m}-31`, etiqueta: `${m}/${mesAnio}` };
     }
     if (granularidad === 'trimestre') {
       const q = parseInt(trimestreQ, 10);
@@ -46,7 +47,7 @@ export default function Conciliacion() {
     }
     // anio
     return { inicio: `${anioValor}-01-01`, fin: `${anioValor}-12-31`, etiqueta: anioValor };
-  }, [granularidad, mesValor, trimestreAnio, trimestreQ, anioValor]);
+  }, [granularidad, mesAnio, mesMes, trimestreAnio, trimestreQ, anioValor]);
 
   // Clave de cache combinada (cambia al variar cualquier selector de periodo)
   const periodoKey = `${granularidad}:${rango.inicio}:${rango.fin}`;
@@ -138,7 +139,31 @@ export default function Conciliacion() {
           </div>
           <div className="flex items-center gap-2">
             {granularidad === 'mes' && (
-              <Input type="month" value={mesValor} onChange={e => setMesValor(e.target.value)} className="w-40" />
+              <>
+                <Input
+                  type="number"
+                  min="2000"
+                  max="2100"
+                  value={mesAnio}
+                  onChange={e => setMesAnio(e.target.value)}
+                  className="w-24"
+                  aria-label="Año del mes"
+                />
+                <MobileSelect value={mesMes} onValueChange={setMesMes} placeholder="Mes" triggerClassName="w-32">
+                  <MobileSelectItem value="1">Enero</MobileSelectItem>
+                  <MobileSelectItem value="2">Febrero</MobileSelectItem>
+                  <MobileSelectItem value="3">Marzo</MobileSelectItem>
+                  <MobileSelectItem value="4">Abril</MobileSelectItem>
+                  <MobileSelectItem value="5">Mayo</MobileSelectItem>
+                  <MobileSelectItem value="6">Junio</MobileSelectItem>
+                  <MobileSelectItem value="7">Julio</MobileSelectItem>
+                  <MobileSelectItem value="8">Agosto</MobileSelectItem>
+                  <MobileSelectItem value="9">Septiembre</MobileSelectItem>
+                  <MobileSelectItem value="10">Octubre</MobileSelectItem>
+                  <MobileSelectItem value="11">Noviembre</MobileSelectItem>
+                  <MobileSelectItem value="12">Diciembre</MobileSelectItem>
+                </MobileSelect>
+              </>
             )}
             {granularidad === 'trimestre' && (
               <>
