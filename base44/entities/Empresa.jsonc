@@ -4,7 +4,7 @@
   "properties": {
     "nombre": {
       "type": "string",
-      "description": "Nombre o razón social de la empresa"
+      "description": "Nombre o raz\u00f3n social de la empresa"
     },
     "cif": {
       "type": "string",
@@ -12,7 +12,7 @@
     },
     "domicilio": {
       "type": "string",
-      "description": "Dirección fiscal"
+      "description": "Direcci\u00f3n fiscal"
     },
     "localidad": {
       "type": "string",
@@ -37,7 +37,7 @@
     "activa": {
       "type": "boolean",
       "default": true,
-      "description": "Si la empresa está activa"
+      "description": "Si la empresa est\u00e1 activa"
     },
     "es_principal": {
       "type": "boolean",
@@ -101,12 +101,17 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         },
         {
           "user_condition": {
             "role": "operario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
           }
         }
       ]
