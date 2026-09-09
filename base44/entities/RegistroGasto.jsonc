@@ -212,6 +212,62 @@
     "precision_diff": {
       "type": "string",
       "description": "Auditor\u00eda antes/despu\u00e9s del re-procesamiento (campos corregidos o a\u00f1adidos)."
+    },
+    "proveedor_nif": {
+      "type": "string",
+      "description": "NIF/CIF del proveedor emisor del documento. Cuadrado por la gestor\u00eda (contabilidad) contra su sistema. Alias de nif_comercio para la vista de conciliaci\u00f3n."
+    },
+    "conciliado_contabilidad": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marca de conciliado por la gestor\u00eda (rol contabilidad). Solo la funci\u00f3n marcarConciliacionContable escribe este campo."
+    },
+    "fecha_conciliacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO en que la gestor\u00eda marc\u00f3 la conciliaci\u00f3n."
+    },
+    "conciliado_por": {
+      "type": "string",
+      "description": "Email del usuario contabilidad que marc\u00f3 la conciliaci\u00f3n."
+    },
+    "nota_conciliacion": {
+      "type": "string",
+      "description": "Anotaci\u00f3n libre de la gestor\u00eda (discrepancias, referencias contables)."
+    },
+    "estado_conciliacion": {
+      "type": "string",
+      "enum": [
+        "no_conciliado",
+        "conciliado",
+        "conciliado_con_discrepancia"
+      ],
+      "default": "no_conciliado",
+      "description": "Estado derivado de la conciliaci\u00f3n: no_conciliado \u2192 conciliado (limpio) | conciliado_con_discrepancia (genera AsistenteTarea para gerencia)."
+    },
+    "discrepancia_tarea_id": {
+      "type": "string",
+      "description": "ID de la AsistenteTarea de alta prioridad creada autom\u00e1ticamente al marcar conciliado_con_discrepancia (enlace al ciclo de resoluci\u00f3n)."
+    },
+    "resolucion_estado": {
+      "type": "string",
+      "enum": [
+        "sin_discrepancia",
+        "pendiente",
+        "resuelta",
+        "cerrada"
+      ],
+      "default": "sin_discrepancia",
+      "description": "Ciclo de vida de la discrepancia: sin_discrepancia (conciliado limpio) \u2192 pendiente (tarea creada) \u2192 resuelta (gerencia actu\u00f3) \u2192 cerrada (contabilidad re-concilia limpio)."
+    },
+    "resolucion_por": {
+      "type": "string",
+      "description": "Email de gerencia/admin que cerr\u00f3 la discrepancia."
+    },
+    "fecha_resolucion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO del cierre de la discrepancia."
     }
   },
   "required": [
@@ -248,6 +304,11 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
           }
         },
         {
