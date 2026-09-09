@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Lock, CheckCircle2, XCircle, Edit2, Trash2, FileText, Image, ExternalLink, Loader2, Save, UserCheck, CreditCard, Send } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import CambiarCicloGasto from '@/components/gastos/CambiarCicloGasto';
+import ConciliacionBadge from '@/components/conciliacion/ConciliacionBadge';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/lib/useUserRole';
@@ -253,6 +254,22 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                   <span className="font-semibold text-green-700">Pagado por:</span> {nota.pagado_por}
                   {nota.importe_pagado_real && <span className="ml-2 font-bold">{nota.importe_pagado_real.toFixed(2)} €</span>}
                   {nota.metodo_pago && <span className="ml-2 capitalize">({nota.metodo_pago.replace('_', ' ')})</span>}
+                </div>
+              )}
+              {/* Conciliación contable (informativo) */}
+              {(nota.estado_conciliacion && nota.estado_conciliacion !== 'no_conciliado') && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground font-semibold">Conciliación:</span>
+                  <ConciliacionBadge nota={nota} />
+                  {nota.conciliado_por && (
+                    <span className="text-xs text-muted-foreground">
+                      por {nota.conciliado_por}
+                      {nota.fecha_conciliacion && ` · ${new Date(nota.fecha_conciliacion).toLocaleDateString('es-ES')}`}
+                    </span>
+                  )}
+                  {nota.nota_conciliacion && (
+                    <span className="text-xs text-muted-foreground italic">— "{nota.nota_conciliacion}"</span>
+                  )}
                 </div>
               )}
               {nota.es_gasto_tardio && (
