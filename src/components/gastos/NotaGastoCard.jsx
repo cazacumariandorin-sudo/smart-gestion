@@ -71,12 +71,18 @@ export default function NotaGastoCard({ nota, onVer }) {
               </Badge>
             )}
             <ConciliacionBadge nota={nota} />
+            {nota.forma_pago_documento && (
+              <Badge className="text-[10px] bg-indigo-100 text-indigo-700 border-indigo-200">
+                💳 {nota.forma_pago_documento}
+              </Badge>
+            )}
           </div>
 
           <p className="text-sm font-semibold truncate">{nota.nombre_comercio || nota.concepto || 'Sin descripción'}</p>
           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
             {nota.fecha_documento && <span>📅 {nota.fecha_documento}</span>}
             {nota.obra_name && <span>🏗️ {nota.obra_name}</span>}
+            {nota.localidad && <span>📍 {nota.localidad}</span>}
             {nota.archivos?.length > 0 && (
               <span className="flex items-center gap-0.5">
                 <FileText className="w-3 h-3" /> {nota.archivos.length}

@@ -44,6 +44,14 @@
       "type": "string",
       "description": "N\u00famero de factura / albar\u00e1n / proforma impreso en el documento (extra\u00eddo por OCR+IA)"
     },
+    "localidad": {
+      "type": "string",
+      "description": "Localidad / poblaci\u00f3n del emisor impresa en el justificante (extra\u00edda por OCR+IA). Texto libre."
+    },
+    "forma_pago_documento": {
+      "type": "string",
+      "description": "Forma de pago impresa en el justificante (EFECTIVO, TARJETA, TRANSFERENCIA, etc.). Texto libre extra\u00eddo por OCR+IA; independiente del campo metodo_pago (reembolso)."
+    },
     "duplicado_confirmado": {
       "default": false,
       "type": "boolean"

@@ -158,6 +158,8 @@ export default function InformeGastos({ operario, notas = [], tecnicos = [], isA
       'Comercio': n.nombre_comercio || '',
       'NIF/CIF': n.nif_comercio || '',
       'Nº Factura': n.numero_factura || '',
+      'Localidad': n.localidad || '',
+      'Forma de Pago': n.forma_pago_documento || '',
       'Importe (€)': n.importe || 0,
       'Obra': n.obra_name || '',
       'Estado': n.estado || '',

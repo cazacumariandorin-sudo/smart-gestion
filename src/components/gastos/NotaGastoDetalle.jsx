@@ -140,6 +140,8 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
       numero_secuencia: nota.numero_secuencia || '',
       operario_id: nota.operario_id || '',
       operario_name: nota.operario_name || '',
+      localidad: nota.localidad || '',
+      forma_pago_documento: nota.forma_pago_documento || '',
     });
     setImportePago(String(nota.importe || ''));
     setEditando(true);
@@ -218,6 +220,16 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                   <Input value={form.nif_comercio} onChange={e => setForm(f => ({ ...f, nif_comercio: e.target.value }))} />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Localidad</Label>
+                  <Input value={form.localidad} onChange={e => setForm(f => ({ ...f, localidad: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Forma de pago (ticket)</Label>
+                  <Input value={form.forma_pago_documento} onChange={e => setForm(f => ({ ...f, forma_pago_documento: e.target.value }))} />
+                </div>
+              </div>
               <div className="space-y-1">
                 <Label className="text-xs">Fecha documento</Label>
                 <Input type="date" value={form.fecha_documento} onChange={e => setForm(f => ({ ...f, fecha_documento: e.target.value }))} />
@@ -240,6 +252,8 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                 <div><span className="text-muted-foreground text-xs">NIF/CIF</span><p className="font-medium">{nota.nif_comercio || '—'}</p></div>
                 <div><span className="text-muted-foreground text-xs">Fecha doc.</span><p className="font-medium">{nota.fecha_documento || '—'}</p></div>
                 <div><span className="text-muted-foreground text-xs">Obra</span><p className="font-medium">{nota.obra_name || '—'}</p></div>
+                <div><span className="text-muted-foreground text-xs">Localidad</span><p className="font-medium">{nota.localidad || '—'}</p></div>
+                <div><span className="text-muted-foreground text-xs">Forma de pago</span><p className="font-medium">{nota.forma_pago_documento || '—'}</p></div>
               </div>
               {nota.concepto && <div><span className="text-muted-foreground text-xs">Concepto</span><p>{nota.concepto}</p></div>}
               {nota.notas_admin && <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 p-2 border border-amber-200"><span className="text-xs text-amber-700 font-semibold">Nota admin:</span><p className="text-xs mt-0.5">{nota.notas_admin}</p></div>}

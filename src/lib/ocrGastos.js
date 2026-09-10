@@ -22,6 +22,8 @@ export const GASTO_OCR_SCHEMA = {
       description: 'Categoría del gasto deducida del documento',
     },
     numero_factura: { type: 'string', description: 'Número de factura/albarán/proforma impreso' },
+    localidad: { type: 'string', description: 'Localidad / población del emisor impresa en el justificante' },
+    forma_pago_documento: { type: 'string', description: 'Forma de pago impresa en el justificante (EFECTIVO, TARJETA, TRANSFERENCIA...)' },
     codigo_validacion_fiscal: { type: 'string', description: 'Código QR o de barras (identificador único de transacción) si aparece' },
     concepto: { type: 'string', description: 'Descripción breve del concepto del gasto' },
     confianza: { type: 'number', description: 'Confianza global de la extracción 0-1 (1 = muy seguro)' },
@@ -35,6 +37,8 @@ Instrucciones:
 - categoria: elige la más adecuada (material, combustible, peaje, parking, comida, otros).
 - nif_comercio: NIF/CIF del emisor si es legible.
 - numero_factura: número impreso del documento.
+- localidad: población/localidad del emisor si aparece impresa (ej: Madrid, Valencia). Solo la localidad, no la dirección completa.
+- forma_pago_documento: forma de pago impresa en el justificante (EFECTIVO, TARJETA, TRANSFERENCIA, etc.). Tal cual aparece, en mayúsculas si así viene.
 - codigo_validacion_fiscal: código QR/hash si aparece.
 - confianza: tu estimación de seguridad global (0-1). Si el documento está borroso, mal iluminado o incompleto, baja la confianza.
 Si un campo no es legible, devuelve cadena vacía o null. No inventes datos.`;
@@ -106,7 +110,7 @@ export function evaluarPrecision(datos) {
  * y construye un diff legible para auditoría.
  */
 export function construirDiff(guardado, extraido) {
-  const campos = ['importe', 'fecha_documento', 'nombre_comercio', 'nif_comercio', 'numero_factura', 'categoria', 'codigo_validacion_fiscal', 'concepto'];
+  const campos = ['importe', 'fecha_documento', 'nombre_comercio', 'nif_comercio', 'numero_factura', 'localidad', 'forma_pago_documento', 'categoria', 'codigo_validacion_fiscal', 'concepto'];
   const cambios = [];
   for (const c of campos) {
     const a = guardado?.[c];

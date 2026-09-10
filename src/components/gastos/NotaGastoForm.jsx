@@ -20,7 +20,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const CATEGORIAS = ['combustible', 'comida', 'material', 'peaje', 'parking', 'otros'];
-const defaultForm = { categoria: '', concepto: '', importe: '', nif_comercio: '', nombre_comercio: '', fecha_documento: '', codigo_validacion_fiscal: '', numero_factura: '', obra_id: '', obra_name: '', obra_tipo: '', notas: '', justificacion_tardia: '' };
+const defaultForm = { categoria: '', concepto: '', importe: '', nif_comercio: '', nombre_comercio: '', fecha_documento: '', codigo_validacion_fiscal: '', numero_factura: '', localidad: '', forma_pago_documento: '', obra_id: '', obra_name: '', obra_tipo: '', notas: '', justificacion_tardia: '' };
 
 async function generarNumeroNota() {
   const year = new Date().getFullYear();
@@ -132,6 +132,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         concepto: datos.concepto || prev.concepto,
         codigo_validacion_fiscal: datos.codigo_validacion_fiscal || prev.codigo_validacion_fiscal,
         numero_factura: datos.numero_factura || prev.numero_factura,
+        localidad: datos.localidad || prev.localidad,
+        forma_pago_documento: datos.forma_pago_documento || prev.forma_pago_documento,
         categoria: catValida || prev.categoria,
       }));
     }
@@ -148,7 +150,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     if (dup && !posibleDup) { setPosibleDup(dup); setShowDupAlert(true); return; }
     const { numero_nota, numero_secuencia } = await generarNumeroNota();
     const hoy = format(new Date(), 'yyyy-MM-dd');
-    createMutation.mutate({ numero_nota, numero_secuencia, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id: form.obra_id || null, obra_name: form.obra_name || null, obra_tipo: form.obra_tipo || null, estado: 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, es_gasto_tardio: esGastoTardio, justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null, es_posible_duplicado: !!dup, duplicado_confirmado: !!posibleDup, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo, ...extraFields });
+    createMutation.mutate({ numero_nota, numero_secuencia, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id: form.obra_id || null, obra_name: form.obra_name || null, obra_tipo: form.obra_tipo || null, estado: 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: esGastoTardio, justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null, es_posible_duplicado: !!dup, duplicado_confirmado: !!posibleDup, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo, ...extraFields });
   };
 
   const handleSubmit = () => {
@@ -163,7 +165,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     setForm(f => ({ ...f, obra_id, obra_name, obra_tipo })); setShowObraModal(false); setPendingSave(false);
     if (!operarioEfectivo?.id) { toast.error('No hay operario vinculado'); return; }
     const dup = checkDuplicado(); const { numero_nota, numero_secuencia } = await generarNumeroNota(); const hoy = format(new Date(), 'yyyy-MM-dd');
-    createMutation.mutate({ numero_nota, numero_secuencia, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id, obra_name, obra_tipo, estado: 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, es_gasto_tardio: esGastoTardio, justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null, es_posible_duplicado: !!dup, duplicado_confirmado: false, aviso_obra_mostrado: true, sin_obra: false, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo });
+    createMutation.mutate({ numero_nota, numero_secuencia, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id, obra_name, obra_tipo, estado: 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: esGastoTardio, justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null, es_posible_duplicado: !!dup, duplicado_confirmado: false, aviso_obra_mostrado: true, sin_obra: false, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo });
   };
 
   const handleContinuarSinObra = () => { setShowObraModal(false); setPendingSave(false); doGuardar({ sin_obra: true, sin_obra_timestamp: new Date().toISOString(), aviso_obra_mostrado: true }); };
@@ -274,6 +276,10 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
                 <div className="space-y-1.5"><Label className="text-xs">Comercio / Proveedor</Label><div className="flex gap-1"><Input placeholder="Nombre" value={form.nombre_comercio} onChange={e => setField('nombre_comercio', e.target.value)} /><VoiceInputButton onResult={t => setField('nombre_comercio', t)} /></div></div>
                 <div className="space-y-1.5"><Label className="text-xs">NIF / CIF</Label><Input placeholder="B12345678" value={form.nif_comercio} onChange={e => setField('nif_comercio', e.target.value)} /></div>
                 <div className="space-y-1.5"><Label className="text-xs">Nº Factura / Albarán</Label><Input placeholder="FAC-2026-001" value={form.numero_factura} onChange={e => setField('numero_factura', e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label className="text-xs">Localidad</Label><Input placeholder="Madrid" value={form.localidad} onChange={e => setField('localidad', e.target.value)} /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Forma de pago (ticket)</Label><Input placeholder="EFECTIVO / TARJETA" value={form.forma_pago_documento} onChange={e => setField('forma_pago_documento', e.target.value)} /></div>
               </div>
               <div className="space-y-1.5"><Label className="text-xs">Concepto / Descripción</Label><div className="flex gap-1"><AutoCorrectInput placeholder="Descripción del gasto" value={form.concepto} onChange={e => setField('concepto', e.target.value)} /><VoiceInputButton onResult={t => setField('concepto', t)} /></div></div>
               <ObraSelector value={form.obra_id} obraName={form.obra_name} obraTipo={form.obra_tipo} onChange={({ obra_id, obra_name, obra_tipo }) => setForm(f => ({ ...f, obra_id, obra_name, obra_tipo }))} />

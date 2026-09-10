@@ -130,11 +130,13 @@ Deno.serve(async (req) => {
     doc.rect(14, y - 5, pageW - 28, 8, 'F');
     doc.setFontSize(8);
     doc.text('Número', 16, y);
-    doc.text('Fecha', 48, y);
-    doc.text('Comercio', 68, y);
-    doc.text('NIF', 112, y);
-    doc.text('Nº Fact.', 132, y);
-    doc.text('Categoría', 156, y);
+    doc.text('Fecha', 40, y);
+    doc.text('Comercio', 58, y);
+    doc.text('Localidad', 92, y);
+    doc.text('NIF', 120, y);
+    doc.text('Nº Fact.', 138, y);
+    doc.text('F. Pago', 156, y);
+    doc.text('Categoría', 176, y);
     doc.text('Importe', pageW - 18, y, { align: 'right' });
     y += 6;
 
@@ -148,12 +150,14 @@ Deno.serve(async (req) => {
         doc.rect(14, y - 4, pageW - 28, 7, 'F');
       }
       if (nota.es_gasto_tardio) doc.setTextColor(200, 0, 0);
-      doc.text((nota.numero_nota || '-').substring(0, 14), 16, y);
-      doc.text(nota.fecha_documento || '-', 48, y);
-      doc.text((nota.nombre_comercio || '-').substring(0, 18), 68, y);
-      doc.text((nota.nif_comercio || '-').substring(0, 12), 112, y);
-      doc.text((nota.numero_factura || '-').substring(0, 14), 132, y);
-      doc.text((nota.categoria || '-').substring(0, 10), 156, y);
+      doc.text((nota.numero_nota || '-').substring(0, 12), 16, y);
+      doc.text(nota.fecha_documento || '-', 40, y);
+      doc.text((nota.nombre_comercio || '-').substring(0, 14), 58, y);
+      doc.text((nota.localidad || '-').substring(0, 12), 92, y);
+      doc.text((nota.nif_comercio || '-').substring(0, 10), 120, y);
+      doc.text((nota.numero_factura || '-').substring(0, 10), 138, y);
+      doc.text((nota.forma_pago_documento || '-').substring(0, 9), 156, y);
+      doc.text((nota.categoria || '-').substring(0, 8), 176, y);
       doc.setTextColor(0, 0, 0);
       doc.text(`${(nota.importe || 0).toFixed(2)} €`, pageW - 18, y, { align: 'right' });
       y += 7;

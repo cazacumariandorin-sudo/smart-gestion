@@ -39,6 +39,8 @@ Deno.serve(async (req) => {
   - "otros" (si no encaja en ninguno de los anteriores)
 - numero_factura: número de FACTURA / ALBARÁN / PROFORMA impreso en el documento (suele estar cerca del emisor o en el encabezado, con prefijos como "FAC", "FACTURA", "FACT", "ALB", "ALBARÁN", "Nº", "N.º", "PROFORMA", "PF"). IMPORTANTE: sepáralo del código legal/QR. Si el documento es factura/albarán/proforma, devuelve el número legible que el operario podría usar para cruzar con contabilidad (ej: "FAC-2026-001", "ALB/2026/123", "PROFORMA 456", "Nº 00087"). En tickets simplificados que no tienen número de factura, devuelve cadena vacía "". NO uses el código de validación QR aquí (va en codigo_validacion_fiscal).
 - codigo_validacion_fiscal: número de factura simplificada, código QR o de barras que aparece como identificador fiscal único; si no aparece, cadena vacía.
+- localidad: población/localidad del emisor impresa en el justificante (ej: Madrid, Valencia). Solo la localidad, no la dirección completa. Si no aparece, cadena vacía.
+- forma_pago_documento: forma de pago impresa en el justificante (EFECTIVO, TARJETA, TRANSFERENCIA, etc.), tal cual aparece. Si no aparece, cadena vacía.
 - ocr_raw: transcripción COMPLETA del texto visible, línea por línea, tal cual aparece.`;
 
     const schema = {
@@ -51,6 +53,8 @@ Deno.serve(async (req) => {
         concepto: { type: 'string' },
         categoria: { type: 'string', enum: ['combustible', 'peaje', 'parking', 'comida', 'material', 'otros'] },
         numero_factura: { type: 'string' },
+        localidad: { type: 'string' },
+        forma_pago_documento: { type: 'string' },
         codigo_validacion_fiscal: { type: 'string' },
         ocr_raw: { type: 'string' },
       },
