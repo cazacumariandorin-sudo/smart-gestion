@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { jsPDF } from 'npm:jspdf@4.0.0';
 
 Deno.serve(async (req) => {
@@ -7,22 +7,35 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { operario_id, operario_name, periodo, fecha_inicio, fecha_fin } = await req.json();
+    const {
+      operario_id, operario_name, periodo, fecha_inicio, fecha_fin, ciclo_mes,
+      total_adelantos = 0, importe_neto = null, adelantos_detalle = [],
+    } = await req.json();
 
-    // Admin puede ver todos, usuario solo los suyos
+    const esGestor = user.role === 'admin' || user.role === 'propietario' || user.role === 'gerencia';
+
+    // Lectura: gestores ven todo (asServiceRole); el resto solo lo suyo (RLS).
     let notas;
-    if (user.role === 'admin') {
-      notas = operario_id
-        ? await base44.asServiceRole.entities.NotaGasto.filter({ operario_id })
-        : await base44.asServiceRole.entities.NotaGasto.list('-fecha_documento', 500);
+    if (esGestor) {
+      notas = await base44.asServiceRole.entities.RegistroGasto.list('-created_date', 1000);
     } else {
-      notas = await base44.entities.NotaGasto.filter({ operario_id: user.id });
+      notas = await base44.entities.RegistroGasto.list('-created_date', 1000);
     }
 
-    // Filtrar por fechas si se proporcionan
-    if (fecha_inicio && fecha_fin) {
+    // Filtro por operario
+    if (operario_id) {
+      notas = notas.filter(n => n.operario_id === operario_id);
+    } else if (!esGestor) {
+      // No gestor sin operario_id: limitar a los suyos
+      notas = notas.filter(n => n.operario_email === user.email || n.created_by === user.email);
+    }
+
+    // Filtro por ciclo o por rango de fechas
+    if (ciclo_mes) {
+      notas = notas.filter(n => (n.ciclo_mes || '') === ciclo_mes);
+    } else if (fecha_inicio && fecha_fin) {
       notas = notas.filter(n => {
-        const fecha = n.fecha_documento || n.fecha_creacion_real || n.created_date?.split('T')[0];
+        const fecha = n.fecha_documento || n.fecha_creacion_real || (n.created_date || '').split('T')[0];
         return fecha >= fecha_inicio && fecha <= fecha_fin;
       });
     }
@@ -40,7 +53,7 @@ Deno.serve(async (req) => {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Operario: ${operario_name || 'Todos'}`, 14, 24);
-    doc.text(`Período: ${periodo || `${fecha_inicio} - ${fecha_fin}`}`, 14, 30);
+    doc.text(`Período: ${periodo || (ciclo_mes ? `Ciclo ${ciclo_mes}` : `${fecha_inicio} - ${fecha_fin}`)}`, 14, 30);
     doc.text(`Generado: ${new Date().toLocaleDateString('es-ES')}`, pageW - 60, 24);
 
     doc.setTextColor(0, 0, 0);
@@ -50,6 +63,7 @@ Deno.serve(async (req) => {
     const totalesCat = {};
     categorias.forEach(c => { totalesCat[c] = notas.filter(n => n.categoria === c).reduce((s, n) => s + (n.importe || 0), 0); });
     const totalGeneral = notas.reduce((s, n) => s + (n.importe || 0), 0);
+    const neto = importe_neto != null ? Number(importe_neto) : (totalGeneral - Number(total_adelantos));
 
     let y = 45;
     doc.setFontSize(12);
@@ -69,9 +83,40 @@ Deno.serve(async (req) => {
     });
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text('TOTAL', 20, y + 3);
+    doc.text('TOTAL GASTOS', 20, y + 3);
     doc.text(`${totalGeneral.toFixed(2)} €`, pageW - 30, y + 3, { align: 'right' });
-    y += 15;
+    y += 8;
+
+    // Adelantos + neto (trazabilidad contable)
+    if (Number(total_adelantos) > 0 || (adelantos_detalle && adelantos_detalle.length > 0)) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(180, 83, 9);
+      doc.text(`Adelantos de gastos`, 20, y + 3);
+      doc.text(`${Number(total_adelantos).toFixed(2)} €`, pageW - 30, y + 3, { align: 'right' });
+      y += 7;
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      if (adelantos_detalle && adelantos_detalle.length) {
+        adelantos_detalle.forEach(a => {
+          if (y > 280) { doc.addPage(); y = 20; }
+          doc.text(`  ${a.fecha || '-'}  ${String(a.concepto || '').substring(0, 50)}`, 22, y);
+          doc.text(`[${a.estado || ''}]`, pageW - 70, y);
+          doc.text(`${(a.importe || 0).toFixed(2)} €`, pageW - 30, y, { align: 'right' });
+          y += 5;
+        });
+      }
+      y += 2;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('NETO A LIQUIDAR', 20, y + 3);
+      doc.text(`${neto.toFixed(2)} €`, pageW - 30, y + 3, { align: 'right' });
+      y += 10;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+    } else {
+      y += 7;
+    }
 
     // Tabla de notas
     doc.setFontSize(12);
@@ -85,30 +130,32 @@ Deno.serve(async (req) => {
     doc.rect(14, y - 5, pageW - 28, 8, 'F');
     doc.setFontSize(8);
     doc.text('Número', 16, y);
-    doc.text('Fecha', 52, y);
-    doc.text('Comercio', 72, y);
-    doc.text('Categoría', 120, y);
-    doc.text('Estado', 152, y);
-    doc.text('Importe', pageW - 20, y, { align: 'right' });
+    doc.text('Fecha', 48, y);
+    doc.text('Comercio', 68, y);
+    doc.text('NIF', 112, y);
+    doc.text('Nº Fact.', 132, y);
+    doc.text('Categoría', 156, y);
+    doc.text('Importe', pageW - 18, y, { align: 'right' });
     y += 6;
 
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'normal');
 
     notas.forEach((nota, idx) => {
-      if (y > 270) { doc.addPage(); y = 20; }
+      if (y > 272) { doc.addPage(); y = 20; }
       if (idx % 2 === 0) {
         doc.setFillColor(249, 249, 249);
         doc.rect(14, y - 4, pageW - 28, 7, 'F');
       }
       if (nota.es_gasto_tardio) doc.setTextColor(200, 0, 0);
-      doc.text(nota.numero_nota || '-', 16, y);
-      doc.text(nota.fecha_documento || '-', 52, y);
-      doc.text((nota.nombre_comercio || '-').substring(0, 22), 72, y);
-      doc.text(nota.categoria || '-', 120, y);
-      doc.text(nota.estado || '-', 152, y);
+      doc.text((nota.numero_nota || '-').substring(0, 14), 16, y);
+      doc.text(nota.fecha_documento || '-', 48, y);
+      doc.text((nota.nombre_comercio || '-').substring(0, 18), 68, y);
+      doc.text((nota.nif_comercio || '-').substring(0, 12), 112, y);
+      doc.text((nota.numero_factura || '-').substring(0, 14), 132, y);
+      doc.text((nota.categoria || '-').substring(0, 10), 156, y);
       doc.setTextColor(0, 0, 0);
-      doc.text(`${(nota.importe || 0).toFixed(2)} €`, pageW - 20, y, { align: 'right' });
+      doc.text(`${(nota.importe || 0).toFixed(2)} €`, pageW - 18, y, { align: 'right' });
       y += 7;
     });
 

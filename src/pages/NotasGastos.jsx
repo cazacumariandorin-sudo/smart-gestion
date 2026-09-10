@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Plus, Search, FileBarChart2, Receipt, ChevronDown, ChevronRight, Building2, CalendarRange, Sparkles, Wallet } from 'lucide-react';
+import { Plus, Search, FileBarChart2, Receipt, ChevronDown, ChevronRight, Building2, CalendarRange, Sparkles, Wallet, Users, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NotaGastoForm from '@/components/gastos/NotaGastoForm';
 import NotaGastoCard from '@/components/gastos/NotaGastoCard';
@@ -171,8 +171,8 @@ export default function NotasGastos() {
   // Verificar si puede crear: técnicos siempre pueden, admins/gerencia también
   const puedeCrearRegistro = isOperario || isTecnico || isAdmin || isGerencia || isDirComercial || isJefeObra;
 
-  const notas = notasRaw.filter(n => {
-    // Si no es vista admin ni admin/gerencia, mostrar solo las propias
+  // Notas filtradas por TODO excepto operario (base para chips de conteo por operario)
+  const notasBase = notasRaw.filter(n => {
     if (!vistaAdmin && !isAdmin && !isGerencia && !isDirComercial && !isTecnico) {
       if (n.created_by !== user?.email && n.operario_id !== operarioId) return false;
     }
@@ -184,12 +184,25 @@ export default function NotasGastos() {
       (n.operario_name || '').toLowerCase().includes(txt);
     const matchEstado = filtroEstado === 'todos' || n.estado === filtroEstado;
     const matchCat = filtroCategoria === 'todas' || n.categoria === filtroCategoria;
-    const matchOp = filtroOperario === 'todos' || n.operario_id === filtroOperario;
     const matchObra = filtroObra === 'todas' || n.obra_id === filtroObra;
     const matchSinObra = !filtroSinObra || n.sin_obra === true;
     const matchCiclo = filtroCiclo === 'todos' || cicloDeRegistro(n) === filtroCiclo;
-    return matchBusq && matchEstado && matchCat && matchOp && matchObra && matchSinObra && matchCiclo;
+    return matchBusq && matchEstado && matchCat && matchObra && matchSinObra && matchCiclo;
   });
+
+  const notas = notasBase.filter(n => filtroOperario === 'todos' || n.operario_id === filtroOperario);
+
+  // Conteo por operario para los chips de filtro rápido
+  const conteoOperarios = useMemo(() => {
+    const map = {};
+    notasBase.forEach(n => {
+      const opId = n.operario_id || 'sin-asignar';
+      if (!map[opId]) map[opId] = { id: opId, name: n.operario_name || 'Sin asignar', count: 0, total: 0 };
+      map[opId].count++;
+      map[opId].total += n.importe || 0;
+    });
+    return Object.values(map).sort((a, b) => b.total - a.total);
+  }, [notasBase]);
 
   const totalFiltrado = notas.reduce((s, n) => s + (n.importe || 0), 0);
   const pendientes = notasRaw.filter(n => n.estado === 'pendiente').length;
@@ -308,7 +321,55 @@ export default function NotasGastos() {
 
           {tab === 'informe' && (
             <div className="mb-6">
-              <InformeGastos operario={operarioActual} notas={notasRaw} isAdmin={isAdmin} />
+              <InformeGastos
+                operario={operarioActual}
+                notas={notasRaw}
+                tecnicos={tecnicos}
+                isAdmin={isAdmin}
+                isGerencia={isGerencia}
+                ciclosDisponibles={ciclosDisponibles}
+              />
+            </div>
+          )}
+
+          {/* Chips de filtro rápido por operario (admin/gerencia) */}
+          {(isAdmin || isGerencia) && conteoOperarios.length > 0 && (
+            <div className="mb-4 -mx-1 px-1 overflow-x-auto pb-1">
+              <div className="flex gap-2 min-w-max">
+                <button
+                  onClick={() => setFiltroOperario('todos')}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors whitespace-nowrap',
+                    filtroOperario === 'todos'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                  )}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Todos
+                  <span className="ml-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-black/10 text-[10px] font-bold">
+                    {notasBase.length}
+                  </span>
+                </button>
+                {conteoOperarios.map(op => (
+                  <button
+                    key={op.id}
+                    onClick={() => setFiltroOperario(op.id)}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors whitespace-nowrap',
+                      filtroOperario === op.id
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                    )}
+                  >
+                    <User className="w-3.5 h-3.5 shrink-0" />
+                    <span className="max-w-28 truncate">{op.name}</span>
+                    <span className="ml-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-black/10 text-[10px] font-bold">
+                      {op.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
