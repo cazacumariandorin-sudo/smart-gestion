@@ -1,12 +1,34 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// Cierra el ciclo mensual de notas de gasto.
+//
+// CAMBIO DE CALENDARIO (a partir del ciclo de septiembre de 2026):
+// - Ciclos ANTERIORES a 2026-09 se cerraban con periodo 26→25 (histórico, no se tocan;
+//   sus NotaMensualGasto y RegistroGasto ya cerrados permanecen exactamente como están).
+// - A partir de 2026-09, el ciclo es el mes de calendario completo. Este cron corre el
+//   día 1 de cada mes (justo después de `abrirCicloGasto`) y cierra el MES QUE ACABA
+//   DE TERMINAR (el anterior al actual), con fecha_cierre = último día real de ese mes
+//   (28/29/30/31, calculado dinámicamente — nunca un "-25" fijo).
+// - Idempotente: si la NotaMensualGasto del ciclo ya existe (creada por `abrirCicloGasto`
+//   o heredada de la transición), se actualiza; si no, se crea.
+
+function ultimoDiaDelMes(anio, mes) {
+  // new Date(anio, mes, 0) da el último día del mes `mes` (1-12) en JS
+  return new Date(anio, mes, 0).getDate();
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
     const hoy = new Date();
-    const cicloMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
-    const finPeriodo = `${cicloMes}-25`;
+    // Mes que se cierra = mes anterior al actual (este cron corre el día 1)
+    const fechaMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+    const anioCiclo = fechaMesAnterior.getFullYear();
+    const mesCiclo = fechaMesAnterior.getMonth() + 1;
+    const cicloMes = `${anioCiclo}-${String(mesCiclo).padStart(2, '0')}`;
+    const ultimoDia = ultimoDiaDelMes(anioCiclo, mesCiclo);
+    const finPeriodo = `${cicloMes}-${String(ultimoDia).padStart(2, '0')}`;
 
     const registros = await base44.asServiceRole.entities.RegistroGasto.filter({
       estado: { $in: ['borrador', 'pendiente'] },
@@ -15,7 +37,7 @@ Deno.serve(async (req) => {
     const delMes = (registros || []).filter(r => (r.fecha_creacion_real || r.created_date || '').startsWith(cicloMes));
 
     if (delMes.length === 0) {
-      return Response.json({ success: true, message: 'Sin registros que cerrar', cicloMes });
+      return Response.json({ success: true, message: 'Sin registros que cerrar', cicloMes, finPeriodo });
     }
 
     const porOperario = {};
@@ -65,7 +87,7 @@ Deno.serve(async (req) => {
       } catch (e) { /* continuar con siguiente */ }
     }
 
-    return Response.json({ success: true, cicloMes, notas_creadas: creadas.length, detalle: creadas });
+    return Response.json({ success: true, cicloMes, finPeriodo, esquema: 'calendario_1_31', notas_creadas: creadas.length, detalle: creadas });
 
   } catch (error) {
     return Response.json({ success: false, error: error.message });
