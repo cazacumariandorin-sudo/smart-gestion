@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Lock, CheckCircle2, XCircle, Edit2, Trash2, FileText, Image, ExternalLink, Loader2, Save, UserCheck, CreditCard, Send } from 'lucide-react';
+import { Lock, CheckCircle2, XCircle, Edit2, Trash2, FileText, Image, ExternalLink, Loader2, Save, UserCheck, CreditCard, Send, RotateCcw } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import CambiarCicloGasto from '@/components/gastos/CambiarCicloGasto';
 import ConciliacionBadge from '@/components/conciliacion/ConciliacionBadge';
