@@ -244,7 +244,7 @@ export default function AdelantosPanel() {
       <AdelantoFormDialog
         open={showForm}
         onClose={() => setShowForm(false)}
-        onCreated={() => setShowForm(false)}
+        onCreated={() => { setShowForm(false); invalidar(); }}
         operarios={operarios}
       />
     </div>
