@@ -391,8 +391,17 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                 </Button>
               )}
 
-              {/* Rechazar — gerencia, dir_comercial, admin — excepto borrador y pagada */}
-              {canManage && nota.estado !== 'borrador' && nota.estado !== 'pagada' && (
+              {/* Revertir rechazo — gerencia, dir_comercial, admin — solo si está rechazada.
+                  Vuelve a 'pendiente' para que pase de nuevo por la aprobación normal,
+                  en vez de reactivarse directamente como aprobada sin revisión. */}
+              {canManage && nota.estado === 'rechazada' && (
+                <Button size="sm" variant="outline" className="gap-1 text-emerald-700 border-emerald-300" onClick={() => cambiarEstado('pendiente', { notas_admin: `Rechazo revertido por ${user?.email} el ${new Date().toISOString().slice(0,10)}` })} disabled={loading}>
+                  <RotateCcw className="w-3.5 h-3.5" /> Revertir rechazo
+                </Button>
+              )}
+
+              {/* Rechazar — gerencia, dir_comercial, admin — excepto borrador, pagada y ya rechazada */}
+              {canManage && nota.estado !== 'borrador' && nota.estado !== 'pagada' && nota.estado !== 'rechazada' && (
                 <Button size="sm" variant="outline" className="gap-1 text-red-600 border-red-300" onClick={() => cambiarEstado('rechazada')} disabled={loading}>
                   <XCircle className="w-3.5 h-3.5" /> Rechazar
                 </Button>
