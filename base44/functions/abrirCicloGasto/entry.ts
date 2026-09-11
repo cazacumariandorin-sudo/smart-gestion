@@ -1,13 +1,19 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Abre el ciclo mensual 26→25 de notas de gasto.
-// - Cron: día 26 a las 09:00 (Madrid) de cada mes.
-// - Crea una NotaMensualGasto (estado=borrador, fecha_apertura=hoy) para cada operario activo
-//   si aún no existe para el ciclo_mes correspondiente.
-// - Idempotente: comprueba existencia antes de crear.
-// - El ciclo_mes abierto corresponde al MES SIGUIENTE al actual (el ciclo de septiembre
-//   se abre el 26 de agosto).
-// - Cierra el ciclo anterior (mes actual) si quedó abierto en estado 'borrador'/'enviada'.
+// Abre el ciclo mensual de notas de gasto.
+//
+// CAMBIO DE CALENDARIO (a partir del ciclo de septiembre de 2026):
+// - Ciclos ANTERIORES a 2026-09 usaban el periodo 26→25 (histórico, no se tocan).
+// - A partir de 2026-09, el ciclo pasa a ser el mes de calendario completo: día 1 al
+//   último día de cada mes (28/29/30/31 según corresponda).
+// - Cron: día 1 de cada mes a las 00:05 (Madrid). Abre el ciclo del MES ACTUAL (ya no
+//   del mes siguiente) para cada operario activo, si aún no existe.
+// - Idempotente: comprueba existencia antes de crear — si el ciclo ya existe (p. ej. los
+//   ciclos de 2026-09 creados durante la transición bajo el esquema antiguo, vacíos),
+//   NO se duplica ni se sobrescribe: simplemente se reutiliza tal cual.
+// - El cierre del ciclo anterior ya NO se hace aquí: es responsabilidad exclusiva de
+//   `cerrarCicloGastosMensual`, que ahora corre también el día 1 (justo después de abrir),
+//   para separar claramente "abrir el nuevo" de "cerrar el que acaba de terminar".
 
 Deno.serve(async (req) => {
   try {
@@ -17,34 +23,11 @@ Deno.serve(async (req) => {
     const anioActual = hoy.getFullYear();
     const mesActual = hoy.getMonth() + 1; // 1-12
 
-    // El ciclo que abre hoy corresponde al mes SIGUIENTE
-    const fechaCiclo = new Date(anioActual, hoy.getMonth() + 1, 1);
-    const anioCiclo = fechaCiclo.getFullYear();
-    const mesCiclo = fechaCiclo.getMonth() + 1;
-    const cicloMes = `${anioCiclo}-${String(mesCiclo).padStart(2, '0')}`;
-    const fechaApertura = hoy.toISOString().slice(0, 10); // YYYY-MM-DD
+    // El ciclo que se abre es el del MES ACTUAL (calendario natural, día 1 a último día)
+    const cicloMes = `${anioActual}-${String(mesActual).padStart(2, '0')}`;
+    const fechaApertura = `${cicloMes}-01`;
 
-    // Mes actual = ciclo anterior que hay que cerrar si sigue abierto
-    const cicloMesAnterior = `${anioActual}-${String(mesActual).padStart(2, '0')}`;
-    const finPeriodoAnterior = `${cicloMesAnterior}-25`;
-
-    // 1. Cerrar notas del ciclo anterior still in 'borrador'/'enviada'
-    try {
-      const previas = await base44.asServiceRole.entities.NotaMensualGasto.filter({
-        ciclo_mes: cicloMesAnterior,
-        estado: { $in: ['borrador', 'enviada'] },
-      });
-      for (const n of (previas || [])) {
-        try {
-          await base44.asServiceRole.entities.NotaMensualGasto.update(n.id, {
-            estado: 'enviada',
-            fecha_cierre: finPeriodoAnterior,
-          });
-        } catch (_) { /* continuar */ }
-      }
-    } catch (_) { /* no bloquear apertura por fallo al cerrar previo */ }
-
-    // 2. Listar operarios activos
+    // 1. Listar operarios activos
     let operarios = [];
     try {
       operarios = await base44.asServiceRole.entities.Operario.filter({ active: true });
@@ -62,7 +45,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Para cada operario, asegurar que existe la NotaMensualGasto del nuevo ciclo
+    // 2. Para cada operario, asegurar que existe la NotaMensualGasto del ciclo del mes actual
     const creadas = [];
     const yaExistian = [];
     const errores = [];
@@ -78,6 +61,8 @@ Deno.serve(async (req) => {
         });
 
         if (existentes && existentes.length > 0) {
+          // Ya existe (puede venir de la transición de calendario, creado vacío bajo el
+          // esquema antiguo) — se reutiliza sin tocar nada.
           yaExistian.push(operarioId);
           continue;
         }
@@ -87,7 +72,7 @@ Deno.serve(async (req) => {
           .replace(/\s+/g, '')
           .slice(0, 12)
           .toUpperCase();
-        const numeroCiclo = `CIC-${anioCiclo}-${String(mesCiclo).padStart(2, '0')}-${nombreCorto}`;
+        const numeroCiclo = `CIC-${anioActual}-${String(mesActual).padStart(2, '0')}-${nombreCorto}`;
 
         const nota = await base44.asServiceRole.entities.NotaMensualGasto.create({
           ciclo_mes: cicloMes,
@@ -113,6 +98,7 @@ Deno.serve(async (req) => {
       success: true,
       cicloMes,
       fechaApertura,
+      esquema: 'calendario_1_31',
       notas_creadas: creadas.length,
       notas_ya_existentes: yaExistian.length,
       errores: errores.length,
