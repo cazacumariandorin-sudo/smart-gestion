@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
             operario_id: g.operario_id,
             operario_name: g._operario_name,
             fecha_apertura: hoy,
-            fecha_cierre: `${g.ciclo_mes}-25`,
+            fecha_cierre: fechaCierreDeCiclo(g.ciclo_mes),
             registros_ids: [],
             total_registros: 0,
             total_importe: 0,
@@ -183,6 +183,8 @@ Deno.serve(async (req) => {
   }
 });
 
+// Transición: registros anteriores a 2026-09 conservan el ciclo 26→25 histórico.
+// A partir de 2026-09, ciclo = mes natural (1→último día).
 function calcularCicloMes(fechaISO) {
   if (!fechaISO) {
     const h = new Date();
@@ -195,10 +197,20 @@ function calcularCicloMes(fechaISO) {
   }
   let y = f.getFullYear();
   let m = f.getMonth() + 1;
-  const d = f.getDate();
-  if (d >= 26) {
-    m += 1;
-    if (m > 12) { m = 1; y += 1; }
+  if (fechaISO < '2026-09-01') {
+    const d = f.getDate();
+    if (d >= 26) {
+      m += 1;
+      if (m > 12) { m = 1; y += 1; }
+    }
   }
   return `${y}-${String(m).padStart(2, '0')}`;
+}
+
+// fecha_cierre del ciclo: último día real a partir de 2026-09; -25 para históricos.
+function fechaCierreDeCiclo(cicloMes) {
+  if (cicloMes < '2026-09') return `${cicloMes}-25`;
+  const [y, m] = cicloMes.split('-').map(Number);
+  const ult = new Date(y, m, 0).getDate();
+  return `${cicloMes}-${String(ult).padStart(2, '0')}`;
 }

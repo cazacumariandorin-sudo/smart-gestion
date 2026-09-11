@@ -124,12 +124,16 @@ export async function aplicarConciliacionCierre(nota, user, opts = {}) {
   return c;
 }
 
-/** Calcula el ciclo_mes (YYYY-MM) a partir de una fecha. */
+/** Calcula el ciclo_mes (YYYY-MM) a partir de una fecha.
+ * A partir de 2026-09: ciclo = mes natural (1→último día).
+ * Pre-2026-09: histórico 26→25 (día >= 26 → mes siguiente). */
 export function calcularCicloMes(fecha) {
   const d = fecha instanceof Date ? fecha : new Date(fecha);
   if (isNaN(d.getTime())) return null;
-  // Ciclo 26→25: si día >= 26, el adelanto se imputa al mes siguiente
   const ref = new Date(d);
-  if (ref.getDate() >= 26) ref.setMonth(ref.getMonth() + 1);
+  const iso = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, '0')}-${String(ref.getDate()).padStart(2, '0')}`;
+  if (iso < '2026-09-01') {
+    if (ref.getDate() >= 26) ref.setMonth(ref.getMonth() + 1);
+  }
   return `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, '0')}`;
 }
