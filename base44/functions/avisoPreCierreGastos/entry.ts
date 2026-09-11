@@ -1,9 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Aviso pre-cierre del ciclo de gastos 26→25.
-// - Cron: días 22, 23 y 24 a las 18:00 (Madrid) de cada mes.
+// Aviso pre-cierre del ciclo de gastos.
+//
+// CAMBIO DE CALENDARIO (a partir del ciclo de septiembre de 2026): el ciclo ya no cierra
+// el día 25 fijo, sino el último día real de cada mes (28/29/30/31, calculado
+// dinámicamente). Este aviso, por tanto, deja de tener un "día 25" fijo:
+// - Cron: días 28, 29 y 30 a las 18:00 (Madrid) de cada mes (cubre los últimos días de
+//   cualquier mes, incluidos los de 28/29 días — el aviso simplemente no se dispara si
+//   ese día ya no existe en el mes en curso, porque el cron no lo invoca).
 // - Crea una AsistenteTarea (tipo=alerta, prioridad=alta, solo_gerencia=true) recordando
-//   que el ciclo de gastos se cierra el día 25.
+//   que el ciclo de gastos cierra el último día del mes (calculado, no fijo).
 // - Idempotente: evita duplicados buscando tareas previas del mismo mes con el mismo título.
 
 Deno.serve(async (req) => {
@@ -11,8 +17,10 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
 
     const hoy = new Date();
-    const cicloMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
-    const diaCierre = 25;
+    const anio = hoy.getFullYear();
+    const mes = hoy.getMonth() + 1;
+    const cicloMes = `${anio}-${String(mes).padStart(2, '0')}`;
+    const diaCierre = new Date(anio, mes, 0).getDate(); // último día real del mes en curso
     const tituloAviso = `Cierre de ciclo de gastos · ${cicloMes} (día ${diaCierre})`;
 
     // Evitar duplicados: si ya existe tarea con el mismo título para este ciclo, no crear otra
