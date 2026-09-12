@@ -178,6 +178,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
           "$and": [
             {
               "$or": [
@@ -208,6 +213,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
