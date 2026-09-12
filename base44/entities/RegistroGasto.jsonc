@@ -52,6 +52,16 @@
       "type": "string",
       "description": "Forma de pago impresa en el justificante (EFECTIVO, TARJETA, TRANSFERENCIA, etc.). Texto libre extra\u00eddo por OCR+IA; independiente del campo metodo_pago (reembolso)."
     },
+    "origen_pago": {
+      "type": "string",
+      "enum": [
+        "medios_propios",
+        "medio_empresa",
+        "credito_proveedor"
+      ],
+      "default": "medios_propios",
+      "description": "Naturaleza del desembolso. medios_propios = el operario pag\u00f3 de su bolsillo y debe recuperarlo (reembolso, flujo cl\u00e1sico). medio_empresa = pagado con tarjeta/cuenta de la empresa, NO reembolsable, solo registro/seguimiento contable. credito_proveedor = factura a cr\u00e9dito/mensual del proveedor, sin desembolso directo del que la registra."
+    },
     "duplicado_confirmado": {
       "default": false,
       "type": "boolean"
@@ -163,7 +173,7 @@
     },
     "aprobado_por": {
       "type": "string",
-      "description": "Email de quien aprob\u00f3 el gasto (gerencia o director_comercial)"
+      "description": "Email de quien aprob\u00f3 el gasto (gerencia, director_comercial o administracion)"
     },
     "fecha_aprobacion": {
       "type": "string",
@@ -171,7 +181,7 @@
     },
     "pagado_por": {
       "type": "string",
-      "description": "Email del administrador que registr\u00f3 el pago"
+      "description": "Email del administrador/gerencia que registr\u00f3 el pago"
     },
     "fecha_pago": {
       "type": "string",
@@ -285,7 +295,59 @@
   ],
   "rls": {
     "create": {
-      "created_by": "{{user.email}}"
+      "$or": [
+        {
+          "$and": [
+            {
+              "created_by": "{{user.email}}"
+            },
+            {
+              "data.origen_pago": {
+                "$in": [
+                  "medios_propios",
+                  null
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "$and": [
+            {
+              "data.origen_pago": {
+                "$in": [
+                  "medio_empresa",
+                  "credito_proveedor"
+                ]
+              }
+            },
+            {
+              "$or": [
+                {
+                  "user_condition": {
+                    "role": "admin"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "propietario"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "gerencia"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "administracion"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
     "read": {
       "$or": [
@@ -320,6 +382,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
           "created_by": "{{user.email}}"
         }
       ]
@@ -349,6 +416,11 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
