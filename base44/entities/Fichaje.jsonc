@@ -33,7 +33,7 @@
     },
     "project": {
       "type": "string",
-      "description": "Obra donde trabaja (compatibilidad — igual a obra_name)"
+      "description": "Obra donde trabaja (compatibilidad \u2014 igual a obra_name)"
     },
     "obra_id": {
       "type": "string",
@@ -79,7 +79,7 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         },
         {
@@ -102,6 +102,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
@@ -134,6 +139,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
