@@ -157,6 +157,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
           "$and": [
             {
               "user_condition": {
@@ -185,6 +190,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
@@ -226,6 +236,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
