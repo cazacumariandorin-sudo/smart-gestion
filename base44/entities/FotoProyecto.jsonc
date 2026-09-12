@@ -19,7 +19,7 @@
         "presupuesto",
         "averia"
       ],
-      "description": "Categoría de la foto"
+      "description": "Categor\u00eda de la foto"
     },
     "proyecto_id": {
       "type": "string",
@@ -54,7 +54,7 @@
     },
     "referencia_nombre": {
       "type": "string",
-      "description": "Descripción/nombre del registro relacionado"
+      "description": "Descripci\u00f3n/nombre del registro relacionado"
     },
     "operario_id": {
       "type": "string",
@@ -67,16 +67,16 @@
     "fecha_foto": {
       "type": "string",
       "format": "date",
-      "description": "Fecha en que se tomó la foto"
+      "description": "Fecha en que se tom\u00f3 la foto"
     },
     "hora_foto": {
       "type": "string",
-      "description": "Hora en que se tomó la foto (HH:MM)"
+      "description": "Hora en que se tom\u00f3 la foto (HH:MM)"
     },
     "fecha_hora_subida": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha y hora exacta de subida al sistema (automático)"
+      "description": "Fecha y hora exacta de subida al sistema (autom\u00e1tico)"
     },
     "geolocalizacion": {
       "type": "object",
@@ -95,11 +95,11 @@
     },
     "titulo": {
       "type": "string",
-      "description": "Título o nombre descriptivo de la foto"
+      "description": "T\u00edtulo o nombre descriptivo de la foto"
     },
     "descripcion": {
       "type": "string",
-      "description": "Descripción detallada del contenido"
+      "description": "Descripci\u00f3n detallada del contenido"
     },
     "estado_averia": {
       "type": "string",
@@ -108,7 +108,7 @@
         "en_reparacion",
         "resuelta"
       ],
-      "description": "Estado de la avería (solo si categoría = averia)"
+      "description": "Estado de la aver\u00eda (solo si categor\u00eda = averia)"
     },
     "validada": {
       "type": "boolean",
@@ -117,12 +117,12 @@
     },
     "validada_por": {
       "type": "string",
-      "description": "Email del usuario que validó"
+      "description": "Email del usuario que valid\u00f3"
     },
     "fecha_validacion": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha y hora de validación"
+      "description": "Fecha y hora de validaci\u00f3n"
     },
     "notas": {
       "type": "string",
@@ -131,16 +131,16 @@
     "eliminada": {
       "type": "boolean",
       "default": false,
-      "description": "Si la foto fue marcada como eliminada (borrado lógico). Las vistas la excluyen por defecto; solo un admin puede restaurarla."
+      "description": "Si la foto fue marcada como eliminada (borrado l\u00f3gico). Las vistas la excluyen por defecto; solo un admin puede restaurarla."
     },
     "eliminada_por": {
       "type": "string",
-      "description": "Email del usuario que marcó la foto como eliminada"
+      "description": "Email del usuario que marc\u00f3 la foto como eliminada"
     },
     "fecha_eliminacion": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha y hora del borrado lógico"
+      "description": "Fecha y hora del borrado l\u00f3gico"
     }
   },
   "required": [
@@ -179,6 +179,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         },
@@ -189,7 +194,7 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         },
         {
@@ -226,6 +231,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         },
@@ -249,6 +259,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
