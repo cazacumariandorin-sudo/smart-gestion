@@ -15,7 +15,8 @@
         "cliente_obra",
         "usuario_demo",
         "propietario",
-        "contabilidad"
+        "contabilidad",
+        "administracion"
       ],
       "default": "operario",
       "description": "Rol de acceso al sistema"

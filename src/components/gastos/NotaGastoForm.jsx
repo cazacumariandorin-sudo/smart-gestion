@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useAuth } from '@/lib/AuthContext';
+import { useUserRole } from '@/lib/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AutoCorrectInput from '@/components/ui/AutoCorrectInput';
@@ -20,7 +21,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const CATEGORIAS = ['combustible', 'comida', 'material', 'peaje', 'parking', 'otros'];
-const defaultForm = { categoria: '', concepto: '', importe: '', nif_comercio: '', nombre_comercio: '', fecha_documento: '', codigo_validacion_fiscal: '', numero_factura: '', localidad: '', forma_pago_documento: '', obra_id: '', obra_name: '', obra_tipo: '', notas: '', justificacion_tardia: '' };
+const defaultForm = { origen_pago: 'medios_propios', categoria: '', concepto: '', importe: '', nif_comercio: '', nombre_comercio: '', fecha_documento: '', codigo_validacion_fiscal: '', numero_factura: '', localidad: '', forma_pago_documento: '', obra_id: '', obra_name: '', obra_tipo: '', notas: '', justificacion_tardia: '' };
 
 async function generarNumeroNota() {
   const year = new Date().getFullYear();
@@ -51,6 +52,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [precisaPrecision, setPrecisaPrecision] = useState(false);
   const [precisionMotivo, setPrecisionMotivo] = useState('');
   const { user } = useAuth();
+  const { isAdmin: isRoleAdmin, isGerencia, isAdministracion } = useUserRole();
+  const puedeCorporativo = isRoleAdmin || isGerencia || isAdministracion;
 
   // Resuelve el operario efectivo delante de cualquier hook que lo consuma
   // (evita TDZ: el array de dependencias del useEffect de sugerencia lo lee en render).
@@ -150,11 +153,11 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     if (dup && !posibleDup) { setPosibleDup(dup); setShowDupAlert(true); return; }
     const { numero_nota, numero_secuencia } = await generarNumeroNota();
     const hoy = format(new Date(), 'yyyy-MM-dd');
-    createMutation.mutate({ numero_nota, numero_secuencia, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id: form.obra_id || null, obra_name: form.obra_name || null, obra_tipo: form.obra_tipo || null, estado: 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: esGastoTardio, justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null, es_posible_duplicado: !!dup, duplicado_confirmado: !!posibleDup, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo, ...extraFields });
+    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id: form.obra_id || null, obra_name: form.obra_name || null, obra_tipo: form.obra_tipo || null, estado: 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: esGastoTardio, justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null, es_posible_duplicado: !!dup, duplicado_confirmado: !!posibleDup, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo, ...extraFields });
   };
 
   const handleSubmit = () => {
-    if (!operarioEfectivo?.id) { toast.error('No se pudo identificar al operario'); return; }
+    if (!operarioEfectivo?.id && form.origen_pago === 'medios_propios') { toast.error('No se pudo identificar al operario'); return; }
     if (!form.categoria || !form.importe) { toast.error('Categoría e importe son obligatorios'); return; }
     if (esGastoTardio && !form.justificacion_tardia?.trim()) { toast.error('Justifica el retraso del gasto'); return; }
     if (!form.obra_id) { setPendingSave(true); setShowObraModal(true); return; }
@@ -165,7 +168,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     setForm(f => ({ ...f, obra_id, obra_name, obra_tipo })); setShowObraModal(false); setPendingSave(false);
     if (!operarioEfectivo?.id) { toast.error('No hay operario vinculado'); return; }
     const dup = checkDuplicado(); const { numero_nota, numero_secuencia } = await generarNumeroNota(); const hoy = format(new Date(), 'yyyy-MM-dd');
-    createMutation.mutate({ numero_nota, numero_secuencia, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id, obra_name, obra_tipo, estado: 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: esGastoTardio, justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null, es_posible_duplicado: !!dup, duplicado_confirmado: false, aviso_obra_mostrado: true, sin_obra: false, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo });
+    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id, obra_name, obra_tipo, estado: 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: esGastoTardio, justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null, es_posible_duplicado: !!dup, duplicado_confirmado: false, aviso_obra_mostrado: true, sin_obra: false, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo });
   };
 
   const handleContinuarSinObra = () => { setShowObraModal(false); setPendingSave(false); doGuardar({ sin_obra: true, sin_obra_timestamp: new Date().toISOString(), aviso_obra_mostrado: true }); };
@@ -206,6 +209,21 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
                   <MobileSelect value={operarioSeleccionado || ''} onValueChange={v => setOperarioSeleccionado(v || null)} placeholder={`${operario?.name || 'Operario propio'} (por defecto)`}>
                     {operarios.filter(op => op.active !== false).map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
                   </MobileSelect>
+                </div>
+              )}
+              {puedeCorporativo && (
+                <div className="space-y-1.5 p-3 bg-cyan-50 dark:bg-cyan-950/30 rounded-lg border border-cyan-200 dark:border-cyan-800">
+                  <Label className="text-xs flex items-center gap-1.5 text-cyan-700 dark:text-cyan-300">Origen del pago</Label>
+                  <MobileSelect value={form.origen_pago} onValueChange={v => setField('origen_pago', v)} placeholder="Origen del pago">
+                    <MobileSelectItem value="medios_propios">Medios propios (reembolsable)</MobileSelectItem>
+                    <MobileSelectItem value="medio_empresa">Medio de empresa (no reembolsable)</MobileSelectItem>
+                    <MobileSelectItem value="credito_proveedor">Crédito proveedor (factura a crédito)</MobileSelectItem>
+                  </MobileSelect>
+                  {form.origen_pago !== 'medios_propios' && (
+                    <p className="text-[10px] text-cyan-700 dark:text-cyan-300">
+                      Este gasto NO genera reembolso al técnico. Se registra solo para seguimiento contable. El operario es opcional.
+                    </p>
+                  )}
                 </div>
               )}
               {(captureData?.archivos?.length || captureData?.preview) ? (

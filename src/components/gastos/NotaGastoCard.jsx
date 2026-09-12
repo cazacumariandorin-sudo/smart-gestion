@@ -70,6 +70,11 @@ export default function NotaGastoCard({ nota, onVer }) {
                 🔍 Precisa precisión
               </Badge>
             )}
+            {nota.origen_pago && nota.origen_pago !== 'medios_propios' && (
+              <Badge className="text-[10px] bg-cyan-100 text-cyan-700 border-cyan-200" title={nota.origen_pago === 'medio_empresa' ? 'Pagado con medio de empresa (no reembolsable)' : 'Factura a crédito de proveedor'}>
+                {nota.origen_pago === 'medio_empresa' ? '🏢 Medio empresa' : '📑 Crédito prov.'}
+              </Badge>
+            )}
             <ConciliacionBadge nota={nota} />
             {nota.forma_pago_documento && (
               <Badge className="text-[10px] bg-indigo-100 text-indigo-700 border-indigo-200">

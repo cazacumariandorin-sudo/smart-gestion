@@ -45,7 +45,7 @@ const ESTADO_LABELS = {
 export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operarios = [] }) {
   const qc = useQueryClient();
   const { user } = useAuth();
-  const { isAdmin: roleAdmin, isGerencia, isDirComercial } = useUserRole();
+  const { isAdmin: roleAdmin, isGerencia, isDirComercial, isAdministracion } = useUserRole();
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(false);
@@ -53,7 +53,8 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
   const [metodoPago, setMetodoPago] = useState('transferencia');
   const [importePago, setImportePago] = useState('');
 
-  const canManage = roleAdmin || isGerencia || isDirComercial;
+  const canManage = roleAdmin || isGerencia || isDirComercial || isAdministracion;
+  const canAdministrarPago = roleAdmin || isAdministracion;
   const esPropioCreador = nota?.created_by === user?.email;
 
   const invalidar = () => {
@@ -142,6 +143,7 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
       operario_name: nota.operario_name || '',
       localidad: nota.localidad || '',
       forma_pago_documento: nota.forma_pago_documento || '',
+      origen_pago: nota.origen_pago || 'medios_propios',
     });
     setImportePago(String(nota.importe || ''));
     setEditando(true);
@@ -186,6 +188,16 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                 <div className="space-y-1">
                   <Label className="text-xs">Nº Secuencia (XX) — Solo admin</Label>
                   <Input type="number" value={form.numero_secuencia} onChange={e => setForm(f => ({ ...f, numero_secuencia: e.target.value }))} />
+                </div>
+              )}
+              {canAdministrarPago && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Origen del pago</Label>
+                  <MobileSelect value={form.origen_pago || 'medios_propios'} onValueChange={v => setForm(f => ({ ...f, origen_pago: v }))} placeholder="Origen del pago">
+                    <MobileSelectItem value="medios_propios">Medios propios (reembolsable)</MobileSelectItem>
+                    <MobileSelectItem value="medio_empresa">Medio de empresa (no reembolsable)</MobileSelectItem>
+                    <MobileSelectItem value="credito_proveedor">Crédito proveedor</MobileSelectItem>
+                  </MobileSelect>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
@@ -254,6 +266,7 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                 <div><span className="text-muted-foreground text-xs">Obra</span><p className="font-medium">{nota.obra_name || '—'}</p></div>
                 <div><span className="text-muted-foreground text-xs">Localidad</span><p className="font-medium">{nota.localidad || '—'}</p></div>
                 <div><span className="text-muted-foreground text-xs">Forma de pago</span><p className="font-medium">{nota.forma_pago_documento || '—'}</p></div>
+                <div><span className="text-muted-foreground text-xs">Origen del pago</span><p className="font-medium">{nota.origen_pago === 'medio_empresa' ? 'Medio de empresa (no reembolsable)' : nota.origen_pago === 'credito_proveedor' ? 'Crédito proveedor' : 'Medios propios (reembolsable)'}</p></div>
               </div>
               {nota.concepto && <div><span className="text-muted-foreground text-xs">Concepto</span><p>{nota.concepto}</p></div>}
               {nota.notas_admin && <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 p-2 border border-amber-200"><span className="text-xs text-amber-700 font-semibold">Nota admin:</span><p className="text-xs mt-0.5">{nota.notas_admin}</p></div>}
@@ -299,8 +312,8 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
             <CambiarCicloGasto nota={nota} />
           )}
 
-          {/* Formulario de pago — solo admin cuando estado es en_administracion */}
-          {!editando && roleAdmin && nota.estado === 'en_administracion' && (
+          {/* Formulario de pago — admin o administracion cuando estado es en_administracion */}
+          {!editando && canAdministrarPago && nota.estado === 'en_administracion' && (
             <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 space-y-3">
               <p className="text-xs font-semibold text-purple-700">Registrar pago</p>
               <div className="grid grid-cols-2 gap-3">
@@ -384,8 +397,8 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                 </Button>
               )}
 
-              {/* Enviar a administración — solo admin cuando ya está aprobado */}
-              {roleAdmin && nota.estado === 'aprobado_gerencia' && (
+              {/* Enviar a administración — admin o administracion cuando ya está aprobado */}
+              {canAdministrarPago && nota.estado === 'aprobado_gerencia' && (
                 <Button size="sm" variant="outline" className="gap-1 text-purple-700 border-purple-300" onClick={() => cambiarEstado('en_administracion')} disabled={loading}>
                   <Send className="w-3.5 h-3.5" /> Enviar a Administración
                 </Button>
