@@ -15,11 +15,12 @@ import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Loader2 } from 'lucide-react';
 
-const ROLES = ['admin', 'gerencia', 'director_comercial', 'técnico', 'jefe_obra', 'operario', 'control_horario', 'cliente_obra', 'contabilidad'];
+const ROLES = ['admin', 'gerencia', 'administracion', 'director_comercial', 'técnico', 'jefe_obra', 'operario', 'control_horario', 'cliente_obra', 'contabilidad'];
 
 const ROLE_LABELS = {
   admin: 'ADMIN',
   gerencia: 'GERENCIA',
+  administracion: 'ADMINISTRACIÓN',
   director_comercial: 'DIRECTOR COMERCIAL',
   técnico: 'TÉCNICO',
   jefe_obra: 'JEFE OBRA',
