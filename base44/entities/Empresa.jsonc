@@ -91,6 +91,11 @@
           "user_condition": {
             "role": "gerencia"
           }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
         }
       ]
     },
@@ -109,6 +114,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
@@ -153,6 +163,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         }
       ]
