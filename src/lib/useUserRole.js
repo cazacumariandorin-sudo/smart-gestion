@@ -59,7 +59,7 @@ export function useUserRole() {
       control_horario:  ['dashboard', 'control-horario', 'work-orders', 'chat'],
       cliente_obra:     ['dashboard', 'informe-obras', 'chat'],
       contabilidad:     ['economico-dashboard', 'notas-gastos', 'orders', 'conciliacion'],
-      administracion:   ['dashboard', 'economico-dashboard', 'notas-gastos', 'orders', 'nominas', 'presupuestos'],
+      administracion:   ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'obras-civiles', 'solar', 'materials', 'drawings', 'manuales', 'informe-obras', 'operarios', 'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos', 'apuntes-horario', 'calendario-vacaciones', 'control-horario', 'solar-pedidos', 'users', 'datos-sensibles', 'inventario', 'fabricantes', 'demo-users', 'admin-backup', 'nominas', 'presupuestos', 'parte-diario', 'economico-dashboard', 'trabajos-extras', 'material-pendiente'],
     };
 
     return (perms[role] || []).includes(module);
