@@ -35,6 +35,7 @@ export function useUserRole() {
   const isControlHorarioOnly = role === 'control_horario' && !isAdmin;
   const isClienteObra = role === 'cliente_obra';
   const isContabilidad = role === 'contabilidad';
+  const isAdministracion = role === 'administracion';
 
   // Check if demo account is expired
   const isDemoExpired = isDemo && user?.demo_expires_at
@@ -58,10 +59,11 @@ export function useUserRole() {
       control_horario:  ['dashboard', 'control-horario', 'work-orders', 'chat'],
       cliente_obra:     ['dashboard', 'informe-obras', 'chat'],
       contabilidad:     ['economico-dashboard', 'notas-gastos', 'orders', 'conciliacion'],
+      administracion:   ['dashboard', 'economico-dashboard', 'notas-gastos', 'orders', 'nominas', 'presupuestos'],
     };
 
     return (perms[role] || []).includes(module);
   };
 
-  return { user, role, isAdmin, isDemo, isDemoExpired, isGerencia, isJefeObra, isTecnico, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, isContabilidad, canAccess, isLoading: isLoadingAuth, isSimulating, simulatedRole };
+  return { user, role, isAdmin, isDemo, isDemoExpired, isGerencia, isJefeObra, isTecnico, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, isContabilidad, isAdministracion, canAccess, isLoading: isLoadingAuth, isSimulating, simulatedRole };
 }

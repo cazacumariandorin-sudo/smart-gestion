@@ -34,7 +34,15 @@ Deno.serve(async (req) => {
       estado: { $in: ['borrador', 'pendiente'] },
     });
 
-    const delMes = (registros || []).filter(r => (r.fecha_creacion_real || r.created_date || '').startsWith(cicloMes));
+    // Solo los registros reembolsables (medios_propios) forman ciclo de liquidación personal.
+    // medio_empresa y credito_proveedor NO se liquidan al técnico: la empresa ya los pagó /
+    // son a crédito del proveedor. Quedan visibles en informes de contabilidad, pero fuera
+    // del NotaMensualGasto de reembolso.
+    const delMes = (registros || []).filter(r =>
+      (r.fecha_creacion_real || r.created_date || '').startsWith(cicloMes)
+      && r.origen_pago !== 'medio_empresa'
+      && r.origen_pago !== 'credito_proveedor'
+    );
 
     if (delMes.length === 0) {
       return Response.json({ success: true, message: 'Sin registros que cerrar', cicloMes, finPeriodo });

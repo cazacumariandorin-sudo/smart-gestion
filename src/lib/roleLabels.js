@@ -7,4 +7,6 @@ export const ROLE_LABELS = {
   control_horario:    { label: 'Control Horario',  className: 'bg-purple-100 text-purple-700 border-purple-200' },
   cliente_obra:       { label: 'Cliente Obra',     className: 'bg-orange-100 text-orange-700 border-orange-200' },
   usuario_demo:       { label: 'Demo',             className: 'bg-gray-100 text-gray-600 border-gray-200' },
+  administracion:     { label: 'Administración',   className: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+  contabilidad:       { label: 'Contabilidad',     className: 'bg-pink-100 text-pink-700 border-pink-200' },
 };
