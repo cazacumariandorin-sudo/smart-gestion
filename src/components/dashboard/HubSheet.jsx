@@ -2,10 +2,17 @@ import { Drawer } from 'vaul';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
+import { useUserRole } from '@/lib/useUserRole';
 
 export default function HubSheet({ hub, open, onOpenChange }) {
+  const { canAccess } = useUserRole();
   if (!hub) return null;
   const Icon = hub.icon;
+  // Mismo filtro que Sidebar.jsx: solo los items a los que el rol actual
+  // tiene acceso real. Antes se pintaban TODOS los items del hub sin
+  // comprobar nada, filtrando solo por el módulo del hub — esto dejaba ver
+  // (a nivel visual) submenus a los que el usuario no debería tener acceso.
+  const itemsVisibles = (hub.items || []).filter(i => i.module === null || canAccess(i.module));
 
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
@@ -29,7 +36,7 @@ export default function HubSheet({ hub, open, onOpenChange }) {
 
           {/* Items */}
           <div className="overflow-y-auto flex-1 px-4 py-3 space-y-2">
-            {hub.items.map((item) => {
+            {itemsVisibles.map((item) => {
               const IIcon = item.icon;
               return (
                 <Link
