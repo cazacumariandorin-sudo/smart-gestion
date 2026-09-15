@@ -52,6 +52,10 @@
       "type": "string",
       "description": "Forma de pago impresa en el justificante (EFECTIVO, TARJETA, TRANSFERENCIA, etc.). Texto libre extra\u00eddo por OCR+IA; independiente del campo metodo_pago (reembolso)."
     },
+    "hora_documento": {
+      "type": "string",
+      "description": "Hora impresa en el justificante (HH:MM), extra\u00edda por OCR+IA. Clave de detecci\u00f3n de duplicados: dos peajes de la misma autopista, mismo d\u00eda, mismo importe y mismo comercio pero a HORA distinta son documentos distintos (tramos sucesivos), no duplicados."
+    },
     "origen_pago": {
       "type": "string",
       "enum": [
@@ -80,11 +84,13 @@
         "borrador",
         "pendiente",
         "aprobado_gerencia",
+        "registrado",
         "en_administracion",
         "pagada",
         "rechazada"
       ],
-      "type": "string"
+      "type": "string",
+      "description": "borrador\u2192pendiente\u2192aprobado_gerencia\u2192en_administracion\u2192pagada (flujo reembolso, medios_propios). 'registrado' = entrada directa para facturas recibidas por la empresa (medio_empresa/credito_proveedor): nace aqu\u00ed sin pasar por borrador/aprobaci\u00f3n, pendiente de que contabilidad lo analice; luego promueve a en_administracion. rechazada cancela."
     },
     "fecha_creacion_real": {
       "format": "date",
@@ -162,7 +168,7 @@
     },
     "ciclo_mes": {
       "type": "string",
-      "description": "Clave mes YYYY-MM del ciclo al que pertenece (denormalizada de NotaMensualGasto.ciclo_mes para filtros r\u00e1pidos)"
+      "description": "Clave mes YYYY-MM del ciclo al que pertenece (denormalizada de NotaMensualGasto.ciclo_mes para filtros r\u00e1\u00e1pidos)"
     },
     "orden_en_ciclo": {
       "type": "integer",
@@ -286,6 +292,25 @@
       "type": "string",
       "format": "date-time",
       "description": "Timestamp ISO del cierre de la discrepancia."
+    },
+    "descargado_contabilidad": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si este documento ya se incluy\u00f3 en una descarga en bloque (ZIP/Excel) entregada a contabilidad. Evita duplicar trabajo de la gestor\u00eda."
+    },
+    "fecha_descarga": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO en que se incluy\u00f3 en una descarga en bloque."
+    },
+    "descargado_por": {
+      "type": "string",
+      "description": "Email de quien gener\u00f3 la descarga en bloque que incluy\u00f3 este documento."
+    },
+    "consolidado_ciclo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si este documento ya forma parte de una NotaMensualGasto cerrada. Dato derivable de nota_mensual_id pero se explicita como flag de lectura r\u00e1pida para el sem\u00e1foro de trazabilidad."
     }
   },
   "required": [

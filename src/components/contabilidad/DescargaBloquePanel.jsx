@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Loader2, Download, FileSpreadsheet, Package, AlertTriangle, CheckCircle2, ExternalLink } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 /**
@@ -18,6 +19,7 @@ export default function DescargaBloquePanel({ rango }) {
   const puede = isContabilidad || isAdministracion || isGerencia || isAdmin;
   const [tipoDoc, setTipoDoc] = useState('ambos');
   const [operarioFiltro, setOperarioFiltro] = useState('');
+  const [incluirDescargados, setIncluirDescargados] = useState(false);
   const [generando, setGenerando] = useState(false);
   const [resultado, setResultado] = useState(null);
 
@@ -32,6 +34,7 @@ export default function DescargaBloquePanel({ rango }) {
         etiqueta: rango.etiqueta,
         tipo_doc: tipoDoc,
         operario_id: operarioFiltro || undefined,
+        incluir_descargados: incluirDescargados,
       });
       const data = res?.data || res;
       if (data?.success === false) throw new Error(data?.error || 'Error desconocido');
@@ -76,6 +79,14 @@ export default function DescargaBloquePanel({ rango }) {
             </MobileSelect>
             <p className="text-[10px] text-muted-foreground">Si necesitas filtrar por un operario concreto, usa la pestaña Conciliación para identificarlo; el troceo automático agrupa por operario cuando el volumen es alto.</p>
           </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 p-2 rounded-md bg-muted/40">
+          <div>
+            <Label className="text-xs">Incluir ya descargados</Label>
+            <p className="text-[10px] text-muted-foreground">Por defecto se excluyen los documentos ya entregados a contabilidad (marcados como descargados). Actívalo solo para reenviar un lote (la gestoría perdió el archivo, etc.).</p>
+          </div>
+          <Switch checked={incluirDescargados} onCheckedChange={setIncluirDescargados} />
         </div>
 
         <div className="flex justify-end">

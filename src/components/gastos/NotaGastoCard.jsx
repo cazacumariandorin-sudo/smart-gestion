@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Eye, Lock, CheckCircle2, Clock, XCircle, AlertTriangle, FileText, Image } from 'lucide-react';
 import ConciliacionBadge from '@/components/conciliacion/ConciliacionBadge';
+import SemaforoTrazabilidadBadge from '@/components/contabilidad/SemaforoTrazabilidadBadge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -76,6 +77,7 @@ export default function NotaGastoCard({ nota, onVer }) {
               </Badge>
             )}
             <ConciliacionBadge nota={nota} />
+            <SemaforoTrazabilidadBadge doc={nota} showLabel={false} />
             {nota.forma_pago_documento && (
               <Badge className="text-[10px] bg-indigo-100 text-indigo-700 border-indigo-200">
                 💳 {nota.forma_pago_documento}

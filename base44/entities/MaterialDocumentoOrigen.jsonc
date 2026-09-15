@@ -104,6 +104,20 @@
     "fecha_resolucion": {
       "type": "string",
       "format": "date-time"
+    },
+    "descargado_contabilidad": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si este documento ya se incluy\u00f3 en una descarga en bloque (ZIP/Excel) entregada a contabilidad."
+    },
+    "fecha_descarga": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO en que se incluy\u00f3 en una descarga en bloque."
+    },
+    "descargado_por": {
+      "type": "string",
+      "description": "Email de quien gener\u00f3 la descarga en bloque que incluy\u00f3 este documento."
     }
   },
   "required": [

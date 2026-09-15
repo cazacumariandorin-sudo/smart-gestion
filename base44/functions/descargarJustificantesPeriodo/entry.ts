@@ -40,7 +40,7 @@ export default async function(req) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { inicio, fin, tipo_doc = 'ambos', operario_id, etiqueta } = body;
+    const { inicio, fin, tipo_doc = 'ambos', operario_id, etiqueta, incluir_descargados = false } = body;
     if (!inicio || !fin) return Response.json({ error: 'inicio y fin requeridos (YYYY-MM-DD)' }, { status: 400 });
 
     const quiereGasto = tipo_doc === 'registro' || tipo_doc === 'ambos';
@@ -49,13 +49,14 @@ export default async function(req) {
     // 1. Recopilar registros
     let gastos = [];
     let documentos = [];
+    const noDescargados = incluir_descargados ? {} : { descargado_contabilidad: { $ne: true } };
     if (quiereGasto) {
-      const f = { estado: { $in: ['aprobado_gerencia', 'en_administracion', 'pagada'] }, fecha_documento: { $gte: inicio, $lte: fin } };
+      const f = { estado: { $in: ['aprobado_gerencia', 'registrado', 'en_administracion', 'pagada'] }, fecha_documento: { $gte: inicio, $lte: fin }, ...noDescargados };
       if (operario_id) f.operario_id = operario_id;
       gastos = await base44.asServiceRole.entities.RegistroGasto.filter(f, '-fecha_documento', 500);
     }
     if (quiereDoc) {
-      const f = { estado: 'procesado', fecha_documento: { $gte: inicio, $lte: fin } };
+      const f = { estado: 'procesado', fecha_documento: { $gte: inicio, $lte: fin }, ...noDescargados };
       if (operario_id) f.operario_id = operario_id;
       documentos = await base44.asServiceRole.entities.MaterialDocumentoOrigen.filter(f, '-fecha_documento', 500);
     }
@@ -196,6 +197,15 @@ export default async function(req) {
 
     const xlsxBuf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
     const indiceUrl = await subirArchivo(base44, xlsxBuf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', `INDICE_${etiquetaSafe}.xlsx`);
+
+    // 6. Marcar documentos incluidos en un ZIP como descargados (evita reenvíos)
+    if (!incluir_descargados) {
+      const now = new Date().toISOString();
+      const gastoIds = items.filter(it => it.tipo === 'gasto' && it._zip_nombre).map(it => it.id);
+      const docIds = items.filter(it => it.tipo === 'documento' && it._zip_nombre).map(it => it.id);
+      if (gastoIds.length) await base44.asServiceRole.entities.RegistroGasto.updateMany({ id: { $in: gastoIds } }, { $set: { descargado_contabilidad: true, fecha_descarga: now, descargado_por: user.email } }).catch(() => {});
+      if (docIds.length) await base44.asServiceRole.entities.MaterialDocumentoOrigen.updateMany({ id: { $in: docIds } }, { $set: { descargado_contabilidad: true, fecha_descarga: now, descargado_por: user.email } }).catch(() => {});
+    }
 
     return Response.json({
       success: true,

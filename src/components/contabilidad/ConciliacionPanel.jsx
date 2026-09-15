@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Loader2, Building2, ClipboardCheck, Search, FileText, Package } from 'lucide-react';
 import ConciliacionBadge from '@/components/conciliacion/ConciliacionBadge';
+import SemaforoTrazabilidadBadge from '@/components/contabilidad/SemaforoTrazabilidadBadge';
 import ConciliarDialog from '@/components/conciliacion/ConciliarDialog';
 
 const ESTADOS_VALIDOS_GASTO = ['aprobado_gerencia', 'en_administracion', 'pagada'];
@@ -139,6 +140,7 @@ export default function ConciliacionPanel({ rango, periodoKey }) {
                   <span className="font-mono text-xs font-bold text-primary">{doc.numero_nota || doc.numero_documento || '—'}</span>
                   <Badge className="text-[10px] bg-slate-100 text-slate-600 border-slate-200">{doc.estado}</Badge>
                   <ConciliacionBadge nota={doc} />
+                  <SemaforoTrazabilidadBadge doc={doc} showLabel={false} />
                 </div>
                 <p className="text-sm font-medium truncate">
                   {doc.nombre_comercio || doc.proveedor_nombre || '—'}
