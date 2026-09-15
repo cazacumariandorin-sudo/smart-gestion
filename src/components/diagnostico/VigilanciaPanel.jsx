@@ -116,23 +116,25 @@ export default function VigilanciaPanel({ esGerencia }) {
 
   return (
     <div className="space-y-3">
-      {/* Cabecera de control */}
-      <div className="flex items-center justify-between gap-2">
+      {/* Cabecera de control — en móvil se apila y los botones muestran solo
+          icono (con flex-wrap de red de seguridad) para que quepan sin
+          desbordar; en pantallas sm+ se ve el texto completo en una fila. */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="flex items-center gap-2 text-xs">
           <Badge variant={activas.length >= limite ? 'destructive' : 'secondary'}>
             {activas.length}/{limite} activas
           </Badge>
           <span className="text-muted-foreground">Máx. 3 simultáneas · máx. 48h</span>
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           <Button size="sm" variant="outline" onClick={() => setShowInformePeriodo(true)}>
-            <CalendarRange className="w-3.5 h-3.5 mr-1" /> Informe de periodo
+            <CalendarRange className="w-3.5 h-3.5 sm:mr-1" /> <span className="hidden sm:inline">Informe de periodo</span>
           </Button>
           <Button size="sm" variant="outline" onClick={() => setModoComparativa(true)} disabled={activas.length < 2}>
-            <GitCompare className="w-3.5 h-3.5 mr-1" /> Comparar
+            <GitCompare className="w-3.5 h-3.5 sm:mr-1" /> <span className="hidden sm:inline">Comparar</span>
           </Button>
           <Button size="sm" onClick={() => setShowForm(s => !s)} disabled={activas.length >= limite}>
-            <Play className="w-3.5 h-3.5 mr-1" /> Activar
+            <Play className="w-3.5 h-3.5 sm:mr-1" /> <span className="hidden sm:inline">Activar</span>
           </Button>
         </div>
       </div>
