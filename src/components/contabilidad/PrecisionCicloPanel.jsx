@@ -1,0 +1,188 @@
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { useUserRole } from '@/lib/useUserRole';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
+import { Loader2, SearchCheck, AlertTriangle, CheckCircle2, RefreshCw, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
+
+/**
+ * Precisión de ciclo — re-examina TODOS los RegistroGasto del periodo (no solo
+ * los marcados precisa_precision). Identifica candidatos con campos clave
+ * faltantes, re-ejecuta OCR y devuelve propuestas. Gerencia/administración
+ * revisa y aplica las correcciones seleccionadas.
+ *
+ * Acceso: gerencia, administracion, admin, propietario.
+ */
+export default function PrecisionCicloPanel({ rango }) {
+  const { isGerencia, isAdministracion, isAdmin } = useUserRole();
+  const qc = useQueryClient();
+  const puede = isGerencia || isAdministracion || isAdmin;
+
+  const [categoria, setCategoria] = useState('');
+  const [analizando, setAnalizando] = useState(false);
+  const [candidatos, setCandidatos] = useState([]);
+  const [seleccion, setSeleccion] = useState({}); // { [id]: true }
+  const [aplicando, setAplicando] = useState(false);
+  const [resumen, setResumen] = useState(null);
+
+  const analizar = async () => {
+    if (!puede) { toast.error('Sin permiso'); return; }
+    setAnalizando(true);
+    setCandidatos([]);
+    setSeleccion({});
+    setResumen(null);
+    try {
+      const res = await base44.functions.invoke('precisionCiclo', {
+        inicio: rango.inicio,
+        fin: rango.fin,
+        categoria: categoria || undefined,
+      });
+      const data = res?.data || res;
+      if (data?.success === false) throw new Error(data?.error || 'Error');
+      setCandidatos(data.candidatos || []);
+      // Pre-seleccionar todos los de discrepancia
+      const sel = {};
+      (data.candidatos || []).forEach(c => { if (c.estado === 'discrepancia') sel[c.id] = true; });
+      setSeleccion(sel);
+      setResumen({ discrepancias: data.discrepancias, confirmados: data.confirmados, total: data.total_candidatos, has_more: data.has_more });
+      if (!data.candidatos?.length) toast.info(data.mensaje || 'Sin candidatos');
+      else toast.success(`${data.discrepancias} con propuestas, ${data.confirmados} confirmados`);
+    } catch (e) {
+      toast.error(`Error: ${e?.message || 'No se pudo analizar'}`);
+    } finally {
+      setAnalizando(false);
+    }
+  };
+
+  const toggle = (id) => setSeleccion(s => ({ ...s, [id]: !s[id] }));
+
+  const aplicarSeleccionados = async () => {
+    const seleccionados = candidatos.filter(c => c.estado === 'discrepancia' && seleccion[c.id] && c.datos_propuestos);
+    if (!seleccionados.length) { toast.error('Selecciona al menos un candidato con propuestas'); return; }
+    setAplicando(true);
+    try {
+      const now = new Date().toISOString();
+      const updates = seleccionados.map(c => {
+        const d = c.datos_propuestos;
+        const fields = {};
+        c.diffs.forEach(diff => {
+          // importe y fecha_documento como tipos nativos
+          if (diff.campo === 'importe') fields.importe = Number(d.importe);
+          else if (diff.campo === 'fecha_documento') fields.fecha_documento = d.fecha_documento;
+          else fields[diff.campo] = d[diff.campo];
+        });
+        fields.precisa_precision = false;
+        fields.precision_revisado_por = 'precisión_ciclo';
+        fields.precision_fecha = now;
+        fields.precision_modelo_usado = 'automatic';
+        return { id: c.id, ...fields };
+      });
+      await base44.entities.RegistroGasto.bulkUpdate(updates);
+      // Marcar en la UI como aplicados
+      const appliedIds = new Set(seleccionados.map(c => c.id));
+      setCandidatos(cs => cs.map(c => appliedIds.has(c.id) ? { ...c, estado: 'aplicado' } : c));
+      setSeleccion({});
+      qc.invalidateQueries({ queryKey: ['conciliacion-gastos'] });
+      qc.invalidateQueries({ queryKey: ['notas-gastos'] });
+      toast.success(`${updates.length} registro(s) actualizados`);
+    } catch (e) {
+      toast.error(`Error al aplicar: ${e?.message || 'fallo'}`);
+    } finally {
+      setAplicando(false);
+    }
+  };
+
+  if (!puede) {
+    return <Card className="p-8 text-center text-muted-foreground text-sm">Solo gerencia, administración o admin pueden ejecutar la precisión de ciclo.</Card>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center gap-2 text-sm">
+          <SearchCheck className="w-4 h-4 text-primary" />
+          <span className="font-medium">Precisión de ciclo — periodo {rango.etiqueta}</span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Re-examina los gastos del periodo con campos clave faltantes (numero de factura, NIF, localidad, código fiscal...) ejecutando el OCR de nuevo sobre el archivo guardado. Devuelve propuestas de relleno/corrección; tú decides cuáles aplicar. No toca los registros que ya están completos.
+        </p>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Categoría (opcional)</label>
+            <MobileSelect value={categoria} onValueChange={setCategoria} placeholder="Todas" triggerClassName="w-44">
+              <MobileSelectItem value="">Todas</MobileSelectItem>
+              <MobileSelectItem value="material">Material</MobileSelectItem>
+              <MobileSelectItem value="combustible">Combustible</MobileSelectItem>
+              <MobileSelectItem value="peaje">Peaje</MobileSelectItem>
+              <MobileSelectItem value="parking">Parking</MobileSelectItem>
+              <MobileSelectItem value="comida">Comida</MobileSelectItem>
+              <MobileSelectItem value="otros">Otros</MobileSelectItem>
+            </MobileSelect>
+          </div>
+          <Button onClick={analizar} disabled={analizando} className="gap-2">
+            {analizando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {analizando ? 'Analizando…' : 'Analizar ciclo'}
+          </Button>
+        </div>
+      </Card>
+
+      {resumen && (
+        <div className="flex flex-wrap gap-3 text-sm">
+          <span className="text-muted-foreground">{resumen.total} candidatos analizados</span>
+          <span className="text-amber-600 flex items-center gap-1"><AlertTriangle className="w-4 h-4" /> {resumen.discrepancias} con propuestas</span>
+          <span className="text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> {resumen.confirmados} confirmados</span>
+          {resumen.has_more && <span className="text-xs text-muted-foreground">· quedan más (límite por ejecución: 20 — vuelve a analizar)</span>}
+        </div>
+      )}
+
+      {candidatos.length > 0 && (
+        <>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">Marca los candidatos cuyas propuestas quieras aplicar. Los confirmados/sin-dato no se aplican (no aportan cambios).</p>
+            <Button onClick={aplicarSeleccionados} disabled={aplicando || !Object.values(seleccion).some(Boolean)} size="sm" className="gap-2">
+              {aplicando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              {aplicando ? 'Aplicando…' : 'Aplicar seleccionados'}
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {candidatos.map(c => (
+              <Card key={c.id} className="p-3 space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {c.estado === 'discrepancia' && (
+                    <Checkbox checked={!!seleccion[c.id]} onCheckedChange={() => toggle(c.id)} />
+                  )}
+                  <span className="font-mono text-xs font-bold text-primary">{c.numero_nota || '—'}</span>
+                  <span className="text-sm font-medium">{c.nombre_comercio || '—'}</span>
+                  <span className="text-xs text-muted-foreground">{c.fecha_documento} · {(c.importe || 0).toFixed(2)} €</span>
+                  {c.categoria && <Badge className="text-[10px] bg-slate-100 text-slate-600">{c.categoria}</Badge>}
+                  {c.estado === 'discrepancia' && <Badge className="text-[10px] bg-amber-100 text-amber-700 border-amber-200"><AlertTriangle className="w-3 h-3 mr-1" />Propuestas</Badge>}
+                  {c.estado === 'confirmado' && <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border-emerald-200"><CheckCircle2 className="w-3 h-3 mr-1" />Confirmado</Badge>}
+                  {c.estado === 'error' && <Badge className="text-[10px] bg-red-100 text-red-700 border-red-200">Error OCR</Badge>}
+                  {c.estado === 'aplicado' && <Badge className="text-[10px] bg-blue-100 text-blue-700 border-blue-200"><CheckCircle2 className="w-3 h-3 mr-1" />Aplicado</Badge>}
+                </div>
+                {c.estado === 'discrepancia' && c.diffs?.length > 0 && (
+                  <div className="pl-7 space-y-1">
+                    {c.diffs.map((d, i) => (
+                      <div key={i} className="text-xs flex items-center gap-2">
+                        <span className="font-medium text-muted-foreground w-40 shrink-0">{d.campo}</span>
+                        <span className="line-through text-muted-foreground">{d.actual}</span>
+                        <span className="text-muted-foreground">→</span>
+                        <span className="text-primary font-medium">{d.propuesto}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {c.estado === 'error' && <p className="pl-7 text-xs text-red-600">{c.error}</p>}
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

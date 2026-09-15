@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import ConciliacionPanel from '@/components/contabilidad/ConciliacionPanel';
 import NotasCerradasPanel from '@/components/contabilidad/NotasCerradasPanel';
+import FacturacionEmitidaPanel from '@/components/contabilidad/FacturacionEmitidaPanel';
 import SubidaMasivaPanel from '@/components/contabilidad/SubidaMasivaPanel';
 import DescargaBloquePanel from '@/components/contabilidad/DescargaBloquePanel';
-import { ClipboardCheck, FileText, UploadCloud, Download } from 'lucide-react';
+import PrecisionCicloPanel from '@/components/contabilidad/PrecisionCicloPanel';
+import { ClipboardCheck, FileText, UploadCloud, Download, TrendingUp, SearchCheck } from 'lucide-react';
 
 /**
  * Sección Contabilidad — antes "Conciliación", ahora con 4 pestañas.
@@ -17,6 +19,7 @@ import { ClipboardCheck, FileText, UploadCloud, Download } from 'lucide-react';
 export default function Contabilidad() {
   const { isContabilidad, isAdministracion, isGerencia, isAdmin } = useUserRole();
   const puedeSubida = isContabilidad || isAdministracion || isGerencia || isAdmin;
+  const puedePrecision = isGerencia || isAdministracion || isAdmin;
   const [granularidad, setGranularidad] = useState('mes');
   const [mesAnio, setMesAnio] = useState(() => String(new Date().getFullYear()));
   const [mesMes, setMesMes] = useState(() => String(new Date().getMonth() + 1));
@@ -88,14 +91,18 @@ export default function Contabilidad() {
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="conciliacion" className="gap-1.5"><ClipboardCheck className="w-3.5 h-3.5" /> Conciliación</TabsTrigger>
           <TabsTrigger value="notas" className="gap-1.5"><FileText className="w-3.5 h-3.5" /> Notas cerradas</TabsTrigger>
+          <TabsTrigger value="facturacion" className="gap-1.5"><TrendingUp className="w-3.5 h-3.5" /> Facturación emitida</TabsTrigger>
           <TabsTrigger value="subida" className="gap-1.5"><UploadCloud className="w-3.5 h-3.5" /> Subida masiva</TabsTrigger>
           <TabsTrigger value="descarga" className="gap-1.5"><Download className="w-3.5 h-3.5" /> Descarga en bloque</TabsTrigger>
+          {puedePrecision && <TabsTrigger value="precision" className="gap-1.5"><SearchCheck className="w-3.5 h-3.5" /> Precisión de ciclo</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="conciliacion"><ConciliacionPanel rango={rango} periodoKey={periodoKey} /></TabsContent>
         <TabsContent value="notas"><NotasCerradasPanel rango={rango} periodoKey={periodoKey} /></TabsContent>
+        <TabsContent value="facturacion"><FacturacionEmitidaPanel rango={rango} periodoKey={periodoKey} /></TabsContent>
         <TabsContent value="subida">{puedeSubida ? <SubidaMasivaPanel /> : <p className="text-xs text-muted-foreground text-center py-8">Solo contabilidad/administración/gerencia/admin pueden subir justificantes en bloque.</p>}</TabsContent>
         <TabsContent value="descarga"><DescargaBloquePanel rango={rango} /></TabsContent>
+        {puedePrecision && <TabsContent value="precision"><PrecisionCicloPanel rango={rango} /></TabsContent>}
       </Tabs>
     </div>
   );
