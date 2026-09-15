@@ -165,7 +165,12 @@ export default function TicketCapture({ onDone, onSkip }) {
     });
   };
 
-  const isMobile = 'ontouchstart' in window;
+  // No fiarse de heurísticas de dispositivo (p. ej. 'ontouchstart' in window):
+  // hay portátiles táctiles sin cámara trasera real y de escritorio sin pantalla
+  // táctil pero con webcam. Se muestran SIEMPRE las dos opciones — el atributo
+  // capture="environment" se ignora sin error en los navegadores/SO que no lo
+  // soportan y cae al selector de archivo normal, así nadie se queda sin vía
+  // para adjuntar el ticket.
 
   return (
     <div className="space-y-4 py-2">
@@ -173,32 +178,20 @@ export default function TicketCapture({ onDone, onSkip }) {
         <>
           <p className="text-sm text-center text-muted-foreground">Fotografía o sube el ticket / factura</p>
           <p className="text-[11px] text-center text-muted-foreground opacity-70">Si tiene varias páginas, añade una por cada página</p>
-          {isMobile ? (
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors">
-                <Camera className="w-8 h-8 text-primary" />
-                <span className="text-sm font-medium text-primary">Hacer foto</span>
-                <input type="file" accept="image/*" capture="environment" className="sr-only"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
-              </label>
-              <label className="flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-dashed border-border cursor-pointer hover:bg-accent/20 transition-colors">
-                <Upload className="w-8 h-8 text-muted-foreground" />
-                <span className="text-sm font-medium text-muted-foreground">Subir archivo</span>
-                <input type="file" accept="image/*,.pdf" className="sr-only"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
-              </label>
-            </div>
-          ) : (
-            <label className="flex flex-col items-center gap-3 p-8 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors">
-              <Upload className="w-10 h-10 text-primary" />
-              <div className="text-center">
-                <p className="text-sm font-medium text-primary">Selecciona o arrastra el ticket</p>
-                <p className="text-xs text-muted-foreground mt-0.5">JPEG, PNG, PDF</p>
-              </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors">
+              <Camera className="w-8 h-8 text-primary" />
+              <span className="text-sm font-medium text-primary">Hacer foto</span>
+              <input type="file" accept="image/*" capture="environment" className="sr-only"
+                onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
+            </label>
+            <label className="flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-dashed border-border cursor-pointer hover:bg-accent/20 transition-colors">
+              <Upload className="w-8 h-8 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Subir archivo</span>
               <input type="file" accept="image/*,.pdf" className="sr-only"
                 onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
             </label>
-          )}
+          </div>
         </>
       ) : (
         <>
@@ -244,26 +237,16 @@ export default function TicketCapture({ onDone, onSkip }) {
 
           {/* Añadir otra página */}
           <div className="flex gap-2">
-            {isMobile ? (
-              <>
-                <label className="flex-1 flex items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors text-sm font-medium text-primary">
-                  <Camera className="w-4 h-4" /> Otra foto
-                  <input type="file" accept="image/*" capture="environment" className="sr-only"
-                    onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
-                </label>
-                <label className="flex-1 flex items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-border cursor-pointer hover:bg-accent/20 transition-colors text-sm font-medium text-muted-foreground">
-                  <Upload className="w-4 h-4" /> Subir
-                  <input type="file" accept="image/*,.pdf" className="sr-only"
-                    onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
-                </label>
-              </>
-            ) : (
-              <label className="flex-1 flex items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors text-sm font-medium text-primary">
-                <Plus className="w-4 h-4" /> Añadir otra página
-                <input type="file" accept="image/*,.pdf" className="sr-only"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
-              </label>
-            )}
+            <label className="flex-1 flex items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors text-sm font-medium text-primary">
+              <Camera className="w-4 h-4" /> Otra foto
+              <input type="file" accept="image/*" capture="environment" className="sr-only"
+                onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
+            </label>
+            <label className="flex-1 flex items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-border cursor-pointer hover:bg-accent/20 transition-colors text-sm font-medium text-muted-foreground">
+              <Upload className="w-4 h-4" /> Subir
+              <input type="file" accept="image/*,.pdf" className="sr-only"
+                onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
+            </label>
           </div>
 
           {/* Resumen OCR si hay datos */}
