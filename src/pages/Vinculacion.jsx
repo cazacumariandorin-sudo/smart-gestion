@@ -3,9 +3,9 @@ import PageHeader from '@/components/layout/PageHeader';
 import PanelVinculacion from '@/components/vinculacion/PanelVinculacion';
 
 export default function VinculacionPage() {
-  const { isAdmin, isGerencia } = useUserRole();
+  const { isAdmin, isGerencia, isAdministracion } = useUserRole();
 
-  if (!isAdmin && !isGerencia) {
+  if (!isAdmin && !isGerencia && !isAdministracion) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground">
         No tienes permisos para gestionar vinculaciones.
