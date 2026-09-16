@@ -196,7 +196,8 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin, onReportarAveria, onRepost
 export default function Flota() {
   const qc = useQueryClient();
   const { user } = useAuth();
-  const { isAdmin, isGerencia } = useUserRole();
+  const { isAdmin, isGerencia, isAdministracion } = useUserRole();
+  const puedeGestionarFlota = isAdmin || isGerencia || isAdministracion;
   const [flotaTab, setFlotaTab] = useState('vehiculos');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -370,7 +371,7 @@ export default function Flota() {
         title="Flota"
         subtitle={`${vehiculos.length} vehículo${vehiculos.length !== 1 ? 's' : ''}${alertasUrgentes > 0 ? ` · ${alertasUrgentes} con alertas urgentes` : ''}${alertasPendientes.length > 0 ? ` · ${alertasPendientes.length} alertas pendientes` : ''}`}
         hideBack={true}
-        actions={(isAdmin || isGerencia) ? (
+        actions={puedeGestionarFlota ? (
           <Button onClick={() => { setEditing(null); setForm(EMPTY_FORM); setOpen(true); }} size="sm" className="gap-2">
             <Plus className="w-4 h-4" /> Añadir vehículo
           </Button>
@@ -385,8 +386,8 @@ export default function Flota() {
               { value: 'vehiculos', label: `Vehículos (${vehiculos.length})`, icon: Car,   color: 'bg-blue-500 hover:bg-blue-600 border-blue-600 shadow-blue-200' },
               { value: 'viajes',    label: `Viajes (${viajes.length})`,       icon: Route, color: 'bg-teal-500 hover:bg-teal-600 border-teal-600 shadow-teal-200' },
               { value: 'alertas',   label: alertasPendientes.length > 0 ? `Alertas (${alertasPendientes.length})` : 'Alertas', icon: Bell,  color: alertasPendientes.length > 0 ? 'bg-red-500 hover:bg-red-600 border-red-600 shadow-red-200' : 'bg-slate-500 hover:bg-slate-600 border-slate-600 shadow-slate-200' },
-              ...((isAdmin || isGerencia) ? [{ value: 'costes', label: 'Costes por proyecto', icon: Fuel, color: 'bg-amber-500 hover:bg-amber-600 border-amber-600 shadow-amber-200' }] : []),
-              ...((isAdmin || isGerencia) ? [{ value: 'repostajes', label: 'Repostajes', icon: Fuel, color: 'bg-green-500 hover:bg-green-600 border-green-600 shadow-green-200' }] : []),
+              ...(puedeGestionarFlota ? [{ value: 'costes', label: 'Costes por proyecto', icon: Fuel, color: 'bg-amber-500 hover:bg-amber-600 border-amber-600 shadow-amber-200' }] : []),
+              ...(puedeGestionarFlota ? [{ value: 'repostajes', label: 'Repostajes', icon: Fuel, color: 'bg-green-500 hover:bg-green-600 border-green-600 shadow-green-200' }] : []),
             ].map(({ value, label, icon: Icon, color }) => (
               <button
                 key={value}
