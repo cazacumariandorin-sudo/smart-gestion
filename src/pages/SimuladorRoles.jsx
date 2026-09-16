@@ -67,11 +67,11 @@ const ROLES = [
 ];
 
 export default function SimuladorRoles() {
-  const { isAdmin, isGerencia, isSimulating, simulatedRole, role } = useUserRole();
+  const { isAdmin, isGerencia, isAdministracion, isSimulating, simulatedRole, role } = useUserRole();
   const navigate = useNavigate();
 
   // Solo admin y gerencia pueden acceder
-  if (!isAdmin && !isGerencia) {
+  if (!isAdmin && !isGerencia && !isAdministracion) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-3">
         <Shield className="w-12 h-12 opacity-30" />
