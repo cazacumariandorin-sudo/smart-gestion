@@ -4,7 +4,7 @@
   "properties": {
     "title": {
       "type": "string",
-      "description": "Título del pedido"
+      "description": "T\u00edtulo del pedido"
     },
     "obra_id": {
       "type": "string",
@@ -30,7 +30,7 @@
     },
     "importe": {
       "type": "number",
-      "description": "Importe total (€)"
+      "description": "Importe total (\u20ac)"
     },
     "estado": {
       "type": "string",
@@ -45,7 +45,7 @@
     },
     "items": {
       "type": "array",
-      "description": "Líneas del pedido",
+      "description": "L\u00edneas del pedido",
       "items": {
         "type": "object",
         "properties": {
@@ -70,7 +70,7 @@
     },
     "file_url": {
       "type": "string",
-      "description": "Adjunto (albarán, factura...)"
+      "description": "Adjunto (albar\u00e1n, factura...)"
     }
   },
   "required": [
@@ -92,6 +92,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
@@ -135,6 +140,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -150,7 +160,7 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         },
         {
@@ -177,6 +187,11 @@
         {
           "user_condition": {
             "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
