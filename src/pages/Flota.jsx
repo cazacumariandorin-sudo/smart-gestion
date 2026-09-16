@@ -426,7 +426,7 @@ export default function Flota() {
               <div className="text-center py-16 border border-dashed rounded-xl">
                 <Car className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground mb-4">No hay vehículos registrados</p>
-                {(isAdmin || isGerencia) && <Button onClick={() => setOpen(true)} className="gap-2"><Plus className="w-4 h-4" /> Añadir vehículo</Button>}
+                {puedeGestionarFlota && <Button onClick={() => setOpen(true)} className="gap-2"><Plus className="w-4 h-4" /> Añadir vehículo</Button>}
               </div>
             ) : (
               <div className="space-y-3">
@@ -535,14 +535,14 @@ export default function Flota() {
           </TabsContent>
 
           {/* TAB COSTES POR PROYECTO */}
-          {(isAdmin || isGerencia) && (
+          {puedeGestionarFlota && (
             <TabsContent value="costes">
               <CostesFlotaProyecto viajes={viajes} />
             </TabsContent>
           )}
 
           {/* TAB REPOSTAJES (reporte histórico gerencia/admin) */}
-          {(isAdmin || isGerencia) && (
+          {puedeGestionarFlota && (
             <TabsContent value="repostajes">
               <div className="mb-3">
                 <p className="text-xs text-muted-foreground">
