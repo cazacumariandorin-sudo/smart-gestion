@@ -91,7 +91,7 @@ function OperarioGroup({ operario, notas, onVerNota, isOpen, onToggle }) {
 
 export default function NotasGastos() {
   const { user } = useAuth();
-  const { isAdmin, isOperario, isGerencia, isDirComercial, isJefeObra, role } = useUserRole();
+  const { isAdmin, isOperario, isGerencia, isDirComercial, isJefeObra, isAdministracion, role } = useUserRole();
   const isTecnico = role === 'técnico';
   const [searchParams] = useSearchParams();
   const vistaAdmin = searchParams.get('vista') === 'admin' && (isAdmin || isGerencia || isDirComercial);
@@ -169,7 +169,7 @@ export default function NotasGastos() {
   };
   
   // Verificar si puede crear: técnicos siempre pueden, admins/gerencia también
-  const puedeCrearRegistro = isOperario || isTecnico || isAdmin || isGerencia || isDirComercial || isJefeObra;
+  const puedeCrearRegistro = isOperario || isTecnico || isAdmin || isGerencia || isDirComercial || isJefeObra || isAdministracion;
 
   // Notas filtradas por TODO excepto operario (base para chips de conteo por operario)
   const notasBase = notasRaw.filter(n => {
