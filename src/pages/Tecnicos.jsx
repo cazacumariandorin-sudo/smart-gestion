@@ -34,7 +34,8 @@ const empty = { name: '', dni: '', email: '', phone: '', role: '', active: true,
 
 export default function Tecnicos() {
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra, isGerencia, role, user } = useUserRole();
+  const { isAdmin, isJefeObra, isGerencia, isAdministracion, role, user } = useUserRole();
+  const puedeGestionarTecnicos = isAdmin || isGerencia || isAdministracion;
   const showUserCol = isAdmin || isGerencia;
   const canCreate = isAdmin || isGerencia || role === 'director_comercial';
   const canDelete = isAdmin;
@@ -231,7 +232,7 @@ export default function Tecnicos() {
                         {op.role && <p className="text-xs text-muted-foreground mt-0.5">{op.role}</p>}
                       </div>
                       <div className="flex gap-1 ml-2">
-                        {(isAdmin || isGerencia) && (
+                        {puedeGestionarTecnicos && (
                           <Button
                             variant="ghost"
                             size="icon"
