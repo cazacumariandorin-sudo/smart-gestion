@@ -17,12 +17,12 @@ const LOTE_MAX = 25;
 export default function PrecisionPanel({ notas, onVerNota }) {
   const qc = useQueryClient();
   const { user } = useAuth();
-  const { isAdmin, isGerencia } = useUserRole();
+  const { isAdmin, isGerencia, isAdministracion } = useUserRole();
   const [procesando, setProcesando] = useState(false);
   const [progreso, setProgreso] = useState({ total: 0, actual: 0, corregidos: 0, sinCambios: 0, errores: 0, diffs: [] });
 
   // Solo admin/gerencia ven el panel completo.
-  if (!isAdmin && !isGerencia) return null;
+  if (!isAdmin && !isGerencia && !isAdministracion) return null;
 
   // Filtrar notas marcadas como precisa_precision con archivo adjunto.
   const pendientes = notas.filter(n => n.precisa_precision && n.archivos?.length > 0);
