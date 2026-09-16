@@ -94,7 +94,7 @@ export default function NotasGastos() {
   const { isAdmin, isOperario, isGerencia, isDirComercial, isJefeObra, isAdministracion, role } = useUserRole();
   const isTecnico = role === 'técnico';
   const [searchParams] = useSearchParams();
-  const vistaAdmin = searchParams.get('vista') === 'admin' && (isAdmin || isGerencia || isDirComercial);
+  const vistaAdmin = searchParams.get('vista') === 'admin' && (isAdmin || isGerencia || isDirComercial || isAdministracion);
   const { getTecnicoName, tecnicos } = useTecnicoName();
   const qc = useQueryClient();
 
@@ -148,7 +148,7 @@ export default function NotasGastos() {
   const { data: solarObrasRaw = [] } = useQuery({
     queryKey: ['solar_obras_gastos'],
     queryFn: () => base44.entities.SolarObra.list('name', 200),
-    enabled: isAdmin || isGerencia || isDirComercial || isJefeObra,
+    enabled: isAdmin || isGerencia || isDirComercial || isJefeObra || isAdministracion,
   });
   const todasObras = [...obrasRaw, ...solarObrasRaw.map(o => ({ ...o, _tipo: 'solar' }))];
 
@@ -263,7 +263,7 @@ export default function NotasGastos() {
                 <span className="hidden sm:inline">Mis adelantos</span>
               </Button>
             )}
-            {(isAdmin || isGerencia) && (
+            {(isAdmin || isGerencia || isAdministracion) && (
               <Button
                 variant={tab === 'precision' ? 'default' : 'outline'}
                 size="sm"
@@ -333,7 +333,7 @@ export default function NotasGastos() {
           )}
 
           {/* Chips de filtro rápido por operario (admin/gerencia) */}
-          {(isAdmin || isGerencia) && conteoOperarios.length > 0 && (
+          {(isAdmin || isGerencia || isAdministracion) && conteoOperarios.length > 0 && (
             <div className="mb-4 -mx-1 px-1 overflow-x-auto pb-1">
               <div className="flex gap-2 min-w-max">
                 <button
