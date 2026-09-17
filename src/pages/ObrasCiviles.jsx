@@ -41,7 +41,7 @@ export default function ObrasCiviles() {
   const qc = useQueryClient();
   const { isAdmin, isGerencia, isJefeObra, isAdministracion, role } = useUserRole();
   // Crear/editar: admin, gerencia, jefe_obra, director_comercial
-  const canCreate = isAdmin || isGerencia || isJefeObra || role === 'director_comercial';
+  const canCreate = isAdmin || isGerencia || isJefeObra || isAdministracion || role === 'director_comercial';
   // Solo admin puede eliminar
   const canDelete = isAdmin;
   const [search, setSearch] = useState('');
