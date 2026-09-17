@@ -4,11 +4,11 @@
   "properties": {
     "user_email": {
       "type": "string",
-      "description": "Email del usuario vigilado (clave natural de búsqueda)"
+      "description": "Email del usuario vigilado (clave natural de b\u00fasqueda)"
     },
     "user_id": {
       "type": "string",
-      "description": "ID del usuario (User.id), si está disponible"
+      "description": "ID del usuario (User.id), si est\u00e1 disponible"
     },
     "user_full_name": {
       "type": "string",
@@ -20,7 +20,7 @@
     },
     "iniciado_por": {
       "type": "string",
-      "description": "Email del gerente/admin que activó la vigilancia"
+      "description": "Email del gerente/admin que activ\u00f3 la vigilancia"
     },
     "fecha_inicio": {
       "type": "string",
@@ -35,12 +35,12 @@
     "fecha_fin_real": {
       "type": "string",
       "format": "date-time",
-      "description": "Timestamp real de finalización (manual o por expiración)"
+      "description": "Timestamp real de finalizaci\u00f3n (manual o por expiraci\u00f3n)"
     },
     "duracion_horas": {
       "type": "number",
-      "default": 48,
-      "description": "Duración máxima de la vigilancia en horas"
+      "default": 72,
+      "description": "Duraci\u00f3n m\u00e1xima de la vigilancia en horas"
     },
     "estado": {
       "type": "string",
@@ -55,12 +55,12 @@
     },
     "motivo": {
       "type": "string",
-      "description": "Motivo de activación (bug reportado, comparativa, etc.)"
+      "description": "Motivo de activaci\u00f3n (bug reportado, comparativa, etc.)"
     },
     "eventos_count": {
       "type": "integer",
       "default": 0,
-      "description": "Caché: número total de eventos registrados (actualizado por el backend)"
+      "description": "Cach\u00e9: n\u00famero total de eventos registrados (actualizado por el backend)"
     },
     "finalizada_por": {
       "type": "string",
@@ -73,7 +73,7 @@
     "es_comparativa": {
       "type": "boolean",
       "default": false,
-      "description": "True si esta vigilancia se inició específicamente para comparar"
+      "description": "True si esta vigilancia se inici\u00f3 espec\u00edficamente para comparar"
     },
     "notas_gerencia": {
       "type": "string",

@@ -23,7 +23,7 @@ export default function VigilanciaPanel({ esGerencia }) {
   const [showForm, setShowForm] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [motivo, setMotivo] = useState('');
-  const [duracionHoras, setDuracionHoras] = useState(48);
+  const [duracionHoras, setDuracionHoras] = useState(72);
   const [esComparativa, setEsComparativa] = useState(false);
   const [compararConVigId, setCompararConVigId] = useState('');
   const [vistaEventosId, setVistaEventosId] = useState(null);
@@ -47,7 +47,7 @@ export default function VigilanciaPanel({ esGerencia }) {
 
   const activas = listData?.activas || [];
   const recientes = listData?.recientes || [];
-  const limite = listData?.limite || 3;
+  const limite = listData?.limite || 5;
 
   const iniciarMutation = useMutation({
     mutationFn: (payload) => LLAMAR('iniciar', payload),
@@ -75,7 +75,7 @@ export default function VigilanciaPanel({ esGerencia }) {
     iniciarMutation.mutate({
       user_email: userEmail,
       motivo,
-      duracion_horas: duracionHoras || 48,
+      duracion_horas: duracionHoras || 72,
       es_comparativa: esComparativa,
       comparativa_con_vigilancia_id: esComparativa ? compararConVigId || null : null
     });
@@ -124,7 +124,7 @@ export default function VigilanciaPanel({ esGerencia }) {
           <Badge variant={activas.length >= limite ? 'destructive' : 'secondary'}>
             {activas.length}/{limite} activas
           </Badge>
-          <span className="text-muted-foreground">Máx. 3 simultáneas · máx. 48h</span>
+          <span className="text-muted-foreground">Máx. 5 simultáneas · máx. 72h</span>
         </div>
         <div className="flex flex-wrap gap-1">
           <Button size="sm" variant="outline" onClick={() => setShowInformePeriodo(true)}>
@@ -184,9 +184,9 @@ export default function VigilanciaPanel({ esGerencia }) {
               </div>
 
               <div className="flex items-center gap-2">
-                <Label className="text-xs">Duración (horas, máx. 48)</Label>
-                <Input type="number" min={1} max={48} value={duracionHoras}
-                  onChange={e => setDuracionHoras(Math.min(48, Math.max(1, Number(e.target.value) || 48)))}
+                <Label className="text-xs">Duración (horas, máx. 72)</Label>
+                <Input type="number" min={1} max={72} value={duracionHoras}
+                  onChange={e => setDuracionHoras(Math.min(72, Math.max(1, Number(e.target.value) || 72)))}
                   className="w-24" />
               </div>
 

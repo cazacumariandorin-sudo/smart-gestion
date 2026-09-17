@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-const MAX_VIGILANCIAS_ACTIVAS = 3;
+const MAX_VIGILANCIAS_ACTIVAS = 5;
 
 function rolEsGerenciaAdmin(user) {
   const r = (user?.role || '').toLowerCase();
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     // INICIAR
     // ─────────────────────────────────────────────────────────
     if (action === 'iniciar') {
-      const { user_email, motivo, duracion_horas = 48, comparativa_con_vigilancia_id = null, es_comparativa = false } = body;
+      const { user_email, motivo, duracion_horas = 72, comparativa_con_vigilancia_id = null, es_comparativa = false } = body;
       if (!user_email) {
         return Response.json({ error: 'Falta user_email' }, { status: 400 });
       }
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
       }
 
       const fechaInicio = ahora.toISOString();
-      const fechaFin = new Date(ahora.getTime() + (duracion_horas || 48) * 3600 * 1000).toISOString();
+      const fechaFin = new Date(ahora.getTime() + (duracion_horas || 72) * 3600 * 1000).toISOString();
 
       const nueva = await base44.entities.VigilanciaDiagnostico.create({
         user_email,
@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
         iniciado_por: user.email,
         fecha_inicio: fechaInicio,
         fecha_fin_prevista: fechaFin,
-        duracion_horas: duracion_horas || 48,
+        duracion_horas: duracion_horas || 72,
         estado: 'activa',
         motivo: motivo || '',
         comparativa_con_vigilancia_id,
