@@ -47,7 +47,7 @@ function fileIcon(fileType) {
 
 export default function Manuales() {
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra, isOperario, isGerencia, isTecnico, role, user } = useUserRole();
+  const { isAdmin, isJefeObra, isOperario, isGerencia, isAdministracion, isTecnico, role, user } = useUserRole();
   // Admin, jefe_obra, director_comercial, técnicos y operarios pueden crear manuales
   // (los técnicos también pueden subir manuales/actualizaciones a la obra donde trabajan)
   const canCreate = isAdmin || isJefeObra || role === 'director_comercial' || isOperario || isTecnico;
@@ -241,7 +241,7 @@ export default function Manuales() {
                     </Button>
                   </>
                 )}
-                {(isAdmin || isGerencia) && (
+                {(isAdmin || isGerencia || isAdministracion) && (
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Reasignar obra/cliente" onClick={() => setReasignarDoc(m)}>
                     <Link2 className="w-3.5 h-3.5" />
                   </Button>
