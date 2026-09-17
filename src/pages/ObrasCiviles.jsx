@@ -39,7 +39,7 @@ const empty = {
 
 export default function ObrasCiviles() {
   const qc = useQueryClient();
-  const { isAdmin, isGerencia, isJefeObra, role } = useUserRole();
+  const { isAdmin, isGerencia, isJefeObra, isAdministracion, role } = useUserRole();
   // Crear/editar: admin, gerencia, jefe_obra, director_comercial
   const canCreate = isAdmin || isGerencia || isJefeObra || role === 'director_comercial';
   // Solo admin puede eliminar
@@ -175,7 +175,7 @@ export default function ObrasCiviles() {
                     {o.activo === false && <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-700 border-amber-200">Inactiva</Badge>}
                     </div>
                   <div className="flex gap-1 ml-2" onClick={e => e.stopPropagation()}>
-                    {(isAdmin || isGerencia) && (
+                    {(isAdmin || isGerencia || isAdministracion) && (
                       <Button
                         variant="ghost"
                         size="icon"
