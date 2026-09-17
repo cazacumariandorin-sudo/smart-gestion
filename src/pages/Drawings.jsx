@@ -85,7 +85,7 @@ function FileViewer({ url, title }) {
 export default function Drawings() {
   const { t } = useI18n();
   const qc = useQueryClient();
-  const { isAdmin, isJefeObra, isGerencia, isOperario, isTecnico, role, user } = useUserRole();
+  const { isAdmin, isJefeObra, isGerencia, isAdministracion, isOperario, isTecnico, role, user } = useUserRole();
   // Admin, jefe_obra, gerencia, director_comercial, técnicos y operarios pueden crear/editar planos
   // (los técnicos también pueden subir planos/actualizaciones a la obra donde trabajan)
   const canCreate = isAdmin || isJefeObra || isGerencia || role === 'director_comercial' || isTecnico || isOperario;
@@ -265,7 +265,7 @@ export default function Drawings() {
                       <ExternalLink className="w-3 h-3" /> Ver
                     </Button>
                   )}
-                  {(isAdmin || isGerencia) && (
+                  {(isAdmin || isGerencia || isAdministracion) && (
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Reasignar obra/cliente" onClick={() => setReasignarDoc(d)}>
                       <Link2 className="w-3 h-3" />
                     </Button>
