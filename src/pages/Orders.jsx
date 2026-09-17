@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import ObraSelector from '@/components/gastos/ObraSelector';
+import PedidoVistaCorporativa from '@/components/pedidos/PedidoVistaCorporativa';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -321,45 +322,13 @@ export default function Orders() {
                     </div>
                   </div>
                 </div>
-                {/* Expanded items */}
+                {/* Vista corporativa (expandida) */}
                 {isExpanded && (
-                  <div className="border-t border-border bg-muted/30 px-4 py-3 space-y-3">
-                    {order.items?.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">LÍNEAS DEL PEDIDO</p>
-                        <div className="space-y-1.5">
-                          {order.items.map((item, i) => (
-                            <div key={i} className="flex items-center justify-between text-xs bg-card rounded-lg px-3 py-2">
-                              <span className="font-medium">{item.nombre || '—'}</span>
-                              <div className="flex items-center gap-4 text-muted-foreground">
-                                <span>{item.cantidad || 0} {item.unidad || ''}</span>
-                                {showPrices && item.precio > 0 && <span>{item.precio.toFixed(2)} €/{item.unidad || 'ud'}</span>}
-                                {showPrices && <span className="font-semibold text-foreground">{((item.cantidad || 0) * (item.precio || 0)).toFixed(2)} €</span>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {order.notas && <p className="text-xs text-muted-foreground italic">{order.notas}</p>}
-                    {order.file_url && (
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">DOCUMENTO ADJUNTO</p>
-                        <div className="flex items-center gap-2 text-xs bg-card rounded-lg px-3 py-2">
-                          <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <span className="flex-1 truncate font-medium">Documento del pedido</span>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <a href={order.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
-                              <Eye className="w-3 h-3" /> Ver
-                            </a>
-                            <a href={order.file_url} download className="flex items-center gap-1 text-muted-foreground hover:underline">
-                              <Download className="w-3 h-3" /> Descargar
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <PedidoVistaCorporativa
+                    order={order}
+                    showPrices={showPrices}
+                    onEdit={() => open_(order)}
+                  />
                 )}
               </Card>
             );
