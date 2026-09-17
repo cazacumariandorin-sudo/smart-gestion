@@ -34,7 +34,7 @@ const METODOS = { transferencia: 'Transferencia', efectivo: 'Efectivo', tarjeta_
 
 export default function AdelantosPanel() {
   const { user } = useAuth();
-  const { isAdmin, isGerencia, isDirComercial } = useUserRole();
+  const { isAdmin, isGerencia, isDirComercial, isAdministracion } = useUserRole();
   const qc = useQueryClient();
   const puedeDieta = isAdmin || isGerencia;
 
@@ -214,7 +214,7 @@ export default function AdelantosPanel() {
               {/* Acciones (solo gerencia/admin/director_comercial para gastos; gerencia/admin para dieta) */}
               {a.estado !== 'anulado' && a.estado !== 'justificado' && (
                 <div className="flex gap-1.5 shrink-0">
-                  {a.estado === 'pendiente_entrega' && (isAdmin || isGerencia) && (
+                  {a.estado === 'pendiente_entrega' && (isAdmin || isGerencia || isAdministracion) && (
                     <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" disabled={actualizandoId === a.id}
                       onClick={() => cambiarEstado(a, 'entregado')}>
                       {actualizandoId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CreditCard className="w-3 h-3" />}
@@ -228,7 +228,7 @@ export default function AdelantosPanel() {
                       Justificar
                     </Button>
                   )}
-                  {(isAdmin || isGerencia) && (
+                  {(isAdmin || isGerencia || isAdministracion) && (
                     <Button size="sm" variant="ghost" className="h-8 text-xs text-red-600" disabled={actualizandoId === a.id}
                       onClick={() => cambiarEstado(a, 'anulado')}>
                       <XCircle className="w-3.5 h-3.5" />
