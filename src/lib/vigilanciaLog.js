@@ -137,6 +137,61 @@ export function generarTextoInformePeriodo({ etiquetaPeriodo, fechaDesde, fechaH
   return lineas.join('\n');
 }
 
+/**
+ * Log comparativo de dos vigilancias (mismo o distinto rol): cabecera con
+ * datos de ambos usuarios, resumen comparado y línea temporal intercalada
+ * de eventos marcando a cuál de los dos pertenece cada uno. Pensado para
+ * analizar fallos/bugs o comportamientos indebidos contrastando A vs B.
+ */
+export function generarTextoLogComparativa({ vig_a, vig_b, resumen_a, resumen_b, eventos_a, eventos_b }) {
+  const lineas = [];
+  lineas.push('#'.repeat(64));
+  lineas.push('LOG COMPARATIVO DE VIGILANCIA — SMART GESTIÓN (Simantec)');
+  lineas.push('#'.repeat(64));
+  const bloqueUsuario = (pref, vig, resumen, eventos) => {
+    lineas.push(`${pref} Usuario: ${vig?.user_full_name || vig?.user_email || '—'} (${vig?.user_email || '—'})`);
+    lineas.push(`${pref} Rol: ${vig?.user_role_snapshot || '—'}`);
+    lineas.push(`${pref} Motivo: ${vig?.motivo || '—'}`);
+    lineas.push(`${pref} Inicio: ${fmtCompleta(vig?.fecha_inicio)}`);
+    lineas.push(`${pref} Fin: ${vig?.fecha_fin_real ? fmtCompleta(vig.fecha_fin_real) : `${fmtCompleta(vig?.fecha_fin_prevista)} (prevista)`}`);
+    lineas.push(`${pref} Total eventos: ${resumen?.total ?? eventos.length}`);
+    lineas.push(`${pref} Errores JS: ${resumen?.errores ?? 0}`);
+    lineas.push(`${pref} Promise rejections: ${resumen?.promise_rejections ?? 0}`);
+    lineas.push(`${pref} Cambios de red: ${resumen?.cambios_red ?? 0}`);
+    lineas.push(`${pref} Rutas únicas: ${resumen?.rutas_unicas ?? 0}`);
+  };
+  bloqueUsuario('[A]', vig_a, resumen_a, eventos_a);
+  lineas.push('-'.repeat(64));
+  bloqueUsuario('[B]', vig_b, resumen_b, eventos_b);
+  lineas.push('-'.repeat(64));
+  if (vig_a?.user_role_snapshot !== vig_b?.user_role_snapshot) {
+    lineas.push('AVISO: los usuarios tienen roles distintos; la comparativa puede no ser significativa.');
+    lineas.push('-'.repeat(64));
+  }
+  lineas.push('LÍNEA TEMPORAL INTERCALADA (A / B)');
+  lineas.push('-'.repeat(64));
+  const marcados = [
+    ...eventos_a.map(e => ({ ...e, _u: 'A' })),
+    ...eventos_b.map(e => ({ ...e, _u: 'B' })),
+  ].sort((x, y) => new Date(x.timestamp) - new Date(y.timestamp));
+  if (marcados.length === 0) {
+    lineas.push('Sin eventos registrados en ninguna de las dos vigilancias.');
+  } else {
+    for (const e of marcados) {
+      const hora = fmtCompleta(e.timestamp);
+      const tipo = (TIPO_BADGE_LABEL[e.tipo_evento] || e.tipo_evento || '').toUpperCase();
+      let linea = `[${hora}] [${e._u}] ${tipo.padEnd(8)} ${e.ruta || ''}`;
+      if (e.datos && Object.keys(e.datos).length > 0) {
+        linea += ` — ${JSON.stringify(e.datos)}`;
+      }
+      lineas.push(linea);
+    }
+  }
+  lineas.push('#'.repeat(64));
+  lineas.push(`Generado: ${fmtCompleta(new Date().toISOString())}`);
+  return lineas.join('\n');
+}
+
 /** Rango [desde, hasta] en ISO para un periodo predefinido, en horario local. */
 export function calcularRangoPeriodo(tipo) {
   const ahora = new Date();

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, GitCompare, AlertTriangle } from 'lucide-react';
+import VigilanciaComparativaLog from '@/components/diagnostico/VigilanciaComparativaLog';
 
 const LLAMAR = (action, payload = {}) =>
   base44.functions.invoke('gestionVigilanciaDiagnostico', { action, ...payload }).then(r => r?.data || r);
@@ -103,6 +104,15 @@ export default function VigilanciaComparativa({ vigAId, vigBId, onBack, onSelect
               </div>
             ))}
           </div>
+
+          <VigilanciaComparativaLog
+            vig_a={data.vig_a}
+            vig_b={data.vig_b}
+            resumen_a={resA}
+            resumen_b={resB}
+            eventos_a={evA}
+            eventos_b={evB}
+          />
         </>
       )}
     </div>
