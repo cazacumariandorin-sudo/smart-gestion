@@ -138,17 +138,27 @@ export function generarTextoInformePeriodo({ etiquetaPeriodo, fechaDesde, fechaH
 }
 
 /**
- * Log comparativo de dos vigilancias (mismo o distinto rol): cabecera con
- * datos de ambos usuarios, resumen comparado y línea temporal intercalada
- * de eventos marcando a cuál de los dos pertenece cada uno. Pensado para
- * analizar fallos/bugs o comportamientos indebidos contrastando A vs B.
+ * Log comparativo de 2 o 3 vigilancias (mismo o distinto rol): cabecera con
+ * datos de cada usuario, resumen comparado y línea temporal intercalada
+ * de eventos marcando a cuál pertenece cada uno. Pensado para analizar
+ * fallos/bugs o comportamientos indebidos contrastando A vs B (vs C).
+ * Acepta la forma legacy (vig_a, vig_b, ...) o `usuarios` array.
  */
-export function generarTextoLogComparativa({ vig_a, vig_b, resumen_a, resumen_b, eventos_a, eventos_b }) {
+export function generarTextoLogComparativa(payload) {
+  const usuarios = Array.isArray(payload.usuarios) && payload.usuarios.length > 0
+    ? payload.usuarios
+    : [
+        { etiqueta: 'A', vig: payload.vig_a, resumen: payload.resumen_a, eventos: payload.eventos_a },
+        { etiqueta: 'B', vig: payload.vig_b, resumen: payload.resumen_b, eventos: payload.eventos_b },
+      ].filter(u => u.vig);
+
   const lineas = [];
   lineas.push('#'.repeat(64));
-  lineas.push('LOG COMPARATIVO DE VIGILANCIA — SMART GESTIÓN (Simantec)');
+  lineas.push(`LOG COMPARATIVO DE VIGILANCIA — SMART GESTIÓN (Simantec) — ${usuarios.length} USUARIOS`);
   lineas.push('#'.repeat(64));
-  const bloqueUsuario = (pref, vig, resumen, eventos) => {
+  for (const u of usuarios) {
+    const pref = `[${u.etiqueta}]`;
+    const vig = u.vig, resumen = u.resumen, eventos = u.eventos || [];
     lineas.push(`${pref} Usuario: ${vig?.user_full_name || vig?.user_email || '—'} (${vig?.user_email || '—'})`);
     lineas.push(`${pref} Rol: ${vig?.user_role_snapshot || '—'}`);
     lineas.push(`${pref} Motivo: ${vig?.motivo || '—'}`);
@@ -159,23 +169,19 @@ export function generarTextoLogComparativa({ vig_a, vig_b, resumen_a, resumen_b,
     lineas.push(`${pref} Promise rejections: ${resumen?.promise_rejections ?? 0}`);
     lineas.push(`${pref} Cambios de red: ${resumen?.cambios_red ?? 0}`);
     lineas.push(`${pref} Rutas únicas: ${resumen?.rutas_unicas ?? 0}`);
-  };
-  bloqueUsuario('[A]', vig_a, resumen_a, eventos_a);
-  lineas.push('-'.repeat(64));
-  bloqueUsuario('[B]', vig_b, resumen_b, eventos_b);
-  lineas.push('-'.repeat(64));
-  if (vig_a?.user_role_snapshot !== vig_b?.user_role_snapshot) {
-    lineas.push('AVISO: los usuarios tienen roles distintos; la comparativa puede no ser significativa.');
     lineas.push('-'.repeat(64));
   }
-  lineas.push('LÍNEA TEMPORAL INTERCALADA (A / B)');
+  const roles = usuarios.map(u => u.vig?.user_role_snapshot || '').filter(Boolean);
+  if (new Set(roles).size > 1) {
+    lineas.push(`AVISO: los usuarios tienen roles distintos (${roles.join(' / ')}); la comparativa es orientativa.`);
+    lineas.push('-'.repeat(64));
+  }
+  lineas.push(`LÍNEA TEMPORAL INTERCALADA (${usuarios.map(u => u.etiqueta).join(' / ')})`);
   lineas.push('-'.repeat(64));
-  const marcados = [
-    ...eventos_a.map(e => ({ ...e, _u: 'A' })),
-    ...eventos_b.map(e => ({ ...e, _u: 'B' })),
-  ].sort((x, y) => new Date(x.timestamp) - new Date(y.timestamp));
+  const marcados = usuarios.flatMap(u => (u.eventos || []).map(e => ({ ...e, _u: u.etiqueta })))
+    .sort((x, y) => new Date(x.timestamp) - new Date(y.timestamp));
   if (marcados.length === 0) {
-    lineas.push('Sin eventos registrados en ninguna de las dos vigilancias.');
+    lineas.push('Sin eventos registrados en ninguna de las vigilancias.');
   } else {
     for (const e of marcados) {
       const hora = fmtCompleta(e.timestamp);

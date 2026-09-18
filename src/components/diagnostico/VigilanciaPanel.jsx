@@ -30,6 +30,7 @@ export default function VigilanciaPanel({ esGerencia }) {
   const [modoComparativa, setModoComparativa] = useState(false);
   const [vigA, setVigA] = useState('');
   const [vigB, setVigB] = useState('');
+  const [vigC, setVigC] = useState('');
   const [showInformePeriodo, setShowInformePeriodo] = useState(false);
 
   const { data: usuariosData } = useQuery({
@@ -103,9 +104,11 @@ export default function VigilanciaPanel({ esGerencia }) {
       <VigilanciaComparativa
         vigAId={vigA}
         vigBId={vigB}
+        vigCId={vigC}
         onBack={() => setModoComparativa(false)}
         onSelectA={setVigA}
         onSelectB={setVigB}
+        onSelectC={setVigC}
         activas={activas}
       />
     );
@@ -192,7 +195,7 @@ export default function VigilanciaPanel({ esGerencia }) {
 
               <div className="flex items-center gap-2 pt-1 border-t">
                 <Switch checked={esComparativa} onCheckedChange={setEsComparativa} id="vig-comp" />
-                <Label htmlFor="vig-comp" className="text-xs">Es comparativa con otra vigilancia (mismo rol)</Label>
+                <Label htmlFor="vig-comp" className="text-xs">Es comparativa con otra vigilancia (mismo o distinto rol)</Label>
               </div>
 
               {esComparativa && (

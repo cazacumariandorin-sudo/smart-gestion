@@ -207,40 +207,72 @@ Deno.serve(async (req) => {
     }
 
     // ─────────────────────────────────────────────────────────
-    // COMPARAR (dos vigilancias mismo rol)
+    // COMPARAR (2 o 3 vigilancias, mismo o distinto rol)
+    // Acepta vigilancia_a_id/b_id (legacy) o vigilancia_ids[] (hasta 3).
+    // Devuelve siempre 200; si una vigilancia no existe se omite (no lanza).
     // ─────────────────────────────────────────────────────────
     if (action === 'comparar') {
-      const { vigilancia_a_id, vigilancia_b_id } = body;
-      if (!vigilancia_a_id || !vigilancia_b_id) {
-        return Response.json({ error: 'Faltan vigilancia_a_id y vigilancia_b_id' }, { status: 400 });
+      let ids = Array.isArray(body.vigilancia_ids) && body.vigilancia_ids.length > 0
+        ? body.vigilancia_ids.filter(Boolean).slice(0, 3)
+        : [body.vigilancia_a_id, body.vigilancia_b_id].filter(Boolean).slice(0, 3);
+      ids = [...new Set(ids)];
+      if (ids.length < 2) {
+        return Response.json({ error: 'Se necesitan al menos 2 vigilancias para comparar' }, { status: 400 });
       }
-      const [a, b] = await Promise.all([
-        base44.entities.VigilanciaDiagnostico.get(vigilancia_a_id),
-        base44.entities.VigilanciaDiagnostico.get(vigilancia_b_id)
-      ]);
-      const roles_distintos = a.user_role_snapshot !== b.user_role_snapshot;
-      const [evA, evB] = await Promise.all([
-        base44.entities.VigilanciaEvento.filter({ vigilancia_id: vigilancia_a_id }, '-timestamp', 500),
-        base44.entities.VigilanciaEvento.filter({ vigilancia_id: vigilancia_b_id }, '-timestamp', 500)
-      ]);
 
-      // Resumen comparativo
-      const resumen = (evs) => ({
-        total: evs.length,
-        errores: evs.filter(e => e.tipo_evento === 'error').length,
-        promise_rejections: evs.filter(e => e.tipo_evento === 'promise_rejection').length,
-        rutas_unicas: new Set(evs.filter(e => e.tipo_evento === 'nav').map(e => e.ruta)).size,
-        cambios_red: evs.filter(e => e.tipo_evento === 'red').length,
-        primera: evs.length ? evs[evs.length - 1]?.timestamp : null,
-        ultima: evs.length ? evs[0]?.timestamp : null
-      });
+      // Fetch resiliente: filter por id (no lanza si alguna no existe)
+      let vigilanciasRaw = [];
+      try {
+        vigilanciasRaw = await base44.entities.VigilanciaDiagnostico.filter({ id: { $in: ids } });
+      } catch {
+        // fallback: get individual tolerante
+        for (const id of ids) {
+          try { vigilanciasRaw.push(await base44.entities.VigilanciaDiagnostico.get(id)); }
+          catch {}
+        }
+      }
+      // Ordenar según el orden pedido
+      const porId = {};
+      for (const v of vigilanciasRaw) porId[v.id] = v;
+      const vigilancias = ids.map(id => porId[id]).filter(Boolean);
 
-      return Response.json({
-        vig_a: a, vig_b: b,
-        eventos_a: evA, eventos_b: evB,
-        resumen_a: resumen(evA), resumen_b: resumen(evB),
-        roles_distintos
-      });
+      const etiquetas = ['A', 'B', 'C'];
+      const resultados = await Promise.all(vigilancias.map(async (v, i) => {
+        let eventos = [];
+        try {
+          eventos = await base44.entities.VigilanciaEvento.filter({ vigilancia_id: v.id }, '-timestamp', 500);
+        } catch { eventos = []; }
+        return {
+          etiqueta: etiquetas[i],
+          vig: v,
+          eventos,
+          resumen: {
+            total: eventos.length,
+            errores: eventos.filter(e => e.tipo_evento === 'error').length,
+            promise_rejections: eventos.filter(e => e.tipo_evento === 'promise_rejection').length,
+            rutas_unicas: new Set(eventos.filter(e => e.tipo_evento === 'nav').map(e => e.ruta)).size,
+            cambios_red: eventos.filter(e => e.tipo_evento === 'red').length,
+            primera: eventos.length ? eventos[eventos.length - 1]?.timestamp : null,
+            ultima: eventos.length ? eventos[0]?.timestamp : null
+          }
+        };
+      }));
+
+      const roles = resultados.map(r => r.vig.user_role_snapshot || '');
+      const roles_distintos = new Set(roles.filter(Boolean)).size > 1;
+
+      // Respuesta legacy (vig_a/vig_b/eventos_a/eventos_b) + nueva (usuarios[])
+      const out = { roles_distintos, roles, usuarios: resultados };
+      if (resultados[0]) {
+        out.vig_a = resultados[0].vig; out.eventos_a = resultados[0].eventos; out.resumen_a = resultados[0].resumen;
+      }
+      if (resultados[1]) {
+        out.vig_b = resultados[1].vig; out.eventos_b = resultados[1].eventos; out.resumen_b = resultados[1].resumen;
+      }
+      if (resultados[2]) {
+        out.vig_c = resultados[2].vig; out.eventos_c = resultados[2].eventos; out.resumen_c = resultados[2].resumen;
+      }
+      return Response.json(out);
     }
 
     // ─────────────────────────────────────────────────────────
