@@ -218,12 +218,7 @@ Deno.serve(async (req) => {
         base44.entities.VigilanciaDiagnostico.get(vigilancia_a_id),
         base44.entities.VigilanciaDiagnostico.get(vigilancia_b_id)
       ]);
-      if (a.user_role_snapshot !== b.user_role_snapshot) {
-        return Response.json({
-          error: 'Los usuarios tienen roles distintos, no son comparables',
-          vig_a: a, vig_b: b
-        }, { status: 400 });
-      }
+      const roles_distintos = a.user_role_snapshot !== b.user_role_snapshot;
       const [evA, evB] = await Promise.all([
         base44.entities.VigilanciaEvento.filter({ vigilancia_id: vigilancia_a_id }, '-timestamp', 500),
         base44.entities.VigilanciaEvento.filter({ vigilancia_id: vigilancia_b_id }, '-timestamp', 500)
@@ -243,7 +238,8 @@ Deno.serve(async (req) => {
       return Response.json({
         vig_a: a, vig_b: b,
         eventos_a: evA, eventos_b: evB,
-        resumen_a: resumen(evA), resumen_b: resumen(evB)
+        resumen_a: resumen(evA), resumen_b: resumen(evB),
+        roles_distintos
       });
     }
 
