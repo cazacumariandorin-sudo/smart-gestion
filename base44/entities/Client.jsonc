@@ -12,11 +12,11 @@
     },
     "address": {
       "type": "string",
-      "description": "Dirección"
+      "description": "Direcci\u00f3n"
     },
     "postal_code": {
       "type": "string",
-      "description": "Código postal"
+      "description": "C\u00f3digo postal"
     },
     "notes": {
       "type": "string",
@@ -29,11 +29,11 @@
     },
     "client_id_code": {
       "type": "string",
-      "description": "ID único generado"
+      "description": "ID \u00fanico generado"
     },
     "contacto_admin": {
       "type": "object",
-      "description": "Contacto Administración",
+      "description": "Contacto Administraci\u00f3n",
       "properties": {
         "nombre": {
           "type": "string"
@@ -48,7 +48,7 @@
     },
     "contacto_facturacion": {
       "type": "object",
-      "description": "Contacto Facturación",
+      "description": "Contacto Facturaci\u00f3n",
       "properties": {
         "nombre": {
           "type": "string"
@@ -63,7 +63,7 @@
     },
     "tecnicos": {
       "type": "array",
-      "description": "Técnicos de contacto (hasta 4)",
+      "description": "T\u00e9cnicos de contacto (hasta 4)",
       "items": {
         "type": "object",
         "properties": {
@@ -102,6 +102,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
@@ -146,6 +151,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {

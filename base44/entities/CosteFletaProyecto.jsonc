@@ -3,19 +3,19 @@
   "type": "object",
   "properties": {
     "coste_combustible_total": {
-      "description": "Coste total en combustible (€)",
+      "description": "Coste total en combustible (\u20ac)",
       "type": "number"
     },
     "coste_por_km": {
-      "description": "Coste por km usado para el cálculo (€/km)",
+      "description": "Coste por km usado para el c\u00e1lculo (\u20ac/km)",
       "type": "number"
     },
     "coste_total_estimado": {
-      "description": "Coste total estimado de desplazamientos (€)",
+      "description": "Coste total estimado de desplazamientos (\u20ac)",
       "type": "number"
     },
     "fecha_calculo": {
-      "description": "Fecha del último cálculo",
+      "description": "Fecha del \u00faltimo c\u00e1lculo",
       "format": "date",
       "type": "string"
     },
@@ -24,11 +24,11 @@
       "type": "number"
     },
     "mes": {
-      "description": "Mes del cálculo (YYYY-MM)",
+      "description": "Mes del c\u00e1lculo (YYYY-MM)",
       "type": "string"
     },
     "num_viajes": {
-      "description": "Número de viajes al proyecto",
+      "description": "N\u00famero de viajes al proyecto",
       "type": "number"
     },
     "proyecto_id": {
@@ -40,7 +40,7 @@
       "type": "string"
     },
     "vehiculos_implicados": {
-      "description": "Matrículas de vehículos que han ido a este proyecto",
+      "description": "Matr\u00edculas de veh\u00edculos que han ido a este proyecto",
       "items": {
         "type": "string"
       },
@@ -73,6 +73,11 @@
           "user_condition": {
             "role": "gerencia"
           }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
         }
       ]
     },
@@ -96,6 +101,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
@@ -125,6 +135,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         }
       ]

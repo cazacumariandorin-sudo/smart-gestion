@@ -4,7 +4,7 @@
   "properties": {
     "matricula": {
       "type": "string",
-      "description": "Matrícula del vehículo"
+      "description": "Matr\u00edcula del veh\u00edculo"
     },
     "modelo": {
       "type": "string",
@@ -12,7 +12,7 @@
     },
     "anio": {
       "type": "integer",
-      "description": "Año"
+      "description": "A\u00f1o"
     },
     "color": {
       "type": "string",
@@ -157,6 +157,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         },
@@ -191,6 +196,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         },
@@ -201,7 +211,7 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         },
         {

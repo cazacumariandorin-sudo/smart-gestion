@@ -26,7 +26,7 @@
       "type": "string"
     },
     "firma_cliente_ip": {
-      "description": "IP desde la que firmó el cliente",
+      "description": "IP desde la que firm\u00f3 el cliente",
       "type": "string"
     },
     "firma_cliente_nif": {
@@ -64,11 +64,11 @@
       "type": "string"
     },
     "firma_token": {
-      "description": "Token único para enlace de firma remota del cliente",
+      "description": "Token \u00fanico para enlace de firma remota del cliente",
       "type": "string"
     },
     "firma_token_expiry": {
-      "description": "Fecha de expiración del token de firma",
+      "description": "Fecha de expiraci\u00f3n del token de firma",
       "format": "date-time",
       "type": "string"
     },
@@ -103,7 +103,7 @@
       "type": "string"
     },
     "order_number": {
-      "description": "Número de parte generado automáticamente",
+      "description": "N\u00famero de parte generado autom\u00e1ticamente",
       "type": "string"
     },
     "project": {
@@ -171,6 +171,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -205,6 +210,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -220,7 +230,7 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         },
         {
@@ -269,6 +279,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {

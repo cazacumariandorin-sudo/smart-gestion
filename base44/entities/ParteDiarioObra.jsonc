@@ -28,15 +28,15 @@
     },
     "tecnico_id": {
       "type": "string",
-      "description": "ID del técnico que crea el parte"
+      "description": "ID del t\u00e9cnico que crea el parte"
     },
     "tecnico_name": {
       "type": "string",
-      "description": "Nombre del técnico que crea el parte"
+      "description": "Nombre del t\u00e9cnico que crea el parte"
     },
     "tecnicos_adicionales": {
       "type": "array",
-      "description": "Otros técnicos/operarios que trabajaron en la misma jornada",
+      "description": "Otros t\u00e9cnicos/operarios que trabajaron en la misma jornada",
       "items": {
         "type": "object",
         "properties": {
@@ -59,11 +59,11 @@
     },
     "trabajos_pendientes": {
       "type": "string",
-      "description": "Trabajos pendientes para la próxima visita"
+      "description": "Trabajos pendientes para la pr\u00f3xima visita"
     },
     "fotos": {
       "type": "array",
-      "description": "Fotos adjuntas como evidencia (también se replican en FotoProyecto/Galería clasificadas por obra/cliente)",
+      "description": "Fotos adjuntas como evidencia (tambi\u00e9n se replican en FotoProyecto/Galer\u00eda clasificadas por obra/cliente)",
       "items": {
         "type": "object",
         "properties": {
@@ -86,12 +86,12 @@
         "cerrado"
       ],
       "default": "borrador",
-      "description": "Borrador: editable por técnico/gerencia. Cerrado: solo gerencia/admin puede reabrirlo para edición."
+      "description": "Borrador: editable por t\u00e9cnico/gerencia. Cerrado: solo gerencia/admin puede reabrirlo para edici\u00f3n."
     },
     "activo": {
       "type": "boolean",
       "default": true,
-      "description": "Si el parte está activo. Inactivo = archivado (solo visible para gerencia/admin con el toggle 'mostrar inactivas')."
+      "description": "Si el parte est\u00e1 activo. Inactivo = archivado (solo visible para gerencia/admin con el toggle 'mostrar inactivas')."
     },
     "firma_url": {
       "type": "string",
@@ -99,7 +99,7 @@
     },
     "firmado_por": {
       "type": "string",
-      "description": "Email del usuario que firmó el parte"
+      "description": "Email del usuario que firm\u00f3 el parte"
     },
     "fecha_firma": {
       "type": "string",
@@ -108,12 +108,12 @@
     },
     "cerrado_por": {
       "type": "string",
-      "description": "Email del usuario que cerró el parte"
+      "description": "Email del usuario que cerr\u00f3 el parte"
     },
     "fecha_cierre": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha y hora en que se cerró el parte"
+      "description": "Fecha y hora en que se cerr\u00f3 el parte"
     }
   },
   "required": [
@@ -143,12 +143,17 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         },
         {
@@ -173,6 +178,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
@@ -205,6 +215,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {

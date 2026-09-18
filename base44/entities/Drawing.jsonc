@@ -7,7 +7,7 @@
     },
     "reference": {
       "type": "string",
-      "description": "Referencia / código interno del plano"
+      "description": "Referencia / c\u00f3digo interno del plano"
     },
     "client_id": {
       "type": "string",
@@ -65,6 +65,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -75,7 +80,7 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         },
         {
@@ -109,6 +114,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -124,7 +134,7 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         },
         {
@@ -167,7 +177,7 @@
           "$and": [
             {
               "user_condition": {
-                "role": "técnico"
+                "role": "t\u00e9cnico"
               }
             },
             {
@@ -222,7 +232,7 @@
           "$and": [
             {
               "user_condition": {
-                "role": "técnico"
+                "role": "t\u00e9cnico"
               }
             },
             {

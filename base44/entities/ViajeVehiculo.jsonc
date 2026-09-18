@@ -3,7 +3,7 @@
   "type": "object",
   "properties": {
     "coste_combustible_estimado": {
-      "description": "Coste estimado en combustible (€)",
+      "description": "Coste estimado en combustible (\u20ac)",
       "type": "number"
     },
     "distancia_km": {
@@ -11,7 +11,7 @@
       "type": "number"
     },
     "duracion_minutos": {
-      "description": "Duración total del viaje en minutos",
+      "description": "Duraci\u00f3n total del viaje en minutos",
       "type": "number"
     },
     "fecha": {
@@ -20,7 +20,7 @@
       "type": "string"
     },
     "fin_direccion": {
-      "description": "Dirección de destino",
+      "description": "Direcci\u00f3n de destino",
       "type": "string"
     },
     "fin_lat": {
@@ -40,7 +40,7 @@
       "type": "string"
     },
     "inicio_direccion": {
-      "description": "Dirección de origen",
+      "description": "Direcci\u00f3n de origen",
       "type": "string"
     },
     "inicio_lat": {
@@ -52,11 +52,11 @@
       "type": "number"
     },
     "km_fin": {
-      "description": "Km del vehículo al finalizar",
+      "description": "Km del veh\u00edculo al finalizar",
       "type": "number"
     },
     "km_inicio": {
-      "description": "Km del vehículo al iniciar",
+      "description": "Km del veh\u00edculo al iniciar",
       "type": "number"
     },
     "notas": {
@@ -97,19 +97,19 @@
       "type": "boolean"
     },
     "validado_por": {
-      "description": "Email del usuario que validó",
+      "description": "Email del usuario que valid\u00f3",
       "type": "string"
     },
     "vehiculo_id": {
-      "description": "ID del vehículo",
+      "description": "ID del veh\u00edculo",
       "type": "string"
     },
     "vehiculo_matricula": {
-      "description": "Matrícula del vehículo",
+      "description": "Matr\u00edcula del veh\u00edculo",
       "type": "string"
     },
     "velocidad_maxima": {
-      "description": "Velocidad máxima registrada en el viaje (km/h)",
+      "description": "Velocidad m\u00e1xima registrada en el viaje (km/h)",
       "type": "number"
     },
     "velocidad_media": {
@@ -139,6 +139,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
@@ -182,6 +187,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "jefe_obra"
           }
         },
@@ -215,6 +225,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
