@@ -16,7 +16,7 @@
         "maquina_tiros",
         "otros"
       ],
-      "description": "Categoría de la herramienta"
+      "description": "Categor\u00eda de la herramienta"
     },
     "modelo": {
       "type": "string",
@@ -24,7 +24,7 @@
     },
     "numero_serie": {
       "type": "string",
-      "description": "Número de serie (único)"
+      "description": "N\u00famero de serie (\u00fanico)"
     },
     "estado": {
       "type": "string",
@@ -39,7 +39,7 @@
     },
     "valor_compra": {
       "type": "number",
-      "description": "Valor de compra (€)"
+      "description": "Valor de compra (\u20ac)"
     },
     "fecha_compra": {
       "type": "string",
@@ -48,7 +48,7 @@
     },
     "ubicacion": {
       "type": "string",
-      "description": "Ubicación física (almacén, obra, etc.)"
+      "description": "Ubicaci\u00f3n f\u00edsica (almac\u00e9n, obra, etc.)"
     },
     "notas": {
       "type": "string",
@@ -79,6 +79,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         }
@@ -99,6 +104,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
