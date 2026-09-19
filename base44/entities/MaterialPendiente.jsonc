@@ -29,7 +29,7 @@
     },
     "parte_id": {
       "type": "string",
-      "description": "ID del ParteDiarioObra que originó esta solicitud de material"
+      "description": "ID del ParteDiarioObra que origin\u00f3 esta solicitud de material"
     },
     "fecha_solicitud": {
       "type": "string",
@@ -66,7 +66,7 @@
         "recibido"
       ],
       "default": "pendiente",
-      "description": "Pendiente → Solicitado a proveedor → Recibido en obra"
+      "description": "Pendiente \u2192 Solicitado a proveedor \u2192 Recibido en obra"
     },
     "notas_admin": {
       "type": "string"
@@ -74,7 +74,7 @@
     "fecha_resolucion": {
       "type": "string",
       "format": "date",
-      "description": "Fecha en que se marcó como recibido"
+      "description": "Fecha en que se marc\u00f3 como recibido"
     },
     "resuelto_por": {
       "type": "string"
@@ -115,6 +115,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -125,7 +130,7 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         },
         {
@@ -156,6 +161,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {

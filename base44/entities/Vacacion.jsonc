@@ -35,7 +35,7 @@
     },
     "aprobado_por": {
       "type": "string",
-      "description": "Email del usuario que aprobó"
+      "description": "Email del usuario que aprob\u00f3"
     },
     "fecha_aprobacion": {
       "type": "string",
@@ -70,6 +70,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -90,7 +95,7 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         }
       ]
@@ -114,6 +119,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -124,7 +134,7 @@
         },
         {
           "user_condition": {
-            "role": "técnico"
+            "role": "t\u00e9cnico"
           }
         },
         {
@@ -152,6 +162,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {

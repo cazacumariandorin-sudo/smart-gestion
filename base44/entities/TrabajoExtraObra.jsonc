@@ -4,7 +4,7 @@
   "properties": {
     "obra_id": {
       "type": "string",
-      "description": "ID de la obra (Obra o SolarObra). Puede ser null para opciones fijas (Oficina/Almacén/Otro)."
+      "description": "ID de la obra (Obra o SolarObra). Puede ser null para opciones fijas (Oficina/Almac\u00e9n/Otro)."
     },
     "obra_name": {
       "type": "string",
@@ -31,7 +31,7 @@
     },
     "parte_id": {
       "type": "string",
-      "description": "ID del ParteDiarioObra que originó el trabajo extra"
+      "description": "ID del ParteDiarioObra que origin\u00f3 el trabajo extra"
     },
     "fecha_solicitud": {
       "type": "string",
@@ -40,7 +40,7 @@
     },
     "solicitado_por_email": {
       "type": "string",
-      "description": "Email del usuario que solicitó el trabajo extra"
+      "description": "Email del usuario que solicit\u00f3 el trabajo extra"
     },
     "solicitado_por_nombre": {
       "type": "string",
@@ -52,7 +52,7 @@
     },
     "descripcion": {
       "type": "string",
-      "description": "Descripción del trabajo extra solicitado"
+      "description": "Descripci\u00f3n del trabajo extra solicitado"
     },
     "importe_estimado": {
       "type": "number",
@@ -74,11 +74,11 @@
         "facturado"
       ],
       "default": "pendiente",
-      "description": "Pendiente hasta que gerencia/administración lo marque facturado"
+      "description": "Pendiente hasta que gerencia/administraci\u00f3n lo marque facturado"
     },
     "importe_facturado": {
       "type": "number",
-      "description": "Importe final facturado (lo fija gerencia/administración)"
+      "description": "Importe final facturado (lo fija gerencia/administraci\u00f3n)"
     },
     "fecha_facturacion": {
       "type": "string",
@@ -86,15 +86,15 @@
     },
     "facturado_por": {
       "type": "string",
-      "description": "Email de quien marcó el trabajo como facturado"
+      "description": "Email de quien marc\u00f3 el trabajo como facturado"
     },
     "notas_admin": {
       "type": "string",
-      "description": "Notas internas de gerencia/administración"
+      "description": "Notas internas de gerencia/administraci\u00f3n"
     },
     "mes": {
       "type": "string",
-      "description": "Clave mensual YYYY-MM (desnormalizada para filtros rápidos por mes)"
+      "description": "Clave mensual YYYY-MM (desnormalizada para filtros r\u00e1pidos por mes)"
     },
     "anio": {
       "type": "number"
@@ -124,6 +124,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
@@ -159,6 +164,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {

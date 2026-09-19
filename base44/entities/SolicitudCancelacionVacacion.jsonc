@@ -15,20 +15,20 @@
     "fecha_inicio_vac": {
       "type": "string",
       "format": "date",
-      "description": "Fecha inicio de la vacación original"
+      "description": "Fecha inicio de la vacaci\u00f3n original"
     },
     "fecha_fin_vac": {
       "type": "string",
       "format": "date",
-      "description": "Fecha fin de la vacación original"
+      "description": "Fecha fin de la vacaci\u00f3n original"
     },
     "tipo_vac": {
       "type": "string",
-      "description": "Tipo de la vacación original"
+      "description": "Tipo de la vacaci\u00f3n original"
     },
     "motivo": {
       "type": "string",
-      "description": "Motivo de la solicitud de cancelación"
+      "description": "Motivo de la solicitud de cancelaci\u00f3n"
     },
     "estado": {
       "type": "string",
@@ -41,7 +41,7 @@
     },
     "resuelta_por": {
       "type": "string",
-      "description": "Email del responsable que resolvió"
+      "description": "Email del responsable que resolvi\u00f3"
     },
     "resuelta_por_nombre": {
       "type": "string"
@@ -79,6 +79,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "admin"
           }
         },
@@ -104,6 +109,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
@@ -136,6 +146,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {

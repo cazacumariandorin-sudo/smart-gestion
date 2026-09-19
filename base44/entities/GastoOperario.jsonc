@@ -8,7 +8,7 @@
     },
     "numero_registro": {
       "type": "string",
-      "description": "Autonumérico dentro de la nota: R-001, R-002..."
+      "description": "Autonum\u00e9rico dentro de la nota: R-001, R-002..."
     },
     "operario_id": {
       "type": "string"
@@ -135,6 +135,11 @@
         },
         {
           "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
             "role": "director_comercial"
           }
         },
@@ -163,6 +168,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
