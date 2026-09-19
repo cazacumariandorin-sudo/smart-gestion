@@ -21,12 +21,39 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    const hoy = new Date();
-    // Mes que se cierra = mes anterior al actual (este cron corre el día 1)
-    const fechaMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
-    const anioCiclo = fechaMesAnterior.getFullYear();
-    const mesCiclo = fechaMesAnterior.getMonth() + 1;
-    const cicloMes = `${anioCiclo}-${String(mesCiclo).padStart(2, '0')}`;
+    // Control de acceso: el cron de Base44 invoca sin usuario (esCron=true); las
+    // llamadas manuales desde el frontend (SDK) llevan token de usuario y deben
+    // limitarse a roles de gestión económica. Sin este check, cualquier usuario
+    // autenticado podría disparar el cierre con service role.
+    let esCron = false;
+    try {
+      const user = await base44.auth.me();
+      if (user && user.role) {
+        const permitidos = ['admin', 'propietario', 'gerencia', 'administracion', 'director_comercial'];
+        if (!permitidos.includes(user.role)) {
+          return Response.json({ error: 'Unauthorized: solo gestión económica' }, { status: 403 });
+        }
+      } else {
+        esCron = true; // invocación sin usuario = cron de plataforma
+      }
+    } catch (_) {
+      esCron = true; // auth.me() lanza en contexto cron → permitido
+    }
+
+    const body = await req.json().catch(() => ({}));
+    // ciclo_mes opcional: si viene (cierre manual del histórico), se usa tal cual;
+    // si no (cron), se cierra el mes anterior al actual (comportamiento automático).
+    let cicloMes = body?.ciclo_mes;
+    if (!cicloMes || !/^\d{4}-\d{2}$/.test(cicloMes)) {
+      const hoy = new Date();
+      const fechaMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+      const anioCiclo = fechaMesAnterior.getFullYear();
+      const mesCiclo = fechaMesAnterior.getMonth() + 1;
+      cicloMes = `${anioCiclo}-${String(mesCiclo).padStart(2, '0')}`;
+    }
+    const [anioCicloStr, mesCicloStr] = cicloMes.split('-');
+    const anioCiclo = parseInt(anioCicloStr, 10);
+    const mesCiclo = parseInt(mesCicloStr, 10);
     const ultimoDia = ultimoDiaDelMes(anioCiclo, mesCiclo);
     const finPeriodo = `${cicloMes}-${String(ultimoDia).padStart(2, '0')}`;
 
