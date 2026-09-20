@@ -92,7 +92,7 @@ export default function CiclosMensualesPanel() {
 
       {canConsolidar && (
         <div className="flex items-center justify-end">
-          <ConsolidarCicloButton ciclosDisponibles={mesesOptions} />
+          <ConsolidarCicloButton ciclosDisponibles={mesesOptions} operarios={operariosOptions} />
         </div>
       )}
 

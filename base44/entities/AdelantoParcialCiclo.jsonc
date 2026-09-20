@@ -29,7 +29,7 @@
       "items": {
         "type": "string"
       },
-      "description": "IDs de RegistroGasto incluidos en este adelanto parcial."
+      "description": "IDs de RegistroGasto incluidos en este adelanto parcial. Disjuntos entre parciales del mismo ciclo: el backend garantiza que un gasto no figura en dos AdelantoParcialCiclo del mismo ciclo_mes+operario_id."
     },
     "total_registros": {
       "type": "number",
@@ -44,6 +44,11 @@
       "type": "string",
       "format": "date",
       "description": "Fecha real en que se gener\u00f3 el adelanto (por motivos fortuitos, puede ser antes del cierre del ciclo)."
+    },
+    "fecha_corte": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de corte del cierre parcial (gastos con fecha_documento \u2264 fecha_corte). S\u00f3lo para cierres parciales anticipados a mitad de mes; vac\u00edo en adelantos fortuitos cl\u00e1sicos."
     },
     "estado": {
       "type": "string",
