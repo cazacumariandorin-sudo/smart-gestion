@@ -6,11 +6,12 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
-import { Car, Plus, Edit2, Trash2, Bell, BellOff, AlertTriangle, CheckCircle2, Clock, Wrench, Loader2, ChevronDown, ChevronUp, Route, MapPin, Fuel, Siren } from 'lucide-react';
+import { Car, Plus, Edit2, Trash2, Bell, BellOff, AlertTriangle, CheckCircle2, Clock, Wrench, Loader2, ChevronDown, ChevronUp, Route, MapPin, Fuel, Siren, ScrollText } from 'lucide-react';
 import ReportarAveriaDialog from '@/components/flota/ReportarAveriaDialog';
 import RepostajeRapidoDialog from '@/components/flota/RepostajeRapidoDialog';
 import CostesFlotaProyecto from '@/components/flota/CostesFlotaProyecto';
 import RepostajesReporte from '@/components/flota/RepostajesReporte';
+import MultasPanel from '@/components/flota/multas/MultasPanel';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -388,6 +389,7 @@ export default function Flota() {
               { value: 'alertas',   label: alertasPendientes.length > 0 ? `Alertas (${alertasPendientes.length})` : 'Alertas', icon: Bell,  color: alertasPendientes.length > 0 ? 'bg-red-500 hover:bg-red-600 border-red-600 shadow-red-200' : 'bg-slate-500 hover:bg-slate-600 border-slate-600 shadow-slate-200' },
               ...(puedeGestionarFlota ? [{ value: 'costes', label: 'Costes por proyecto', icon: Fuel, color: 'bg-amber-500 hover:bg-amber-600 border-amber-600 shadow-amber-200' }] : []),
               ...(puedeGestionarFlota ? [{ value: 'repostajes', label: 'Repostajes', icon: Fuel, color: 'bg-green-500 hover:bg-green-600 border-green-600 shadow-green-200' }] : []),
+              { value: 'multas', label: 'Multas', icon: ScrollText, color: 'bg-rose-500 hover:bg-rose-600 border-rose-600 shadow-rose-200' },
             ].map(({ value, label, icon: Icon, color }) => (
               <button
                 key={value}
@@ -410,6 +412,7 @@ export default function Flota() {
             <TabsTrigger value="alertas" />
             <TabsTrigger value="costes" />
             <TabsTrigger value="repostajes" />
+            <TabsTrigger value="multas" />
           </TabsList>
 
           {/* TAB VEHÍCULOS */}
