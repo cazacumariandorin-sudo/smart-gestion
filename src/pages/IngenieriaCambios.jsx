@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { Edit3, Plus, Trash2, Loader2, ListChecks, ClipboardList, Ruler, Hammer } from 'lucide-react';
+import { Edit3, Plus, Trash2, Loader2, ListChecks, ClipboardList, Ruler, Hammer, Search } from 'lucide-react';
 import ProyectoSelector, { useIngenieriaProyectos } from '@/components/ingenieria/ProyectoSelector';
 import { moneda } from '@/lib/ingenieriaUtils';
 import PageHeader from '@/components/layout/PageHeader';
@@ -193,7 +193,35 @@ function MedicionesTab({ obraId, user, qc, guardando, setGuardando }) {
 /* ── Trabajos extras (TrabajoExtraObra) ───────────────────── */
 function ExtrasTab({ obraId, obra, user, qc, guardando, setGuardando }) {
   const [f, setF] = useState({ descripcion: '', fecha: new Date().toISOString().slice(0, 10), importe: '', prioridad: 'media', notas: '' });
+  const [busqueda, setBusqueda] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [vinculando, setVinculando] = useState(null);
   const { data: extras = [] } = useQuery({ queryKey: ['ing-extras', obraId], queryFn: async () => base44.entities.TrabajoExtraObra.filter({ obra_id: obraId }, '-created_date', 200) });
+  const { data: todosExtras = [] } = useQuery({ queryKey: ['ing-extras-todos'], queryFn: async () => base44.entities.TrabajoExtraObra.list('-created_date', 200) });
+
+  const vinculables = todosExtras.filter(e => e.obra_id !== obraId);
+  const resultados = busqueda.trim()
+    ? vinculables.filter(e => {
+        const q = busqueda.toLowerCase();
+        return (e.descripcion || '').toLowerCase().includes(q) ||
+               (e.solicitado_por_nombre || '').toLowerCase().includes(q) ||
+               (e.fecha_solicitud || '').includes(q) ||
+               (e.obra_name || '').toLowerCase().includes(q);
+      })
+    : vinculables.slice(0, 50);
+
+  const vincular = async (e) => {
+    setVinculando(e.id);
+    try {
+      await base44.entities.TrabajoExtraObra.update(e.id, {
+        obra_id: obraId, obra_name: obra?.name || '', obra_tipo: 'obra_civil',
+        client_id: obra?.client_id || e.client_id, client_name: obra?.client_name || e.client_name,
+      });
+      qc.invalidateQueries({ queryKey: ['ing-extras', obraId] });
+      qc.invalidateQueries({ queryKey: ['ing-extras-todos'] });
+      setBusqueda(''); setShowSearch(false);
+    } finally { setVinculando(null); }
+  };
 
   const crear = async () => {
     if (!f.descripcion) return;
@@ -222,7 +250,40 @@ function ExtrasTab({ obraId, obra, user, qc, guardando, setGuardando }) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div className="space-y-4">
+      <div className="bg-card border border-border rounded-xl p-3 relative">
+        <div className="flex items-center gap-2">
+          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+          <input
+            value={busqueda}
+            onChange={e => { setBusqueda(e.target.value); setShowSearch(true); }}
+            onFocus={() => setShowSearch(true)}
+            placeholder="Buscar trabajo extra existente (descripción, solicitante, fecha, obra) para vincularlo al proyecto…"
+            className="ing-input flex-1"
+          />
+          {busqueda && <button onClick={() => { setBusqueda(''); setShowSearch(false); }} className="text-xs px-2 py-1 rounded border border-border min-h-[36px]">Limpiar</button>}
+        </div>
+        {showSearch && (
+          <div className="absolute z-20 left-3 right-3 mt-1 bg-background border border-border rounded-lg shadow-lg max-h-72 overflow-y-auto">
+            {resultados.length === 0 ? (
+              <div className="p-3 text-sm text-muted-foreground">{busqueda ? 'Sin coincidencias.' : `${vinculables.length} trabajo(s) extra disponible(s) para vincular. Escribe para filtrar.`}</div>
+            ) : resultados.map(e => (
+              <button key={e.id} onClick={() => vincular(e)} disabled={vinculando === e.id} className="w-full text-left p-2.5 border-b border-border last:border-0 hover:bg-muted/40 disabled:opacity-50">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{e.prioridad}</span>
+                  <span className="text-xs text-muted-foreground">{e.fecha_solicitud} · {e.solicitado_por_nombre || e.solicitado_por_email || '—'}</span>
+                  {e.obra_name && <span className="text-[10px] text-amber-700 bg-amber-50 px-1 rounded">obra: {e.obra_name}</span>}
+                </div>
+                <div className="text-sm mt-0.5 line-clamp-2">{e.descripcion}</div>
+                {e.importe_estimado != null && <div className="text-xs text-muted-foreground">Importe est.: {moneda(e.importe_estimado)}</div>}
+                <div className="text-[10px] text-teal-700 mt-0.5">{vinculando === e.id ? 'Vinculando…' : '→ Vincular a este proyecto'}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <Form title="Nuevo trabajo extra vinculado al proyecto">
         <div className="grid grid-cols-2 gap-2">
           <Field label="Fecha"><input type="date" value={f.fecha} onChange={e => setF({ ...f, fecha: e.target.value })} className="ing-input" /></Field>
@@ -251,6 +312,7 @@ function ExtrasTab({ obraId, obra, user, qc, guardando, setGuardando }) {
           </div>
         ))}
       </List>
+      </div>
     </div>
   );
 }
