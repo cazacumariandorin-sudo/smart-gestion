@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, ScrollText, FileText, Image as ImageIcon, Gavel, History } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { ESTADO_MULTA, MOTIVO_DESCARGO, ESTADOS_ABIERTOS_TECNICO, estadoLabel, estadoColor } from './multaConstants';
+import { ESTADO_MULTA, MOTIVO_DESCARGO, ESTADOS_ABIERTOS_TECNICO, ESTADOS_RESUELTOS, estadoLabel, estadoColor } from './multaConstants';
 import MultaUpload from './MultaUpload';
 
 const ESTADOS_RESOLUCION = [
@@ -205,7 +205,7 @@ export default function MultaDetalleDialog({ multa, open, onOpenChange }) {
           )}
 
           {/* Acción gerencia/admin: resolver */}
-          {puedeResolver && !ESTADO_MULTA[estado]?.label?.includes('resuelto') && estado !== 'anulada' && (
+          {puedeResolver && !ESTADOS_RESUELTOS.includes(estado) && (
             <section className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 space-y-2">
               <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Resolver la multa</p>
               <div>

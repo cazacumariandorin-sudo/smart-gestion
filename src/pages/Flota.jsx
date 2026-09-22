@@ -555,6 +555,11 @@ export default function Flota() {
               <RepostajesReporte />
             </TabsContent>
           )}
+
+          {/* TAB MULTAS */}
+          <TabsContent value="multas">
+            <MultasPanel vehiculos={vehiculos} />
+          </TabsContent>
         </Tabs>
       </div>
 
