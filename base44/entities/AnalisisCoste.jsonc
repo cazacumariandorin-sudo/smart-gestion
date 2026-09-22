@@ -1,0 +1,163 @@
+{
+  "name": "AnalisisCoste",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (proyecto de ingenier\u00eda). Una obra tiene un AnalisisCoste vigente (el m\u00e1s reciente)."
+    },
+    "coste_presupuestado": {
+      "type": "number",
+      "default": 0,
+      "description": "Suma de importes de BaseDePrecio/presupuesto del proyecto."
+    },
+    "coste_pedido": {
+      "type": "number",
+      "default": 0,
+      "description": "Suma de PartidaPedido.importe_total del proyecto."
+    },
+    "coste_facturado": {
+      "type": "number",
+      "default": 0,
+      "description": "Suma de LineaFactura.importe_neto del proyecto."
+    },
+    "coste_certificado": {
+      "type": "number",
+      "default": 0,
+      "description": "Suma de Certificacion.importe_total_cert ya emitidos."
+    },
+    "desviacion_pct": {
+      "type": "number",
+      "default": 0,
+      "description": "((coste_facturado - coste_presupuestado) / coste_presupuestado) * 100. Positivo = sobrecoste."
+    },
+    "riesgo_nivel": {
+      "type": "string",
+      "enum": [
+        "verde",
+        "amarillo",
+        "rojo"
+      ],
+      "default": "verde",
+      "description": "Nivel de riesgo econ\u00f3mico del proyecto. Verde <5% desviaci\u00f3n, amarillo 5-15%, rojo >15%."
+    },
+    "fecha_calculo": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO en que se calcul\u00f3 este an\u00e1lisis (funci\u00f3n calcularAnalisisCosteProyecto)."
+    },
+    "calculado_por": {
+      "type": "string",
+      "description": "Email del usuario/funci\u00f3n que calcul\u00f3 el an\u00e1lisis."
+    },
+    "resumen_discrepancias": {
+      "type": "object",
+      "properties": {
+        "abiertas": {
+          "type": "number"
+        },
+        "en_revision": {
+          "type": "number"
+        },
+        "resueltas": {
+          "type": "number"
+        },
+        "alta_severidad": {
+          "type": "number"
+        }
+      },
+      "description": "Conteo de Discrepancia por estado/severidad (denormalizado para el panel de coste y riesgo)."
+    }
+  },
+  "required": [
+    "obra_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "name": "LineaFactura",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (proyecto de ingenier\u00eda)."
+    },
+    "documento_origen_id": {
+      "type": "string",
+      "description": "ID del MaterialDocumentoOrigen (tipo=factura) del que se extrajo la l\u00ednea."
+    },
+    "numero_factura": {
+      "type": "string",
+      "description": "N\u00ba de factura impreso."
+    },
+    "proveedor_nombre": {
+      "type": "string"
+    },
+    "proveedor_nif": {
+      "type": "string"
+    },
+    "fecha_documento": {
+      "type": "string",
+      "format": "date"
+    },
+    "linea_id": {
+      "type": "string",
+      "description": "ID de la l\u00ednea dentro de la factura."
+    },
+    "referencia": {
+      "type": "string"
+    },
+    "fabricante_id": {
+      "type": "string"
+    },
+    "fabricante_name": {
+      "type": "string"
+    },
+    "material_id": {
+      "type": "string"
+    },
+    "cantidad_facturada": {
+      "type": "number"
+    },
+    "unidad": {
+      "type": "string",
+      "default": "ud"
+    },
+    "precio_unitario_neto": {
+      "type": "number",
+      "description": "Precio unitario neto (sin IVA, con descuento)."
+    },
+    "importe_neto": {
+      "type": "number",
+      "description": "Importe neto de la l\u00ednea."
+    },
+    "partida_pedido_id": {
+      "type": "string",
+      "description": "ID de la PartidaPedido contra la que se concilia esta l\u00ednea (enlace de conciliaci\u00f3n). Vac\u00edo si a\u00fan no conciliada."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente_revision",
+        "confirmado",
+        "conciliado",
+        "descartado"
+      ],
+      "default": "pendiente_revision"
+    },
+    "confianza": {
+      "type": "string",
+      "enum": [
+        "alta",
+        "media",
+        "baja"
+      ],
+      "default": "media"
+    }
+  },
+  "required": [
+    "obra_id",
+    "importe_neto"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

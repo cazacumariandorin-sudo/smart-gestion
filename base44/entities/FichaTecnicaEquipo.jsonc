@@ -1,0 +1,173 @@
+{
+  "name": "FichaTecnicaEquipo",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (proyecto de ingenier\u00eda)."
+    },
+    "equipo_referencia": {
+      "type": "string",
+      "description": "Referencia del equipo (MaterialCatalog.referencia o texto libre)."
+    },
+    "equipo_tipo": {
+      "type": "string",
+      "enum": [
+        "motor",
+        "variador",
+        "bomba",
+        "ventilador",
+        "compresor",
+        "otro"
+      ]
+    },
+    "fabricante": {
+      "type": "string"
+    },
+    "modelo": {
+      "type": "string"
+    },
+    "datos_placa": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "JSON con los datos nominales extra\u00eddos por procesarFichaTecnicaEquipo (potencia_kw, tension_v, intensidad_nominal_a, rpm, factor_potencia, rendimiento_pct, ip_proteccion, clase_aislamiento, servicio, masa_kg, normas, numero_serie...)."
+    },
+    "documento_origen_id": {
+      "type": "string",
+      "description": "ID del MaterialDocumentoOrigen (tipo=ficha_tecnica_equipo) de origen."
+    },
+    "motor_ficha_id": {
+      "type": "string",
+      "description": "Si este equipo es un VARIADOR, ID de la FichaTecnicaEquipo del MOTOR que acciona (para comparaci\u00f3n compatibilidad)."
+    },
+    "variador_ficha_id": {
+      "type": "string",
+      "description": "Si este equipo es un MOTOR, ID de la FichaTecnicaEquipo del VARIADOR que lo controla."
+    },
+    "compatibilidad_motor_variador": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "incompatible",
+        "revisar",
+        "no_aplica"
+      ],
+      "default": "no_aplica",
+      "description": "Resultado de la comparaci\u00f3n motor\u2194variador: ok (compatible), incompatible (potencia/tensi\u00f3n no cuadran), revisar (dudos), no_aplica (no hay par)."
+    },
+    "motivo_compatibilidad": {
+      "type": "string",
+      "description": "Motivo de la valoraci\u00f3n de compatibilidad (ej: 'variador 7.5kW insuficiente para motor 11kW')."
+    },
+    "confianza": {
+      "type": "string",
+      "enum": [
+        "alta",
+        "media",
+        "baja"
+      ],
+      "default": "media"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente_revision",
+        "confirmado",
+        "descartado"
+      ],
+      "default": "pendiente_revision"
+    }
+  },
+  "required": [
+    "obra_id",
+    "equipo_tipo"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

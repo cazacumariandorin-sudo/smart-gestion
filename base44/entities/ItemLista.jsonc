@@ -1,0 +1,176 @@
+{
+  "name": "ItemLista",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (proyecto de ingenier\u00eda) a la que pertenece el \u00edtem."
+    },
+    "documento_origen_id": {
+      "type": "string",
+      "description": "ID del MaterialDocumentoOrigen (listado_puntos/pedido) del que se extrajo el \u00edtem."
+    },
+    "punto_id": {
+      "type": "string",
+      "description": "ID del punto (PT-01, PT-02...). Cadena vac\u00eda si no aparece en el documento."
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n t\u00e9cnica del punto/equipo."
+    },
+    "referencia_equipo": {
+      "type": "string",
+      "description": "Referencia comercial del equipo (MaterialCatalog.referencia o texto libre)."
+    },
+    "material_id": {
+      "type": "string",
+      "description": "ID del MaterialCatalog si el equipo est\u00e1 catalogado (opcional)."
+    },
+    "fabricante_id": {
+      "type": "string",
+      "description": "ID del Fabricante (opcional)."
+    },
+    "fabricante_name": {
+      "type": "string",
+      "description": "Nombre del fabricante (denormalizado)."
+    },
+    "cantidad": {
+      "type": "number",
+      "default": 1
+    },
+    "unidad": {
+      "type": "string",
+      "default": "ud"
+    },
+    "ubicacion_zona": {
+      "type": "string",
+      "description": "Zona/ubicaci\u00f3n t\u00e9cnica del punto (Sala m\u00e1quinas, Planta 2...)."
+    },
+    "confianza": {
+      "type": "string",
+      "enum": [
+        "alta",
+        "media",
+        "baja"
+      ],
+      "default": "media"
+    },
+    "precisa_precision": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si la extracci\u00f3n IA devolvi\u00f3 confianza baja o faltan campos clave (descripcion, referencia_equipo). Pendiente de re-procesamiento."
+    },
+    "precision_motivo": {
+      "type": "string"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente_revision",
+        "confirmado",
+        "descartado"
+      ],
+      "default": "pendiente_revision",
+      "description": "Ciclo de revisi\u00f3n humana: pendiente_revision (reci\u00e9n extra\u00eddo) \u2192 confirmado (aprobado) | descartado."
+    },
+    "confirmado_por": {
+      "type": "string"
+    },
+    "fecha_confirmacion": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "obra_id",
+    "descripcion"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

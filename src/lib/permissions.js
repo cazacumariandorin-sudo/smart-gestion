@@ -28,7 +28,7 @@ export const ALL_MODULES = [
   'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos',
   'apuntes-horario', 'nominas', 'presupuestos', 'parte-diario',
   'economico-dashboard', 'trabajos-extras', 'material-pendiente',
-  'conciliacion', 'contabilidad',
+  'conciliacion', 'contabilidad', 'ingenieria',
 ];
 
 /**
@@ -48,7 +48,18 @@ export const ROLE_MODULE_PERMISSIONS = {
     'control-horario', 'solar-pedidos', 'users', 'datos-sensibles',
     'inventario', 'fabricantes', 'demo-users', 'admin-backup', 'nominas',
     'presupuestos', 'parte-diario', 'economico-dashboard', 'trabajos-extras',
-    'material-pendiente', 'conciliacion', 'contabilidad',
+    'material-pendiente', 'conciliacion', 'contabilidad', 'ingenieria',
+  ],
+
+  // ingeniero = rol operativo del módulo Ingeniería/ObraCheck. Alcance de
+  // campo + módulo Ingeniería completo. Sin users, datos-sensibles,
+  // admin-backup, nominas, presupuestos, economico-dashboard ni contabilidad
+  // (esos son de dirección/administración).
+  ingeniero: [
+    'dashboard', 'ingenieria', 'work-orders', 'clients', 'obras',
+    'obras-civiles', 'solar', 'materials', 'drawings', 'manuales',
+    'informe-obras', 'operarios', 'notas-gastos', 'vehiculos', 'chat',
+    'flota', 'galeria-fotos', 'apuntes-horario', 'photos', 'parte-diario',
   ],
 
   // director_comercial = todo salvo datos-sensibles y admin-backup.

@@ -28,7 +28,20 @@ import {
   Shield,
   ClipboardCheck,
   Sparkles,
-  PackageOpen
+  PackageOpen,
+  Cpu,
+  LayoutDashboard,
+  Upload,
+  ListChecks,
+  GitCompare,
+  Tags,
+  Maximize,
+  MapPin,
+  Spline,
+  BadgeCheck,
+  FileCog,
+  TrendingDown,
+  AlertTriangle
 } from 'lucide-react';
 
 /**
@@ -155,6 +168,31 @@ export const HUBS = [
       { label: 'Materiales', path: '/materials', icon: Package, module: 'orders' },
       { label: 'Inventario', path: '/inventario', icon: ClipboardList, module: 'users' },
       { label: 'Fabricantes', path: '/fabricantes', icon: Building2, module: 'users' },
+    ],
+  },
+  {
+    id: 'ingenieria',
+    label: 'Ingeniería',
+    icon: Cpu,
+    color: 'text-teal-700',
+    activeBg: 'bg-teal-50 dark:bg-teal-950/40',
+    borderColor: 'border-teal-400',
+    module: 'ingenieria',
+    roleRestricted: ['admin', 'gerencia', 'propietario', 'ingeniero'],
+    items: [
+      { label: 'Dashboard Proyecto', path: '/ingenieria', icon: LayoutDashboard, module: 'ingenieria' },
+      { label: 'Carga Documentos', path: '/ingenieria/documentos', icon: Upload, module: 'ingenieria' },
+      { label: 'Listado de Ítems', path: '/ingenieria/items', icon: ListChecks, module: 'ingenieria' },
+      { label: 'Conciliación Pd/Pr', path: '/ingenieria/conciliacion', icon: GitCompare, module: 'ingenieria' },
+      { label: 'Tarifario Proyectos', path: '/ingenieria/tarifario', icon: Tags, module: 'ingenieria' },
+      { label: 'Calibración Planos', path: '/ingenieria/planos', icon: Maximize, module: 'ingenieria' },
+      { label: 'Marcado de Equipos', path: '/ingenieria/equipos', icon: MapPin, module: 'ingenieria' },
+      { label: 'Trazado Estimado', path: '/ingenieria/trazado', icon: Spline, module: 'ingenieria' },
+      { label: 'Conciliación Fac/Pd', path: '/ingenieria/facturas', icon: Receipt, module: 'ingenieria' },
+      { label: 'Certificaciones', path: '/ingenieria/certificacion', icon: BadgeCheck, module: 'ingenieria' },
+      { label: 'Fichas Técnicas', path: '/ingenieria/fichas', icon: FileCog, module: 'ingenieria' },
+      { label: 'Coste y Riesgo', path: '/ingenieria/coste', icon: TrendingDown, module: 'ingenieria' },
+      { label: 'Discrepancias', path: '/ingenieria/discrepancias', icon: AlertTriangle, module: 'ingenieria' },
     ],
   },
   {

@@ -1,0 +1,176 @@
+{
+  "name": "PartidaPedido",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (proyecto de ingenier\u00eda)."
+    },
+    "documento_origen_id": {
+      "type": "string",
+      "description": "ID del MaterialDocumentoOrigen (tipo=pedido) del que se extrajo la partida."
+    },
+    "numero_pedido": {
+      "type": "string",
+      "description": "N\u00ba de pedido impreso en el documento."
+    },
+    "partida_id": {
+      "type": "string",
+      "description": "ID de la partida dentro del pedido (PD-01, PD-02...)."
+    },
+    "descripcion": {
+      "type": "string"
+    },
+    "referencia": {
+      "type": "string",
+      "description": "Referencia comercial del material/equipo."
+    },
+    "fabricante_id": {
+      "type": "string"
+    },
+    "fabricante_name": {
+      "type": "string"
+    },
+    "material_id": {
+      "type": "string"
+    },
+    "cantidad_pedida": {
+      "type": "number"
+    },
+    "unidad": {
+      "type": "string",
+      "default": "ud"
+    },
+    "precio_unitario": {
+      "type": "number",
+      "description": "Precio unitario neto (sin IVA)."
+    },
+    "importe_total": {
+      "type": "number",
+      "description": "Importe total de la partida (cantidad \u00d7 precio_unitario, o importe a tanto alzado si el pedido lo da as\u00ed)."
+    },
+    "es_tanto_alzado": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si la partida tiene importe_total pero NO desglose de l\u00edneas/items. Regla 4: las partidas a tanto alzado nunca se concilian solo por cuadrar el total."
+    },
+    "item_lista_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de ItemLista incluidos en esta partida. Vac\u00edo si la partida es a tanto alzado."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente_revision",
+        "confirmado",
+        "conciliado",
+        "descartado"
+      ],
+      "default": "pendiente_revision"
+    },
+    "confianza": {
+      "type": "string",
+      "enum": [
+        "alta",
+        "media",
+        "baja"
+      ],
+      "default": "media"
+    }
+  },
+  "required": [
+    "obra_id",
+    "descripcion"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

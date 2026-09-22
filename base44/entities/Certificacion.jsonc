@@ -1,0 +1,167 @@
+{
+  "name": "Certificacion",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (proyecto de ingenier\u00eda)."
+    },
+    "numero_cert": {
+      "type": "string",
+      "description": "N\u00ba de certificaci\u00f3n (CER-001, CER-002...)."
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la certificaci\u00f3n."
+    },
+    "partidas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "partida_pedido_id": {
+            "type": "string",
+            "description": "ID de la PartidaPedido certificada."
+          },
+          "cantidad_certificada": {
+            "type": "number"
+          },
+          "importe_certificado": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "partida_pedido_id",
+          "cantidad_certificada"
+        ]
+      },
+      "description": "Partidas certificadas en esta certificaci\u00f3n."
+    },
+    "importe_total_cert": {
+      "type": "number",
+      "default": 0,
+      "description": "Suma de importe_certificado de las partidas."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "emitida",
+        "abonada",
+        "rechazada"
+      ],
+      "default": "borrador",
+      "description": "Ciclo: borrador \u2192 emitida \u2192 abonada (o rechazada)."
+    },
+    "firma_cliente_url": {
+      "type": "string",
+      "description": "URL de la firma del cliente conformando la certificaci\u00f3n."
+    },
+    "firmado_por_nombre": {
+      "type": "string"
+    },
+    "fecha_firma": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "emitida_por": {
+      "type": "string"
+    },
+    "notas": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "obra_id",
+    "fecha"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

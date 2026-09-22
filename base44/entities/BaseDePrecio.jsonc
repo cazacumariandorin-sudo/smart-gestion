@@ -1,0 +1,143 @@
+{
+  "name": "BaseDePrecio",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (proyecto de ingenier\u00eda)."
+    },
+    "material_id": {
+      "type": "string",
+      "description": "ID del MaterialCatalog al que aplica el precio base."
+    },
+    "material_referencia": {
+      "type": "string",
+      "description": "Referencia del material (denormalizada para matching)."
+    },
+    "precio_base_neto": {
+      "type": "number",
+      "description": "Precio base neto (sin IVA) de referencia para la obra."
+    },
+    "fecha_base": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha a partir de la cual aplica el precio base."
+    },
+    "documento_origen_id": {
+      "type": "string",
+      "description": "ID del MaterialDocumentoOrigen que origin\u00f3 este precio base (cat\u00e1logo/presupuesto/pedido anterior)."
+    },
+    "tipo_base": {
+      "type": "string",
+      "enum": [
+        "catalogo",
+        "presupuesto",
+        "pedido_anterior",
+        "tarifa_proveedor"
+      ],
+      "default": "catalogo",
+      "description": "Origen del precio base: cat\u00e1logo de fabricante, presupuesto aceptado, pedido anterior o tarifa de proveedor."
+    },
+    "confianza": {
+      "type": "string",
+      "enum": [
+        "alta",
+        "media",
+        "baja"
+      ],
+      "default": "media"
+    }
+  },
+  "required": [
+    "obra_id",
+    "precio_base_neto"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

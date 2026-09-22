@@ -1,0 +1,189 @@
+{
+  "name": "Discrepancia",
+  "type": "object",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (proyecto de ingenier\u00eda)."
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "precio_fuera_tarifa",
+        "cantidad_distinta",
+        "spec_tecnica_incompatible",
+        "tanto_alzado_sin_desglose",
+        "ficha_motor_variador_incompatible",
+        "trazado_vs_medicion",
+        "certificacion_excede_pedido",
+        "documento_sin_origen"
+      ],
+      "description": "Las 8 reglas de detecci\u00f3n de discrepancia del documento ObraCheck original."
+    },
+    "entidad_origen": {
+      "type": "string",
+      "enum": [
+        "partida_pedido",
+        "linea_factura",
+        "item_lista",
+        "ficha_tecnica",
+        "trazado",
+        "certificacion",
+        "documento"
+      ],
+      "description": "Tipo de entidad que origin\u00f3 la discrepancia."
+    },
+    "entidad_id": {
+      "type": "string",
+      "description": "ID de la entidad origen."
+    },
+    "severidad": {
+      "type": "string",
+      "enum": [
+        "alta",
+        "media",
+        "baja"
+      ],
+      "default": "media"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n legible de la discrepancia."
+    },
+    "valor_esperado": {
+      "type": "string",
+      "description": "Valor esperado (seg\u00fan tarifa/pedido/presupuesto) en texto."
+    },
+    "valor_real": {
+      "type": "string",
+      "description": "Valor encontrado (en factura/medici\u00f3n/certificaci\u00f3n) en texto."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "abierta",
+        "en_revision",
+        "resuelta",
+        "falsa_alarma"
+      ],
+      "default": "abierta",
+      "description": "Ciclo de vida: abierta \u2192 en_revision \u2192 resuelta (o falsa_alarma)."
+    },
+    "asignada_a": {
+      "type": "string",
+      "description": "Email del ingeniero/gerencia asignado a resolver."
+    },
+    "resuelta_por": {
+      "type": "string"
+    },
+    "fecha_resolucion": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolucion_accion": {
+      "type": "string",
+      "description": "Acci\u00f3n tomada para resolver (corregir factura, ajustar pedido, aceptar diferencia, etc.)."
+    },
+    "notas_resolucion": {
+      "type": "string"
+    },
+    "fecha_deteccion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO en que la funci\u00f3n conciliarProyectoIngenieria detect\u00f3 la discrepancia."
+    }
+  },
+  "required": [
+    "obra_id",
+    "tipo",
+    "descripcion"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}
