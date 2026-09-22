@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, RefreshCw, Sparkles, Copy, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, RefreshCw, Sparkles, Copy, AlertTriangle, Layers, Play } from 'lucide-react';
 import ProyectoSelector from '@/components/ingenieria/ProyectoSelector';
 import { useIngenieriaProyectos } from '@/components/ingenieria/ProyectoSelector';
 import PageHeader from '@/components/layout/PageHeader';
@@ -39,6 +39,61 @@ export default function IngenieriaDocumentos() {
   const [precisionId, setPrecisionId] = useState(null);
   const [precisionMsg, setPrecisionMsg] = useState('');
   const [precisionDiff, setPrecisionDiff] = useState(null);
+  const [loteFiles, setLoteFiles] = useState([]);
+  const [loteTipo, setLoteTipo] = useState('listado_puntos');
+  const [loteEstado, setLoteEstado] = useState('idle'); // idle | subiendo | ok | error
+  const [loteResultado, setLoteResultado] = useState(null);
+  const [loteError, setLoteError] = useState('');
+  const [procesandoLote, setProcesandoLote] = useState(false);
+
+  const pendientes = documentos.filter(d => d.estado === 'pendiente_revision');
+
+  const subirLote = async () => {
+    if (!effectiveObraId || loteFiles.length === 0) return;
+    setLoteEstado('subiendo'); setLoteError(''); setLoteResultado(null);
+    try {
+      let ok = 0, err = 0;
+      for (const file of loteFiles) {
+        try {
+          const up = await base44.integrations.Core.UploadPublicFile({ file });
+          const detTipo = detectTipo(file.name);
+          const detRev = detectRevision(file.name);
+          const tipoFinal = detTipo || loteTipo;
+          await base44.entities.MaterialDocumentoOrigen.create({
+            tipo: tipoFinal,
+            proyecto_ingenieria_id: effectiveObraId,
+            obra_id: effectiveObraId,
+            revision: detRev || '',
+            fecha_documento: new Date().toISOString().slice(0, 10),
+            estado: 'pendiente_revision',
+            archivo_url_mejorado: up.file_url,
+            ingeniero_subido_por: user?.email || '',
+          });
+          ok++;
+        } catch (e) { err++; }
+      }
+      setLoteResultado({ ok, err, total: loteFiles.length });
+      setLoteEstado('ok');
+      setLoteFiles([]);
+      qc.invalidateQueries({ queryKey: ['ing-docs', effectiveObraId] });
+    } catch (e) {
+      setLoteError(String(e?.message || e).slice(0, 200));
+      setLoteEstado('error');
+    }
+  };
+
+  const dispararProcesamiento = async () => {
+    setProcesandoLote(true); setLoteError('');
+    try {
+      const res = await base44.functions.invoke('procesarLoteDocumentosPendientes', {});
+      if (res.data?.success) {
+        setLoteResultado({ disparo: true, procesados: res.data.procesados, errores: res.data.errores, total: res.data.total });
+        qc.invalidateQueries({ queryKey: ['ing-docs', effectiveObraId] });
+      } else throw new Error(res.data?.error || 'Error');
+    } catch (e) {
+      setLoteError(String(e?.message || e).slice(0, 200));
+    } finally { setProcesandoLote(false); }
+  };
 
   const obra = obras.find(o => o.id === obraId);
   const effectiveObraId = obraId || obras[0]?.id;
@@ -249,6 +304,48 @@ export default function IngenieriaDocumentos() {
               <div className="text-red-700 text-xs">{error}</div>
             </div>
           )}
+        </div>
+
+        {/* Subida por lote + cola pendiente */}
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3 lg:col-span-2">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-teal-600" />
+            <h3 className="font-semibold text-sm">Subida por lote</h3>
+            {pendientes.length > 0 && (
+              <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">{pendientes.length} pendiente(s) de procesar</span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">Sube varios archivos a la vez; se guardan como <strong>pendiente de revisión</strong> y el procesamiento OCR los procesa automáticamente cada 5 min (o pulsa «Procesar ahora»).</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Tipo por defecto (si no se detecta del nombre)</label>
+              <select value={loteTipo} onChange={e => setLoteTipo(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm mt-1 min-h-[40px]">
+                {Object.entries(TIPO_OCR).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs font-medium text-muted-foreground">Archivos (multiples)</label>
+              <input type="file" multiple accept="image/*,application/pdf" onChange={e => setLoteFiles(Array.from(e.target.files || []))} className="w-full text-sm mt-1" />
+              {loteFiles.length > 0 && <div className="text-xs text-muted-foreground mt-1">{loteFiles.length} archivo(s) seleccionado(s)</div>}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={subirLote} disabled={!effectiveObraId || loteFiles.length === 0 || loteEstado === 'subiendo'} className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50">
+              {loteEstado === 'subiendo' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {loteEstado === 'subiendo' ? 'Subiendo lote…' : `Subir ${loteFiles.length || ''} a la cola`}
+            </button>
+            <button onClick={dispararProcesamiento} disabled={procesandoLote || pendientes.length === 0} className="inline-flex items-center gap-1.5 border border-teal-300 bg-teal-50 text-teal-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-teal-100 disabled:opacity-50">
+              {procesandoLote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />} Procesar ahora ({pendientes.length})
+            </button>
+          </div>
+          {loteResultado && (
+            <div className="text-xs">
+              {loteResultado.disparo
+                ? <span className="text-teal-700">Procesamiento: {loteResultado.procesados} OK · {loteResultado.errores} error(es) de {loteResultado.total}.</span>
+                : <span className="text-emerald-700">Lote subido: {loteResultado.ok} OK · {loteResultado.err} error(es) de {loteResultado.total}. Procesamiento automático en marcha.</span>}
+            </div>
+          )}
+          {loteError && <div className="text-xs text-red-700 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{loteError}</div>}
         </div>
 
         <div className="bg-card border border-border rounded-xl">
