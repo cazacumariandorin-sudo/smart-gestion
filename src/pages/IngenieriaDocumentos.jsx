@@ -8,6 +8,7 @@ import { useIngenieriaProyectos } from '@/components/ingenieria/ProyectoSelector
 import PageHeader from '@/components/layout/PageHeader';
 import { detectRevision, matchObra, detectTipo } from '@/lib/ingenieriaFilename';
 import { calcularHash, detectarDuplicado, diffDatos, DiffList } from '@/lib/ingenieriaDiff.jsx';
+import DocumentoCard from '@/components/ingenieria/DocumentoCard';
 
 const TIPO_OCR = {
   listado_puntos: { fn: 'procesarListadoPuntos', label: 'Listado de puntos' },
@@ -271,21 +272,7 @@ export default function IngenieriaDocumentos() {
           <div className="divide-y divide-border max-h-[60vh] overflow-y-auto">
             {documentos.length === 0 && <div className="p-4 text-sm text-muted-foreground">Sin documentos.</div>}
             {documentos.map(d => (
-              <div key={d.id} className="p-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-medium px-2 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200">{d.tipo.replace(/_/g, ' ')}</span>
-                  {d.revision && <span className="text-xs text-muted-foreground">Rev. {d.revision}</span>}
-                  <span className={`text-xs px-1.5 py-0.5 rounded ${d.estado === 'superseded' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-700'}`}>{d.estado}</span>
-                </div>
-                <div className="text-sm mt-1">{d.numero_documento || d.proveedor_nombre || 'Documento sin número'}</div>
-                <div className="text-xs text-muted-foreground">{d.fecha_documento} · {d.lineas_count || 0} líneas</div>
-                <div className="flex items-center gap-2 mt-2">
-                  <button onClick={() => reprocesar(d)} disabled={precisionId === d.id || !d.archivo_url_mejorado} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-teal-300 bg-teal-50 text-teal-700 hover:bg-teal-100 disabled:opacity-50 min-h-[32px]">
-                    {precisionId === d.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Precisión
-                  </button>
-                  {d.archivo_url_mejorado && <a href={d.archivo_url_mejorado} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">ver archivo</a>}
-                </div>
-              </div>
+              <DocumentoCard key={d.id} doc={d} onReprocesar={() => reprocesar(d)} reprocesando={precisionId === d.id} />
             ))}
           </div>
         </div>
