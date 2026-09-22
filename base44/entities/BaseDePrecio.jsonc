@@ -6,37 +6,48 @@
       "type": "string",
       "description": "ID de la obra (proyecto de ingenier\u00eda)."
     },
-    "material_id": {
+    "partida_pedido_id": {
       "type": "string",
-      "description": "ID del MaterialCatalog al que aplica el precio base."
+      "description": "ID de la PartidaPedido a la que aplica este precio base. El precio base es por PARTIDA (no por material de cat\u00e1logo)."
     },
-    "material_referencia": {
+    "tipo_medicion": {
       "type": "string",
-      "description": "Referencia del material (denormalizada para matching)."
+      "enum": [
+        "por_punto",
+        "por_metro_lineal",
+        "por_unidad"
+      ],
+      "description": "Tipo de medici\u00f3n de la partida. Determina qu\u00e9 regla de conciliaci\u00f3n aplica: por_punto (recuento de ItemLista), por_metro_lineal (distancia real vs. asumida), por_unidad (unidades)."
     },
-    "precio_base_neto": {
+    "precio_unitario_pactado": {
       "type": "number",
-      "description": "Precio base neto (sin IVA) de referencia para la obra."
+      "description": "Precio unitario neto (sin IVA) pactado en el presupuesto/pedido de referencia."
+    },
+    "distancia_minima_asumida_m": {
+      "type": "number",
+      "description": "Distancia m\u00ednima asumida en el presupuesto (metros). Rango inferior del precio por metro lineal."
+    },
+    "distancia_maxima_asumida_m": {
+      "type": "number",
+      "description": "Distancia m\u00e1xima asumida en el presupuesto (metros). Si la distancia real (MedicionReal o TrazadoEstimado) supera este m\u00e1ximo \u2192 riesgo_precio_distancia (sobrecoste potencial)."
+    },
+    "clausula_revision": {
+      "type": "string",
+      "default": "sin cl\u00e1usula",
+      "description": "Cl\u00e1usula de revisi\u00f3n de distancia del presupuesto (texto) o 'sin cl\u00e1usula'. Si hay cl\u00e1usula, el sobrecoste por distancia se reclama; si no, solo es alerta."
+    },
+    "fuente": {
+      "type": "string",
+      "description": "Fuente del precio base (cat\u00e1logo/presupuesto/pedido_anterior/tarifa_proveedor). Texto libre."
+    },
+    "documento_origen_id": {
+      "type": "string",
+      "description": "ID del MaterialDocumentoOrigen que origin\u00f3 este precio base."
     },
     "fecha_base": {
       "type": "string",
       "format": "date",
       "description": "Fecha a partir de la cual aplica el precio base."
-    },
-    "documento_origen_id": {
-      "type": "string",
-      "description": "ID del MaterialDocumentoOrigen que origin\u00f3 este precio base (cat\u00e1logo/presupuesto/pedido anterior)."
-    },
-    "tipo_base": {
-      "type": "string",
-      "enum": [
-        "catalogo",
-        "presupuesto",
-        "pedido_anterior",
-        "tarifa_proveedor"
-      ],
-      "default": "catalogo",
-      "description": "Origen del precio base: cat\u00e1logo de fabricante, presupuesto aceptado, pedido anterior o tarifa de proveedor."
     },
     "confianza": {
       "type": "string",
@@ -50,7 +61,9 @@
   },
   "required": [
     "obra_id",
-    "precio_base_neto"
+    "partida_pedido_id",
+    "tipo_medicion",
+    "precio_unitario_pactado"
   ],
   "rls": {
     "create": {

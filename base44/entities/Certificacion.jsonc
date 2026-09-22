@@ -6,6 +6,10 @@
       "type": "string",
       "description": "ID de la obra (proyecto de ingenier\u00eda)."
     },
+    "documento_origen_id": {
+      "type": "string",
+      "description": "ID del MaterialDocumentoOrigen (tipo=presupuesto) del que se certifican partidas. Vincula la certificaci\u00f3n al presupuesto de origen."
+    },
     "numero_cert": {
       "type": "string",
       "description": "N\u00ba de certificaci\u00f3n (CER-001, CER-002...)."
@@ -27,6 +31,10 @@
           "cantidad_certificada": {
             "type": "number"
           },
+          "porcentaje_certificado": {
+            "type": "number",
+            "description": "% de la partida certificado en esta certificaci\u00f3n (0-100)."
+          },
           "importe_certificado": {
             "type": "number"
           }
@@ -36,7 +44,7 @@
           "cantidad_certificada"
         ]
       },
-      "description": "Partidas certificadas en esta certificaci\u00f3n."
+      "description": "Partidas certificadas en esta certificaci\u00f3n (relaci\u00f3n m\u00faltiple \u2192 PartidaPedido)."
     },
     "importe_total_cert": {
       "type": "number",

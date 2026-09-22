@@ -2,59 +2,49 @@
   "name": "TrazadoEstimado",
   "type": "object",
   "properties": {
-    "plano_calibracion_id": {
-      "type": "string",
-      "description": "ID de la PlanoCalibracion sobre la que se dibuja el trazado."
-    },
     "obra_id": {
       "type": "string",
       "description": "ID de la obra (denormalizada)."
     },
-    "puntos_px": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "x": {
-            "type": "number"
-          },
-          "y": {
-            "type": "number"
-          }
-        }
-      },
-      "description": "Polil\u00ednea del trazado en coordenadas de p\u00edxeles sobre la imagen del plano."
+    "plano_calibracion_id": {
+      "type": "string",
+      "description": "ID de la PlanoCalibracion sobre la que se dibuja el trazado (para contexto de escala)."
     },
-    "puntos_metros": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "x": {
-            "type": "number"
-          },
-          "y": {
-            "type": "number"
-          }
-        }
-      },
-      "description": "Polil\u00ednea del trazado en metros (derivada de la calibraci\u00f3n)."
+    "ubicacion_origen_id": {
+      "type": "string",
+      "description": "ID de la UbicacionEquipo de origen del trazado."
     },
-    "longitud_metros": {
+    "ubicacion_destino_id": {
+      "type": "string",
+      "description": "ID de la UbicacionEquipo de destino del trazado."
+    },
+    "distancia_linea_recta_m": {
       "type": "number",
-      "default": 0,
-      "description": "Longitud total del trazado en metros (calculada sumando segmentos entre puntos)."
+      "description": "Distancia en l\u00ednea recta entre origen y destino en metros (derivada de la calibraci\u00f3n del plano)."
+    },
+    "factor_trazado": {
+      "type": "number",
+      "default": 1.3,
+      "description": "Factor de trazado (heur\u00edstica editable, NO medici\u00f3n): distancia_estimada = distancia_linea_recta \u00d7 factor_trazado. Por defecto 1.3. Puede diferir entre cableado el\u00e9ctrico y tuber\u00eda de proceso; editable por proyecto/sala/tipo de trazado."
+    },
+    "distancia_estimada_m": {
+      "type": "number",
+      "description": "Distancia estimada del trazado en metros = distancia_linea_recta_m \u00d7 factor_trazado. Se compara contra BaseDePrecio.distancia_maxima_asumida_m para la regla riesgo_precio_distancia."
     },
     "tipo_trazado": {
       "type": "string",
       "enum": [
+        "cable_electrico",
+        "tuberia_proceso",
         "canal",
-        "tuberia",
-        "cable",
         "conducto",
         "otro"
       ],
-      "description": "Naturaleza del trazado (rutas de tuber\u00eda/cable/canal estimadas sobre plano)."
+      "description": "Naturaleza del trazado. Determina el factor_trazado por defecto (el\u00e9ctrico vs. tuber\u00eda de proceso)."
+    },
+    "tag_circuito_asociado": {
+      "type": "string",
+      "description": "TAG del circuito asociado al trazado (B1-B10, alimentaci\u00f3n cuadro clima...)."
     },
     "material_id": {
       "type": "string",
@@ -74,9 +64,9 @@
     }
   },
   "required": [
-    "plano_calibracion_id",
     "obra_id",
-    "puntos_px",
+    "ubicacion_origen_id",
+    "ubicacion_destino_id",
     "tipo_trazado"
   ],
   "rls": {

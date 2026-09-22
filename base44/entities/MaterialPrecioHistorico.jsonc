@@ -4,11 +4,15 @@
   "properties": {
     "material_id": {
       "type": "string",
-      "description": "ID del MaterialCatalog al que pertenece este precio hist\u00f3rico"
+      "description": "ID del MaterialCatalog al que pertenece este precio hist\u00f3rico. Opcional: si la tarifa es un CONCEPTO DE OBRA (INSTAL_ELEC_01, instalaci\u00f3n por punto) y no un producto de cat\u00e1logo, se deja vac\u00edo y se usa referencia_concepto."
     },
     "material_referencia": {
       "type": "string",
-      "description": "Referencia del material (denormalizada para filtros y matching OCR)"
+      "description": "Referencia del material de cat\u00e1logo (denormalizada para filtros y matching OCR). Vac\u00edo si es concepto de obra."
+    },
+    "referencia_concepto": {
+      "type": "string",
+      "description": "Referencia del CONCEPTO DE OBRA (INSTAL_ELEC_01, INSTAL_ELEC_04) cuando la tarifa es por concepto y no por material de cat\u00e1logo. Distinto de material_referencia. Un registro puede tener material_id (producto) O referencia_concepto (concepto), no ambos."
     },
     "fabricante_id": {
       "type": "string",
@@ -44,9 +48,18 @@
       "type": "number",
       "description": "Precio realmente pagado por unidad (con descuento incluido, sin IVA)"
     },
+    "unidad_tarifa": {
+      "type": "string",
+      "enum": [
+        "por_punto",
+        "por_metro",
+        "por_unidad"
+      ],
+      "description": "Unidad de la TARIFA (concepto de obra), distinta de la unidad de material: por_punto (78.50\u20ac/punto BMS), por_metro (6.58\u20ac/m de cable), por_unidad (unidades de producto de cat\u00e1logo). Clave para la conciliaci\u00f3n: determina si se compara contra recuento de ItemLista (por_punto) o contra distancia (por_metro)."
+    },
     "precio_anterior": {
       "type": "number",
-      "description": "\u00daltimo precio_neto guardado para ese material (denormalizado para ver el salto)"
+      "description": "\u00daltimo precio_neto guardado para ese material/concepto (denormalizado para ver el salto)"
     },
     "variacion_pct": {
       "type": "number",
@@ -112,7 +125,7 @@
     },
     "cliente_contratante_id": {
       "type": "string",
-      "description": "ID del cliente CONTRATANTE al que aplica esta tarifa. Permite tarifas diferenciadas por contratante (caso ObraCheck: mismo proveedor, distinto precio seg\u00fan qui\u00e9n contrata). Vac\u00edo = tarifa general aplicable a cualquier contratante."
+      "description": "ID del cliente CONTRATANTE al que aplica esta tarifa. Permite tarifas diferenciadas por contratante (caso ObraCheck: mismo proveedor, distinto precio seg\u00fan qui\u00e9n contrata \u2014 Consistrol vs Clauger). Vac\u00edo = tarifa general aplicable a cualquier contratante."
     },
     "cliente_contratante_name": {
       "type": "string",
@@ -128,7 +141,6 @@
     }
   },
   "required": [
-    "material_id",
     "fecha_documento",
     "precio_neto"
   ],
@@ -163,6 +175,11 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
           }
         }
       ]

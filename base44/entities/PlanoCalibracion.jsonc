@@ -14,19 +14,11 @@
       "type": "string",
       "description": "Nombre de la obra (denormalizado)."
     },
-    "punto_ref_1_px": {
-      "type": "object",
-      "properties": {
-        "x": {
-          "type": "number"
-        },
-        "y": {
-          "type": "number"
-        }
-      },
-      "description": "Coordenadas en p\u00edxeles del primer punto de referencia marcado sobre la imagen del plano."
+    "nombre_planta": {
+      "type": "string",
+      "description": "Nombre de la planta/estancia del plano ('Planta Baja', 'Sala de M\u00e1quinas')."
     },
-    "punto_ref_1_metros": {
+    "punto_calibracion_1": {
       "type": "object",
       "properties": {
         "x": {
@@ -36,9 +28,9 @@
           "type": "number"
         }
       },
-      "description": "Coordenadas reales en metros del primer punto de referencia (medida real conocida del plano)."
+      "description": "Coordenadas en P\u00cdXELES del primer punto de referencia marcado sobre la imagen del plano."
     },
-    "punto_ref_2_px": {
+    "punto_calibracion_2": {
       "type": "object",
       "properties": {
         "x": {
@@ -48,23 +40,23 @@
           "type": "number"
         }
       },
-      "description": "Coordenadas en p\u00edxeles del segundo punto de referencia."
+      "description": "Coordenadas en P\u00cdXELES del segundo punto de referencia."
     },
-    "punto_ref_2_metros": {
-      "type": "object",
-      "properties": {
-        "x": {
-          "type": "number"
-        },
-        "y": {
-          "type": "number"
-        }
-      },
-      "description": "Coordenadas reales en metros del segundo punto de referencia."
+    "distancia_real_calibracion_m": {
+      "type": "number",
+      "description": "Distancia real conocida en METROS entre los dos puntos de calibraci\u00f3n. Junto con la distancia en px entre los dos puntos, deriva escala_px_por_metro. NO se usan coordenadas absolutas en metros; se usa una distancia conocida."
     },
     "escala_px_por_metro": {
       "type": "number",
-      "description": "Escala calculada a partir de los dos puntos de referencia (px/metro). Derivada; el backend o la UI la recalculan al guardar."
+      "description": "Escala calculada: distancia_px_entre_puntos / distancia_real_calibracion_m. Derivada; el backend o la UI la recalculan al guardar."
+    },
+    "metodo_calibracion": {
+      "type": "string",
+      "enum": [
+        "cota_conocida",
+        "circuito_potencia_ya_medido"
+      ],
+      "description": "M\u00e9todo de calibraci\u00f3n: cota_conocida (cota impresa o medida directa) o circuito_potencia_ya_medido (se reutiliza un circuito de potencia/tuber\u00eda ya medido como referencia cuando no hay cota expl\u00edcita). El documento prioriza reutilizar circuitos ya medidos."
     },
     "fecha_calibracion": {
       "type": "string",
@@ -83,7 +75,7 @@
         "baja"
       ],
       "default": "media",
-      "description": "Confianza de la calibraci\u00f3n. Alta = dos puntos lejanos y bien identificados; baja = puntos cercanos o medida imprecisa."
+      "description": "Confianza de la calibraci\u00f3n. Alta = cota conocida precisa o circuito medido lejano; baja = puntos cercanos o medida imprecisa."
     },
     "notas": {
       "type": "string",

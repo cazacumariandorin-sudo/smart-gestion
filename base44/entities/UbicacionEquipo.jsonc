@@ -10,6 +10,26 @@
       "type": "string",
       "description": "ID de la obra (denormalizada para filtros r\u00e1pidos)."
     },
+    "tag_equipo": {
+      "type": "string",
+      "description": "TAG del equipo (M1, V01, C01, CD, BMS-NODO-3, G0110). Join key con FichaTecnicaEquipo.tag_equipo e ItemLista.tag."
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "cuadro_control",
+        "caldera",
+        "bomba",
+        "enfriadora",
+        "sonda",
+        "valvula",
+        "climatizador",
+        "compresor",
+        "condensador",
+        "otro"
+      ],
+      "description": "Tipo de equipo. La IA sugiere ubicaciones por tipo (cuadro, calderas, bombas, compresores, condensadores) y la UI los simboliza distinto."
+    },
     "equipo_referencia": {
       "type": "string",
       "description": "Referencia comercial del equipo (MaterialCatalog.referencia) o texto libre si no est\u00e1 catalogado."
@@ -46,9 +66,17 @@
       "type": "string",
       "description": "Etiqueta visible del equipo (p.ej. 'M1', 'V01', 'BMS-NODO-3')."
     },
+    "fuente": {
+      "type": "string",
+      "enum": [
+        "extraccion_ia",
+        "marcado_manual"
+      ],
+      "description": "Si la ubicaci\u00f3n la propuso la IA (extraccion_ia, siempre editable) o la marc\u00f3 manualmente el ingeniero (marcado_manual). Distinto de marcado_por (qui\u00e9n)."
+    },
     "marcado_por": {
       "type": "string",
-      "description": "Email del ingeniero que marc\u00f3 el equipo."
+      "description": "Email del ingeniero que marc\u00f3/confirm\u00f3 el equipo."
     },
     "fecha_marcado": {
       "type": "string",
@@ -62,8 +90,10 @@
   "required": [
     "plano_calibracion_id",
     "obra_id",
+    "tag_equipo",
     "x_px",
-    "y_px"
+    "y_px",
+    "tipo"
   ],
   "rls": {
     "create": {

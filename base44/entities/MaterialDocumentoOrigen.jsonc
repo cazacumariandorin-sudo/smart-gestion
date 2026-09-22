@@ -11,17 +11,23 @@
         "proforma",
         "pedido",
         "presupuesto",
+        "listado_puntos",
+        "lista_material",
         "esquema_conexion",
         "pid_proceso",
+        "esquema_hidraulico",
         "plano_planta",
-        "ficha_tecnica_equipo",
-        "listado_puntos"
+        "ficha_tecnica_equipo"
       ],
       "default": "factura",
-      "description": "Tipo de documento. Los 4 originales (factura/albaran/ticket/proforma) cubren el flujo de materiales/gastos. Los 7 nuevos cubren el m\u00f3dulo Ingenier\u00eda/ObraCheck: pedido, presupuesto, esquema_conexion (esquema el\u00e9ctrico/unifilar), pid_proceso (P&ID de instrumentaci\u00f3n), plano_planta, ficha_tecnica_equipo, listado_puntos."
+      "description": "Tipo de documento. Originales comerciales: factura/albaran/ticket/proforma. M\u00f3dulo Ingenier\u00eda: pedido, presupuesto, listado_puntos, lista_material (distinto de listado_puntos: es la 'Lista de Material' de proceso tipo R717), esquema_conexion (el\u00e9ctrico/unifilar), pid_proceso (instrumentaci\u00f3n), esquema_hidraulico (frigor\u00edfico/fluidos), plano_planta, ficha_tecnica_equipo."
     },
     "numero_documento": {
       "type": "string"
+    },
+    "revision": {
+      "type": "string",
+      "description": "C\u00f3digo de revisi\u00f3n impreso en el documento (PE176J-26, P-2026-0034, R3B, R2.0, R1, R717, 21217AA00-DM01...). Clave de agrupaci\u00f3n para el comparador de revisiones de ItemLista."
     },
     "fecha_documento": {
       "type": "string",
@@ -60,7 +66,7 @@
     },
     "version_documento": {
       "type": "string",
-      "description": "Versi\u00f3n del plano/esquema (P&ID v1, v2...). Vac\u00edo en documentos comerciales (facturas/pedidos)."
+      "description": "Versi\u00f3n del plano/esquema (P&ID v1, v2...). Alias legible de revision. Vac\u00edo en documentos comerciales (facturas/pedidos)."
     },
     "fecha_revision_documento": {
       "type": "string",
@@ -72,9 +78,30 @@
       "enum": [
         "pendiente_revision",
         "procesado",
+        "error",
+        "superseded",
         "descartado"
       ],
-      "default": "procesado"
+      "default": "procesado",
+      "description": "estado_procesado del original: pendiente_revision (pendiente de extracci\u00f3n IA) | procesado (extracci\u00f3n OK) | error (extracci\u00f3n IA fallida) | superseded (presupuesto reemplazado por uno m\u00e1s reciente que lo referencia \u2014 regla 8) | descartado."
+    },
+    "datos_extraidos": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "JSON crudo de la extracci\u00f3n IA antes de partirlo en ItemLista/PartidaPedido/etc. Permite re-procesamiento y auditor\u00eda sin re-subir el archivo."
+    },
+    "numero_orden_compra_cliente": {
+      "type": "string",
+      "description": "Solo tipo=presupuesto: n\u00ba de orden de compra del cliente impreso (Y2061315)."
+    },
+    "presupuestos_previos_referenciados": {
+      "type": "string",
+      "description": "Solo tipo=presupuesto: presupuestos previos referenciados (texto, ej. 'PRESUS 30+31'). La regla 8 marca esos documentos previos como superseded."
+    },
+    "valido_hasta": {
+      "type": "string",
+      "format": "date",
+      "description": "Solo tipo=presupuesto: fecha de validez del presupuesto (15/07/2026)."
     },
     "lineas_count": {
       "type": "number",
@@ -82,21 +109,17 @@
     },
     "conciliado_contabilidad": {
       "type": "boolean",
-      "default": false,
-      "description": "Marca de conciliado por la gestor\u00eda (rol contabilidad). Solo la funci\u00f3n marcarConciliacionContable escribe este campo."
+      "default": false
     },
     "fecha_conciliacion": {
       "type": "string",
-      "format": "date-time",
-      "description": "Timestamp ISO en que la gestor\u00eda marc\u00f3 la conciliaci\u00f3n."
+      "format": "date-time"
     },
     "conciliado_por": {
-      "type": "string",
-      "description": "Email del usuario contabilidad que marc\u00f3 la conciliaci\u00f3n."
+      "type": "string"
     },
     "nota_conciliacion": {
-      "type": "string",
-      "description": "Anotaci\u00f3n libre de la gestor\u00eda (discrepancias, referencias contables)."
+      "type": "string"
     },
     "estado_conciliacion": {
       "type": "string",
@@ -105,12 +128,10 @@
         "conciliado",
         "conciliado_con_discrepancia"
       ],
-      "default": "no_conciliado",
-      "description": "Estado derivado de la conciliaci\u00f3n."
+      "default": "no_conciliado"
     },
     "discrepancia_tarea_id": {
-      "type": "string",
-      "description": "ID de la AsistenteTarea de alta prioridad creada al marcar conciliado_con_discrepancia."
+      "type": "string"
     },
     "resolucion_estado": {
       "type": "string",
@@ -120,8 +141,7 @@
         "resuelta",
         "cerrada"
       ],
-      "default": "sin_discrepancia",
-      "description": "Ciclo de vida de la discrepancia."
+      "default": "sin_discrepancia"
     },
     "resolucion_por": {
       "type": "string"
@@ -132,17 +152,14 @@
     },
     "descargado_contabilidad": {
       "type": "boolean",
-      "default": false,
-      "description": "True si este documento ya se incluy\u00f3 en una descarga en bloque (ZIP/Excel) entregada a contabilidad."
+      "default": false
     },
     "fecha_descarga": {
       "type": "string",
-      "format": "date-time",
-      "description": "Timestamp ISO en que se incluy\u00f3 en una descarga en bloque."
+      "format": "date-time"
     },
     "descargado_por": {
-      "type": "string",
-      "description": "Email de quien gener\u00f3 la descarga en bloque que incluy\u00f3 este documento."
+      "type": "string"
     }
   },
   "required": [

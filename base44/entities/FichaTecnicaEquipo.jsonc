@@ -6,9 +6,9 @@
       "type": "string",
       "description": "ID de la obra (proyecto de ingenier\u00eda)."
     },
-    "equipo_referencia": {
+    "tag_equipo": {
       "type": "string",
-      "description": "Referencia del equipo (MaterialCatalog.referencia o texto libre)."
+      "description": "TAG del equipo ('Motor compresor', 'Condensador Adiab\u00e1tico CD', 'Bomba NSCE 32-160'). Join key con UbicacionEquipo.tag_equipo."
     },
     "equipo_tipo": {
       "type": "string",
@@ -18,8 +18,11 @@
         "bomba",
         "ventilador",
         "compresor",
+        "condensador",
+        "intercambiador",
         "otro"
-      ]
+      ],
+      "description": "Tipo de equipo. Determina qu\u00e9 claves de especificacion_clave aplicar (motor: potencia/tensi\u00f3n/corriente; bomba: caudal/altura/potencia; condensador/intercambiador: capacidad/refrigerante/presi\u00f3n)."
     },
     "fabricante": {
       "type": "string"
@@ -27,18 +30,22 @@
     "modelo": {
       "type": "string"
     },
-    "datos_placa": {
-      "type": "object",
-      "additionalProperties": true,
-      "description": "JSON con los datos nominales extra\u00eddos por procesarFichaTecnicaEquipo (potencia_kw, tension_v, intensidad_nominal_a, rpm, factor_potencia, rendimiento_pct, ip_proteccion, clase_aislamiento, servicio, masa_kg, normas, numero_serie...)."
-    },
     "documento_origen_id": {
       "type": "string",
       "description": "ID del MaterialDocumentoOrigen (tipo=ficha_tecnica_equipo) de origen."
     },
+    "especificacion_clave": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "JSON LIBRE con las especificaciones clave seg\u00fan tipo de equipo (la IA detecta el tipo y devuelve las claves variables): motor {potencia_kw, tension_v, corriente_a, velocidad_rpm, factor_potencia, rendimiento_pct, ip_proteccion...}; bomba {potencia_kw, caudal_m3h, altura_m, fluido}; condensador/intercambiador {refrigerante, presion_bar, capacidad_kw, num_ventiladores, potencia_electrica_kw}; variador {potencia_kw, tension_v, corriente_a, modelo_control}. No es un schema fijo: var\u00eda seg\u00fan tipo."
+    },
+    "equipo_asociado": {
+      "type": "string",
+      "description": "Denominaci\u00f3n del equipo asociado (texto, ej. 'variador FC102 315kW'). Vincula un motor con su variador para la comparaci\u00f3n de compatibilidad motor\u2194variador."
+    },
     "motor_ficha_id": {
       "type": "string",
-      "description": "Si este equipo es un VARIADOR, ID de la FichaTecnicaEquipo del MOTOR que acciona (para comparaci\u00f3n compatibilidad)."
+      "description": "Si este equipo es un VARIADOR, ID de la FichaTecnicaEquipo del MOTOR que acciona (FK para comparaci\u00f3n)."
     },
     "variador_ficha_id": {
       "type": "string",
@@ -53,11 +60,11 @@
         "no_aplica"
       ],
       "default": "no_aplica",
-      "description": "Resultado de la comparaci\u00f3n motor\u2194variador: ok (compatible), incompatible (potencia/tensi\u00f3n no cuadran), revisar (dudos), no_aplica (no hay par)."
+      "description": "Resultado de la comparaci\u00f3n motor\u2194variador: ok (compatible), incompatible (potencia/tensi\u00f3n no cuadran), revisar (dudoso, margen de dise\u00f1o \u2014 siempre alerta para revisi\u00f3n humana, nunca error confirmado), no_aplica (no hay par)."
     },
     "motivo_compatibilidad": {
       "type": "string",
-      "description": "Motivo de la valoraci\u00f3n de compatibilidad (ej: 'variador 7.5kW insuficiente para motor 11kW')."
+      "description": "Motivo de la valoraci\u00f3n de compatibilidad (ej: 'variador 315kW, 55kW por encima de la potencia nominal del motor 260kW \u2014 puede ser margen de dise\u00f1o intencional')."
     },
     "confianza": {
       "type": "string",
@@ -80,6 +87,7 @@
   },
   "required": [
     "obra_id",
+    "tag_equipo",
     "equipo_tipo"
   ],
   "rls": {

@@ -8,22 +8,22 @@
     },
     "documento_origen_id": {
       "type": "string",
-      "description": "ID del MaterialDocumentoOrigen (tipo=pedido) del que se extrajo la partida."
+      "description": "ID del MaterialDocumentoOrigen (tipo=pedido o presupuesto) del que se extrajo la partida."
     },
     "numero_pedido": {
       "type": "string",
-      "description": "N\u00ba de pedido impreso en el documento."
+      "description": "N\u00ba de pedido/presupuesto impreso en el documento."
     },
-    "partida_id": {
+    "posicion": {
       "type": "string",
-      "description": "ID de la partida dentro del pedido (PD-01, PD-02...)."
+      "description": "Posici\u00f3n/l\u00ednea de la partida dentro del documento (L1, L2... L35, INSTAL_ELEC_01, INSTAL_ELEC_04)."
     },
     "descripcion": {
       "type": "string"
     },
     "referencia": {
       "type": "string",
-      "description": "Referencia comercial del material/equipo."
+      "description": "Referencia comercial del material/equipo/concepto (INSTAL_ELEC_01)."
     },
     "fabricante_id": {
       "type": "string"
@@ -34,8 +34,9 @@
     "material_id": {
       "type": "string"
     },
-    "cantidad_pedida": {
-      "type": "number"
+    "cantidad": {
+      "type": "number",
+      "description": "Cantidad de la partida. Si cantidad=1 es un BULTO (tanto alzado) que se concilia contra el recuento real de ItemLista de la revisi\u00f3n vigente, NO por total."
     },
     "unidad": {
       "type": "string",
@@ -43,16 +44,28 @@
     },
     "precio_unitario": {
       "type": "number",
-      "description": "Precio unitario neto (sin IVA)."
+      "description": "Precio unitario neto (sin IVA) cuando figura expl\u00edcito."
     },
-    "importe_total": {
+    "precio_unitario_implicito": {
+      "type": "number",
+      "description": "CALCULADO: total / cantidad_real cuando la partida es bulto (cantidad=1). Se compara contra MaterialPrecioHistorico (TarifaReferencia) del mismo par referencia+proveedor+cliente_contratante (3218.50\u20ac/41 = 78.50\u20ac/punto en CIBA)."
+    },
+    "total": {
       "type": "number",
       "description": "Importe total de la partida (cantidad \u00d7 precio_unitario, o importe a tanto alzado si el pedido lo da as\u00ed)."
     },
     "es_tanto_alzado": {
       "type": "boolean",
       "default": false,
-      "description": "True si la partida tiene importe_total pero NO desglose de l\u00edneas/items. Regla 4: las partidas a tanto alzado nunca se concilian solo por cuadrar el total."
+      "description": "True si cantidad=1 y la partida tiene total pero NO desglose de l\u00edneas/items. Regla del documento: una partida a tanto alzado NUNCA se concilia solo por cuadrar el total; siempre se compara contra el recuento real de la documentaci\u00f3n t\u00e9cnica vigente."
+    },
+    "capitulo": {
+      "type": "string",
+      "description": "Cap\u00edtulo/cap\u00edtulo de obra (01.04, 01.05). Agrupa partidas por cap\u00edtulo en el pedido."
+    },
+    "zona_obra": {
+      "type": "string",
+      "description": "Zona de obra donde se ejecuta la partida ('Sala de M\u00e1quinas', 'Sala de Despiece - Baja', 'Sala de Despiece - Alta'). Agrupador visual de la p\u00e1gina de conciliaci\u00f3n."
     },
     "item_lista_ids": {
       "type": "array",

@@ -10,6 +10,14 @@
       "type": "string",
       "description": "C\u00f3digo / referencia interna"
     },
+    "numero_proyecto": {
+      "type": "string",
+      "description": "N\u00famero de proyecto del m\u00f3dulo Ingenier\u00eda (PR10978-25, PR11073-26, 4210109/21217AA00). Distinto de code (referencia interna de obra civil). Vac\u00edo en obras no-ingenier\u00eda."
+    },
+    "proveedor_instalador": {
+      "type": "string",
+      "description": "Empresa instaladora del proyecto de ingenier\u00eda (ej. 'SIMANTEC S.L.'). Distinto del client_id (cliente final) y del cliente_contratante_id (comprador)."
+    },
     "client_id": {
       "type": "string",
       "description": "ID del cliente final / propietario de la obra"
@@ -41,7 +49,16 @@
         "presupuesto"
       ],
       "default": "activa",
-      "description": "Estado de la obra"
+      "description": "Estado de la obra (flujo Obras Civiles)"
+    },
+    "estado_ingenieria": {
+      "type": "string",
+      "enum": [
+        "en_curso",
+        "en_revision",
+        "cerrado"
+      ],
+      "description": "Estado del proyecto de ingenier\u00eda (ObraCheck): en_curso, en_revision (los 3 proyectos semila est\u00e1n en_revision), cerrado. Paralelo a status para no romper el flujo de Obras Civiles. Solo aplica si es_proyecto_ingenieria=true."
     },
     "budget": {
       "type": "number",
@@ -134,6 +151,11 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
           }
         },
         {

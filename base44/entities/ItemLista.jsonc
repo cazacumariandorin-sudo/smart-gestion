@@ -8,43 +8,87 @@
     },
     "documento_origen_id": {
       "type": "string",
-      "description": "ID del MaterialDocumentoOrigen (listado_puntos/pedido) del que se extrajo el \u00edtem."
+      "description": "ID del MaterialDocumentoOrigen (listado_puntos/lista_material/pedido) del que se extrajo el \u00edtem."
     },
-    "punto_id": {
+    "revision": {
       "type": "string",
-      "description": "ID del punto (PT-01, PT-02...). Cadena vac\u00eda si no aparece en el documento."
+      "description": "C\u00f3digo de revisi\u00f3n del documento origen (denormalizado: R0, R3B, R2.0, R1, R717). Clave de agrupaci\u00f3n para el comparador de revisiones (diff de ItemLista entre revisiones)."
+    },
+    "tag": {
+      "type": "string",
+      "description": "TAG del punto/componente (AHU01_R3Dmp1Cmd, G0110, C01, TT01, MT01). Join key del diff entre revisiones: un mismo tag en dos revisiones es el mismo punto; un tag nuevo = punto_a\u00f1adido; un tag que desaparece = punto_eliminado."
+    },
+    "dominio": {
+      "type": "string",
+      "enum": [
+        "control_bms",
+        "material_electrico_proceso",
+        "componente_mecanico"
+      ],
+      "description": "Dominio del \u00edtem. ItemLista unifica 'punto de control' (BMS, dominio=control_bms) y 'componente de proceso' (refrigeraci\u00f3n, dominio=material_electrico_proceso o componente_mecanico). Separa los dos universos (BMS vs refrigeraci\u00f3n industrial) y qu\u00e9 campos aplican (tipo_se\u00f1al solo en control_bms)."
+    },
+    "tipo_se\u00f1al": {
+      "type": "string",
+      "enum": [
+        "EAP",
+        "EAA",
+        "ED",
+        "EC",
+        "SAP",
+        "SA3",
+        "SD",
+        "INT"
+      ],
+      "description": "Tipo de se\u00f1al BMS (columnas EAP/EAA/ED/EC/SAP/SA3/SD/INT en formatos tipo Consistrol/Schneider/Siemens). SOLO aplica a dominio=control_bms; opcional en el resto. El comparador de revisiones se desglosa por tipo_se\u00f1al (EA=31, ED=51, SA=16...)."
+    },
+    "zona": {
+      "type": "string",
+      "description": "Zona/estancia t\u00e9cnica (texto, ej. 'Sala Estabulario', 'G0110', 'Sala de M\u00e1quinas')."
+    },
+    "superficie_zona_m2": {
+      "type": "number",
+      "description": "Superficie de la zona en m\u00b2 (opcional). Relevante cuando la superficie justifica equipos adicionales (Sala Estabulario 26.60m\u00b2 con doble compuerta)."
     },
     "descripcion": {
       "type": "string",
       "description": "Descripci\u00f3n t\u00e9cnica del punto/equipo."
     },
+    "periferico": {
+      "type": "string",
+      "description": "Perif\u00e9rico asociado al punto (texto, extra\u00eddo de listados tipo Consistrol/Schneider/Siemens)."
+    },
+    "cableado": {
+      "type": "string",
+      "description": "Cableado del punto (texto, ej. tipo/secci\u00f3n)."
+    },
+    "modulo_fisico": {
+      "type": "string",
+      "description": "M\u00f3dulo f\u00edsico del punto (texto)."
+    },
     "referencia_equipo": {
       "type": "string",
-      "description": "Referencia comercial del equipo (MaterialCatalog.referencia o texto libre)."
+      "description": "Referencia comercial del equipo (MaterialCatalog.referencia o texto libre) cuando el \u00edtem es un componente catalogado."
     },
     "material_id": {
       "type": "string",
-      "description": "ID del MaterialCatalog si el equipo est\u00e1 catalogado (opcional)."
+      "description": "ID del MaterialCatalog si el equipo est\u00e1 catalogado (opcional, dominio proceso)."
     },
     "fabricante_id": {
       "type": "string",
-      "description": "ID del Fabricante (opcional)."
+      "description": "ID del Fabricante (opcional, dominio proceso)."
     },
     "fabricante_name": {
       "type": "string",
-      "description": "Nombre del fabricante (denormalizado)."
+      "description": "Nombre del fabricante (denormalizado, dominio proceso)."
     },
     "cantidad": {
       "type": "number",
-      "default": 1
+      "default": 1,
+      "description": "Cantidad de este \u00edtem (para listas de material de proceso con m\u00faltiples unidades)."
     },
     "unidad": {
       "type": "string",
       "default": "ud"
-    },
-    "ubicacion_zona": {
-      "type": "string",
-      "description": "Zona/ubicaci\u00f3n t\u00e9cnica del punto (Sala m\u00e1quinas, Planta 2...)."
     },
     "confianza": {
       "type": "string",
@@ -58,7 +102,7 @@
     "precisa_precision": {
       "type": "boolean",
       "default": false,
-      "description": "True si la extracci\u00f3n IA devolvi\u00f3 confianza baja o faltan campos clave (descripcion, referencia_equipo). Pendiente de re-procesamiento."
+      "description": "True si la extracci\u00f3n IA devolvi\u00f3 confianza baja o faltan campos clave (tag, descripcion). Pendiente de re-procesamiento."
     },
     "precision_motivo": {
       "type": "string"
@@ -83,6 +127,8 @@
   },
   "required": [
     "obra_id",
+    "tag",
+    "dominio",
     "descripcion"
   ],
   "rls": {

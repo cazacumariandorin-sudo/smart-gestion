@@ -9,33 +9,20 @@
     "tipo": {
       "type": "string",
       "enum": [
-        "precio_fuera_tarifa",
-        "cantidad_distinta",
-        "spec_tecnica_incompatible",
-        "tanto_alzado_sin_desglose",
-        "ficha_motor_variador_incompatible",
-        "trazado_vs_medicion",
-        "certificacion_excede_pedido",
-        "documento_sin_origen"
+        "punto_a\u00f1adido",
+        "punto_eliminado",
+        "cantidad_no_coincide",
+        "cantidad_puntos_pedido_vs_listado",
+        "precio_unitario_inconsistente_entre_proyectos",
+        "precio_no_coincide",
+        "material_no_facturado",
+        "material_no_especificado",
+        "riesgo_precio_distancia",
+        "distancia_plano_vs_pedido",
+        "dise\u00f1o_pendiente",
+        "especificacion_tecnica_inconsistente"
       ],
-      "description": "Las 8 reglas de detecci\u00f3n de discrepancia del documento ObraCheck original."
-    },
-    "entidad_origen": {
-      "type": "string",
-      "enum": [
-        "partida_pedido",
-        "linea_factura",
-        "item_lista",
-        "ficha_tecnica",
-        "trazado",
-        "certificacion",
-        "documento"
-      ],
-      "description": "Tipo de entidad que origin\u00f3 la discrepancia."
-    },
-    "entidad_id": {
-      "type": "string",
-      "description": "ID de la entidad origen."
+      "description": "Los 12 tipos del documento ObraCheck: diff revisiones (punto_a\u00f1adido/punto_eliminado), cantidad (cantidad_no_coincide factura vs pedido / cantidad_puntos_pedido_vs_listado bulto vs recuento), precio (precio_unitario_inconsistente_entre_proyectos tarifa / precio_no_coincide factura vs pedido), material (material_no_facturado en pedido no en factura / material_no_especificado en factura no en pedido), distancia (riesgo_precio_distancia sobrecoste / distancia_plano_vs_pedido), dise\u00f1o_pendiente (anotaciones manuscritas), especificacion_tecnica_inconsistente (motor\u2194variador)."
     },
     "severidad": {
       "type": "string",
@@ -50,6 +37,17 @@
       "type": "string",
       "description": "Descripci\u00f3n legible de la discrepancia."
     },
+    "tag_afectado": {
+      "type": "string",
+      "description": "TAG(s) afectado(s) (AHU01_R3Dmp1Cmd, AHU01_R3Dmp2Cmd, L1). Multi-tag separado por coma."
+    },
+    "documentos_implicados": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de MaterialDocumentoOrigen implicados en la discrepancia (pedido, listado, esquema, factura...)."
+    },
     "valor_esperado": {
       "type": "string",
       "description": "Valor esperado (seg\u00fan tarifa/pedido/presupuesto) en texto."
@@ -58,16 +56,20 @@
       "type": "string",
       "description": "Valor encontrado (en factura/medici\u00f3n/certificaci\u00f3n) en texto."
     },
+    "importe_no_facturado": {
+      "type": "number",
+      "description": "Importe no facturado estimado (157.00\u20ac en CIBA: 2 puntos \u00d7 78.50\u20ac). \u00datil para priorizar severidad."
+    },
     "estado": {
       "type": "string",
       "enum": [
         "abierta",
-        "en_revision",
+        "revisada",
         "resuelta",
-        "falsa_alarma"
+        "descartada"
       ],
       "default": "abierta",
-      "description": "Ciclo de vida: abierta \u2192 en_revision \u2192 resuelta (o falsa_alarma)."
+      "description": "Ciclo de vida: abierta \u2192 revisada (en revisi\u00f3n humana) \u2192 resuelta (o descartada=falsa alarma)."
     },
     "asignada_a": {
       "type": "string",

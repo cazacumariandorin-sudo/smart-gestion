@@ -4,15 +4,29 @@
   "properties": {
     "trazado_estimado_id": {
       "type": "string",
-      "description": "ID del TrazadoEstimado contra el que se contrasta esta medici\u00f3n real."
+      "description": "ID del TrazadoEstimado contra el que se contrasta esta medici\u00f3n real (opcional: la medici\u00f3n puede asociarse a un tag/circuito sin trazado previo)."
     },
     "obra_id": {
       "type": "string",
       "description": "ID de la obra (denormalizada)."
     },
-    "longitud_real_metros": {
+    "tag_o_circuito": {
+      "type": "string",
+      "description": "TAG o circuito al que pertenece la medici\u00f3n (B1, alimentaci\u00f3n cuadro clima, INSTAL_ELEC_04...). Permite asociar la medici\u00f3n sin depender de un TrazadoEstimado previo."
+    },
+    "distancia_real_m": {
       "type": "number",
-      "description": "Longitud real medida en obra (metros)."
+      "description": "Distancia real medida en obra (metros)."
+    },
+    "fuente": {
+      "type": "string",
+      "enum": [
+        "plano_planta_estimado",
+        "medicion_campo",
+        "esquema_electrico_unifilar",
+        "estimacion_manual"
+      ],
+      "description": "Fuente de la medici\u00f3n. Determina el nivel de confianza de la cifra: medicion_campo (alta), esquema_electrico_unifilar (media), plano_planta_estimado (baja-media), estimacion_manual (baja, solo alerta temprana). Toda cifra debe mostrar su fuente."
     },
     "fecha_medicion": {
       "type": "string",
@@ -23,15 +37,9 @@
       "type": "string",
       "description": "Email del ingeniero/t\u00e9cnico que midi\u00f3."
     },
-    "metodo": {
+    "documento_origen_id": {
       "type": "string",
-      "enum": [
-        "cinta",
-        "laser",
-        "plano_asbuilt",
-        "otro"
-      ],
-      "description": "M\u00e9todo de medici\u00f3n empleado."
+      "description": "ID del MaterialDocumentoOrigen (esquema/plano) del que se deriv\u00f3 la medici\u00f3n cuando la fuente no es medici\u00f3n directa de campo."
     },
     "foto_url": {
       "type": "string",
@@ -40,26 +48,27 @@
     "discrepancia_metros": {
       "type": "number",
       "default": 0,
-      "description": "longitud_real_metros - TrazadoEstimado.longitud_metros. Positivo = m\u00e1s material del estimado; negativo = menos."
+      "description": "distancia_real_m \u2212 TrazadoEstimado.distancia_estimada_m (o \u2212 BaseDePrecio.distancia_maxima_asumida_m si no hay trazado). Positivo = m\u00e1s material del estimado; negativo = menos."
     },
     "discrepancia_pct": {
       "type": "number",
       "default": 0,
-      "description": "Discrepancia porcentual sobre el estimado: (discrepancia_metros / longitud_metros_estimada) * 100."
+      "description": "Discrepancia porcentual sobre el estimado: (discrepancia_metros / distancia_estimada_m) \u00d7 100."
     },
     "discrepancia_tarea_id": {
       "type": "string",
-      "description": "ID de la Discrepancia generada si la desviaci\u00f3n supera el umbral (regla 6 del documento original). Vac\u00edo si no genera discrepancia."
+      "description": "ID de la Discrepancia generada si la desviaci\u00f3n supera el umbral (regla riesgo_precio_distancia). Vac\u00edo si no genera discrepancia."
     },
-    "notas": {
+    "observaciones": {
       "type": "string"
     }
   },
   "required": [
-    "trazado_estimado_id",
     "obra_id",
-    "longitud_real_metros",
-    "fecha_medicion"
+    "tag_o_circuito",
+    "distancia_real_m",
+    "fecha_medicion",
+    "fuente"
   ],
   "rls": {
     "create": {

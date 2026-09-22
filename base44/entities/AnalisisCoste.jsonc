@@ -4,73 +4,72 @@
   "properties": {
     "obra_id": {
       "type": "string",
-      "description": "ID de la obra (proyecto de ingenier\u00eda). Una obra tiene un AnalisisCoste vigente (el m\u00e1s reciente)."
+      "description": "ID de la obra (proyecto de ingenier\u00eda)."
     },
-    "coste_presupuestado": {
+    "partida_pedido_id": {
+      "type": "string",
+      "description": "ID de la PartidaPedido a la que aplica este an\u00e1lisis. El an\u00e1lisis de coste es PER PARTIDA (no por proyecto); el proyecto se agrega en UI."
+    },
+    "cantidad_contratada": {
       "type": "number",
-      "default": 0,
-      "description": "Suma de importes de BaseDePrecio/presupuesto del proyecto."
+      "description": "Cantidad contratada en el pedido/presupuesto (PartidaPedido.cantidad)."
     },
-    "coste_pedido": {
+    "cantidad_real_ultima_revision": {
       "type": "number",
-      "default": 0,
-      "description": "Suma de PartidaPedido.importe_total del proyecto."
+      "description": "Cantidad real de la \u00faltima revisi\u00f3n vigente (recuento de ItemLista para partidas por_punto, o distancia real para por_metro_lineal)."
     },
-    "coste_facturado": {
+    "coste_contratado": {
       "type": "number",
-      "default": 0,
-      "description": "Suma de LineaFactura.importe_neto del proyecto."
+      "description": "Coste contratado (PartidaPedido.total o cantidad_contratada \u00d7 precio_unitario_pactado)."
     },
-    "coste_certificado": {
+    "coste_recalculado_con_cantidad_real": {
       "type": "number",
-      "default": 0,
-      "description": "Suma de Certificacion.importe_total_cert ya emitidos."
+      "description": "Coste recalculado con la cantidad/distancia real de la \u00faltima revisi\u00f3n (cantidad_real \u00d7 precio_unitario_pactado, o distancia_real \u00d7 precio_unitario)."
     },
-    "desviacion_pct": {
+    "desviacion": {
       "type": "number",
-      "default": 0,
-      "description": "((coste_facturado - coste_presupuestado) / coste_presupuestado) * 100. Positivo = sobrecoste."
+      "description": "coste_recalculado_con_cantidad_real \u2212 coste_contratado. Positivo = sobrecoste; negativo = infrafacturado."
     },
-    "riesgo_nivel": {
+    "estado_riesgo": {
       "type": "string",
       "enum": [
-        "verde",
-        "amarillo",
-        "rojo"
+        "sin_datos",
+        "dentro_de_rango",
+        "fuera_de_rango_revisar",
+        "sobrecoste_confirmado",
+        "infrafacturado_confirmado"
       ],
-      "default": "verde",
-      "description": "Nivel de riesgo econ\u00f3mico del proyecto. Verde <5% desviaci\u00f3n, amarillo 5-15%, rojo >15%."
+      "default": "sin_datos",
+      "description": "Estado de riesgo de la partida: sin_datos (no hay medici\u00f3n real) | dentro_de_rango (desviaci\u00f3n < umbral) | fuera_de_rango_revisar (desviaci\u00f3n > umbral, pendiente confirmar) | sobrecoste_confirmado (m\u00e1s coste del contratado) | infrafacturado_confirmado (sub-facturaci\u00f3n, menos coste del contratado)."
+    },
+    "puntos_sin_medicion": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de puntos/mediciones sin dato real (cubiertos solo por estimaci\u00f3n o sin dato)."
+    },
+    "fuente_principal_dato": {
+      "type": "string",
+      "enum": [
+        "contratado",
+        "medicion_campo",
+        "plano_calibrado_circuito_conocido",
+        "estimacion_sin_calibrar"
+      ],
+      "description": "Fuente principal del dato de coste (la cifra de confianza m\u00e1s baja gana). Toda cifra muestra su fuente y confianza."
     },
     "fecha_calculo": {
       "type": "string",
       "format": "date-time",
-      "description": "Timestamp ISO en que se calcul\u00f3 este an\u00e1lisis (funci\u00f3n calcularAnalisisCosteProyecto)."
+      "description": "Timestamp ISO en que se calcul\u00f3 este an\u00e1lisis (funci\u00f3n conciliarProyectoIngenieria)."
     },
     "calculado_por": {
       "type": "string",
       "description": "Email del usuario/funci\u00f3n que calcul\u00f3 el an\u00e1lisis."
-    },
-    "resumen_discrepancias": {
-      "type": "object",
-      "properties": {
-        "abiertas": {
-          "type": "number"
-        },
-        "en_revision": {
-          "type": "number"
-        },
-        "resueltas": {
-          "type": "number"
-        },
-        "alta_severidad": {
-          "type": "number"
-        }
-      },
-      "description": "Conteo de Discrepancia por estado/severidad (denormalizado para el panel de coste y riesgo)."
     }
   },
   "required": [
-    "obra_id"
+    "obra_id",
+    "partida_pedido_id"
   ],
   "rls": {
     "create": {

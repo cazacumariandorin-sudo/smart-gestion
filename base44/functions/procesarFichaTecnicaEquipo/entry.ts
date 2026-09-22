@@ -3,10 +3,12 @@ import { ocrDocumento } from '../../shared/aiOrchestrator.ts';
 
 /**
  * procesarFichaTecnicaEquipo
- * OCR+IA especializado en fichas técnicas de equipos electromecánicos
- * (motores, variadores de frecuencia, bombas, ventiladores, compresores).
- * Extrae todos los datos nominales de placa/características para la
- * comparación motor↔variador (compatibilidad).
+ * OCR+IA especializado en fichas técnicas de equipos electromecánicos.
+ * TYPE-AWARE: detecta el tipo de equipo y extrae especificacion_clave con
+ * las claves variables según tipo (motor: potencia/tensión/corriente;
+ * bomba: caudal/altura/potencia; condensador/intercambiador: refrigerante/
+ * presión/capacidad; variador: potencia/tensión/corriente). NO usa un
+ * schema fijo motor-céntrico.
  *
  * Patrón: Base44 InvokeLLM PRIMARIO + Anthropic Claude FALLBACK (aiOrchestrator).
  * No escribe en DB — solo extracción.
@@ -27,64 +29,51 @@ export default async function(req) {
     const { file_url, file_tipo } = await req.json();
     if (!file_url) return Response.json({ error: 'file_url requerido' }, { status: 400 });
 
-    const prompt = `Eres un sistema OCR especializado en fichas técnicas de equipos electromecánicos (motores, variadores de frecuencia, bombas, ventiladores, compresores).
-Extrae TODOS los datos nominales de la placa/características del equipo.
+    const prompt = `Eres un sistema OCR especializado en fichas técnicas de equipos electromecánicos de instalaciones (motores, variadores de frecuencia, bombas, ventiladores, compresores, condensadores, intercambiadores).
+PRIMERO detecta el tipo de equipo por la placa/simbología/texto. LUEGO extrae las especificaciones clave QUE APLIQUEN a ese tipo — no un esquema fijo.
 
-Devuelve SOLO un JSON con esta estructura exacta:
+Devuelve SOLO un JSON con esta estructura:
 {
-  "equipo_tipo": "motor|variador|bomba|ventilador|compresor|otro",
+  "tag_equipo": "TAG o denominación del equipo ('Motor compresor', 'Condensador Adiabático CD', 'Bomba NSCE 32-160'); cadena vacía si no aparece",
+  "equipo_tipo": "motor|variador|bomba|ventilador|compresor|condensador|intercambiador|otro",
   "fabricante": "",
   "modelo": "",
-  "referencia": "",
-  "potencia_kw": null|número,
-  "potencia_cv": null|número,
-  "tension_v": null|número|cadena (ej "400V 3~" si la placa lo muestra compuesto),
-  "intensidad_nominal_a": null|número,
-  "rpm": null|número,
-  "factor_potencia": null|número,
-  "rendimiento_pct": null|número,
-  "ip_proteccion": "IP54|IP55|...",
-  "clase_aislamiento": "F|H|B|...",
-  "servicio": "S1|S2|S3|...",
-  "masa_kg": null|número,
-  "normas": ["array de normas citadas; vacío si ninguna"],
-  "numero_serie": "",
-  "datos_adicionales": {},
+  "especificacion_clave": {
+    // JSON LIBRE: solo las claves que apliquen al tipo detectado.
+    // motor:      potencia_kw, potencia_cv, tension_v, corriente_a, velocidad_rpm, factor_potencia, rendimiento_pct, ip_proteccion, clase_aislamiento, servicio, masa_kg
+    // variador:   potencia_kw, tension_entrada_v, tension_salida_v, corriente_a, modelo_control, potencias_asociadas_kw (array)
+    // bomba:      potencia_kw, caudal_m3h, altura_m, fluido, temperatura_c, diametro_impulsor_mm
+    // ventilador: potencia_kw, caudal_m3h, presion_pa, diametro_mm
+    // compresor: potencia_kw, caudal_m3h, refrigerante, presion_bar
+    // condensador/intercambiador: refrigerante, presion_bar, capacidad_kw, potencia_electrica_kw, num_ventiladores, superficie_m2
+    // Incluye cualquier otra clave técnica del fabricante no listada. Omite las que no apliquen.
+  },
+  "equipo_asociado": "denominación del equipo asociado si la ficha lo menciona (ej. 'variador FC102 315kW'); cadena vacía si no",
   "confianza": "alta|media|baja",
-  "ocr_raw": "transcripción COMPLETA del texto visible"
+  "ocr_raw": "transcripción COMPLETA del texto visible, línea por línea"
 }
 
 Instrucciones estrictas:
-- Si un dato no aparece, usa null (numéricos) o cadena vacía (textos) o array vacío (normas).
-- "tension_v" puede ser string compuesto ("400V 50Hz 3~") si la placa lo muestra así.
-- Los datos de la placa son los NOMINALES del fabricante; no interpretes condiciones de instalación.
-- "datos_adicionales" es un objeto libre para cualquier parámetro no listado que sí aparezca.`;
+- especificacion_clave debe contener SOLO las claves relevantes al tipo detectado (no metas campos de motor en una bomba). Los valores numéricos van como número (sin unidad: 260, no "260 kW"); la unidad se sobreentiende por la clave.
+- tension_v puede ser string compuesto ("400V 50Hz 3~") si la placa lo muestra así.
+- refrigerante como texto ("R717", "R134a"). fluido como texto ("35% Propilenglicol").
+- Si un dato no aparece, NO lo incluyas en especificacion_clave (mejor omitir que null).
+- Los datos son los NOMINALES del fabricante; no interpretes condiciones de instalación.
+- tag_equipo se usa para cruzar con UbicacionEquipo.tag_equipo e ItemLista.tag.`;
 
     const responseSchema = {
       type: 'object',
       properties: {
-        equipo_tipo: { type: 'string', enum: ['motor', 'variador', 'bomba', 'ventilador', 'compresor', 'otro'] },
+        tag_equipo: { type: 'string' },
+        equipo_tipo: { type: 'string', enum: ['motor', 'variador', 'bomba', 'ventilador', 'compresor', 'condensador', 'intercambiador', 'otro'] },
         fabricante: { type: 'string' },
         modelo: { type: 'string' },
-        referencia: { type: 'string' },
-        potencia_kw: { type: ['number', 'null'] },
-        potencia_cv: { type: ['number', 'null'] },
-        tension_v: { type: ['number', 'string', 'null'] },
-        intensidad_nominal_a: { type: ['number', 'null'] },
-        rpm: { type: ['number', 'null'] },
-        factor_potencia: { type: ['number', 'null'] },
-        rendimiento_pct: { type: ['number', 'null'] },
-        ip_proteccion: { type: 'string' },
-        clase_aislamiento: { type: 'string' },
-        servicio: { type: 'string' },
-        masa_kg: { type: ['number', 'null'] },
-        normas: { type: 'array', items: { type: 'string' } },
-        numero_serie: { type: 'string' },
-        datos_adicionales: { type: 'object', additionalProperties: true },
+        especificacion_clave: { type: 'object', additionalProperties: true },
+        equipo_asociado: { type: 'string' },
         confianza: { type: 'string', enum: ['alta', 'media', 'baja'] },
         ocr_raw: { type: 'string' },
       },
-      required: ['equipo_tipo'],
+      required: ['equipo_tipo', 'especificacion_clave'],
     };
 
     const r = await ocrDocumento(base44, {
