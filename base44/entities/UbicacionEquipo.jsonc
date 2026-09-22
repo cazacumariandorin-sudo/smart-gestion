@@ -1,0 +1,156 @@
+{
+  "name": "UbicacionEquipo",
+  "type": "object",
+  "properties": {
+    "plano_calibracion_id": {
+      "type": "string",
+      "description": "ID de la PlanoCalibracion vigente del plano sobre el que se marca el equipo. Las coordenadas en metros se derivan de esta calibraci\u00f3n."
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (denormalizada para filtros r\u00e1pidos)."
+    },
+    "equipo_referencia": {
+      "type": "string",
+      "description": "Referencia comercial del equipo (MaterialCatalog.referencia) o texto libre si no est\u00e1 catalogado."
+    },
+    "material_id": {
+      "type": "string",
+      "description": "ID del MaterialCatalog si el equipo est\u00e1 catalogado (opcional)."
+    },
+    "ficha_tecnica_id": {
+      "type": "string",
+      "description": "ID de la FichaTecnicaEquipo asociada (comparaci\u00f3n motor\u2194variador), opcional."
+    },
+    "x_px": {
+      "type": "number",
+      "description": "Coordenada X en p\u00edxeles del marcado del equipo sobre la imagen del plano."
+    },
+    "y_px": {
+      "type": "number",
+      "description": "Coordenada Y en p\u00edxeles."
+    },
+    "x_metros": {
+      "type": "number",
+      "description": "Coordenada X en metros (derivada de la calibraci\u00f3n)."
+    },
+    "y_metros": {
+      "type": "number",
+      "description": "Coordenada Y en metros (derivada de la calibraci\u00f3n)."
+    },
+    "rotacion_grados": {
+      "type": "number",
+      "description": "Rotaci\u00f3n del s\u00edmbolo del equipo en grados (orientaci\u00f3n en plano)."
+    },
+    "etiqueta": {
+      "type": "string",
+      "description": "Etiqueta visible del equipo (p.ej. 'M1', 'V01', 'BMS-NODO-3')."
+    },
+    "marcado_por": {
+      "type": "string",
+      "description": "Email del ingeniero que marc\u00f3 el equipo."
+    },
+    "fecha_marcado": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO del marcado."
+    },
+    "notas": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "plano_calibracion_id",
+    "obra_id",
+    "x_px",
+    "y_px"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

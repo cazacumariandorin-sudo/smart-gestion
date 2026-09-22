@@ -1,0 +1,185 @@
+{
+  "name": "PlanoCalibracion",
+  "type": "object",
+  "properties": {
+    "drawing_id": {
+      "type": "string",
+      "description": "ID del Drawing (plano) al que se aplica esta calibraci\u00f3n. Un Drawing puede tener varias recalibraciones (versiones); la vigente es la de fecha_calibracion m\u00e1s reciente."
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (proyecto de ingenier\u00eda) a la que pertenece el plano."
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra (denormalizado)."
+    },
+    "punto_ref_1_px": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      },
+      "description": "Coordenadas en p\u00edxeles del primer punto de referencia marcado sobre la imagen del plano."
+    },
+    "punto_ref_1_metros": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      },
+      "description": "Coordenadas reales en metros del primer punto de referencia (medida real conocida del plano)."
+    },
+    "punto_ref_2_px": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      },
+      "description": "Coordenadas en p\u00edxeles del segundo punto de referencia."
+    },
+    "punto_ref_2_metros": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      },
+      "description": "Coordenadas reales en metros del segundo punto de referencia."
+    },
+    "escala_px_por_metro": {
+      "type": "number",
+      "description": "Escala calculada a partir de los dos puntos de referencia (px/metro). Derivada; el backend o la UI la recalculan al guardar."
+    },
+    "fecha_calibracion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO en que se realiz\u00f3/recalibr\u00f3 esta calibraci\u00f3n."
+    },
+    "calibrado_por": {
+      "type": "string",
+      "description": "Email del ingeniero que calibr\u00f3 el plano."
+    },
+    "confianza_calibracion": {
+      "type": "string",
+      "enum": [
+        "alta",
+        "media",
+        "baja"
+      ],
+      "default": "media",
+      "description": "Confianza de la calibraci\u00f3n. Alta = dos puntos lejanos y bien identificados; baja = puntos cercanos o medida imprecisa."
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones del ingeniero sobre la calibraci\u00f3n."
+    }
+  },
+  "required": [
+    "drawing_id",
+    "obra_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

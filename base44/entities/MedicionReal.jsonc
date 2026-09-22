@@ -1,0 +1,152 @@
+{
+  "name": "MedicionReal",
+  "type": "object",
+  "properties": {
+    "trazado_estimado_id": {
+      "type": "string",
+      "description": "ID del TrazadoEstimado contra el que se contrasta esta medici\u00f3n real."
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (denormalizada)."
+    },
+    "longitud_real_metros": {
+      "type": "number",
+      "description": "Longitud real medida en obra (metros)."
+    },
+    "fecha_medicion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en que se tom\u00f3 la medici\u00f3n real."
+    },
+    "medido_por": {
+      "type": "string",
+      "description": "Email del ingeniero/t\u00e9cnico que midi\u00f3."
+    },
+    "metodo": {
+      "type": "string",
+      "enum": [
+        "cinta",
+        "laser",
+        "plano_asbuilt",
+        "otro"
+      ],
+      "description": "M\u00e9todo de medici\u00f3n empleado."
+    },
+    "foto_url": {
+      "type": "string",
+      "description": "URL de foto evidencia de la medici\u00f3n (opcional)."
+    },
+    "discrepancia_metros": {
+      "type": "number",
+      "default": 0,
+      "description": "longitud_real_metros - TrazadoEstimado.longitud_metros. Positivo = m\u00e1s material del estimado; negativo = menos."
+    },
+    "discrepancia_pct": {
+      "type": "number",
+      "default": 0,
+      "description": "Discrepancia porcentual sobre el estimado: (discrepancia_metros / longitud_metros_estimada) * 100."
+    },
+    "discrepancia_tarea_id": {
+      "type": "string",
+      "description": "ID de la Discrepancia generada si la desviaci\u00f3n supera el umbral (regla 6 del documento original). Vac\u00edo si no genera discrepancia."
+    },
+    "notas": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "trazado_estimado_id",
+    "obra_id",
+    "longitud_real_metros",
+    "fecha_medicion"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

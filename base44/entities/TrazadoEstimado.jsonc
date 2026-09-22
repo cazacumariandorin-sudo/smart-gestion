@@ -1,0 +1,170 @@
+{
+  "name": "TrazadoEstimado",
+  "type": "object",
+  "properties": {
+    "plano_calibracion_id": {
+      "type": "string",
+      "description": "ID de la PlanoCalibracion sobre la que se dibuja el trazado."
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (denormalizada)."
+    },
+    "puntos_px": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Polil\u00ednea del trazado en coordenadas de p\u00edxeles sobre la imagen del plano."
+    },
+    "puntos_metros": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Polil\u00ednea del trazado en metros (derivada de la calibraci\u00f3n)."
+    },
+    "longitud_metros": {
+      "type": "number",
+      "default": 0,
+      "description": "Longitud total del trazado en metros (calculada sumando segmentos entre puntos)."
+    },
+    "tipo_trazado": {
+      "type": "string",
+      "enum": [
+        "canal",
+        "tuberia",
+        "cable",
+        "conducto",
+        "otro"
+      ],
+      "description": "Naturaleza del trazado (rutas de tuber\u00eda/cable/canal estimadas sobre plano)."
+    },
+    "material_id": {
+      "type": "string",
+      "description": "ID del MaterialCatalog del material del trazado (opcional)."
+    },
+    "estimado_por": {
+      "type": "string",
+      "description": "Email del ingeniero que dibuj\u00f3 el trazado estimado."
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO del trazado."
+    },
+    "notas": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "plano_calibracion_id",
+    "obra_id",
+    "puntos_px",
+    "tipo_trazado"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}
