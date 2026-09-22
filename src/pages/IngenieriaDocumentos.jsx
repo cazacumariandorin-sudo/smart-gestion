@@ -46,8 +46,6 @@ export default function IngenieriaDocumentos() {
   const [loteError, setLoteError] = useState('');
   const [procesandoLote, setProcesandoLote] = useState(false);
 
-  const pendientes = documentos.filter(d => d.estado === 'pendiente_revision');
-
   const subirLote = async () => {
     if (!effectiveObraId || loteFiles.length === 0) return;
     setLoteEstado('subiendo'); setLoteError(''); setLoteResultado(null);
@@ -103,6 +101,8 @@ export default function IngenieriaDocumentos() {
     queryFn: async () => effectiveObraId ? base44.entities.MaterialDocumentoOrigen.filter({ proyecto_ingenieria_id: effectiveObraId }, '-created_date', 100) : [],
     enabled: !!effectiveObraId,
   });
+
+  const pendientes = documentos.filter(d => d.estado === 'pendiente_revision');
 
   const onFile = (file) => {
     setArchivo(file);
