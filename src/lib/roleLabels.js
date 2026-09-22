@@ -11,4 +11,5 @@ export const ROLE_LABELS = {
   usuario_demo:       { label: 'Demo',             className: 'bg-gray-100 text-gray-600 border-gray-200' },
   administracion:     { label: 'Administración',   className: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
   contabilidad:       { label: 'Contabilidad',     className: 'bg-pink-100 text-pink-700 border-pink-200' },
+  ingeniero:          { label: 'Ingeniero',        className: 'bg-teal-100 text-teal-700 border-teal-200' },
 };

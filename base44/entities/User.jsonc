@@ -16,10 +16,11 @@
         "usuario_demo",
         "propietario",
         "contabilidad",
-        "administracion"
+        "administracion",
+        "ingeniero"
       ],
       "default": "operario",
-      "description": "Rol de acceso al sistema"
+      "description": "Rol de acceso al sistema. 'ingeniero' = usuario operativo del m\u00f3dulo Ingenier\u00eda/ObraCheck (sube documentaci\u00f3n, calibra planos, marca equipos, revisa extracciones IA, resuelve discrepancias t\u00e9cnicas)."
     },
     "cargo": {
       "type": "string",

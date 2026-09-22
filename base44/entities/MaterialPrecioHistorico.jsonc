@@ -110,6 +110,18 @@
       ],
       "default": "media"
     },
+    "cliente_contratante_id": {
+      "type": "string",
+      "description": "ID del cliente CONTRATANTE al que aplica esta tarifa. Permite tarifas diferenciadas por contratante (caso ObraCheck: mismo proveedor, distinto precio seg\u00fan qui\u00e9n contrata). Vac\u00edo = tarifa general aplicable a cualquier contratante."
+    },
+    "cliente_contratante_name": {
+      "type": "string",
+      "description": "Nombre del cliente contratante (denormalizado para listados/filtros)."
+    },
+    "proyecto_ingenieria_id": {
+      "type": "string",
+      "description": "Alias de obra_id cuando el precio pertenece a un proyecto de ingenier\u00eda. Se rellena con el mismo obra_id (no se duplica). Facilita filtros del m\u00f3dulo Ingenier\u00eda."
+    },
     "activo": {
       "type": "boolean",
       "default": true
@@ -196,6 +208,11 @@
           "user_condition": {
             "role": "contabilidad"
           }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
         }
       ]
     },
@@ -229,6 +246,11 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
           }
         }
       ]

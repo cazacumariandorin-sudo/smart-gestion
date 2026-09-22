@@ -12,7 +12,7 @@
     },
     "client_id": {
       "type": "string",
-      "description": "ID del cliente"
+      "description": "ID del cliente final / propietario de la obra"
     },
     "client_name": {
       "type": "string",
@@ -62,6 +62,42 @@
     "notes": {
       "type": "string",
       "description": "Observaciones"
+    },
+    "es_proyecto_ingenieria": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si la obra es un proyecto de ingenier\u00eda de instalaciones (BMS, refrigeraci\u00f3n industrial, climatizaci\u00f3n, electricidad). Activa el m\u00f3dulo Ingenier\u00eda/ObraCheck sobre esta obra. Las p\u00e1ginas de Ingenier\u00eda filtran por es_proyecto_ingenieria=true. Default false: obras existentes invisibles al m\u00f3dulo."
+    },
+    "cliente_contratante_id": {
+      "type": "string",
+      "description": "ID del cliente que CONTRATA la instalaci\u00f3n. Puede diferir de client_id (cliente final/propietario). En proyectos de ingenier\u00eda, el mismo proveedor factura de forma distinta seg\u00fan qui\u00e9n contrata. Vac\u00edo = el contratante es el client_id existente (retrocompatibilidad)."
+    },
+    "cliente_contratante_name": {
+      "type": "string",
+      "description": "Nombre del cliente contratante (denormalizado para listados)."
+    },
+    "cliente_final_id": {
+      "type": "string",
+      "description": "Alias expl\u00edcito del client_id cuando hay distinci\u00f3n contratante vs final. Se rellena solo si el flujo lo requiere."
+    },
+    "disciplina_ingenieria": {
+      "type": "string",
+      "enum": [
+        "bms",
+        "refrigeracion_industrial",
+        "climatizacion",
+        "electricidad",
+        "otro"
+      ],
+      "description": "Disciplina de ingenier\u00eda del proyecto. Filtra qu\u00e9 prompts de extracci\u00f3n IA y qu\u00e9 fichas t\u00e9cnicas aplicar. Solo aplica si es_proyecto_ingenieria=true."
+    },
+    "ingeniero_responsable_id": {
+      "type": "string",
+      "description": "User.id del ingeniero responsable del proyecto (para RLS por ingeniero y filtros)."
+    },
+    "ingeniero_responsable_name": {
+      "type": "string",
+      "description": "Nombre del ingeniero responsable (denormalizado)."
     }
   },
   "required": [
@@ -165,6 +201,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        },
+        {
           "$and": [
             {
               "user_condition": {
@@ -208,6 +249,11 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
           }
         },
         {

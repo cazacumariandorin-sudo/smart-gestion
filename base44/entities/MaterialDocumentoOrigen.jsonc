@@ -8,9 +8,17 @@
         "factura",
         "albaran",
         "ticket",
-        "proforma"
+        "proforma",
+        "pedido",
+        "presupuesto",
+        "esquema_conexion",
+        "pid_proceso",
+        "plano_planta",
+        "ficha_tecnica_equipo",
+        "listado_puntos"
       ],
-      "default": "factura"
+      "default": "factura",
+      "description": "Tipo de documento. Los 4 originales (factura/albaran/ticket/proforma) cubren el flujo de materiales/gastos. Los 7 nuevos cubren el m\u00f3dulo Ingenier\u00eda/ObraCheck: pedido, presupuesto, esquema_conexion (esquema el\u00e9ctrico/unifilar), pid_proceso (P&ID de instrumentaci\u00f3n), plano_planta, ficha_tecnica_equipo, listado_puntos."
     },
     "numero_documento": {
       "type": "string"
@@ -41,6 +49,23 @@
     },
     "operario_id": {
       "type": "string"
+    },
+    "proyecto_ingenieria_id": {
+      "type": "string",
+      "description": "obra_id cuando el documento pertenece a un proyecto de ingenier\u00eda. Se rellena con el mismo obra_id (no se duplica). Facilita filtros del m\u00f3dulo Ingenier\u00eda y aislamiento de documentos ingenieriles del flujo de materiales general."
+    },
+    "ingeniero_subido_por": {
+      "type": "string",
+      "description": "Email del ingeniero que subi\u00f3 el documento (para RLS y filtros). Distinto de operario_id (t\u00e9cnico de campo) en el contexto de Ingenier\u00eda."
+    },
+    "version_documento": {
+      "type": "string",
+      "description": "Versi\u00f3n del plano/esquema (P&ID v1, v2...). Vac\u00edo en documentos comerciales (facturas/pedidos)."
+    },
+    "fecha_revision_documento": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de revisi\u00f3n impresa en planos/esquemas. Vac\u00eda en documentos comerciales."
     },
     "estado": {
       "type": "string",
@@ -156,6 +181,11 @@
           "user_condition": {
             "role": "jefe_obra"
           }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
         }
       ]
     },
@@ -195,6 +225,11 @@
           "user_condition": {
             "role": "contabilidad"
           }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
         }
       ]
     },
@@ -228,6 +263,11 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
           }
         }
       ]
