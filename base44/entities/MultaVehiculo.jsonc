@@ -1,0 +1,253 @@
+{
+  "name": "MultaVehiculo",
+  "type": "object",
+  "properties": {
+    "vehiculo_id": {
+      "type": "string",
+      "description": "ID del Vehiculo multado."
+    },
+    "vehiculo_matricula": {
+      "type": "string",
+      "description": "Matr\u00edcula (desnormalizada para listados r\u00e1pidos)."
+    },
+    "vehiculo_modelo": {
+      "type": "string",
+      "description": "Modelo (desnormalizado)."
+    },
+    "fecha_multa": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la infracci\u00f3n."
+    },
+    "fecha_notificacion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en que la empresa recibi\u00f3 el aviso (opcional)."
+    },
+    "importe": {
+      "type": "number",
+      "description": "Cuant\u00eda de la multa (\u20ac)."
+    },
+    "autoridad": {
+      "type": "string",
+      "description": "Organismo/empresa que emite la multa (Ayuntamiento, SER, empresa de parking\u2026)."
+    },
+    "numero_expediente": {
+      "type": "string",
+      "description": "Referencia/expediente impreso en el volante."
+    },
+    "motivo_autoridad": {
+      "type": "string",
+      "enum": [
+        "no_exhibir_tique",
+        "exceso_tiempo",
+        "zona_no_autorizada",
+        "estacionamiento_prohibido",
+        "otro"
+      ],
+      "description": "Motivo alegado por la autoridad."
+    },
+    "motivo_autoridad_detalle": {
+      "type": "string",
+      "description": "Texto libre si motivo_autoridad='otro' o matiz."
+    },
+    "volante_url": {
+      "type": "string",
+      "description": "URL del volante oficial (foto/PDF) subido a almacenamiento."
+    },
+    "volante_subido_por": {
+      "type": "string",
+      "description": "Email de quien sube el volante oficial."
+    },
+    "volante_fecha_subida": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp de subida del volante."
+    },
+    "descargo_presenta": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si el t\u00e9cnico ha presentado justificante de descargo."
+    },
+    "descargo_tecnico_id": {
+      "type": "string",
+      "description": "ID del operario que presenta el descargo."
+    },
+    "descargo_tecnico_name": {
+      "type": "string",
+      "description": "Nombre del t\u00e9cnico (desnormalizado)."
+    },
+    "descargo_tecnico_email": {
+      "type": "string",
+      "description": "Email del t\u00e9cnico (para RLS y filtros r\u00e1pidos)."
+    },
+    "descargo_fecha_subida": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp de subida del descargo."
+    },
+    "descargo_justificante_url": {
+      "type": "string",
+      "description": "Foto del tique v\u00e1lido / parqu\u00edmetro / evidencia del t\u00e9cnico."
+    },
+    "descargo_explicacion": {
+      "type": "string",
+      "description": "Texto del t\u00e9cnico: por qu\u00e9 no corresponde o qu\u00e9 infracci\u00f3n corresponder\u00eda."
+    },
+    "descargo_motivo_correspondiente": {
+      "type": "string",
+      "enum": [
+        "no_exhibir_tique",
+        "exceso_tiempo",
+        "zona_no_autorizada",
+        "sin_infraccion",
+        "otro"
+      ],
+      "description": "Infracci\u00f3n que el t\u00e9cnico considera que aplicar\u00eda en su lugar."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente_revision",
+        "en_disputa",
+        "recurrida",
+        "recurso_aceptado",
+        "recurso_rechazado",
+        "pagada",
+        "anulada"
+      ],
+      "default": "pendiente_revision",
+      "description": "Ciclo: pendiente_revision \u2192 en_disputa \u2192 recurrida \u2192 recurso_aceptado/recurso_rechazado; o pagada/anulada."
+    },
+    "notas_resolucion": {
+      "type": "string",
+      "description": "Notas internas de gerencia/administraci\u00f3n."
+    },
+    "resuelto_por": {
+      "type": "string",
+      "description": "Email de quien resuelve la multa."
+    },
+    "fecha_resolucion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp de la resoluci\u00f3n."
+    },
+    "historial": {
+      "type": "array",
+      "description": "Auditor\u00eda de cambios: [{fecha, usuario_email, accion, estado_anterior, estado_nuevo, nota}].",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usuario_email": {
+            "type": "string"
+          },
+          "accion": {
+            "type": "string"
+          },
+          "estado_anterior": {
+            "type": "string"
+          },
+          "estado_nuevo": {
+            "type": "string"
+          },
+          "nota": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "registro_gasto_id": {
+      "type": "string",
+      "description": "RESERVADO futuro cruce con Econ\u00f3mico (RegistroGasto origen_pago=medio_empresa). Vac\u00edo por ahora."
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true,
+      "description": "False = archivada (s\u00f3lo visible para gerencia/admin con toggle 'mostrar inactivas')."
+    }
+  },
+  "required": [
+    "vehiculo_id",
+    "fecha_multa",
+    "importe",
+    "autoridad",
+    "motivo_autoridad"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "$and": [
+            {
+              "$or": [
+                {
+                  "user_condition": {
+                    "role": "t\u00e9cnico"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "operario"
+                  }
+                }
+              ]
+            },
+            {
+              "data.estado": {
+                "$in": [
+                  "pendiente_revision",
+                  "en_disputa"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    }
+  }
+}
