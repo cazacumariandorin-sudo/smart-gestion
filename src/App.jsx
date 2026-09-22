@@ -88,6 +88,10 @@ const IngenieriaDocumentos = lazy(() => import('./pages/IngenieriaDocumentos'));
 const IngenieriaItems = lazy(() => import('./pages/IngenieriaItems'));
 const IngenieriaTarifario = lazy(() => import('./pages/IngenieriaTarifario'));
 const IngenieriaFichas = lazy(() => import('./pages/IngenieriaFichas'));
+const IngenieriaPlanos = lazy(() => import('./pages/IngenieriaPlanos'));
+const IngenieriaEquipos = lazy(() => import('./pages/IngenieriaEquipos'));
+const IngenieriaTrazado = lazy(() => import('./pages/IngenieriaTrazado'));
+const IngenieriaCoste = lazy(() => import('./pages/IngenieriaCoste'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -286,6 +290,10 @@ function AnimatedRoutes() {
             <Route path="/ingenieria/items" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaItems /></Suspense></ProtectedRoute>} />
             <Route path="/ingenieria/tarifario" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaTarifario /></Suspense></ProtectedRoute>} />
             <Route path="/ingenieria/fichas" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaFichas /></Suspense></ProtectedRoute>} />
+            <Route path="/ingenieria/planos" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaPlanos /></Suspense></ProtectedRoute>} />
+            <Route path="/ingenieria/equipos" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaEquipos /></Suspense></ProtectedRoute>} />
+            <Route path="/ingenieria/trazado" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaTrazado /></Suspense></ProtectedRoute>} />
+            <Route path="/ingenieria/coste" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaCoste /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
 

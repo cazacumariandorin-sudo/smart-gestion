@@ -90,6 +90,11 @@
         },
         {
           "user_condition": {
+            "role": "ingeniero"
+          }
+        },
+        {
+          "user_condition": {
             "role": "usuario_demo"
           }
         }
@@ -138,6 +143,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        },
+        {
           "$and": [
             {
               "user_condition": {
@@ -171,6 +181,11 @@
         {
           "user_condition": {
             "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
           }
         },
         {
@@ -226,6 +241,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
           }
         },
         {
