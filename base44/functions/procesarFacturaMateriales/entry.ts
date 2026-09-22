@@ -17,6 +17,14 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Brecha de seguridad cerrada: el módulo Alta Materiales (OCR) es un flujo
+    // administrativo sensible. Sólo admin (y su alias propietario) y gerencia
+    // pueden invocar esta función. Capa independiente de UI/ruta/RLS.
+    const role = user?.role || 'operario';
+    if (role !== 'admin' && role !== 'propietario' && role !== 'gerencia') {
+      return Response.json({ error: 'Forbidden: el módulo Alta Materiales (OCR) requiere rol admin o gerencia' }, { status: 403 });
+    }
+
     const { file_url, file_tipo } = await req.json();
     if (!file_url) return Response.json({ error: 'file_url requerido' }, { status: 400 });
 

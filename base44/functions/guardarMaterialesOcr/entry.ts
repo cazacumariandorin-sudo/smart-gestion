@@ -22,6 +22,15 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Brecha de seguridad cerrada: persistencia de materiales OCR (crea
+    // MaterialDocumentoOrigen, Fabricante, MaterialCatalog, MaterialPrecioHistorico).
+    // Sólo admin (y su alias propietario) y gerencia pueden invocar esta función.
+    // Capa independiente de UI/ruta/RLS — denegación por defecto si role vacío.
+    const role = user?.role || 'operario';
+    if (role !== 'admin' && role !== 'propietario' && role !== 'gerencia') {
+      return Response.json({ error: 'Forbidden: el módulo Alta Materiales (OCR) requiere rol admin o gerencia' }, { status: 403 });
+    }
+
     const body = await req.json();
     const doc = body.documento || {};
     const lineas = Array.isArray(body.lineas) ? body.lineas : [];
