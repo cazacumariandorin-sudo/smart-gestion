@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthContext';
 import { getSimulatedRole } from '@/lib/roleSimulator';
+import { canAccessModule } from '@/lib/permissions';
 import { useState, useEffect } from 'react';
 
 /**
@@ -42,28 +43,9 @@ export function useUserRole() {
     ? new Date(user.demo_expires_at) < new Date()
     : false;
 
-  const DEMO_MODULES = ['dashboard', 'work-orders', 'clients', 'obras', 'orders', 'drawings', 'manuales', 'notas-gastos', 'flota', 'galeria-fotos', 'control-horario', 'calendario-vacaciones', 'apuntes-horario', 'photos'];
-
-  const canAccess = (module) => {
-    if (isAdmin) return true;
-    if (isDemo) return DEMO_MODULES.includes(module);
-
-    const ALL_MODULES = ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'users', 'materials', 'drawings', 'manuales', 'orders', 'operarios', 'control-horario', 'obras', 'obras-civiles', 'solar', 'calendario-vacaciones', 'informe-obras', 'fabricantes', 'admin-backup', 'datos-sensibles', 'demo-users', 'solar-pedidos', 'inventario', 'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos', 'apuntes-horario', 'nominas', 'presupuestos', 'parte-diario', 'economico-dashboard', 'trabajos-extras', 'material-pendiente', 'conciliacion', 'contabilidad'];
-
-    const perms = {
-      director_comercial: ALL_MODULES.filter(m => !['datos-sensibles', 'admin-backup'].includes(m)),
-      jefe_obra:        ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'obras-civiles', 'solar', 'materials', 'drawings', 'manuales', 'informe-obras', 'operarios', 'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos', 'apuntes-horario', 'calendario-vacaciones', 'control-horario', 'parte-diario', 'trabajos-extras', 'material-pendiente'],
-      'técnico':        ['dashboard', 'work-orders', 'clients', 'control-horario', 'orders', 'obras', 'obras-civiles', 'materials', 'drawings', 'manuales', 'calendario-vacaciones', 'photos', 'notas-gastos', 'vehiculos', 'chat', 'galeria-fotos', 'apuntes-horario', 'reports', 'flota', 'nominas', 'informe-obras', 'operarios', 'parte-diario'],
-      operario:         ['dashboard', 'work-orders', 'clients', 'control-horario', 'orders', 'obras', 'obras-civiles', 'materials', 'drawings', 'manuales', 'calendario-vacaciones', 'photos', 'notas-gastos', 'vehiculos', 'chat', 'galeria-fotos', 'apuntes-horario', 'reports', 'flota', 'nominas', 'informe-obras', 'operarios', 'parte-diario'],
-      gerencia:         ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'obras-civiles', 'solar', 'materials', 'drawings', 'manuales', 'informe-obras', 'operarios', 'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos', 'apuntes-horario', 'calendario-vacaciones', 'control-horario', 'solar-pedidos', 'users', 'datos-sensibles', 'inventario', 'fabricantes', 'demo-users', 'admin-backup', 'nominas', 'presupuestos', 'parte-diario', 'economico-dashboard', 'trabajos-extras', 'material-pendiente', 'conciliacion', 'contabilidad'],
-      control_horario:  ['dashboard', 'control-horario', 'work-orders', 'chat'],
-      cliente_obra:     ['dashboard', 'informe-obras', 'chat'],
-      contabilidad:     ['economico-dashboard', 'notas-gastos', 'orders', 'conciliacion', 'contabilidad'],
-      administracion:   ['dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders', 'obras', 'obras-civiles', 'solar', 'materials', 'drawings', 'manuales', 'informe-obras', 'operarios', 'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos', 'apuntes-horario', 'calendario-vacaciones', 'control-horario', 'solar-pedidos', 'users', 'datos-sensibles', 'inventario', 'fabricantes', 'demo-users', 'admin-backup', 'nominas', 'presupuestos', 'parte-diario', 'economico-dashboard', 'trabajos-extras', 'material-pendiente', 'conciliacion', 'contabilidad'],
-    };
-
-    return (perms[role] || []).includes(module);
-  };
+  // Fuente única: src/lib/permissions.js (ROLE_MODULE_PERMISSIONS).
+  // isAdmin / isDemo ya están cubiertos ahí (admin/propietario = all; usuario_demo = su lista).
+  const canAccess = (module) => canAccessModule(role, module);
 
   return { user, role, isAdmin, isDemo, isDemoExpired, isGerencia, isJefeObra, isTecnico, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, isContabilidad, isAdministracion, canAccess, isLoading: isLoadingAuth, isSimulating, simulatedRole };
 }
