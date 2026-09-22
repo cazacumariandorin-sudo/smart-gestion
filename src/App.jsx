@@ -95,6 +95,7 @@ const IngenieriaCoste = lazy(() => import('./pages/IngenieriaCoste'));
 const IngenieriaConciliacion = lazy(() => import('./pages/IngenieriaConciliacion'));
 const IngenieriaFacturas = lazy(() => import('./pages/IngenieriaFacturas'));
 const IngenieriaCertificacion = lazy(() => import('./pages/IngenieriaCertificacion'));
+const IngenieriaCambios = lazy(() => import('./pages/IngenieriaCambios'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -300,6 +301,7 @@ function AnimatedRoutes() {
             <Route path="/ingenieria/conciliacion" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaConciliacion /></Suspense></ProtectedRoute>} />
             <Route path="/ingenieria/facturas" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaFacturas /></Suspense></ProtectedRoute>} />
             <Route path="/ingenieria/certificacion" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaCertificacion /></Suspense></ProtectedRoute>} />
+            <Route path="/ingenieria/cambios" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaCambios /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
 

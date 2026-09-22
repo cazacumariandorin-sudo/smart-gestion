@@ -41,7 +41,8 @@ import {
   BadgeCheck,
   FileCog,
   TrendingDown,
-  AlertTriangle
+  AlertTriangle,
+  Edit3
 } from 'lucide-react';
 
 /**
@@ -190,6 +191,7 @@ export const HUBS = [
       { label: 'Trazado Estimado', path: '/ingenieria/trazado', icon: Spline, module: 'ingenieria' },
       { label: 'Conciliación Fac/Pd', path: '/ingenieria/facturas', icon: Receipt, module: 'ingenieria' },
       { label: 'Certificaciones', path: '/ingenieria/certificacion', icon: BadgeCheck, module: 'ingenieria' },
+      { label: 'Cambios en Obra', path: '/ingenieria/cambios', icon: Edit3, module: 'ingenieria' },
       { label: 'Fichas Técnicas', path: '/ingenieria/fichas', icon: FileCog, module: 'ingenieria' },
       { label: 'Coste y Riesgo', path: '/ingenieria/coste', icon: TrendingDown, module: 'ingenieria' },
       { label: 'Discrepancias', path: '/ingenieria/discrepancias', icon: AlertTriangle, module: 'ingenieria' },

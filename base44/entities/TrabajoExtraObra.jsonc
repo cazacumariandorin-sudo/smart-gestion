@@ -142,6 +142,11 @@
           }
         },
         {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        },
+        {
           "created_by": "{{user.email}}"
         },
         {
@@ -174,6 +179,11 @@
         {
           "user_condition": {
             "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
           }
         }
       ]
