@@ -67,7 +67,10 @@ export default function EconomicoDashboard() {
   const esReembolsable = (r) => !r.origen_pago || r.origen_pago === 'medios_propios';
   const esEmpresa = (r) => r.origen_pago === 'medio_empresa' || r.origen_pago === 'credito_proveedor';
 
-  const gastosAprobados = useMemo(() => registros.filter(r => ['aprobado_gerencia', 'en_administracion', 'pagada'].includes(r.estado)), [registros]);
+  const gastosAprobados = useMemo(() => registros.filter(r =>
+    ['aprobado_gerencia', 'en_administracion', 'pagada'].includes(r.estado) ||
+    (esEmpresa(r) && ['borrador', 'registrado'].includes(r.estado))
+  ), [registros]);
   const gastosAprobadosMes = useMemo(() => gastosAprobados.filter(r => r.fecha_documento?.startsWith(mesFiltro)), [gastosAprobados, mesFiltro]);
 
   const totalGastosMes = useMemo(() => gastosAprobadosMes.reduce((s, r) => s + (r.importe || 0), 0), [gastosAprobadosMes]);
