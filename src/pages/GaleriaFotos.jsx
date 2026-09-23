@@ -91,6 +91,7 @@ export default function GaleriaFotos() {
     }
   };
   const [uploading, setUploading] = useState(false);
+  const [batchProgress, setBatchProgress] = useState(null);
   const [uploadForm, setUploadForm] = useState({
     titulo: '',
     descripcion: '',
@@ -185,6 +186,60 @@ export default function GaleriaFotos() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleFileUploadMultiple = (files) => {
+    if (!files.length) return;
+    if (files.length === 1) { handleFileUpload(files[0]); return; }
+    if (!uploadForm.proyecto_id && !uploadForm.proyecto_name) {
+      toast({
+        title: 'Selecciona la obra',
+        description: 'Para subir varias fotos a la vez, elige primero el proyecto/obra de destino.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    subirLoteGaleria(files);
+  };
+
+  const subirLoteGaleria = async (files) => {
+    setUploading(true);
+    setBatchProgress({ total: files.length, actual: 0, ok: 0, errores: 0 });
+    let ok = 0, errores = 0;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setBatchProgress({ total: files.length, actual: i, ok, errores });
+      try {
+        if (!(await imagenNoVacia(file))) { errores++; continue; }
+        const { file_url, storage, drive_file_id } = await subirImagen(file);
+        const now = new Date();
+        await base44.entities.FotoProyecto.create({
+          titulo: file.name,
+          descripcion: '',
+          categoria: uploadForm.categoria,
+          proyecto_id: uploadForm.proyecto_id || uploadForm.proyecto_name || 'sin_proyecto',
+          proyecto_name: uploadForm.proyecto_name,
+          proyecto_tipo: 'obra',
+          operario_id: user?.id || 'desconocido',
+          operario_name: user?.full_name || user?.email || 'Desconocido',
+          foto_url: file_url,
+          fecha_foto: now.toISOString().split('T')[0],
+          hora_foto: now.toTimeString().slice(0, 5),
+          storage,
+          drive_file_id,
+        });
+        ok++;
+      } catch { errores++; }
+    }
+    setBatchProgress({ total: files.length, actual: files.length, ok, errores });
+    qc.invalidateQueries({ queryKey: ['fotos-proyecto'] });
+    setUploading(false);
+    toast({ title: `Subidas ${ok} foto(s)${errores ? ` · ${errores} error(es)` : ''}` });
+    setTimeout(() => {
+      setBatchProgress(null);
+      setUploadDialogOpen(false);
+      setUploadForm({ titulo: '', descripcion: '', categoria: 'obra', proyecto_id: '', proyecto_name: '', foto_url: '', storage: '', drive_file_id: '' });
+    }, 1200);
   };
 
   const handleSave = () => {
@@ -349,9 +404,23 @@ export default function GaleriaFotos() {
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Subir Nueva Foto</DialogTitle>
+            <DialogTitle>Subir Foto(s)</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
+            {batchProgress && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <span className="font-medium">
+                    {batchProgress.actual >= batchProgress.total ? 'Finalizando…' : `Subiendo foto ${batchProgress.actual + 1} de ${batchProgress.total}`}
+                  </span>
+                  <span className="ml-auto text-xs text-muted-foreground">✓ {batchProgress.ok} · ✕ {batchProgress.errores}</span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-primary transition-all" style={{ width: `${batchProgress.total ? (batchProgress.actual / batchProgress.total) * 100 : 0}%` }} />
+                </div>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label className="text-xs">Título *</Label>
               <Input 
@@ -410,13 +479,14 @@ export default function GaleriaFotos() {
                     <Upload className="w-6 h-6 text-muted-foreground" />
                   )}
                   <p className="text-xs text-muted-foreground">
-                    {uploading ? 'Subiendo...' : 'Seleccionar foto (JPG, PNG)'}
+                    {uploading ? 'Subiendo...' : 'Seleccionar fotos (puedes elegir varias)'}
                   </p>
                   <input 
                     type="file" 
                     accept="image/*" 
+                    multiple
                     className="hidden" 
-                    onChange={e => e.target.files[0] && handleFileUpload(e.target.files[0])} 
+                    onChange={e => handleFileUploadMultiple(Array.from(e.target.files || []))} 
                   />
                 </label>
               )}
