@@ -24,6 +24,7 @@ import PrecisionPanel from '@/components/gastos/PrecisionPanel';
 import MisAdelantosTab from '@/components/adelantos/MisAdelantosTab';
 import { useAuth } from '@/lib/AuthContext';
 import { useTecnicoName } from '@/hooks/useTecnicoName';
+import { ROLE_LABELS } from '@/lib/roleLabels';
 
 const ESTADOS = ['todos', 'borrador', 'pendiente', 'aprobado_gerencia', 'en_administracion', 'pagada', 'rechazada'];
 
@@ -50,7 +51,9 @@ const CATEGORIAS = ['todas', 'material', 'combustible', 'peaje', 'parking', 'otr
 function OperarioGroup({ operario, notas, onVerNota, isOpen, onToggle }) {
   const total = notas.reduce((s, n) => s + (n.importe || 0), 0);
   const pendientes = notas.filter(n => n.estado === 'pendiente').length;
-  
+  const rolInfo = operario.role ? ROLE_LABELS[operario.role] : null;
+  const origenEmpresa = notas.some(n => n.origen_pago === 'medio_empresa' || n.origen_pago === 'credito_proveedor');
+
   return (
     <Card className="mb-3">
       <button
@@ -62,7 +65,19 @@ function OperarioGroup({ operario, notas, onVerNota, isOpen, onToggle }) {
             <div className="flex items-center gap-3 flex-1">
               {isOpen ? <ChevronDown className="w-5 h-5 text-muted-foreground" /> : <ChevronRight className="w-5 h-5 text-muted-foreground" />}
               <div className="flex-1 text-left">
-                <h3 className="font-semibold text-base">{operario.name}</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-semibold text-base">{operario.name}</h3>
+                  {rolInfo && (
+                    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-semibold', rolInfo.className)}>
+                      {rolInfo.label}
+                    </span>
+                  )}
+                  {origenEmpresa && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-semibold bg-amber-50 text-amber-700 border-amber-200">
+                      Medio empresa
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {notas.length} registro{notas.length !== 1 ? 's' : ''} • {total.toFixed(2)} €
                   {pendientes > 0 && <span className="ml-2 text-amber-600">• {pendientes} pendiente{pendientes > 1 ? 's' : ''}</span>}
@@ -150,6 +165,16 @@ export default function NotasGastos() {
     queryFn: () => base44.entities.SolarObra.list('name', 200),
     enabled: isAdmin || isGerencia || isDirComercial || isJefeObra || isAdministracion,
   });
+  const { data: usuariosRaw = [] } = useQuery({
+    queryKey: ['users_roles_gastos'],
+    queryFn: () => base44.entities.User.list(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const rolPorEmail = useMemo(() => {
+    const map = {};
+    usuariosRaw.forEach(u => { if (u.email) map[u.email.toLowerCase()] = u.role; });
+    return map;
+  }, [usuariosRaw]);
   const todasObras = [...obrasRaw, ...solarObrasRaw.map(o => ({ ...o, _tipo: 'solar' }))];
 
   // Lista de ciclos disponibles (activo + todos los que aparecen en los registros)
@@ -197,7 +222,16 @@ export default function NotasGastos() {
     const map = {};
     notasBase.forEach(n => {
       const opId = n.operario_id || 'sin-asignar';
-      if (!map[opId]) map[opId] = { id: opId, name: n.operario_name || 'Sin asignar', count: 0, total: 0 };
+      if (!map[opId]) {
+        const email = n.operario_email || '';
+        map[opId] = {
+          id: opId,
+          name: n.operario_name || 'Sin asignar',
+          role: email ? rolPorEmail[email.toLowerCase()] : null,
+          count: 0,
+          total: 0,
+        };
+      }
       map[opId].count++;
       map[opId].total += n.importe || 0;
     });
@@ -213,7 +247,13 @@ export default function NotasGastos() {
     const opId = nota.operario_id || 'sin-asignar';
     const opName = nota.operario_name || 'Sin asignar';
     if (!operariosConNotas[opId]) {
-      operariosConNotas[opId] = { id: opId, name: opName, notas: [] };
+      const email = nota.operario_email || '';
+      operariosConNotas[opId] = {
+        id: opId,
+        name: opName,
+        role: email ? rolPorEmail[email.toLowerCase()] : null,
+        notas: [],
+      };
     }
     operariosConNotas[opId].notas.push(nota);
   });
@@ -364,6 +404,11 @@ export default function NotasGastos() {
                   >
                     <User className="w-3.5 h-3.5 shrink-0" />
                     <span className="max-w-28 truncate">{op.name}</span>
+                    {op.role && ROLE_LABELS[op.role] && (
+                      <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded-full border text-[9px] font-semibold', ROLE_LABELS[op.role].className)}>
+                        {ROLE_LABELS[op.role].label}
+                      </span>
+                    )}
                     <span className="ml-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-black/10 text-[10px] font-bold">
                       {op.count}
                     </span>
