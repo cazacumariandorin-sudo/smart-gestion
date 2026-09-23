@@ -420,7 +420,7 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                 </Button>
               )}
 
-              {(isAdmin || (esPropioCreador && nota.estado === 'borrador')) && (
+              {(isAdmin || isGerencia || isAdministracion || (esPropioCreador && nota.estado === 'borrador')) && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button size="sm" variant="outline" className="gap-1 text-destructive border-destructive/30">
@@ -430,7 +430,10 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>¿Eliminar registro?</AlertDialogTitle>
-                      <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer.
+                        {(nota.archivos?.length || 0) > 0 && ` Se eliminarán también ${nota.archivos.length} archivo(s) adjunto(s).`}
+                      </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>

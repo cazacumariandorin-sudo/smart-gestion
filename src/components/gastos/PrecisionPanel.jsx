@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -20,12 +21,28 @@ export default function PrecisionPanel({ notas, onVerNota }) {
   const { isAdmin, isGerencia, isAdministracion } = useUserRole();
   const [procesando, setProcesando] = useState(false);
   const [progreso, setProgreso] = useState({ total: 0, actual: 0, corregidos: 0, sinCambios: 0, errores: 0, diffs: [] });
+  const [filtroOp, setFiltroOp] = useState('todos');
+  const [filtroCiclo, setFiltroCiclo] = useState('todos');
+
+  // Filtrar notas marcadas como precisa_precision con archivo adjunto.
+  const pendientesTotal = useMemo(() => notas.filter(n => n.precisa_precision && n.archivos?.length > 0), [notas]);
+  const pendientes = useMemo(() => pendientesTotal.filter(n =>
+    (filtroOp === 'todos' || n.operario_id === filtroOp) &&
+    (filtroCiclo === 'todos' || n.ciclo_mes === filtroCiclo)
+  ), [pendientesTotal, filtroOp, filtroCiclo]);
+  const operariosConPendientes = useMemo(() => {
+    const map = new Map();
+    pendientesTotal.forEach(n => { if (n.operario_id && !map.has(n.operario_id)) map.set(n.operario_id, n.operario_name || n.operario_id); });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [pendientesTotal]);
+  const ciclosConPendientes = useMemo(() => {
+    const set = new Set();
+    pendientesTotal.forEach(n => { if (n.ciclo_mes) set.add(n.ciclo_mes); });
+    return Array.from(set).sort().reverse();
+  }, [pendientesTotal]);
 
   // Solo admin/gerencia ven el panel completo.
   if (!isAdmin && !isGerencia && !isAdministracion) return null;
-
-  // Filtrar notas marcadas como precisa_precision con archivo adjunto.
-  const pendientes = notas.filter(n => n.precisa_precision && n.archivos?.length > 0);
 
   const reprocesar = async () => {
     if (!pendientes.length) {
@@ -108,6 +125,29 @@ export default function PrecisionPanel({ notas, onVerNota }) {
             {procesando ? `Procesando ${progreso.actual}/${progreso.total}` : `Reprocesar pendientes${pendientes.length ? ` (${Math.min(pendientes.length, LOTE_MAX)})` : ''}`}
           </Button>
         </div>
+        {(operariosConPendientes.length > 1 || ciclosConPendientes.length > 0) && (
+          <div className="flex items-center gap-2 flex-wrap pt-2">
+            {operariosConPendientes.length > 1 && (
+              <MobileSelect value={filtroOp} onValueChange={setFiltroOp} placeholder="Todos los operarios" triggerClassName="w-44 text-xs h-8">
+                <MobileSelectItem value="todos">Todos los operarios</MobileSelectItem>
+                {operariosConPendientes.map(op => (
+                  <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
+                ))}
+              </MobileSelect>
+            )}
+            {ciclosConPendientes.length > 0 && (
+              <MobileSelect value={filtroCiclo} onValueChange={setFiltroCiclo} placeholder="Todos los ciclos" triggerClassName="w-36 text-xs h-8">
+                <MobileSelectItem value="todos">Todos los ciclos</MobileSelectItem>
+                {ciclosConPendientes.map(c => (
+                  <MobileSelectItem key={c} value={c}>{c}</MobileSelectItem>
+                ))}
+              </MobileSelect>
+            )}
+            {(filtroOp !== 'todos' || filtroCiclo !== 'todos') && (
+              <button onClick={() => { setFiltroOp('todos'); setFiltroCiclo('todos'); }} className="text-[10px] text-muted-foreground hover:text-foreground underline">Limpiar filtros</button>
+            )}
+          </div>
+        )}
       </CardHeader>
 
       {procesando && (

@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import PageHeader from '@/components/layout/PageHeader';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useUserRole } from '@/lib/useUserRole';
-import { Wallet, TrendingUp, FileText, Banknote, AlertTriangle, PieChart, RotateCcw, CreditCard } from 'lucide-react';
+import { Wallet, TrendingUp, FileText, Banknote, AlertTriangle, PieChart, RotateCcw, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react';
 import EconomicoObrasChart from '@/components/economico/EconomicoObrasChart';
 import ContabilidadAnalitica from '@/components/economico/ContabilidadAnalitica';
 import AdelantosPanel from '@/components/adelantos/AdelantosPanel';
@@ -40,38 +40,61 @@ export default function EconomicoDashboard() {
   const now = new Date();
   const mesActual = now.getMonth() + 1;
   const anioActual = now.getFullYear();
+  const mesActualStr = `${anioActual}-${String(mesActual).padStart(2, '0')}`;
+  const [mesFiltro, setMesFiltro] = useState(mesActualStr);
 
-  const gastosAprobados = useMemo(() => registros.filter(r => ['aprobado_gerencia', 'en_administracion', 'pagada'].includes(r.estado)), [registros]);
+  const cambiarMes = (delta) => {
+    const [y, m] = mesFiltro.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setMesFiltro(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  };
+  const mesPrevio = () => cambiarMes(-1);
+  const mesSiguiente = () => { if (mesFiltro < mesActualStr) cambiarMes(1); };
 
-  const totalGastosMes = useMemo(() => gastosAprobados
-    .filter(r => r.fecha_documento?.startsWith(`${anioActual}-${String(mesActual).padStart(2, '0')}`))
-    .reduce((s, r) => s + (r.importe || 0), 0), [gastosAprobados, mesActual, anioActual]);
-
-  // Gastos a recuperar (medios propios: reembolsables a técnicos/usuarios)
+  // Origen de pago
   const esReembolsable = (r) => !r.origen_pago || r.origen_pago === 'medios_propios';
   const esEmpresa = (r) => r.origen_pago === 'medio_empresa' || r.origen_pago === 'credito_proveedor';
 
-  const totalRecuperar = useMemo(() => gastosAprobados
-    .filter(r => r.fecha_documento?.startsWith(`${anioActual}-${String(mesActual).padStart(2, '0')}`) && esReembolsable(r))
-    .reduce((s, r) => s + (r.importe || 0), 0), [gastosAprobados, mesActual, anioActual]);
+  const gastosAprobados = useMemo(() => registros.filter(r => ['aprobado_gerencia', 'en_administracion', 'pagada'].includes(r.estado)), [registros]);
+  const gastosAprobadosMes = useMemo(() => gastosAprobados.filter(r => r.fecha_documento?.startsWith(mesFiltro)), [gastosAprobados, mesFiltro]);
 
-  const totalEmpresa = useMemo(() => gastosAprobados
-    .filter(r => r.fecha_documento?.startsWith(`${anioActual}-${String(mesActual).padStart(2, '0')}`) && esEmpresa(r))
-    .reduce((s, r) => s + (r.importe || 0), 0), [gastosAprobados, mesActual, anioActual]);
+  const totalGastosMes = useMemo(() => gastosAprobadosMes.reduce((s, r) => s + (r.importe || 0), 0), [gastosAprobadosMes]);
+  const totalRecuperar = useMemo(() => gastosAprobadosMes.filter(esReembolsable).reduce((s, r) => s + (r.importe || 0), 0), [gastosAprobadosMes]);
+  const totalEmpresa = useMemo(() => gastosAprobadosMes.filter(esEmpresa).reduce((s, r) => s + (r.importe || 0), 0), [gastosAprobadosMes]);
+
+  // Agregados por obra del mes seleccionado (panel de origen y gráfico top 6)
+  const gastoPorObra = useMemo(() => {
+    const map = {};
+    for (const r of gastosAprobadosMes) {
+      if (!r.obra_name) continue;
+      map[r.obra_name] = (map[r.obra_name] || 0) + (r.importe || 0);
+    }
+    return map;
+  }, [gastosAprobadosMes]);
 
   const gastoPorObraRecuperar = useMemo(() => {
     const map = {};
-    for (const r of gastosAprobados) {
+    for (const r of gastosAprobadosMes) {
       if (!r.obra_name || !esReembolsable(r)) continue;
       map[r.obra_name] = (map[r.obra_name] || 0) + (r.importe || 0);
     }
     return map;
-  }, [gastosAprobados]);
+  }, [gastosAprobadosMes]);
 
   const gastoPorObraEmpresa = useMemo(() => {
     const map = {};
-    for (const r of gastosAprobados) {
+    for (const r of gastosAprobadosMes) {
       if (!r.obra_name || !esEmpresa(r)) continue;
+      map[r.obra_name] = (map[r.obra_name] || 0) + (r.importe || 0);
+    }
+    return map;
+  }, [gastosAprobadosMes]);
+
+  // Agregado por obra histórico (para sobrecoste: todo el histórico vs presupuesto)
+  const gastoPorObraAll = useMemo(() => {
+    const map = {};
+    for (const r of gastosAprobados) {
+      if (!r.obra_name) continue;
       map[r.obra_name] = (map[r.obra_name] || 0) + (r.importe || 0);
     }
     return map;
@@ -82,30 +105,43 @@ export default function EconomicoDashboard() {
     .reduce((s, p) => s + (p.importe || 0), 0), [presupuestos]);
 
   const costeNominasMes = useMemo(() => nominas
-    .filter(n => n.mes === mesActual && n.anio === anioActual)
-    .reduce((s, n) => s + (n.coste_empresa || 0), 0), [nominas, mesActual, anioActual]);
-
-  const gastoPorObra = useMemo(() => {
-    const map = {};
-    for (const r of gastosAprobados) {
-      if (!r.obra_name) continue;
-      map[r.obra_name] = (map[r.obra_name] || 0) + (r.importe || 0);
-    }
-    return map;
-  }, [gastosAprobados]);
+    .filter(n => `${n.anio}-${String(n.mes).padStart(2, '0')}` === mesFiltro)
+    .reduce((s, n) => s + (n.coste_empresa || 0), 0), [nominas, mesFiltro]);
 
   const obrasConSobrecoste = useMemo(() => {
     const todas = [...obras.map(o => ({ ...o, tipo: 'civil' })), ...solarObras.map(o => ({ ...o, tipo: 'solar' }))];
-    return todas.filter(o => o.budget > 0 && (gastoPorObra[o.name] || 0) > o.budget);
-  }, [obras, solarObras, gastoPorObra]);
+    return todas.filter(o => o.budget > 0 && (gastoPorObraAll[o.name] || 0) > o.budget);
+  }, [obras, solarObras, gastoPorObraAll]);
 
   const chartData = useMemo(() => Object.entries(gastoPorObra)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 6)
     .map(([name, total]) => ({ name, total })), [gastoPorObra]);
 
+  const MesSelector = (
+    <div className="flex items-center gap-2">
+      <button onClick={mesPrevio} className="p-1.5 rounded-lg border hover:bg-muted transition-colors" aria-label="Mes anterior">
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+      <input type="month" value={mesFiltro} max={mesActualStr} onChange={e => setMesFiltro(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm bg-background font-medium" />
+      <button onClick={mesSiguiente} disabled={mesFiltro >= mesActualStr} className="p-1.5 rounded-lg border hover:bg-muted transition-colors disabled:opacity-30" aria-label="Mes siguiente">
+        <ChevronRight className="w-4 h-4" />
+      </button>
+      {mesFiltro !== mesActualStr && (
+        <button onClick={() => setMesFiltro(mesActualStr)} className="text-xs text-muted-foreground hover:text-foreground underline ml-1">
+          Mes actual
+        </button>
+      )}
+    </div>
+  );
+
   const resumen = (
     <div className="space-y-6">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-sm text-muted-foreground">Datos del mes seleccionado: <span className="font-semibold text-foreground">{mesFiltro}</span></p>
+        {MesSelector}
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard icon={Wallet} label="Gastos aprobados (mes)" value={eur(totalGastosMes)} color="bg-orange-100 text-orange-600" />
         <KpiCard icon={RotateCcw} label="A recuperar (técnicos)" value={eur(totalRecuperar)} color="bg-amber-100 text-amber-700" />
@@ -118,7 +154,7 @@ export default function EconomicoDashboard() {
       </div>
 
       <div className="bg-card border border-border rounded-2xl p-4">
-        <p className="text-sm font-semibold mb-3 flex items-center gap-2"><PieChart className="w-4 h-4 text-primary" /> Gastos por origen de pago (aprobados, mes en curso)</p>
+        <p className="text-sm font-semibold mb-3 flex items-center gap-2"><PieChart className="w-4 h-4 text-primary" /> Gastos por origen de pago (aprobados, {mesFiltro})</p>
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2"><RotateCcw className="w-4 h-4 text-amber-600" /> A recuperar por técnicos</span>
@@ -138,7 +174,7 @@ export default function EconomicoDashboard() {
       </div>
 
       <div className="bg-card border border-border rounded-2xl p-4">
-        <p className="text-sm font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Gasto aprobado por obra y origen (top 8)</p>
+        <p className="text-sm font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Gasto aprobado por obra y origen ({mesFiltro}, top 8)</p>
         <div className="space-y-2">
           {Object.entries(gastoPorObra).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, total]) => {
             const rec = gastoPorObraRecuperar[name] || 0;
@@ -160,23 +196,23 @@ export default function EconomicoDashboard() {
               </div>
             );
           })}
-          {chartData.length === 0 && <p className="text-sm text-muted-foreground">Sin gastos aprobados este mes.</p>}
+          {chartData.length === 0 && <p className="text-sm text-muted-foreground">Sin gastos aprobados en {mesFiltro}.</p>}
         </div>
       </div>
 
       <div className="bg-card border border-border rounded-2xl p-4">
-        <p className="text-sm font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Gasto aprobado por obra (top 6)</p>
+        <p className="text-sm font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Gasto aprobado por obra ({mesFiltro}, top 6)</p>
         <EconomicoObrasChart data={chartData} />
       </div>
 
       {obrasConSobrecoste.length > 0 && (
         <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-2xl p-4">
-          <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Obras por encima de presupuesto</p>
+          <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Obras por encima de presupuesto (histórico)</p>
           <div className="space-y-1.5">
             {obrasConSobrecoste.map(o => (
               <div key={o.id} className="flex items-center justify-between text-sm">
                 <span>{o.name}</span>
-                <span className="text-red-600 font-semibold">{eur(gastoPorObra[o.name])} / {eur(o.budget)}</span>
+                <span className="text-red-600 font-semibold">{eur(gastoPorObraAll[o.name])} / {eur(o.budget)}</span>
               </div>
             ))}
           </div>
