@@ -27,6 +27,7 @@ export default function ObraFotosPanel({ obra }) {
   const [showForm, setShowForm] = useState(false);
   const [pendingFile, setPendingFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [batchProgress, setBatchProgress] = useState(null);
 
   const { data: fotos = [], isLoading } = useQuery({
     queryKey: ['fotos-obra', obra.id],
@@ -42,23 +43,73 @@ export default function ObraFotosPanel({ obra }) {
   };
 
   const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
-    // Validar que la captura no esté en blanco / archivo vacío
-    if (!(await imagenNoVacia(file))) {
-      toast({
-        title: 'Foto en blanco',
-        description: 'La imagen no tiene contenido (tal vez la cámara no terminó de capturar). Inténtalo de nuevo.',
-        variant: 'destructive',
-      });
+    if (!files.length) return;
+    // Un solo archivo → flujo con formulario (título/descripción)
+    if (files.length === 1) {
+      const file = files[0];
+      // Validar que la captura no esté en blanco / archivo vacío
+      if (!(await imagenNoVacia(file))) {
+        toast({
+          title: 'Foto en blanco',
+          description: 'La imagen no tiene contenido (tal vez la cámara no terminó de capturar). Inténtalo de nuevo.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setPendingFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setTitulo('');
+      setDescripcion('');
+      setShowForm(true);
       return;
     }
-    setPendingFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-    setTitulo('');
-    setDescripcion('');
-    setShowForm(true);
+    // Varios archivos → subida por lote (título = nombre del archivo)
+    await subirLote(files);
+  };
+
+  const subirLote = async (files) => {
+    setUploading(true);
+    setBatchProgress({ total: files.length, actual: 0, ok: 0, errores: 0 });
+    let ok = 0, errores = 0;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setBatchProgress({ total: files.length, actual: i, ok, errores });
+      try {
+        if (!(await imagenNoVacia(file))) { errores++; continue; }
+        const { file_url } = await subirImagen(file);
+        const now = new Date();
+        await base44.entities.FotoProyecto.create({
+          foto_url: file_url,
+          categoria: 'obra',
+          proyecto_id: obra.id,
+          proyecto_name: obra.name,
+          proyecto_tipo: 'obra',
+          referencia_id: obra.id,
+          referencia_tipo: 'Obra',
+          referencia_nombre: obra.name,
+          operario_id: user?.id || user?.email || '',
+          operario_name: user?.full_name || user?.email || '',
+          fecha_foto: format(now, 'yyyy-MM-dd'),
+          hora_foto: format(now, 'HH:mm'),
+          fecha_hora_subida: now.toISOString(),
+          titulo: file.name,
+          descripcion: '',
+        });
+        ok++;
+      } catch {
+        errores++;
+      }
+    }
+    setBatchProgress({ total: files.length, actual: files.length, ok, errores });
+    qc.invalidateQueries({ queryKey: ['fotos-obra', obra.id] });
+    qc.invalidateQueries({ queryKey: ['fotos-proyecto'] });
+    setUploading(false);
+    toast({
+      title: `Subida completada: ${ok} foto(s)${errores ? ` · ${errores} error(es)` : ''}`,
+    });
+    setTimeout(() => setBatchProgress(null), 1500);
   };
 
   const handleUpload = async () => {
@@ -137,6 +188,28 @@ export default function ObraFotosPanel({ obra }) {
 
   return (
     <div className="space-y-4">
+      {/* Progreso de subida por lote */}
+      {batchProgress && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <span className="font-medium">
+              {batchProgress.actual >= batchProgress.total
+                ? 'Finalizando…'
+                : `Subiendo foto ${batchProgress.actual + 1} de ${batchProgress.total}`}
+            </span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              ✓ {batchProgress.ok} · ✕ {batchProgress.errores}
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all"
+              style={{ width: `${batchProgress.total ? (batchProgress.actual / batchProgress.total) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      )}
       {/* Upload button */}
       <div className="flex gap-2">
         <Button
@@ -150,6 +223,7 @@ export default function ObraFotosPanel({ obra }) {
           ref={fileRef}
           type="file"
           accept="image/*"
+          multiple
           capture="environment"
           className="hidden"
           onChange={handleFileChange}
