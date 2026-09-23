@@ -9,17 +9,33 @@ He cruzado cada tarea del documento original con el estado real del código. Res
 
 | # | Tarea original | Estado real tras revisión | Acción |
 |---|---|---|---|
-| T1 | `administracion` sin módulos en `permissions.js` | ✅ **YA RESUELTO** — `administracion` tiene entrada explícita completa (líneas 101-110), prácticamente igual que `gerencia`. Solo falta `ingenieria` si se considera necesario. | Cerrar. Revisar si quiere `ingenieria`. |
+| T1 | `administracion` sin módulos en `permissions.js` | ⚠️ **REABRIR** — la entrada `administracion` (sin tilde) existe y es completa, pero si el usuario figura en BD como `administración` (con tilde), `canAccessModule` no encuentra la clave y cae a `false`. Hipótesis alta: desajuste de acento en el rol almacenado. | Investigar el rol real del usuario; normalizar o añadir alias. |
 | T2 | Borrar gastos mal subidos (RLS + UI) | ⚠️ **VÁLIDO pero entidad errónea** — el doc cita `GastoOperario.jsonc`; la entidad real de gastos es **`RegistroGasto`**. Su RLS `delete` solo permite `admin`, `propietario` y `created_by` si `estado=borrador`. `gerencia`/`administracion` NO pueden borrar. | Corregir entidad y aplicar. |
 | T3 | Filtro por operario en `PrecisionPanel` | ⚠️ **VÁLIDO** — confirmado: `pendientes = notas.filter(...)` sin filtro de operario; el lote se lanza sobre todos. | Aplicar. |
 | T4 | Scroll vertical lateral | ⚠️ **PARCIAL** — `<main>` no tiene `overflow-y-auto` (scroll va por body). En móvil con muchos banners apilados puede ser incómodo. | Aplicar con cuidado. |
 | T5 | Scroll horizontal (tablas anchas) | ⚠️ **VÁLIDO** — `<main>` tiene `overflow-x-hidden`; tablas anchas se cortan. | Aplicar por componente. |
 | T6 | Botón ATRÁS con descripción | ⚠️ **VÁLIDO** — `PageHeader` muestra solo icono `ArrowLeft`, sin etiqueta. | Aplicar (muy bajo esfuerzo). |
 | T7 | Adelantos → notas de gastos (ciclo completo) | ⚠️ **REVISAR** — el cierre de ciclo ya descuenta adelantos vía `total_adelantos_gastos` en `NotaMensualGasto` (ver schema). El hueco real es que `Adelanto.estado` no se reconcilia automáticamente con los gastos justificados. | Reducir a: reconciliar estado de adelantos. |
-| T8 | Botón "Mis Adelantos" sin función | ✅ **YA RESUELTO** — la condición actual es `{!vistaAdmin && (...)}`, visible para técnicos. `MisAdelantosTab` filtra por `operario_id` del usuario. | Cerrar. |
+| T8 | Botón "Mis Adelantos" sin función | ⚠️ **REABRIR** — el botón sí cambia `tab` a `mis-adelantos` y la vista renderiza `<MisAdelantosTab />` (NotasGastos línea 336-337). PERO el contenido depende de `Operario.filter({ user_email: user.email })`: si el usuario no tiene Operario vinculado, la query queda deshabilitada y se muestra "No tienes adelantos". Eso parece "no hace nada". | Investigar vínculo Operario↔User; mostrar estado útil si no hay vínculo. |
 | T9 | Filtro de ciclo en dashboard económico | ⚠️ **VÁLIDO** — `EconomicoDashboard` sigue filtrando con `mesActual`/`anioActual` hardcodeado. (Acabo de añadir el split recuperar/empresa, pero el mes sigue fijo.) | Aplicar selector de mes. |
 
-**Conclusión:** de 9 tareas, **2 ya están resueltas** (T1, T8), **1 apunta a entidad equivocada** (T2), **1 está sobre-dimensionada** (T7) y **5 siguen vigentes** (T3, T4, T5, T6, T9).
+**Conclusión:** de 9 tareas del doc de origen, **2 reabiertas tras contraste** (T1, T8 — el código parecía bien pero el usuario sigue sin verlo funcionar), **1 apunta a entidad equivocada** (T2 → `RegistroGasto`), **1 sobre-dimensionada** (T7 → solo reconciliar estado) y **5 vigentes** (T3, T4, T5, T6, T9).
+
+---
+
+## 1bis. CONTRASTE PUNTO A PUNTO CON EL DOC DE ORIGEN (23-9-26)
+
+| Doc origen (lo que pide el usuario) | Mi propuesta v1 | Contraste / corrección |
+|---|---|---|
+| "ADMINISTRACIÓN: falta visualizar módulos y/o parámetros" | "Ya resuelto" | ❌ **Prematuro.** El rol existe en `permissions.js` como `administracion` (sin tilde). Si el usuario figura en BD con tilde (`administración`), `canAccessModule` no lo encuentra. Investigar el rol real almacenado antes de cerrar. |
+| "Borrar gastos mal subidos (Alvis agosto, 19 fotos en un registro)" | A2 (RLS `RegistroGasto` + UI delete) | ✅ Correcto. Corregí la entidad (el doc original citaba `GastoOperario`). Añadir: localizar y depurar ese registro concreto de Alvis. |
+| "Precisión por operario de un ciclo en concreto" | A3 (solo filtro operario) | ⚠️ **Incompleto.** El doc pide también filtrar por ciclo. A3 ampliado a filtro operario + `ciclo_mes`. |
+| "Scroll lateral (vertical)" | B5 / ex-T4 | ✅ |
+| "Scroll abajo (izq/dcha)" | B5 / ex-T5 | ✅ |
+| "Flecha ATRÁS con descripción (web y móvil)" | B1 | ✅ (ya cubre web y móvil) |
+| "Mejorar registro de ADELANTO — cómo viajan a notas de gastos" | A4 (reconciliar estado) | ⚠️ **Falta la trazabilidad visual.** El doc quiere "ver cómo viajan". Además de reconciliar estado, añadir en `MisAdelantosTab` una línea por adelanto: "Gastos justificados X € / adelanto Y € → saldo". |
+| "Botón Mis Adelantos parece no hacer nada — comprobar función" | "Ya resuelto" | ❌ **Prematuro.** El botón cambia `tab` y renderiza `<MisAdelantosTab />` (línea 336-337), pero el contenido depende de `Operario.filter({ user_email })`. Sin Operario vinculado → estado vacío → parece "no hace nada". Reabrir: garantizar vínculo Operario↔User y mostrar estado claro. |
+| "Filtro de CICLO en económico — al pinchar ciclo-mes arriba se vea abajo" | A1 (selector de mes) | ✅ Exacto: el dashboard filtra con `mesActual`/`anioActual` hardcodeado, ignora el ciclo. |
 
 ---
 
@@ -51,11 +67,11 @@ He cruzado cada tarea del documento original con el estado real del código. Res
 - **Impacto:** permite corregir el caso real de fotos mal subidas sin escalar a admin.
 - **Esfuerzo:** ~2h (RLS + componente).
 
-#### A3. Filtro por operario en panel de Precisión (ex-T3)
+#### A3. Filtro por operario Y ciclo en panel de Precisión (ex-T3)
 - **Fichero:** `src/components/gastos/PrecisionPanel.jsx`
-- **Qué:** añadir `filtroOp` (estado, default `'todos'`), calcular `pendientesTotal` y filtrar por `operario_id`. Selector `MobileSelect` en el `CardHeader` antes del botón "Reprocesar", solo si hay >1 operario con pendientes.
-- **Impacto:** el reprocesamiento por lotes se acota al operario elegido (menos créditos, más control).
-- **Esfuerzo:** ~1h.
+- **Qué:** el doc pide "precisión por operario de un ciclo en concreto". Añadir dos selectores: `filtroOp` (operario) y `filtroCiclo` (clave `ciclo_mes` YYYY-MM, default = ciclo activo). `pendientes = notas.filter(n => n.precisa_precision && n.archivos?.length > 0 && (filtroOp==='todos' || n.operario_id===filtroOp) && (!filtroCiclo || n.ciclo_mes===filtroCiclo))`. Selectores `MobileSelect` en el `CardHeader` antes del botón "Reprocesar".
+- **Impacto:** el reprocesamiento por lotes se acota al operario + ciclo elegidos (menos créditos, revisión controlada por ciclo).
+- **Esfuerzo:** ~1.5h.
 
 #### A4. Reconciliación automática de estado de adelantos (ex-T7, reducido)
 - **Ficheros:** nueva función backend `reconciliarEstadoAdelantos` + invocar al cerrar ciclo (`cerrarCicloGastosMensual`).
@@ -112,8 +128,8 @@ He cruzado cada tarea del documento original con el estado real del código. Res
 
 ---
 
-## 4. NO INCLUIDO (descartado o ya hecho)
+## 4. NO INCLUIDO (descartado)
 
-- **T1 (administración sin módulos):** ya resuelto en `permissions.js`. Reabrir solo si se quiere añadir `ingenieria` a ese rol.
-- **T8 (Mis Adelantos oculto):** ya visible para técnicos (`{!vistaAdmin && ...}`).
 - **Contraseña maestra de gerencia, router multi-IA con .env, deprecación de NotaGasto sin migración:** descartados por seguridad/riesgo (ver historial de dead-ends del proyecto).
+
+> **Nota sobre T1 y T8:** originalmente los marqué como "ya resueltos" en la v1. El contraste con el doc de origen (donde el usuario los sigue reportando) me llevó a reabrirlos: el código está cableado, pero el síntoma persiste. T1 apunta a un probable desajuste de tilde en el rol almacenado; T8 a un vínculo Operario↔User faltante que deja la vista vacía. Ambos requieren inspeccionar los datos reales del usuario antes de tocar código.
