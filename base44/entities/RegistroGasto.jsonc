@@ -90,7 +90,7 @@
         "rechazada"
       ],
       "type": "string",
-      "description": "borrador\u2192pendiente\u2192aprobado_gerencia\u2192en_administracion\u2192pagada (flujo reembolso, medios_propios). 'registrado' = entrada directa para facturas recibidas por la empresa (medio_empresa/credito_proveedor): nace aqu\u00ed sin pasar por borrador/aprobaci\u00f3n, pendiente de que contabilidad lo analice; luego promueve a en_administracion. rechazada cancela."
+      "description": "borrador\u2192pendiente\u2192aprobado_gerencia\u2192en_administracion\u2192pagada (flujo reembolso, medios_propios). 'registrado' = entrada directa para facturas recibidas por la empresa (medio_empresa/credito_proveedor): nace aqu\u00ed sin pasar por borrador/aprobaci\u00f3n, pendiente de que contabilidad lo analice; luego promueve a en_administration. rechazada cancela."
     },
     "fecha_creacion_real": {
       "format": "date",
@@ -474,6 +474,16 @@
         {
           "user_condition": {
             "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
