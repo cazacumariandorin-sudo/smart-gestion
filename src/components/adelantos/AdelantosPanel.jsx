@@ -10,7 +10,7 @@ import { useUserRole } from '@/lib/useUserRole';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
-  Wallet, Utensils, Plus, Search, Loader2, CreditCard, CheckCircle2, XCircle,
+  Wallet, Utensils, Plus, Search, Loader2, CreditCard, CheckCircle2, XCircle, ChevronDown,
 } from 'lucide-react';
 import AdelantoFormDialog from './AdelantoFormDialog';
 
@@ -45,8 +45,39 @@ export default function AdelantosPanel() {
   const [filtroObra, setFiltroObra] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
   const [actualizandoId, setActualizandoId] = useState(null);
+  const [kpiActiva, setKpiActiva] = useState(null);
+  const [expandidos, setExpandidos] = useState(() => new Set());
 
   const eur = (n) => `${(n || 0).toLocaleString('es-ES', { maximumFractionDigits: 2 })} €`;
+
+  // Las tarjetas de resumen actúan como filtros rápidos: al pulsar una,
+  // acotan la lista al subconjunto que representa; pulsarla de nuevo la desactiva.
+  const activarKpi = (k) => {
+    setKpiActiva(prev => {
+      if (prev === k) {
+        // toggle off: limpia tipo/estado y deja el resto
+        setFiltroTipo('todos');
+        setFiltroEstado('todos');
+        return null;
+      }
+      if (k === 'gastos') { setFiltroTipo('gastos'); setFiltroEstado('todos'); }
+      else if (k === 'dieta') { setFiltroTipo('dieta'); setFiltroEstado('todos'); }
+      else if (k === 'total') { setFiltroTipo('todos'); setFiltroEstado('todos'); }
+      else if (k === 'registros') {
+        setFiltroTipo('todos'); setFiltroEstado('todos');
+        setFiltroOperario('todos'); setFiltroObra('todos'); setBusqueda('');
+      }
+      return k;
+    });
+  };
+
+  const toggleExpandido = (id) => {
+    setExpandidos(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   const { data: adelantos = [], isLoading } = useQuery({
     queryKey: ['adelantos'],
@@ -137,32 +168,60 @@ export default function AdelantosPanel() {
 
   return (
     <div className="space-y-4">
-      {/* KPIs */}
+      {/* KPIs — clicables: filtran la lista al subconjunto que representan */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-card border border-border rounded-2xl p-4">
+        <button
+          type="button"
+          onClick={() => activarKpi('gastos')}
+          className={cn(
+            'text-left bg-card border rounded-2xl p-4 transition-all hover:shadow-sm',
+            kpiActiva === 'gastos' ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-border'
+          )}
+        >
           <div className="flex items-center gap-2 mb-1">
             <Wallet className="w-4 h-4 text-blue-600" />
             <p className="text-xs text-muted-foreground">Adelantos gastos (activos)</p>
           </div>
           <p className="text-lg font-bold">{totales.gastos.toLocaleString('es-ES', { maximumFractionDigits: 2 })} €</p>
-        </div>
+        </button>
         {puedeDieta && (
-          <div className="bg-card border border-border rounded-2xl p-4">
+          <button
+            type="button"
+            onClick={() => activarKpi('dieta')}
+            className={cn(
+              'text-left bg-card border rounded-2xl p-4 transition-all hover:shadow-sm',
+              kpiActiva === 'dieta' ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-border'
+            )}
+          >
             <div className="flex items-center gap-2 mb-1">
               <Utensils className="w-4 h-4 text-orange-600" />
               <p className="text-xs text-muted-foreground">Adelantos dieta (informativo)</p>
             </div>
             <p className="text-lg font-bold">{totales.dieta.toLocaleString('es-ES', { maximumFractionDigits: 2 })} €</p>
-          </div>
+          </button>
         )}
-        <div className="bg-card border border-border rounded-2xl p-4">
+        <button
+          type="button"
+          onClick={() => activarKpi('total')}
+          className={cn(
+            'text-left bg-card border rounded-2xl p-4 transition-all hover:shadow-sm',
+            kpiActiva === 'total' ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-border'
+          )}
+        >
           <p className="text-xs text-muted-foreground mb-1">Total adelantos</p>
           <p className="text-lg font-bold">{totales.total.toLocaleString('es-ES', { maximumFractionDigits: 2 })} €</p>
-        </div>
-        <div className="bg-card border border-border rounded-2xl p-4">
+        </button>
+        <button
+          type="button"
+          onClick={() => activarKpi('registros')}
+          className={cn(
+            'text-left bg-card border rounded-2xl p-4 transition-all hover:shadow-sm',
+            kpiActiva === 'registros' ? 'border-primary ring-1 ring-primary bg-primary/5' : 'border-border'
+          )}
+        >
           <p className="text-xs text-muted-foreground mb-1">Registros</p>
           <p className="text-lg font-bold">{totales.count}</p>
-        </div>
+        </button>
       </div>
 
       {/* Toolbar */}
@@ -214,10 +273,17 @@ export default function AdelantosPanel() {
         </div>
       ) : (
         <div className="space-y-4">
-          {grupos.map(g => (
-            <div key={g.id} className="space-y-1.5">
-              <div className="flex items-center justify-between gap-2 sticky top-14 z-10 bg-background/95 backdrop-blur px-1 py-1.5 border-b border-border">
+          {grupos.map(g => {
+            const abierto = expandidos.has(g.id) || (filtroOperario !== 'todos' && g.id === filtroOperario);
+            return (
+            <div key={g.id} className="bg-muted/30 border border-border rounded-2xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => toggleExpandido(g.id)}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 hover:bg-muted/60 transition-colors"
+              >
                 <div className="flex items-center gap-2 min-w-0">
+                  <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform shrink-0', abierto && 'rotate-180')} />
                   <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
                     {(g.name || '?').charAt(0).toUpperCase()}
                   </div>
@@ -225,7 +291,9 @@ export default function AdelantosPanel() {
                   <Badge variant="secondary" className="text-[10px] shrink-0">{g.items.length}</Badge>
                 </div>
                 <span className="text-sm font-semibold text-muted-foreground shrink-0">{eur(g.total)}</span>
-              </div>
+              </button>
+              {abierto && (
+              <div className="space-y-1.5 px-2 pb-2">
               {g.items.map(a => (
                 <div key={a.id} className="bg-card border border-border rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -278,8 +346,11 @@ export default function AdelantosPanel() {
                   )}
                 </div>
               ))}
+              </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
