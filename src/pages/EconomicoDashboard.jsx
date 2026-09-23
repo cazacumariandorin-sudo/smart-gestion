@@ -151,13 +151,20 @@ export default function EconomicoDashboard() {
     </div>
   );
 
+  const origenActivoLabel = filtroOrigen === 'recuperar' ? 'A recuperar (técnicos)' : filtroOrigen === 'empresa' ? 'Medios empresa' : 'Todos los orígenes';
+
   const resumen = (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Barra de cabecera */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <p className="text-sm text-muted-foreground">Datos del mes seleccionado: <span className="font-semibold text-foreground">{mesFiltro}</span></p>
+        <div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Periodo</p>
+          <p className="text-lg font-bold leading-tight">{mesFiltro}</p>
+        </div>
         {MesSelector}
       </div>
 
+      {/* KPIs interactivos */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard icon={Wallet} label="Gastos aprobados (mes)" value={eur(totalGastosMes)} color="bg-orange-100 text-orange-600"
           active={filtroOrigen === 'todos'} onClick={() => setFiltroOrigen('todos')} />
@@ -172,56 +179,78 @@ export default function EconomicoDashboard() {
         <KpiCard icon={AlertTriangle} label="Obras con sobrecoste" value={obrasConSobrecoste.length} color="bg-red-100 text-red-600" />
       </div>
 
-      <div className="bg-card border border-border rounded-2xl p-4">
-        <p className="text-sm font-semibold mb-3 flex items-center gap-2"><PieChart className="w-4 h-4 text-primary" /> Gastos por origen de pago (aprobados, {mesFiltro})</p>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2"><RotateCcw className="w-4 h-4 text-amber-600" /> A recuperar por técnicos</span>
-            <span className="font-semibold text-amber-700">{eur(totalRecuperar)}</span>
+      {/* Gráfico destacado — junto below the tabs/KPIs */}
+      <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Gasto aprobado por obra</p>
+            <p className="text-xs text-muted-foreground truncate">{mesFiltro} · top 6 · {origenActivoLabel}</p>
           </div>
-          <div className="h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full bg-amber-500" style={{ width: `${totalGastosMes ? (totalRecuperar / totalGastosMes) * 100 : 0}%` }} />
-          </div>
-          <div className="flex items-center justify-between text-sm pt-1">
-            <span className="flex items-center gap-2"><CreditCard className="w-4 h-4 text-sky-600" /> Pagados con medios de empresa</span>
-            <span className="font-semibold text-sky-700">{eur(totalEmpresa)}</span>
-          </div>
-          <div className="h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full bg-sky-500" style={{ width: `${totalGastosMes ? (totalEmpresa / totalGastosMes) * 100 : 0}%` }} />
+          <div className="text-right shrink-0">
+            <p className="text-xs text-muted-foreground">Total mostrado</p>
+            <p className="text-xl font-bold">{eur(chartData.reduce((s, d) => s + (d.total || 0), 0))}</p>
           </div>
         </div>
-      </div>
-
-      <div className="bg-card border border-border rounded-2xl p-4">
-        <p className="text-sm font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Gasto aprobado por obra y origen ({mesFiltro}, top 8)</p>
-        <div className="space-y-2">
-          {obrasListado.map(([name, total]) => {
-            const rec = gastoPorObraRecuperar[name] || 0;
-            const emp = gastoPorObraEmpresa[name] || 0;
-            return (
-              <div key={name} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="truncate">{name}</span>
-                  <span className="font-semibold">{eur(total)}</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden flex">
-                  <div className="h-full bg-amber-500" style={{ width: `${total ? (rec / total) * 100 : 0}%` }} title={`A recuperar: ${eur(rec)}`} />
-                  <div className="h-full bg-sky-500" style={{ width: `${total ? (emp / total) * 100 : 0}%` }} title={`Empresa: ${eur(emp)}`} />
-                </div>
-                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" />{eur(rec)}</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-sky-500" />{eur(emp)}</span>
-                </div>
-              </div>
-            );
-          })}
-          {chartData.length === 0 && <p className="text-sm text-muted-foreground">Sin gastos aprobados en {mesFiltro}.</p>}
-        </div>
-      </div>
-
-      <div className="bg-card border border-border rounded-2xl p-4">
-        <p className="text-sm font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Gasto aprobado por obra ({mesFiltro}, top 6)</p>
         <EconomicoObrasChart data={chartData} />
+        {chartData.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Sin gastos aprobados en {mesFiltro}.</p>}
+      </div>
+
+      {/* Desglose: origen de pago + por obra y origen (2 columnas en desktop) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+          <p className="text-sm font-semibold mb-3 flex items-center gap-2"><PieChart className="w-4 h-4 text-primary" /> Origen de pago (aprobados)</p>
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> A recuperar por técnicos</span>
+                <span className="font-semibold text-amber-700">{eur(totalRecuperar)}</span>
+              </div>
+              <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                <div className="h-full bg-amber-500 transition-all" style={{ width: `${totalGastosMes ? (totalRecuperar / totalGastosMes) * 100 : 0}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-sky-500" /> Pagados con medios de empresa</span>
+                <span className="font-semibold text-sky-700">{eur(totalEmpresa)}</span>
+              </div>
+              <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                <div className="h-full bg-sky-500 transition-all" style={{ width: `${totalGastosMes ? (totalEmpresa / totalGastosMes) * 100 : 0}%` }} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border">
+              <span>Total aprobado</span>
+              <span className="font-semibold text-foreground">{eur(totalGastosMes)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+          <p className="text-sm font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Por obra y origen (top 8)</p>
+          <div className="space-y-2.5">
+            {obrasListado.map(([name, total]) => {
+              const rec = gastoPorObraRecuperar[name] || 0;
+              const emp = gastoPorObraEmpresa[name] || 0;
+              return (
+                <div key={name} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="truncate font-medium">{name}</span>
+                    <span className="font-semibold">{eur(total)}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden flex">
+                    <div className="h-full bg-amber-500 transition-all" style={{ width: `${total ? (rec / total) * 100 : 0}%` }} title={`A recuperar: ${eur(rec)}`} />
+                    <div className="h-full bg-sky-500 transition-all" style={{ width: `${total ? (emp / total) * 100 : 0}%` }} title={`Empresa: ${eur(emp)}`} />
+                  </div>
+                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" />{eur(rec)}</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-sky-500" />{eur(emp)}</span>
+                  </div>
+                </div>
+              );
+            })}
+            {obrasListado.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Sin gastos aprobados en {mesFiltro}.</p>}
+          </div>
+        </div>
       </div>
 
       {obrasConSobrecoste.length > 0 && (
