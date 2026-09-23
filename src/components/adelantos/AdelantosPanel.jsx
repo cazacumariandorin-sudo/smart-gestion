@@ -42,8 +42,11 @@ export default function AdelantosPanel() {
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [filtroOperario, setFiltroOperario] = useState('todos');
+  const [filtroObra, setFiltroObra] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
   const [actualizandoId, setActualizandoId] = useState(null);
+
+  const eur = (n) => `${(n || 0).toLocaleString('es-ES', { maximumFractionDigits: 2 })} €`;
 
   const { data: adelantos = [], isLoading } = useQuery({
     queryKey: ['adelantos'],
@@ -67,14 +70,15 @@ export default function AdelantosPanel() {
       if (tipoVisible !== 'todos' && a.tipo !== tipoVisible) return false;
       if (filtroEstado !== 'todos' && a.estado !== filtroEstado) return false;
       if (filtroOperario !== 'todos' && a.operario_id !== filtroOperario) return false;
+      if (filtroObra !== 'todos' && a.obra_id !== filtroObra) return false;
       if (busqueda) {
         const q = busqueda.toLowerCase();
-        const txt = `${a.concepto || ''} ${a.operario_name || ''} ${a.notas || ''}`.toLowerCase();
+        const txt = `${a.concepto || ''} ${a.operario_name || ''} ${a.obra_name || ''} ${a.notas || ''}`.toLowerCase();
         if (!txt.includes(q)) return false;
       }
       return true;
     });
-  }, [adelantos, tipoVisible, filtroEstado, filtroOperario, busqueda]);
+  }, [adelantos, tipoVisible, filtroEstado, filtroOperario, filtroObra, busqueda]);
 
   const totales = useMemo(() => {
     const activos = filtrados.filter(a => ['entregado', 'justificado', 'parcialmente_justificado'].includes(a.estado));
@@ -110,6 +114,26 @@ export default function AdelantosPanel() {
     adelantos.forEach(a => { if (a.operario_id) set.set(a.operario_id, a.operario_name || a.operario_id); });
     return Array.from(set.entries()).map(([id, name]) => ({ id, name }));
   }, [adelantos]);
+
+  const obrasConAdelanto = useMemo(() => {
+    const set = new Map();
+    adelantos.forEach(a => { if (a.obra_id && a.obra_name) set.set(a.obra_id, a.obra_name); });
+    return Array.from(set.entries()).map(([id, name]) => ({ id, name }));
+  }, [adelantos]);
+
+  // Agrupación por técnico para la visualización: cabecera con nombre,
+  // total entregado y nº de registros, y debajo sus adelantos.
+  const grupos = useMemo(() => {
+    const map = new Map();
+    for (const a of filtrados) {
+      const key = a.operario_id || '__sin_operario';
+      if (!map.has(key)) map.set(key, { id: key, name: a.operario_name || 'Sin operario', items: [], total: 0 });
+      const g = map.get(key);
+      g.items.push(a);
+      g.total += a.importe || 0;
+    }
+    return Array.from(map.values()).sort((x, y) => x.name.localeCompare(y.name, 'es'));
+  }, [filtrados]);
 
   return (
     <div className="space-y-4">
@@ -162,6 +186,10 @@ export default function AdelantosPanel() {
           <MobileSelectItem value="todos">Todos los operarios</MobileSelectItem>
           {operariosConAdelanto.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
         </MobileSelect>
+        <MobileSelect value={filtroObra} onValueChange={setFiltroObra} placeholder="Obra" triggerClassName="w-44">
+          <MobileSelectItem value="todos">Todas las obras</MobileSelectItem>
+          {obrasConAdelanto.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
+        </MobileSelect>
         <Button onClick={() => setShowForm(true)} size="sm" className="gap-1.5 ml-auto">
           <Plus className="w-4 h-4" /> Nuevo adelanto
         </Button>
@@ -176,7 +204,7 @@ export default function AdelantosPanel() {
         <div className="text-center py-12 border border-dashed rounded-xl">
           <Wallet className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-50" />
           <p className="text-sm text-muted-foreground mb-3">
-            {busqueda || filtroTipo !== 'todos' || filtroEstado !== 'todos' || filtroOperario !== 'todos'
+            {busqueda || filtroTipo !== 'todos' || filtroEstado !== 'todos' || filtroOperario !== 'todos' || filtroObra !== 'todos'
               ? 'No hay adelantos con estos filtros'
               : 'No hay adelantos registrados aún'}
           </p>
@@ -185,57 +213,71 @@ export default function AdelantosPanel() {
           </Button>
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtrados.map(a => (
-            <div key={a.id} className="bg-card border border-border rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex items-start gap-3 flex-1 min-w-0">
-                <div className={cn(
-                  'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
-                  a.tipo === 'dieta' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
-                )}>
-                  {a.tipo === 'dieta' ? <Utensils className="w-4 h-4" /> : <Wallet className="w-4 h-4" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm">{(a.importe || 0).toFixed(2)} €</span>
-                    <Badge variant="outline" className={cn('text-[10px]', ESTADO_COLORS[a.estado])}>{ESTADO_LABELS[a.estado]}</Badge>
-                    {a.tipo === 'dieta' && <Badge variant="outline" className="text-[10px] bg-orange-50 text-orange-700 border-orange-200">Dieta</Badge>}
-                    {a.obra_name && <span className="text-xs text-muted-foreground truncate">· {a.obra_name}</span>}
+        <div className="space-y-4">
+          {grupos.map(g => (
+            <div key={g.id} className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2 sticky top-14 z-10 bg-background/95 backdrop-blur px-1 py-1.5 border-b border-border">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                    {(g.name || '?').charAt(0).toUpperCase()}
                   </div>
-                  <p className="text-sm truncate">{a.concepto || '—'}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {a.operario_name || '—'} · {a.fecha_entrega || '—'}
-                    {a.metodo_pago && ` · ${METODOS[a.metodo_pago] || a.metodo_pago}`}
-                    {a.entregado_por && ` · entregó ${a.entregado_por}`}
-                  </p>
+                  <span className="font-semibold text-sm truncate">{g.name}</span>
+                  <Badge variant="secondary" className="text-[10px] shrink-0">{g.items.length}</Badge>
                 </div>
+                <span className="text-sm font-semibold text-muted-foreground shrink-0">{eur(g.total)}</span>
               </div>
+              {g.items.map(a => (
+                <div key={a.id} className="bg-card border border-border rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className={cn(
+                      'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
+                      a.tipo === 'dieta' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
+                    )}>
+                      {a.tipo === 'dieta' ? <Utensils className="w-4 h-4" /> : <Wallet className="w-4 h-4" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm">{(a.importe || 0).toFixed(2)} €</span>
+                        <Badge variant="outline" className={cn('text-[10px]', ESTADO_COLORS[a.estado])}>{ESTADO_LABELS[a.estado]}</Badge>
+                        {a.tipo === 'dieta' && <Badge variant="outline" className="text-[10px] bg-orange-50 text-orange-700 border-orange-200">Dieta</Badge>}
+                        {a.obra_name && <span className="text-xs text-muted-foreground truncate">· {a.obra_name}</span>}
+                      </div>
+                      <p className="text-sm truncate">{a.concepto || '—'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {a.fecha_entrega || '—'}
+                        {a.metodo_pago && ` · ${METODOS[a.metodo_pago] || a.metodo_pago}`}
+                        {a.entregado_por && ` · entregó ${a.entregado_por}`}
+                      </p>
+                    </div>
+                  </div>
 
-              {/* Acciones (solo gerencia/admin/director_comercial para gastos; gerencia/admin para dieta) */}
-              {a.estado !== 'anulado' && a.estado !== 'justificado' && (
-                <div className="flex gap-1.5 shrink-0">
-                  {a.estado === 'pendiente_entrega' && (isAdmin || isGerencia || isAdministracion) && (
-                    <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" disabled={actualizandoId === a.id}
-                      onClick={() => cambiarEstado(a, 'entregado')}>
-                      {actualizandoId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CreditCard className="w-3 h-3" />}
-                      Entregar
-                    </Button>
-                  )}
-                  {a.estado === 'pendiente_devolucion' && (
-                    <Button size="sm" variant="outline" className="h-8 gap-1 text-xs border-green-300 text-green-700" disabled={actualizandoId === a.id}
-                      onClick={() => cambiarEstado(a, 'justificado')}>
-                      {actualizandoId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
-                      Justificar
-                    </Button>
-                  )}
-                  {(isAdmin || isGerencia || isAdministracion) && (
-                    <Button size="sm" variant="ghost" className="h-8 text-xs text-red-600" disabled={actualizandoId === a.id}
-                      onClick={() => cambiarEstado(a, 'anulado')}>
-                      <XCircle className="w-3.5 h-3.5" />
-                    </Button>
+                  {/* Acciones (solo gerencia/admin/director_comercial para gastos; gerencia/admin para dieta) */}
+                  {a.estado !== 'anulado' && a.estado !== 'justificado' && (
+                    <div className="flex gap-1.5 shrink-0">
+                      {a.estado === 'pendiente_entrega' && (isAdmin || isGerencia || isAdministracion) && (
+                        <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" disabled={actualizandoId === a.id}
+                          onClick={() => cambiarEstado(a, 'entregado')}>
+                          {actualizandoId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CreditCard className="w-3 h-3" />}
+                          Entregar
+                        </Button>
+                      )}
+                      {a.estado === 'pendiente_devolucion' && (
+                        <Button size="sm" variant="outline" className="h-8 gap-1 text-xs border-green-300 text-green-700" disabled={actualizandoId === a.id}
+                          onClick={() => cambiarEstado(a, 'justificado')}>
+                          {actualizandoId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                          Justificar
+                        </Button>
+                      )}
+                      {(isAdmin || isGerencia || isAdministracion) && (
+                        <Button size="sm" variant="ghost" className="h-8 text-xs text-red-600" disabled={actualizandoId === a.id}
+                          onClick={() => cambiarEstado(a, 'anulado')}>
+                          <XCircle className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
+              ))}
             </div>
           ))}
         </div>
