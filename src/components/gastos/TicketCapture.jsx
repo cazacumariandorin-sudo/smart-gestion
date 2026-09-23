@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Camera, Upload, SkipForward, Loader2, CheckCircle2, AlertCircle, Plus, Trash2, FileText, Layers, RefreshCw } from 'lucide-react';
 import { extraerDatosGasto, evaluarPrecision } from '@/lib/ocrGastos';
+import DocumentEdgeCrop from '@/components/gastos/DocumentEdgeCrop';
 
 async function comprimirImagen(file) {
   return new Promise((resolve) => {
@@ -61,6 +62,15 @@ function fusionarDatos(paginas) {
 export default function TicketCapture({ onDone, onSkip }) {
   const [paginas, setPaginas] = useState([]); // { file, preview, file_url, ocr_datos, ocr_raw, estado: 'subiendo'|'ocr'|'ok'|'error', errorMsg }
   const [procesandoFinal, setProcesandoFinal] = useState(false);
+  const [pendienteEditar, setPendienteEditar] = useState(null); // File imagen pendiente de enderezado
+
+  // Las imágenes pasan por el enderezado híbrido antes de procesarse;
+  // los PDF y otros formatos van directos al flujo normal.
+  const nuevaCaptura = (f) => {
+    if (!f) return;
+    if (f.type.startsWith('image/')) setPendienteEditar(f);
+    else procesarPagina(f);
+  };
 
   const procesarPagina = async (file) => {
     if (!file) return;
@@ -165,6 +175,24 @@ export default function TicketCapture({ onDone, onSkip }) {
     });
   };
 
+  // Vista de enderezado/recorte del comprobante (híbrido: auto-detección +
+  // esquinas manuales). Solo para imágenes; los PDF van directos al flujo.
+  if (pendienteEditar) {
+    return (
+      <div className="space-y-4 py-2">
+        <DocumentEdgeCrop
+          file={pendienteEditar}
+          onConfirm={(f) => { setPendienteEditar(null); procesarPagina(f); }}
+          onSkip={() => { const orig = pendienteEditar; setPendienteEditar(null); procesarPagina(orig); }}
+          onCancel={() => setPendienteEditar(null)}
+        />
+        <Button variant="ghost" size="sm" onClick={onSkip} className="w-full gap-1.5 text-muted-foreground text-xs">
+          <SkipForward className="w-3.5 h-3.5" /> Saltar — rellenar manualmente
+        </Button>
+      </div>
+    );
+  }
+
   // No fiarse de heurísticas de dispositivo (p. ej. 'ontouchstart' in window):
   // hay portátiles táctiles sin cámara trasera real y de escritorio sin pantalla
   // táctil pero con webcam. Se muestran SIEMPRE las dos opciones — el atributo
@@ -183,13 +211,13 @@ export default function TicketCapture({ onDone, onSkip }) {
               <Camera className="w-8 h-8 text-primary" />
               <span className="text-sm font-medium text-primary">Hacer foto</span>
               <input type="file" accept="image/*" capture="environment" className="sr-only"
-                onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
+                onChange={e => { const f = e.target.files?.[0]; if (f) nuevaCaptura(f); e.target.value = '' }} />
             </label>
             <label className="flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-dashed border-border cursor-pointer hover:bg-accent/20 transition-colors">
               <Upload className="w-8 h-8 text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground">Subir archivo</span>
               <input type="file" accept="image/*,.pdf" className="sr-only"
-                onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
+                onChange={e => { const f = e.target.files?.[0]; if (f) nuevaCaptura(f); e.target.value = '' }} />
             </label>
           </div>
         </>
@@ -240,12 +268,12 @@ export default function TicketCapture({ onDone, onSkip }) {
             <label className="flex-1 flex items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors text-sm font-medium text-primary">
               <Camera className="w-4 h-4" /> Otra foto
               <input type="file" accept="image/*" capture="environment" className="sr-only"
-                onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
+                onChange={e => { const f = e.target.files?.[0]; if (f) nuevaCaptura(f); e.target.value = '' }} />
             </label>
             <label className="flex-1 flex items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-border cursor-pointer hover:bg-accent/20 transition-colors text-sm font-medium text-muted-foreground">
               <Upload className="w-4 h-4" /> Subir
               <input type="file" accept="image/*,.pdf" className="sr-only"
-                onChange={e => { const f = e.target.files?.[0]; if (f) procesarPagina(f); e.target.value = ''; }} />
+                onChange={e => { const f = e.target.files?.[0]; if (f) nuevaCaptura(f); e.target.value = '' }} />
             </label>
           </div>
 
