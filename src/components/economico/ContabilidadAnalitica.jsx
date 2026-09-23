@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
+import { cn } from '@/lib/utils';
 import {
   Wallet, Banknote, Scale, Clock, Download, ChevronDown, ChevronRight, PieChart, Loader2, BarChart3,
   FileText, AlertTriangle,
@@ -28,9 +29,19 @@ const DIMENSIONES = [
   { key: 'fijos', label: 'Gastos fijos actividad' },
 ];
 
-function KpiCard({ icon: Icon, label, value, sub, color }) {
+function KpiCard({ icon: Icon, label, value, sub, color, active, onClick }) {
+  const interactive = !!onClick;
   return (
-    <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
+    <button
+      type="button"
+      disabled={!interactive}
+      onClick={onClick}
+      className={cn(
+        'bg-card border rounded-2xl p-4 flex items-center gap-3 text-left transition-all w-full',
+        interactive ? 'hover:shadow-md hover:border-primary/40 cursor-pointer' : 'cursor-default',
+        active ? 'border-primary ring-2 ring-primary/30' : 'border-border'
+      )}
+    >
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
         <Icon className="w-5 h-5" />
       </div>
@@ -39,7 +50,7 @@ function KpiCard({ icon: Icon, label, value, sub, color }) {
         <p className="text-lg font-bold truncate">{value}</p>
         {sub && <p className="text-xs text-muted-foreground truncate">{sub}</p>}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -70,6 +81,7 @@ export default function ContabilidadAnalitica() {
   const [dimension, setDimension] = useState('operario');
   const [expanded, setExpanded] = useState(null);
   const [verRegularizacion, setVerRegularizacion] = useState(false);
+  const [filtroSobrecoste, setFiltroSobrecoste] = useState(false);
 
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ['eco-registros'],
@@ -112,6 +124,14 @@ export default function ContabilidadAnalitica() {
     const m = {};
     for (const o of obras) if (o.id) m[o.id] = o.client_name || '';
     for (const o of solarObras) if (o.id) m[o.id] = o.client_name || '';
+    return m;
+  }, [obras, solarObras]);
+
+  // Mapa obra_name → budget (para filtro de obras con sobrecoste)
+  const obraBudgetMap = useMemo(() => {
+    const m = {};
+    for (const o of obras) if (o.name) m[o.name] = o.budget || 0;
+    for (const o of solarObras) if (o.name) m[o.name] = o.budget || 0;
     return m;
   }, [obras, solarObras]);
 
@@ -181,6 +201,19 @@ export default function ContabilidadAnalitica() {
     return Object.values(grupos).sort((a, b) => b.total - a.total);
   }, [justificados, dimension, obraClientMap]);
 
+  const desgloseFiltrado = useMemo(() => {
+    if (!filtroSobrecoste) return desglose;
+    return desglose.filter(g => {
+      const budget = obraBudgetMap[g.key] || 0;
+      return budget > 0 && g.total > budget;
+    });
+  }, [desglose, filtroSobrecoste, obraBudgetMap]);
+
+  const totalFiltrado = useMemo(
+    () => desgloseFiltrado.reduce((s, g) => s + g.total, 0),
+    [desgloseFiltrado],
+  );
+
   const subPeriodos = subPeriodosDe(periodo);
   const anios = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
 
@@ -196,7 +229,7 @@ export default function ContabilidadAnalitica() {
     lines.push('');
     // Bloque 2 — Desglose (gastos justificados)
     lines.push('Seccion,Dimension,Operario,Obra,Cliente,Categoria,Concepto,Importe,Pagado,Estado,GastoTardio,CicloMes,FechaDocumento');
-    for (const g of desglose) {
+    for (const g of desgloseFiltrado) {
       for (const r of g.registros) {
         lines.push(['Desglose', g.key, r.operario_name || '', r.obra_name || '', obraClientMap[r.obra_id] || '', r.categoria || '', r.concepto || '', r.importe || 0, r.estado === 'pagada' ? (r.importe_pagado_real || r.importe || 0) : 0, r.estado, r.es_gasto_tardio ? 'Sí' : 'No', r.ciclo_mes || '', r.fecha_documento || ''].map(csvEscape).join(','));
       }
@@ -309,10 +342,12 @@ export default function ContabilidadAnalitica() {
 
       {/* KPIs económicos del periodo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard icon={Wallet} label="Gastos aprobados" value={eur(kpis.gastos_aprobados || 0)} sub="del periodo (por ciclo)" color="bg-orange-100 text-orange-600" />
+        <KpiCard icon={Wallet} label="Gastos aprobados" value={filtroSobrecoste ? eur(totalFiltrado) : eur(kpis.gastos_aprobados || 0)} sub={filtroSobrecoste ? 'filtrado por sobrecoste' : 'del periodo (por ciclo)'} color="bg-orange-100 text-orange-600"
+          active={!filtroSobrecoste} onClick={() => setFiltroSobrecoste(false)} />
         <KpiCard icon={FileText} label="Presupuestos activos" value={eur(kpis.presupuestos_activos || 0)} sub="enviados + aceptados" color="bg-purple-100 text-purple-600" />
         <KpiCard icon={Banknote} label="Coste nóminas" value={eur(kpis.coste_nominas || 0)} sub={subNomina} color="bg-teal-100 text-teal-600" />
-        <KpiCard icon={AlertTriangle} label="Obras con sobrecoste" value={String(kpis.obras_sobrecoste || 0)} sub={`${kpis.obras_sin_presupuesto || 0} sin presupuesto`} color="bg-red-100 text-red-600" />
+        <KpiCard icon={AlertTriangle} label="Obras con sobrecoste" value={String(kpis.obras_sobrecoste || 0)} sub={`${kpis.obras_sin_presupuesto || 0} sin presupuesto`} color="bg-red-100 text-red-600"
+          active={filtroSobrecoste} onClick={() => { setDimension('obra'); setFiltroSobrecoste(v => !v); setExpanded(null); }} />
       </div>
 
       {/* Desglose por dimensión */}
@@ -322,7 +357,7 @@ export default function ContabilidadAnalitica() {
             {DIMENSIONES.map(d => (
               <button
                 key={d.key}
-                onClick={() => { setDimension(d.key); setExpanded(null); }}
+                onClick={() => { setDimension(d.key); setExpanded(null); setFiltroSobrecoste(false); }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   dimension === d.key
                     ? 'bg-primary text-primary-foreground border-primary'
@@ -338,13 +373,13 @@ export default function ContabilidadAnalitica() {
           </Button>
         </div>
 
-        {desglose.length === 0 ? (
+        {desgloseFiltrado.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            No hay gastos justificados en este periodo para la dimensión seleccionada.
+            No hay gastos justificados en este periodo para la dimensión seleccionada{filtroSobrecoste ? ' con sobrecoste.' : '.'}.
           </p>
         ) : (
           <div className="divide-y divide-border">
-            {desglose.map(g => {
+            {desgloseFiltrado.map(g => {
               const isOpen = expanded === g.key;
               const diff = g.total - g.pagado;
               return (

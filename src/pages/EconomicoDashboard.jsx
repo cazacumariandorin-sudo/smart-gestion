@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import PageHeader from '@/components/layout/PageHeader';
+import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useUserRole } from '@/lib/useUserRole';
 import { Wallet, TrendingUp, FileText, Banknote, AlertTriangle, PieChart, RotateCcw, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -9,9 +10,19 @@ import EconomicoObrasChart from '@/components/economico/EconomicoObrasChart';
 import ContabilidadAnalitica from '@/components/economico/ContabilidadAnalitica';
 import AdelantosPanel from '@/components/adelantos/AdelantosPanel';
 
-function KpiCard({ icon: Icon, label, value, color }) {
+function KpiCard({ icon: Icon, label, value, color, active, onClick }) {
+  const interactive = !!onClick;
   return (
-    <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
+    <button
+      type="button"
+      disabled={!interactive}
+      onClick={onClick}
+      className={cn(
+        'bg-card border rounded-2xl p-4 flex items-center gap-3 text-left transition-all w-full',
+        interactive ? 'hover:shadow-md hover:border-primary/40 cursor-pointer' : 'cursor-default',
+        active ? 'border-primary ring-2 ring-primary/30' : 'border-border'
+      )}
+    >
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
         <Icon className="w-5 h-5" />
       </div>
@@ -19,7 +30,7 @@ function KpiCard({ icon: Icon, label, value, color }) {
         <p className="text-xs text-muted-foreground truncate">{label}</p>
         <p className="text-lg font-bold truncate">{value}</p>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -30,6 +41,7 @@ export default function EconomicoDashboard() {
   const puedeAnalitica = isAdmin || isGerencia;
   const puedeAdelantos = isAdmin || isGerencia || isDirComercial;
   const [tab, setTab] = useState('resumen');
+  const [filtroOrigen, setFiltroOrigen] = useState('todos');
 
   const { data: registros = [] } = useQuery({ queryKey: ['eco-registros'], queryFn: () => base44.entities.RegistroGasto.list('-fecha_documento', 500) });
   const { data: presupuestos = [] } = useQuery({ queryKey: ['eco-presupuestos'], queryFn: () => base44.entities.Presupuesto.list('-fecha', 300) });
@@ -113,10 +125,14 @@ export default function EconomicoDashboard() {
     return todas.filter(o => o.budget > 0 && (gastoPorObraAll[o.name] || 0) > o.budget);
   }, [obras, solarObras, gastoPorObraAll]);
 
-  const chartData = useMemo(() => Object.entries(gastoPorObra)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([name, total]) => ({ name, total })), [gastoPorObra]);
+  const obrasListado = useMemo(() => {
+    const base = filtroOrigen === 'recuperar' ? gastoPorObraRecuperar
+      : filtroOrigen === 'empresa' ? gastoPorObraEmpresa
+      : gastoPorObra;
+    return Object.entries(base).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  }, [filtroOrigen, gastoPorObra, gastoPorObraRecuperar, gastoPorObraEmpresa]);
+
+  const chartData = useMemo(() => obrasListado.slice(0, 6).map(([name, total]) => ({ name, total })), [obrasListado]);
 
   const MesSelector = (
     <div className="flex items-center gap-2">
@@ -143,9 +159,12 @@ export default function EconomicoDashboard() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard icon={Wallet} label="Gastos aprobados (mes)" value={eur(totalGastosMes)} color="bg-orange-100 text-orange-600" />
-        <KpiCard icon={RotateCcw} label="A recuperar (técnicos)" value={eur(totalRecuperar)} color="bg-amber-100 text-amber-700" />
-        <KpiCard icon={CreditCard} label="Pagados con medios empresa" value={eur(totalEmpresa)} color="bg-sky-100 text-sky-700" />
+        <KpiCard icon={Wallet} label="Gastos aprobados (mes)" value={eur(totalGastosMes)} color="bg-orange-100 text-orange-600"
+          active={filtroOrigen === 'todos'} onClick={() => setFiltroOrigen('todos')} />
+        <KpiCard icon={RotateCcw} label="A recuperar (técnicos)" value={eur(totalRecuperar)} color="bg-amber-100 text-amber-700"
+          active={filtroOrigen === 'recuperar'} onClick={() => setFiltroOrigen('recuperar')} />
+        <KpiCard icon={CreditCard} label="Pagados con medios empresa" value={eur(totalEmpresa)} color="bg-sky-100 text-sky-700"
+          active={filtroOrigen === 'empresa'} onClick={() => setFiltroOrigen('empresa')} />
         <KpiCard icon={FileText} label="Presupuestos activos" value={eur(totalPresupuestosActivos)} color="bg-purple-100 text-purple-600" />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -176,7 +195,7 @@ export default function EconomicoDashboard() {
       <div className="bg-card border border-border rounded-2xl p-4">
         <p className="text-sm font-semibold mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Gasto aprobado por obra y origen ({mesFiltro}, top 8)</p>
         <div className="space-y-2">
-          {Object.entries(gastoPorObra).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, total]) => {
+          {obrasListado.map(([name, total]) => {
             const rec = gastoPorObraRecuperar[name] || 0;
             const emp = gastoPorObraEmpresa[name] || 0;
             return (
