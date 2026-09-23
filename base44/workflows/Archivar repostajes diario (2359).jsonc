@@ -1,0 +1,44 @@
+{
+  "name": "Archivar repostajes diario (23:59)",
+  "description": "Archiva los avisos de repostaje del d\u00eda (avisos_visible=false) a las 23:59 (21:59 UTC = hora local Madrid en verano). Una vez archivados, solo gerencia/administraci\u00f3n pueden verlos v\u00eda el reporte de repostajes.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "59 21 * * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "archivar_repostajes_diario_23_59",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "archivarRepostajesDiario",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "archivarRepostajesDiario"
+  }
+}

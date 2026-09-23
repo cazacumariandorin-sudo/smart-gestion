@@ -1,0 +1,37 @@
+{
+  "name": "Cerrar discrepancia conciliaci\u00f3n",
+  "description": "Al completar una AsistenteTarea de origen 'conciliacion', marca la discrepancia como resuelta en el RegistroGasto/MaterialDocumentoOrigen asociado.",
+  "trigger": {
+    "condition": "${ ((.trigger.changed_fields | index(\"estado\") != null) and (.trigger.data.estado == \"completada\") and (.trigger.data.origen_solicitud == \"conciliacion\")) }",
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "update"
+      ],
+      "entity_name": "AsistenteTarea"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "cerrar_discrepancia_conciliaci_n",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "cerrarDiscrepanciaConciliacion",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "cerrarDiscrepanciaConciliacion"
+  }
+}

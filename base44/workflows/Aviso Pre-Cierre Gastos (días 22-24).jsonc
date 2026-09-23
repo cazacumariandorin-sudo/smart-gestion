@@ -1,0 +1,44 @@
+{
+  "name": "Aviso Pre-Cierre Gastos (d\u00edas 22-24)",
+  "description": "Crea una AsistenteTarea de alta prioridad para gerencia recordando el cierre del ciclo de gastos del \u00faltimo d\u00eda del mes. D\u00edas 28-30 a las 16:00 UTC (cubre meses de 28/29/30/31 d\u00edas).",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 16 28-30 * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "aviso_pre_cierre_gastos_d_as_22_24",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "avisoPreCierreGastos",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "avisoPreCierreGastos"
+  }
+}
