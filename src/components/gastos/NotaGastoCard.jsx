@@ -32,12 +32,18 @@ const CAT_COLORS = {
 export default function NotaGastoCard({ nota, onVer }) {
   const cfg = ESTADO_CONFIG[nota.estado] || ESTADO_CONFIG.pendiente;
   const Icon = cfg.icon;
+  // Gasto de un ciclo ya cerrado, redirigido al ciclo activo: se distingue en morado
+  const esDeCicloCerrado = !!(nota.es_gasto_tardio && nota.justificacion_tardia?.includes('[CICLO CERRADO'));
 
   return (
     <Card
       className={cn(
         'p-4 hover:shadow-md transition-all cursor-pointer border',
-        nota.es_gasto_tardio && 'border-red-300 dark:border-red-700'
+        esDeCicloCerrado
+          ? 'border-indigo-400 dark:border-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/20'
+          : nota.es_gasto_tardio
+            ? 'border-red-300 dark:border-red-700'
+            : ''
       )}
       onClick={() => onVer?.(nota)}
     >
@@ -51,7 +57,11 @@ export default function NotaGastoCard({ nota, onVer }) {
             <Badge className={cn('text-[10px]', CAT_COLORS[nota.categoria] || CAT_COLORS.otros)}>
               {nota.categoria}
             </Badge>
-            {nota.es_gasto_tardio && (
+            {esDeCicloCerrado ? (
+              <Badge className="text-[10px] bg-indigo-100 text-indigo-700 border-indigo-200">
+                <Lock className="w-3 h-3 mr-1" /> Ciclo cerrado
+              </Badge>
+            ) : nota.es_gasto_tardio && (
               <Badge className="text-[10px] bg-red-100 text-red-700 border-red-200">
                 <AlertTriangle className="w-3 h-3 mr-1" /> Tardío
               </Badge>
@@ -99,7 +109,7 @@ export default function NotaGastoCard({ nota, onVer }) {
         </div>
 
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className={cn('text-base font-bold', nota.es_gasto_tardio && 'text-red-600')}>
+          <span className={cn('text-base font-bold', nota.es_gasto_tardio && (esDeCicloCerrado ? 'text-indigo-600' : 'text-red-600'))}>
             {(nota.importe || 0).toFixed(2)} €
           </span>
           {nota.operario_name && (

@@ -10,13 +10,14 @@ import { useUserRole } from '@/lib/useUserRole';
 
 const ESTADO_LABELS = {
   borrador: 'Borrador', enviada: 'Enviada', aprobada: 'Aprobada',
-  en_contabilidad: 'En contabilidad', pagada: 'Pagada', rechazada: 'Rechazada',
+  en_contabilidad: 'En contabilidad', pendiente_pago: 'Pendiente de pago', pagada: 'Pagada', rechazada: 'Rechazada',
 };
 const ESTADO_COLORS = {
   borrador: 'bg-slate-100 text-slate-700 border-slate-200',
   enviada: 'bg-blue-50 text-blue-700 border-blue-200',
   aprobada: 'bg-amber-50 text-amber-700 border-amber-200',
   en_contabilidad: 'bg-purple-50 text-purple-700 border-purple-200',
+  pendiente_pago: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   pagada: 'bg-green-50 text-green-700 border-green-200',
   rechazada: 'bg-red-50 text-red-700 border-red-200',
 };

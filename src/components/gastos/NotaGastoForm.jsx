@@ -14,11 +14,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import ObraSelector from './ObraSelector';
 import TicketCapture from './TicketCapture';
 import ObraObligatoriaModal from './ObraObligatoriaModal';
-import { Loader2, AlertTriangle, UserCheck, RefreshCw, Clock, ScanLine, CheckCircle2, FileText } from 'lucide-react';
+import { Loader2, AlertTriangle, UserCheck, RefreshCw, Clock, ScanLine, CheckCircle2, FileText, Lock } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { calcularCicloMes } from '@/lib/adelantosConciliacion';
 
 const CATEGORIAS = ['combustible', 'comida', 'material', 'peaje', 'parking', 'otros'];
 const defaultForm = { origen_pago: 'medios_propios', categoria: '', concepto: '', importe: '', nif_comercio: '', nombre_comercio: '', fecha_documento: '', codigo_validacion_fiscal: '', numero_factura: '', localidad: '', forma_pago_documento: '', obra_id: '', obra_name: '', obra_tipo: '', notas: '', justificacion_tardia: '' };
@@ -116,8 +117,40 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   );
 
   const { data: notasExistentes = [] } = useQuery({ queryKey: ['notas_gasto_check', operarioEfectivo?.id], queryFn: () => base44.entities.RegistroGasto.filter({ operario_id: operarioEfectivo?.id }), enabled: !!operarioEfectivo?.id });
+  // Notas mensuales del operario para detectar si el ciclo de la fecha del documento ya está cerrado
+  const { data: notasCicloOperario = [] } = useQuery({ queryKey: ['notas_mensual_gasto', operarioEfectivo?.id], queryFn: () => base44.entities.NotaMensualGasto.filter({ operario_id: operarioEfectivo?.id }), enabled: !!operarioEfectivo?.id });
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const esGastoTardio = useMemo(() => { if (!form.fecha_documento) return false; return Math.floor((Date.now() - new Date(form.fecha_documento)) / 86400000) > 30; }, [form.fecha_documento]);
+
+  // Detecta si la fecha del documento pertenece a un ciclo ya cerrado (pendiente_pago / pagada).
+  // Si es así, el gasto se redirige al ciclo activo y se marca como tardío de ciclo cerrado.
+  const deteccionCiclo = useMemo(() => {
+    if (!form.fecha_documento) return { cicloCerrado: false };
+    const cicloDoc = calcularCicloMes(form.fecha_documento) || form.fecha_documento.slice(0, 7);
+    const hoy = format(new Date(), 'yyyy-MM-dd');
+    const cicloActivo = calcularCicloMes(hoy) || hoy.slice(0, 7);
+    const notaCicloDoc = notasCicloOperario.find(n => n.ciclo_mes === cicloDoc);
+    const cicloCerrado = !!(notaCicloDoc && ['pendiente_pago', 'pagada', 'en_contabilidad'].includes(notaCicloDoc.estado));
+    return { cicloCerrado, cicloOrigenMes: cicloCerrado ? cicloDoc : null, cicloDestinoMes: cicloCerrado ? cicloActivo : cicloDoc };
+  }, [form.fecha_documento, notasCicloOperario]);
+
+  // Resuelve los campos de ciclo para el guardado: redirige al ciclo activo si el original está cerrado
+  const resolverCicloParaGuardar = () => {
+    const hoy = format(new Date(), 'yyyy-MM-dd');
+    if (deteccionCiclo.cicloCerrado) {
+      const notaCiclo = `[CICLO CERRADO ${deteccionCiclo.cicloOrigenMes}] Gasto del mes que le corresponde, registrado en el ciclo activo.`;
+      return {
+        ciclo_mes: deteccionCiclo.cicloDestinoMes,
+        es_gasto_tardio: true,
+        justificacion_tardia: form.justificacion_tardia?.trim() ? `${notaCiclo} — ${form.justificacion_tardia.trim()}` : notaCiclo,
+      };
+    }
+    return {
+      ciclo_mes: (form.fecha_documento || hoy).slice(0, 7),
+      es_gasto_tardio: esGastoTardio,
+      justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null,
+    };
+  };
 
   const handleDone = ({ ocr_raw, ocr_ok, preview, archivos, archivo, error_ocr, datos, precisa_precision, precision_motivo }) => {
     const lista = Array.isArray(archivos) && archivos.length ? archivos : (archivo ? [archivo] : []);
@@ -153,7 +186,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     if (dup && !posibleDup) { setPosibleDup(dup); setShowDupAlert(true); return; }
     const { numero_nota, numero_secuencia } = await generarNumeroNota();
     const hoy = format(new Date(), 'yyyy-MM-dd');
-    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id: form.obra_id || null, obra_name: form.obra_name || null, obra_tipo: form.obra_tipo || null, operario_email: operarioEfectivo.user_email || user?.email || '', ciclo_mes: (form.fecha_documento || hoy).slice(0, 7), estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: esGastoTardio, justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null, es_posible_duplicado: !!dup, duplicado_confirmado: !!posibleDup, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo, ...extraFields });
+    const cicloFields = resolverCicloParaGuardar();
+    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: cicloFields.es_gasto_tardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id: form.obra_id || null, obra_name: form.obra_name || null, obra_tipo: form.obra_tipo || null, operario_email: operarioEfectivo.user_email || user?.email || '', ciclo_mes: cicloFields.ciclo_mes, estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: cicloFields.es_gasto_tardio, justificacion_tardia: cicloFields.justificacion_tardia, es_posible_duplicado: !!dup, duplicado_confirmado: !!posibleDup, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo, ...extraFields });
   };
 
   const handleSubmit = () => {
@@ -167,8 +201,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const handleObraAsignada = async ({ obra_id, obra_name, obra_tipo }) => {
     setForm(f => ({ ...f, obra_id, obra_name, obra_tipo })); setShowObraModal(false); setPendingSave(false);
     if (!operarioEfectivo?.id) { toast.error('No hay operario vinculado'); return; }
-    const dup = checkDuplicado(); const { numero_nota, numero_secuencia } = await generarNumeroNota(); const hoy = format(new Date(), 'yyyy-MM-dd');
-    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: esGastoTardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id, obra_name, obra_tipo, operario_email: operarioEfectivo.user_email || user?.email || '', ciclo_mes: (form.fecha_documento || hoy).slice(0, 7), estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: esGastoTardio, justificacion_tardia: esGastoTardio ? form.justificacion_tardia : null, es_posible_duplicado: !!dup, duplicado_confirmado: false, aviso_obra_mostrado: true, sin_obra: false, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo });
+    const dup = checkDuplicado(); const { numero_nota, numero_secuencia } = await generarNumeroNota(); const hoy = format(new Date(), 'yyyy-MM-dd'); const cicloFields = resolverCicloParaGuardar();
+    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: cicloFields.es_gasto_tardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id, obra_name, obra_tipo, operario_email: operarioEfectivo.user_email || user?.email || '', ciclo_mes: cicloFields.ciclo_mes, estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: cicloFields.es_gasto_tardio, justificacion_tardia: cicloFields.justificacion_tardia, es_posible_duplicado: !!dup, duplicado_confirmado: false, aviso_obra_mostrado: true, sin_obra: false, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo });
   };
 
   const handleContinuarSinObra = () => { setShowObraModal(false); setPendingSave(false); doGuardar({ sin_obra: true, sin_obra_timestamp: new Date().toISOString(), aviso_obra_mostrado: true }); };
@@ -276,6 +310,17 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
                 </div>
               )}
               <div className="space-y-1.5"><Label className="text-xs">Fecha del documento</Label><Input type="date" value={form.fecha_documento} onChange={e => setField('fecha_documento', e.target.value)} /></div>
+              {deteccionCiclo.cicloCerrado && (
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg border border-indigo-300 dark:border-indigo-800">
+                  <div className="flex items-start gap-2">
+                    <Lock className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">Ciclo {deteccionCiclo.cicloOrigenMes} cerrado</p>
+                      <p className="text-xs text-indigo-600 dark:text-indigo-400">Este gasto se registrará en el <strong>ciclo activo {deteccionCiclo.cicloDestinoMes}</strong> y se marcará como gasto del mes {deteccionCiclo.cicloOrigenMes}. Quedará pendiente de aprobación de gerencia/administración para sumarlo al ciclo.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs flex items-center gap-1.5">

@@ -15,12 +15,14 @@ import {
 import AdelantoParcialDialog from '@/components/gastos/AdelantoParcialDialog';
 import CicloDetalleDialog from '@/components/gastos/CicloDetalleDialog';
 import { aplicarConciliacionCierre } from '@/lib/adelantosConciliacion';
+import ReabrirCicloDialog from '@/components/gastos/ReabrirCicloDialog';
 
 const ESTADO_LABELS = {
   borrador: 'Borrador',
   enviada: 'Enviada',
   aprobada: 'Aprobada',
   en_contabilidad: 'En contabilidad',
+  pendiente_pago: 'Pendiente de pago',
   pagada: 'Pagada',
   rechazada: 'Rechazada',
 };
@@ -30,6 +32,7 @@ const ESTADO_COLORS = {
   enviada: 'bg-blue-50 text-blue-700 border-blue-200',
   aprobada: 'bg-amber-50 text-amber-700 border-amber-200',
   en_contabilidad: 'bg-purple-50 text-purple-700 border-purple-200',
+  pendiente_pago: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   pagada: 'bg-green-50 text-green-700 border-green-200',
   rechazada: 'bg-red-50 text-red-700 border-red-200',
 };
@@ -46,19 +49,21 @@ export default function CicloCard({ nota, onExported }) {
   const [exporting, setExporting] = useState(false);
   const [showAdelanto, setShowAdelanto] = useState(false);
   const [showDetalle, setShowDetalle] = useState(false);
+  const [showReabrir, setShowReabrir] = useState(false);
   const [cerrando, setCerrando] = useState(false);
-  const [reabriendo, setReabriendo] = useState(false);
 
   const yaExportada = nota.estado === 'en_contabilidad' && !!nota.export_contabilidad_url;
   const sinRegistros = (nota.total_registros || 0) === 0;
-  const estaCerrada = nota.estado === 'pagada';
+  // Ciclo "cerrado" = ya no acepta gastos del operario (pendiente_pago o pagada)
+  const estaCerrada = ['pendiente_pago', 'pagada'].includes(nota.estado);
 
   const recalcYCerrar = async () => {
     setCerrando(true);
     try {
-      const c = await aplicarConciliacionCierre(nota, user, { estado: 'pagada' });
+      // Regla 1: cerrar deja el ciclo en 'pendiente_pago' con fecha de hoy.
+      const c = await aplicarConciliacionCierre(nota, user, { estado: 'pendiente_pago' });
       toast({
-        title: 'Ciclo cerrado',
+        title: 'Ciclo cerrado (pendiente de pago)',
         description: `${nota.numero_ciclo || nota.ciclo_mes} · Gastos ${c.total_gastos.toFixed(2)} € − Adelantos ${c.total_adelantos_gastos.toFixed(2)} € = Neto ${c.importe_neto_liquidar.toFixed(2)} €${c.es_historico_adelanto ? ' (histórico, no recalculado)' : ''}`,
       });
       qc.invalidateQueries({ queryKey: ['nota_mensual_gasto'] });
@@ -67,27 +72,6 @@ export default function CicloCard({ nota, onExported }) {
       toast({ title: 'No se pudo cerrar el ciclo', description: e.message, variant: 'destructive' });
     } finally {
       setCerrando(false);
-    }
-  };
-
-  const reabrirCiclo = async () => {
-    setReabriendo(true);
-    try {
-      await base44.entities.NotaMensualGasto.update(nota.id, {
-        estado: 'en_contabilidad',
-        fecha_cierre: null,
-        pagado_por: null,
-        fecha_pago: null,
-      });
-      toast({
-        title: 'Ciclo reabierto',
-        description: 'Ahora puedes añadir el justificante tardío y volver a cerrarlo.',
-      });
-      qc.invalidateQueries({ queryKey: ['nota_mensual_gasto'] });
-    } catch (e) {
-      toast({ title: 'No se pudo reabrir el ciclo', description: e.message, variant: 'destructive' });
-    } finally {
-      setReabriendo(false);
     }
   };
 
@@ -196,7 +180,7 @@ export default function CicloCard({ nota, onExported }) {
                   <AlertDialogHeader>
                     <AlertDialogTitle>¿Cerrar el ciclo {nota.numero_ciclo || nota.ciclo_mes}?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Se procesará y cerrará el ciclo (estado: pagada) con la fecha de cierre de hoy. El operario ya no podrá añadir gastos a este ciclo salvo que gerencia/admin lo reabra.
+                      Se procesará y cerrará el ciclo (estado: pendiente de pago) con la fecha de cierre de hoy. El operario ya no podrá añadir gastos a este ciclo salvo que gerencia/administración lo reabra bajo doble autenticación.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -207,26 +191,15 @@ export default function CicloCard({ nota, onExported }) {
               </AlertDialog>
             )}
             {canManage && estaCerrada && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1.5 border-amber-300 text-amber-700" disabled={reabriendo}>
-                    {reabriendo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlock className="w-4 h-4" />}
-                    <span className="hidden sm:inline">Reabrir</span>
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Reabrir el ciclo {nota.numero_ciclo || nota.ciclo_mes}?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      El ciclo vuelve a contabilidad para añadir justificantes tardíos olvidados por el operario. Tras regularizarlo, vuelve a cerrarlo.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={reabrirCiclo}>Reabrir ciclo</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-amber-300 text-amber-700"
+                onClick={() => setShowReabrir(true)}
+              >
+                <Unlock className="w-4 h-4" />
+                <span className="hidden sm:inline">Reabrir</span>
+              </Button>
             )}
             {canExport && (
               <Button
@@ -260,6 +233,10 @@ export default function CicloCard({ nota, onExported }) {
 
       {showDetalle && (
         <CicloDetalleDialog nota={nota} open={showDetalle} onClose={() => setShowDetalle(false)} />
+      )}
+
+      {showReabrir && (
+        <ReabrirCicloDialog nota={nota} open={showReabrir} onClose={() => setShowReabrir(false)} />
       )}
     </Card>
   );

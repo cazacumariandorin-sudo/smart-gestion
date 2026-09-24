@@ -78,10 +78,12 @@
         "enviada",
         "aprobada",
         "en_contabilidad",
+        "pendiente_pago",
         "pagada",
         "rechazada"
       ],
-      "type": "string"
+      "type": "string",
+      "description": "borrador\u2192enviada\u2192aprobada\u2192en_contabilidad\u2192pendiente_pago (cerrado con fecha de hoy, esperando pago)\u2192pagada. rechazada cancela. pendiente_pago bloquea al operario: no puede a\u00f1adir gastos al ciclo salvo reapertura por gerencia/administraci\u00f3n con doble autenticaci\u00f3n."
     },
     "metodo_pago": {
       "enum": [
@@ -106,6 +108,19 @@
     },
     "notas_gerencia": {
       "type": "string"
+    },
+    "reabierto_por": {
+      "type": "string",
+      "description": "Email del usuario de gerencia/administraci\u00f3n que reabri\u00f3 el ciclo para auditor\u00eda (doble autenticaci\u00f3n PIN)."
+    },
+    "fecha_reapertura": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO en que se reabri\u00f3 el ciclo para auditor\u00eda."
+    },
+    "motivo_reapertura": {
+      "type": "string",
+      "description": "Motivo/justificaci\u00f3n de la reapertura para auditor\u00eda (registrado por gerencia/administraci\u00f3n)."
     },
     "export_contabilidad_url": {
       "description": "URL del PDF \u00edndice + ZIP de tickets subido a Drive (Fase 4). Se rellena al ejecutar exportarCicloContabilidad.",

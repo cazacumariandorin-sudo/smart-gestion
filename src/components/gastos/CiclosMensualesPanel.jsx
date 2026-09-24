@@ -9,13 +9,14 @@ import ConsolidarCicloButton from '@/components/gastos/ConsolidarCicloButton';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Loader2, Filter } from 'lucide-react';
 
-const ESTADOS = ['todos', 'borrador', 'enviada', 'aprobada', 'en_contabilidad', 'pagada', 'rechazada'];
+const ESTADOS = ['todos', 'borrador', 'enviada', 'aprobada', 'en_contabilidad', 'pendiente_pago', 'pagada', 'rechazada'];
 const ESTADO_LABELS = {
   todos: 'Todos los estados',
   borrador: 'Borrador',
   enviada: 'Enviada',
   aprobada: 'Aprobada',
   en_contabilidad: 'En contabilidad',
+  pendiente_pago: 'Pendiente de pago',
   pagada: 'Pagada',
   rechazada: 'Rechazada',
 };

@@ -107,7 +107,7 @@ export async function aplicarConciliacionCierre(nota, user, opts = {}) {
   }
 
   await base44.entities.NotaMensualGasto.update(nota.id, {
-    estado: opts.estado || 'pagada',
+    estado: opts.estado || 'pendiente_pago',
     fecha_cierre: new Date().toISOString().slice(0, 10),
     pagado_por: user?.email,
     fecha_pago: new Date().toISOString(),
