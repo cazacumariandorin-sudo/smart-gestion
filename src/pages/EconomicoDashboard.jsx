@@ -37,9 +37,9 @@ function KpiCard({ icon: Icon, label, value, color, active, onClick }) {
 const eur = (n) => `${(n || 0).toLocaleString('es-ES', { maximumFractionDigits: 0 })} €`;
 
 export default function EconomicoDashboard() {
-  const { isAdmin, isGerencia, isDirComercial } = useUserRole();
-  const puedeAnalitica = isAdmin || isGerencia;
-  const puedeAdelantos = isAdmin || isGerencia || isDirComercial;
+  const { isAdmin, isGerencia, isDirComercial, isAdministracion } = useUserRole();
+  const puedeAnalitica = isAdmin || isGerencia || isAdministracion;
+  const puedeAdelantos = isAdmin || isGerencia || isDirComercial || isAdministracion;
   const [tab, setTab] = useState('resumen');
   const [filtroOrigen, setFiltroOrigen] = useState('todos');
 
