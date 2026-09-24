@@ -43,6 +43,7 @@ export default function AdelantosPanel() {
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [filtroOperario, setFiltroOperario] = useState('todos');
   const [filtroObra, setFiltroObra] = useState('todos');
+  const [filtroMes, setFiltroMes] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
   const [actualizandoId, setActualizandoId] = useState(null);
   const [kpiActiva, setKpiActiva] = useState(null);
@@ -102,6 +103,7 @@ export default function AdelantosPanel() {
       if (filtroEstado !== 'todos' && a.estado !== filtroEstado) return false;
       if (filtroOperario !== 'todos' && a.operario_id !== filtroOperario) return false;
       if (filtroObra !== 'todos' && a.obra_id !== filtroObra) return false;
+      if (filtroMes !== 'todos' && (a.fecha_entrega || '').slice(0, 7) !== filtroMes) return false;
       if (busqueda) {
         const q = busqueda.toLowerCase();
         const txt = `${a.concepto || ''} ${a.operario_name || ''} ${a.obra_name || ''} ${a.notas || ''}`.toLowerCase();
@@ -109,7 +111,20 @@ export default function AdelantosPanel() {
       }
       return true;
     });
-  }, [adelantos, tipoVisible, filtroEstado, filtroOperario, filtroObra, busqueda]);
+  }, [adelantos, tipoVisible, filtroEstado, filtroOperario, filtroObra, filtroMes, busqueda]);
+
+  // Meses disponibles derivados de los adelantos (formato YYYY-MM), ordenados desc.
+  const mesesDisponibles = useMemo(() => {
+    const set = new Set();
+    adelantos.forEach(a => { if (a.fecha_entrega) set.add(a.fecha_entrega.slice(0, 7)); });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [adelantos]);
+
+  const mesLabel = (ym) => {
+    const [y, m] = ym.split('-');
+    const nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    return `${nombres[Number(m) - 1] || m} ${y}`;
+  };
 
   const totales = useMemo(() => {
     const activos = filtrados.filter(a => ['entregado', 'justificado', 'parcialmente_justificado'].includes(a.estado));
@@ -249,6 +264,10 @@ export default function AdelantosPanel() {
           <MobileSelectItem value="todos">Todas las obras</MobileSelectItem>
           {obrasConAdelanto.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
         </MobileSelect>
+        <MobileSelect value={filtroMes} onValueChange={setFiltroMes} placeholder="Mes" triggerClassName="w-40">
+          <MobileSelectItem value="todos">Todos los meses</MobileSelectItem>
+          {mesesDisponibles.map(ym => <MobileSelectItem key={ym} value={ym}>{mesLabel(ym)}</MobileSelectItem>)}
+        </MobileSelect>
         <Button onClick={() => setShowForm(true)} size="sm" className="gap-1.5 ml-auto">
           <Plus className="w-4 h-4" /> Nuevo adelanto
         </Button>
@@ -263,7 +282,7 @@ export default function AdelantosPanel() {
         <div className="text-center py-12 border border-dashed rounded-xl">
           <Wallet className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-50" />
           <p className="text-sm text-muted-foreground mb-3">
-            {busqueda || filtroTipo !== 'todos' || filtroEstado !== 'todos' || filtroOperario !== 'todos' || filtroObra !== 'todos'
+            {busqueda || filtroTipo !== 'todos' || filtroEstado !== 'todos' || filtroOperario !== 'todos' || filtroObra !== 'todos' || filtroMes !== 'todos'
               ? 'No hay adelantos con estos filtros'
               : 'No hay adelantos registrados aún'}
           </p>
