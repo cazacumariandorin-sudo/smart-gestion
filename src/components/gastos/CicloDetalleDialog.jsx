@@ -74,26 +74,33 @@ export default function CicloDetalleDialog({ nota, open, onClose }) {
           </DialogTitle>
           <DialogDescription>
             Ciclo {nota.ciclo_mes} · {resumen.num} registro{resumen.num === 1 ? '' : 's'}
+            {nota.numero_ciclo && (
+              <span className="ml-2 font-mono text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                {nota.numero_ciclo}
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
-        {/* Resumen económico */}
+        {/* Resumen económico — valores en vivo (live) para reflejar adelantos reales */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
           <div className="rounded-lg border border-border bg-muted/30 p-2.5">
             <p className="text-xs text-muted-foreground">Gastos</p>
-            <p className="font-bold">{eur(nota.total_importe || resumen.totalGastos)}</p>
+            <p className="font-bold">{eur(resumen.totalGastos)}</p>
           </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-2.5">
+          <div className="rounded-lg border border-border bg-amber-50/40 p-2.5">
             <p className="text-xs text-muted-foreground">Adelantos</p>
-            <p className="font-bold text-amber-700">{eur(nota.total_adelantos_gastos || nota.importe_adelanto || 0)}</p>
+            <p className="font-bold text-amber-700">{eur(resumen.totalAdelantos)}</p>
           </div>
           <div className="rounded-lg border border-border bg-muted/30 p-2.5">
             <p className="text-xs text-muted-foreground">Neto a liquidar</p>
-            <p className="font-bold text-primary">{eur(nota.importe_neto_liquidar ?? nota.saldo_pendiente ?? 0)}</p>
+            <p className="font-bold text-primary">{eur(resumen.totalGastos - resumen.totalAdelantos)}</p>
           </div>
           <div className="rounded-lg border border-border bg-muted/30 p-2.5">
             <p className="text-xs text-muted-foreground">Saldo pendiente</p>
-            <p className={`font-bold ${(nota.saldo_pendiente ?? 0) > 0 ? 'text-amber-700' : ''}`}>{eur(nota.saldo_pendiente ?? 0)}</p>
+            <p className={`font-bold ${(resumen.totalGastos - resumen.totalAdelantos) > 0 ? 'text-amber-700' : ''}`}>
+              {eur(resumen.totalGastos - resumen.totalAdelantos)}
+            </p>
           </div>
         </div>
 

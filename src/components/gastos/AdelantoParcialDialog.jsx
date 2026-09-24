@@ -78,12 +78,28 @@ export default function AdelantoParcialDialog({ nota, open, onClose }) {
     enabled: !!open && !!nota,
   });
 
-  // Adelantos parciales existentes del ciclo
+  // Adelantos parciales existentes del ciclo (entidad AdelantoParcialCiclo)
   const { data: adelantos = [], isLoading: loadingAdel } = useQuery({
     queryKey: ['adelantos_parciales', nota?.id],
     queryFn: () => base44.entities.AdelantoParcialCiclo.filter({ nota_mensual_id: nota.id }),
     enabled: !!open && !!nota?.id,
   });
+
+  // Adelantos reales del ciclo (entidad Adelanto, tipo=gastos, estados activos)
+  // Estos son los adelantos entregados al técnico que se descuentan del neto a liquidar.
+  const { data: adelantosReales = [] } = useQuery({
+    queryKey: ['adelantos_reales_ciclo', nota?.ciclo_mes, nota?.operario_id],
+    queryFn: () => base44.entities.Adelanto.filter({
+      ciclo_mes: nota.ciclo_mes,
+      operario_id: nota.operario_id,
+    }),
+    enabled: !!open && !!nota?.ciclo_mes && !!nota?.operario_id,
+  });
+
+  const adelantosRealesActivos = useMemo(() =>
+    (adelantosReales || []).filter(a => a.tipo === 'gastos' &&
+      ['entregado', 'justificado', 'parcialmente_justificado'].includes(a.estado)),
+    [adelantosReales]);
 
   // IDs ya comprometidos en adelantos no rechazados (para no duplicar)
   const idsComprometidos = useMemo(() => {
@@ -231,9 +247,13 @@ export default function AdelantoParcialDialog({ nota, open, onClose }) {
 
   if (!nota) return null;
 
+  const totalAdelantosReales = adelantosRealesActivos.reduce((s, a) => s + (a.importe || 0), 0);
   const totalAdelantadoPagado = adelantos
     .filter(a => a.estado === 'pagada')
     .reduce((s, a) => s + (a.importe || 0), 0);
+  const totalAdelantado = totalAdelantosReales + totalAdelantadoPagado;
+  const totalCiclo = nota.total_importe || 0;
+  const saldoCalculado = Math.max(0, totalCiclo - totalAdelantado);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -243,27 +263,56 @@ export default function AdelantoParcialDialog({ nota, open, onClose }) {
             <FileSpreadsheet className="w-5 h-5 text-primary" />
             Informe parcial de ciclo
             <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-              {nota.numero_ciclo || nota.ciclo_mes}
+              {nota.ciclo_mes}
             </span>
+            <span className="font-medium text-sm">{nota.operario_name || '—'}</span>
           </DialogTitle>
+          {nota.numero_ciclo && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
+              <span className="font-semibold text-primary">ID nota:</span>
+              <span className="font-mono font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                {nota.numero_ciclo}
+              </span>
+            </p>
+          )}
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Resumen del ciclo */}
+          {/* Resumen del ciclo — valores en vivo */}
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="rounded-lg border p-2">
               <p className="text-[10px] uppercase text-muted-foreground">Total ciclo</p>
-              <p className="font-bold text-sm">{(nota.total_importe || 0).toFixed(2)} €</p>
+              <p className="font-bold text-sm">{totalCiclo.toFixed(2)} €</p>
             </div>
             <div className="rounded-lg border p-2 bg-green-50 dark:bg-green-950/20">
               <p className="text-[10px] uppercase text-muted-foreground">Adelantado</p>
-              <p className="font-bold text-sm text-green-700">{totalAdelantadoPagado.toFixed(2)} €</p>
+              <p className="font-bold text-sm text-green-700">{totalAdelantado.toFixed(2)} €</p>
             </div>
             <div className="rounded-lg border p-2 bg-amber-50 dark:bg-amber-950/20">
               <p className="text-[10px] uppercase text-muted-foreground">Saldo</p>
-              <p className="font-bold text-sm text-amber-700">{(nota.saldo_pendiente || 0).toFixed(2)} €</p>
+              <p className="font-bold text-sm text-amber-700">{saldoCalculado.toFixed(2)} €</p>
             </div>
           </div>
+
+          {/* Adelantos reales entregados al técnico (entidad Adelanto, tipo=gastos) */}
+          {adelantosRealesActivos.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-amber-700 uppercase flex items-center gap-1.5">
+                <Wallet className="w-3.5 h-3.5" /> Adelantos del ciclo ({adelantosRealesActivos.length})
+              </p>
+              {adelantosRealesActivos.map(a => (
+                <div key={a.id} className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50/40 px-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{a.concepto || 'Adelanto'}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {a.fecha_entrega || '—'} · {a.estado}
+                    </p>
+                  </div>
+                  <span className="font-semibold text-amber-700 shrink-0">{(a.importe || 0).toFixed(2)} €</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Adelantos existentes */}
           {adelantos.length > 0 && (

@@ -265,26 +265,29 @@ Deno.serve(async (req) => {
           fecha_cierre: finPeriodo,
         };
 
+        let notaId;
         if (existentes && existentes.length > 0) {
           const existente = existentes[0];
           const payloadFinal = existente.numero_ciclo
             ? { ...payloadNota, numero_ciclo: existente.numero_ciclo }
             : payloadNota;
           await base44.asServiceRole.entities.NotaMensualGasto.update(existente.id, payloadFinal);
+          notaId = existente.id;
         } else {
-          await base44.asServiceRole.entities.NotaMensualGasto.create({
+          const creada = await base44.asServiceRole.entities.NotaMensualGasto.create({
             ciclo_mes: cicloMes,
             operario_id: opId,
             operario_name: primer.operario_name || '',
             ...payloadNota,
           });
+          notaId = creada.id;
         }
 
-        // Mover a pendiente SÓLO los que siguen reclamables (no los ya avanzados en un parcial)
+        // Vincular cada registro a su nota y marcar consolidado (trazabilidad + query inversa)
         for (const r of regs) {
-          if (ESTADOS_RECLAMABLES.includes(r.estado)) {
-            await base44.asServiceRole.entities.RegistroGasto.update(r.id, { estado: 'pendiente' });
-          }
+          const patch = { nota_mensual_id: notaId, consolidado_ciclo: true };
+          if (ESTADOS_RECLAMABLES.includes(r.estado)) patch.estado = 'pendiente';
+          await base44.asServiceRole.entities.RegistroGasto.update(r.id, patch);
         }
 
         creadas.push({
