@@ -12,7 +12,7 @@ import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYea
 import * as XLSX from 'xlsx';
 import { calcularCiclo } from '@/components/gastos/BannerCicloActivo';
 
-export default function InformeGastos({ operario, notas = [], tecnicos = [], isAdmin, isGerencia, ciclosDisponibles = [] }) {
+export default function InformeGastos({ operario, notas = [], tecnicos = [], isAdmin, isGerencia, ciclosDisponibles = [], cicloSeleccionado, operarioSeleccionado }) {
   const [periodo, setPeriodo] = useState('mes');
   const [fechaRef, setFechaRef] = useState(format(new Date(), 'yyyy-MM'));
   const [cicloRef, setCicloRef] = useState(ciclosDisponibles[0] || '');
@@ -20,6 +20,22 @@ export default function InformeGastos({ operario, notas = [], tecnicos = [], isA
   const [loadingPdf, setLoadingPdf] = useState(false);
 
   const puedeSeleccionarOperario = isAdmin || isGerencia;
+
+  // Sincroniza el ciclo seleccionado en la página con el filtro del informe:
+  // al cambiar el ciclo arriba, el informe pasa a modo "ciclo" y usa ese ciclo.
+  useEffect(() => {
+    if (cicloSeleccionado && cicloSeleccionado !== 'todos') {
+      setCicloRef(cicloSeleccionado);
+      setPeriodo('ciclo');
+    }
+  }, [cicloSeleccionado]);
+
+  // Sincroniza el operario seleccionado en la página (chips de técnico)
+  useEffect(() => {
+    if (operarioSeleccionado !== undefined && operarioSeleccionado !== null) {
+      setOperarioSel(operarioSeleccionado);
+    }
+  }, [operarioSeleccionado]);
 
   // Garantiza cicloRef válido al cambiar disponibilidad
   useEffect(() => {

@@ -368,6 +368,8 @@ export default function NotasGastos() {
                 isAdmin={isAdmin}
                 isGerencia={isGerencia}
                 ciclosDisponibles={ciclosDisponibles}
+                cicloSeleccionado={filtroCiclo}
+                operarioSeleccionado={filtroOperario}
               />
             </div>
           )}
