@@ -7,7 +7,7 @@ import { jsPDF } from 'npm:jspdf@4.0.0';
 // 3. Sube el PDF a Google Drive en /Contabilidad/Gastos/<ciclo_mes>/ (o Base44 CDN si Drive no está disponible).
 // 4. Marca el ciclo como 'en_contabilidad' y guarda export_contabilidad_url + fecha_export_contabilidad.
 //
-// Solo gerencia/admin.
+// Solo admin/propietario/gerencia/administracion/director_comercial.
 
 const ROOT_FOLDER_ID = '1yJzcwSzo2acrswgmtKLbNTKVd7WxUtF1';
 
@@ -15,8 +15,8 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user || !['admin', 'gerencia'].includes(user.role)) {
-      return Response.json({ error: 'Unauthorized: solo gerencia/admin' }, { status: 403 });
+    if (!user || !['admin', 'propietario', 'gerencia', 'administracion', 'director_comercial'].includes(user.role)) {
+      return Response.json({ error: 'Unauthorized: requiere gerencia/administración' }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
