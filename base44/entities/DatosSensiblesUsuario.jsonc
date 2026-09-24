@@ -4,7 +4,7 @@
   "properties": {
     "user_email": {
       "type": "string",
-      "description": "ANCLA ÚNICA — Email del usuario de la app vinculado. Nunca debe duplicarse."
+      "description": "ANCLA \u00daNICA \u2014 Email del usuario de la app vinculado. Nunca debe duplicarse."
     },
     "user_id": {
       "type": "string",
@@ -16,27 +16,27 @@
     },
     "operario_name": {
       "type": "string",
-      "description": "Nombre del operario (desnormalizado para lectura rápida)"
+      "description": "Nombre del operario (desnormalizado para lectura r\u00e1pida)"
     },
     "dni_nie": {
       "type": "string",
-      "description": "DNI o NIE del trabajador — almacenado cifrado (AES-256-GCM)"
+      "description": "DNI o NIE del trabajador \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "num_afiliacion_ss": {
       "type": "string",
-      "description": "Número de afiliación a la Seguridad Social — almacenado cifrado (AES-256-GCM)"
+      "description": "N\u00famero de afiliaci\u00f3n a la Seguridad Social \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "cuenta_bancaria_iban": {
       "type": "string",
-      "description": "IBAN o número de cuenta bancaria para nómina — almacenado cifrado (AES-256-GCM)"
+      "description": "IBAN o n\u00famero de cuenta bancaria para n\u00f3mina \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "coste_hora": {
       "type": "string",
-      "description": "Coste por hora en EUR — almacenado cifrado (AES-256-GCM). Solo visible para admin/gerencia tras descifrar."
+      "description": "Coste por hora en EUR \u2014 almacenado cifrado (AES-256-GCM). Solo visible para admin/gerencia/administracion tras descifrar."
     },
     "salario_bruto_mensual": {
       "type": "string",
-      "description": "Salario bruto mensual en EUR — almacenado cifrado (AES-256-GCM)"
+      "description": "Salario bruto mensual en EUR \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "categoria_laboral": {
       "type": "string",
@@ -50,7 +50,7 @@
         "subcontrata",
         "temporal"
       ],
-      "description": "Categoría laboral oficial (convenio)"
+      "description": "Categor\u00eda laboral oficial (convenio)"
     },
     "fecha_alta_empresa": {
       "type": "string",
@@ -73,7 +73,7 @@
         "properties": {
           "tipo": {
             "type": "string",
-            "description": "Tipo de documento (TC2, IRPF, certificado médico...)"
+            "description": "Tipo de documento (TC2, IRPF, certificado m\u00e9dico...)"
           },
           "url": {
             "type": "string"
@@ -91,17 +91,17 @@
     },
     "notas_confidenciales": {
       "type": "string",
-      "description": "Notas internas de gerencia — almacenado cifrado (AES-256-GCM)"
+      "description": "Notas internas de gerencia \u2014 almacenado cifrado (AES-256-GCM)"
     },
     "migrado_desde_operario": {
       "type": "boolean",
       "default": false,
-      "description": "True si este registro fue creado por migración automática desde Operario"
+      "description": "True si este registro fue creado por migraci\u00f3n autom\u00e1tica desde Operario"
     },
     "fecha_migracion": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha en que se realizó la migración de datos"
+      "description": "Fecha en que se realiz\u00f3 la migraci\u00f3n de datos"
     }
   },
   "required": [
@@ -124,6 +124,11 @@
           "user_condition": {
             "role": "gerencia"
           }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
         }
       ]
     },
@@ -142,6 +147,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {
@@ -164,6 +174,11 @@
         {
           "user_condition": {
             "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         }
       ]
