@@ -13,7 +13,7 @@ export default function Nominas() {
   const [tab, setTab] = useState('lista');
   const [resultado, setResultado] = useState(null);
 
-  const isAdmin = ['admin', 'gerencia'].includes(user?.role);
+  const isAdmin = ['admin', 'gerencia', 'administracion'].includes(user?.role);
 
   const handleResultado = (res) => {
     setResultado(res);
