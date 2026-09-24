@@ -377,8 +377,8 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                 </Button>
               )}
 
-              {/* Operario: enviar borrador a revisión */}
-              {esPropioCreador && nota?.estado === 'borrador' && (
+              {/* Enviar borrador a revisión — el propio creador o cualquier rol con permisos de gestión */}
+              {(esPropioCreador || canManage) && nota?.estado === 'borrador' && (
                 <Button
                   size="sm"
                   onClick={() => cambiarEstado('pendiente')}
