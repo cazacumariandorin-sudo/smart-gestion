@@ -12,6 +12,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 //     ADITIVO: como el filtro incluye aprobado_gerencia/en_administracion/pagada, los
 //     gastos ya avanzados en un cierre parcial anterior NO se pierden del total.
 //     Re-ejecutar no sobrescribe: el total refleja siempre el mes completo.
+//     Reconcilia los Adelanto (tipo=gastos, estados activos) del ciclo/operario y
+//     los descuenta del neto a liquidar. Genera numero_ciclo único (CIC-YYYY-MM-OP).
 //   - 'parcial': crea un AdelantoParcialCiclo (corte a mitad de mes para adelantar
 //     liquidez) con los gastos reclamables (borrador/pendiente) con fecha_documento
 //     ≤ fecha_corte. Registros DISJUNTOS: el backend excluye los ya incluidos en otro
@@ -25,12 +27,24 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const ESTADOS_REEMBOLSABLES = ['borrador', 'pendiente', 'aprobado_gerencia', 'en_administracion', 'pagada'];
 const ESTADOS_RECLAMABLES = ['borrador', 'pendiente'];
+const ADELANTO_ESTADOS_ACTIVOS = ['entregado', 'justificado', 'parcialmente_justificado'];
 
 function ultimoDiaDelMes(anio, mes) {
   return new Date(anio, mes, 0).getDate();
 }
 
 function round2(n) { return Math.round(n * 100) / 100; }
+
+// Genera un numero_ciclo único: CIC-YYYY-MM-<operario_short>-<id_suffix>.
+// Se asigna al consolidar el ciclo de un técnico para identificación sin duplicados.
+function generarNumeroCiclo(cicloMes, operarioName, operarioId) {
+  const short = (operarioName || 'OP')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 8) || 'OP';
+  const suffix = (operarioId || '').replace(/[^a-zA-Z0-9]/g, '').slice(-4);
+  return suffix ? `CIC-${cicloMes}-${short}-${suffix}` : `CIC-${cicloMes}-${short}`;
+}
 
 Deno.serve(async (req) => {
   try {
@@ -218,15 +232,20 @@ Deno.serve(async (req) => {
         const totalImporte = round2(regs.reduce((s, r) => s + (r.importe || 0), 0));
         const primer = regs[0];
 
-        // Adelantos parciales ya PAGADOS del ciclo → se descuentan del neto a liquidar
-        const parciales = await base44.asServiceRole.entities.AdelantoParcialCiclo.filter({
+        // Adelantos del ciclo (entidad Adelanto, tipo=gastos, estados activos) → se descuentan del neto.
+        // Esto reconcilia los adelantos reales entregados al técnico para el ciclo.
+        const adelantosOp = await base44.asServiceRole.entities.Adelanto.filter({
           ciclo_mes: cicloMes, operario_id: opId,
         });
-        const totalAdelantos = round2(
-          (parciales || []).filter(p => p.estado === 'pagada')
-            .reduce((s, p) => s + (p.importe || 0), 0)
+        const adGastos = (adelantosOp || []).filter(
+          a => a.tipo === 'gastos' && ADELANTO_ESTADOS_ACTIVOS.includes(a.estado)
         );
+        const totalAdelantos = round2(adGastos.reduce((s, a) => s + (a.importe || 0), 0));
         const netoLiquidar = round2(totalImporte - totalAdelantos);
+
+        // ID único de la nota (numero_ciclo) — se genera al consolidar el ciclo del técnico.
+        // Si la nota ya tenía un numero_ciclo asignado, se conserva para no duplicar.
+        const numeroCiclo = generarNumeroCiclo(cicloMes, primer.operario_name, opId);
 
         const registrosIds = regs.map(r => r.id);
         const existentes = await base44.asServiceRole.entities.NotaMensualGasto.filter({
@@ -234,8 +253,10 @@ Deno.serve(async (req) => {
         });
 
         const payloadNota = {
+          numero_ciclo: numeroCiclo,
           total_registros: regs.length,
           total_importe: totalImporte,
+          importe_adelanto: totalAdelantos,
           total_adelantos_gastos: totalAdelantos,
           importe_neto_liquidar: netoLiquidar,
           saldo_pendiente: netoLiquidar,
@@ -245,13 +266,16 @@ Deno.serve(async (req) => {
         };
 
         if (existentes && existentes.length > 0) {
-          await base44.asServiceRole.entities.NotaMensualGasto.update(existentes[0].id, payloadNota);
+          const existente = existentes[0];
+          const payloadFinal = existente.numero_ciclo
+            ? { ...payloadNota, numero_ciclo: existente.numero_ciclo }
+            : payloadNota;
+          await base44.asServiceRole.entities.NotaMensualGasto.update(existente.id, payloadFinal);
         } else {
           await base44.asServiceRole.entities.NotaMensualGasto.create({
             ciclo_mes: cicloMes,
             operario_id: opId,
             operario_name: primer.operario_name || '',
-            importe_adelanto: 0,
             ...payloadNota,
           });
         }

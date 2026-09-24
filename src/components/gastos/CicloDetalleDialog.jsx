@@ -4,7 +4,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, FileText, ExternalLink } from 'lucide-react';
+import { Loader2, FileText, ExternalLink, Wallet } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 
@@ -36,10 +36,26 @@ export default function CicloDetalleDialog({ nota, open, onClose }) {
     enabled: !!nota?.id && open,
   });
 
+  // Adelantos reales del ciclo (entidad Adelanto, tipo=gastos, estados activos)
+  const { data: adelantosCiclo = [] } = useQuery({
+    queryKey: ['nota_mensual_adelantos', nota?.ciclo_mes, nota?.operario_id],
+    queryFn: () => base44.entities.Adelanto.filter({
+      ciclo_mes: nota.ciclo_mes,
+      operario_id: nota.operario_id,
+    }),
+    enabled: !!nota?.id && open,
+  });
+
+  const adelantosActivos = useMemo(() =>
+    (adelantosCiclo || []).filter(a => a.tipo === 'gastos' &&
+      ['entregado', 'justificado', 'parcialmente_justificado'].includes(a.estado)),
+    [adelantosCiclo]);
+
   const resumen = useMemo(() => {
     const totalGastos = registros.reduce((s, r) => s + (r.importe || 0), 0);
-    return { totalGastos, num: registros.length };
-  }, [registros]);
+    const totalAdelantos = adelantosActivos.reduce((s, a) => s + (a.importe || 0), 0);
+    return { totalGastos, num: registros.length, totalAdelantos };
+  }, [registros, adelantosActivos]);
 
   if (!nota) return null;
 
@@ -99,6 +115,26 @@ export default function CicloDetalleDialog({ nota, open, onClose }) {
           >
             <ExternalLink className="w-4 h-4" /> Abrir exportación a contabilidad
           </a>
+        )}
+
+        {/* Adelantos del ciclo */}
+        {adelantosActivos.length > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50/40 p-2.5 space-y-1.5">
+            <p className="text-xs font-semibold text-amber-700 flex items-center gap-1.5">
+              <Wallet className="w-3.5 h-3.5" /> Adelantos del ciclo ({adelantosActivos.length})
+            </p>
+            {adelantosActivos.map(a => (
+              <div key={a.id} className="flex items-center gap-3 text-sm bg-white/60 rounded px-2.5 py-1.5">
+                <div className="flex-1 min-w-0">
+                  <p className="truncate font-medium">{a.concepto || 'Adelanto'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {a.fecha_entrega || '—'} · {a.estado}
+                  </p>
+                </div>
+                <span className="font-semibold text-amber-700 shrink-0">{eur(a.importe)}</span>
+              </div>
+            ))}
+          </div>
         )}
 
         {/* Listado de registros */}
