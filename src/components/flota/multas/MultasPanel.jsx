@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ScrollText, Plus, Loader2, Filter } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { useUserRole } from '@/lib/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
@@ -14,9 +13,6 @@ import MultaFormDialog from './MultaFormDialog';
 import MultaDetalleDialog from './MultaDetalleDialog';
 
 export default function MultasPanel({ vehiculos = [] }) {
-  const { isGerencia, isAdministracion, isAdmin } = useUserRole();
-  const puedeGestionar = isGerencia || isAdministracion || isAdmin;
-
   const [filtroEstado, setFiltroEstado] = useState('pendientes');
   const [filtroVehiculo, setFiltroVehiculo] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
@@ -79,11 +75,9 @@ export default function MultasPanel({ vehiculos = [] }) {
           placeholder="Buscar matrícula, autoridad, expediente…"
           className="flex-1 min-w-[160px]"
         />
-        {puedeGestionar && (
-          <Button onClick={() => setOpenForm(true)} className="gap-2 shrink-0">
-            <Plus className="w-4 h-4" /> Nueva multa
-          </Button>
-        )}
+        <Button onClick={() => setOpenForm(true)} className="gap-2 shrink-0">
+          <Plus className="w-4 h-4" /> Nueva multa
+        </Button>
       </div>
 
       {/* Listado */}
