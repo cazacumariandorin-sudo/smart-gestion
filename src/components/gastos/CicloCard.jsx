@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileSpreadsheet, ExternalLink, Loader2, FileText, CheckCircle2, FileClock, Lock, Unlock } from 'lucide-react';
+import { FileSpreadsheet, ExternalLink, Loader2, FileText, CheckCircle2, FileClock, Lock, Unlock, Eye } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/AuthContext';
@@ -13,6 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import AdelantoParcialDialog from '@/components/gastos/AdelantoParcialDialog';
+import CicloDetalleDialog from '@/components/gastos/CicloDetalleDialog';
 import { aplicarConciliacionCierre } from '@/lib/adelantosConciliacion';
 
 const ESTADO_LABELS = {
@@ -33,14 +34,18 @@ const ESTADO_COLORS = {
   rechazada: 'bg-red-50 text-red-700 border-red-200',
 };
 
-export default function CicloCard({ nota, onExported, canExport }) {
+export default function CicloCard({ nota, onExported }) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const { isAdmin, isGerencia } = useUserRole();
-  const canManage = isAdmin || isGerencia;
+  const { isAdmin, isGerencia, isAdministracion, role } = useUserRole();
+  // Pago (cerrar/reabrir ciclo): admin, gerencia, administración
+  const canManage = isAdmin || isGerencia || isAdministracion;
+  // Exportación a contabilidad: amplía a administración, director_comercial y contabilidad
+  const canExport = isAdmin || isGerencia || isAdministracion || role === 'director_comercial' || role === 'contabilidad';
   const [exporting, setExporting] = useState(false);
   const [showAdelanto, setShowAdelanto] = useState(false);
+  const [showDetalle, setShowDetalle] = useState(false);
   const [cerrando, setCerrando] = useState(false);
   const [reabriendo, setReabriendo] = useState(false);
 
@@ -118,7 +123,7 @@ export default function CicloCard({ nota, onExported, canExport }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                {nota.numero_ciclo || nota.ciclo_mes}
+                {nota.ciclo_mes}
               </span>
               <Badge variant="outline" className={`text-xs ${ESTADO_COLORS[nota.estado] || ESTADO_COLORS.borrador}`}>
                 {ESTADO_LABELS[nota.estado] || nota.estado || 'Borrador'}
@@ -129,8 +134,13 @@ export default function CicloCard({ nota, onExported, canExport }) {
                 </span>
               )}
             </div>
-            <div className="font-semibold text-sm truncate">
+            <div className="font-semibold text-sm truncate flex items-center gap-2 flex-wrap">
               {nota.operario_name || '—'}
+              {nota.numero_ciclo && (
+                <span className="font-mono text-xs font-semibold text-primary border border-primary/20 bg-primary/5 rounded px-1.5 py-0.5">
+                  {nota.numero_ciclo}
+                </span>
+              )}
             </div>
             <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-x-3">
               <span>{nota.total_registros || 0} registro{(nota.total_registros || 0) === 1 ? '' : 's'}</span>
@@ -159,6 +169,10 @@ export default function CicloCard({ nota, onExported, canExport }) {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowDetalle(true)}>
+              <Eye className="w-4 h-4" />
+              <span className="hidden sm:inline">Ver detalle</span>
+            </Button>
             {yaExportada && (
               <Button variant="outline" size="sm" className="gap-1.5" onClick={abrirExport}>
                 <ExternalLink className="w-4 h-4" /> Abrir PDF
@@ -242,6 +256,10 @@ export default function CicloCard({ nota, onExported, canExport }) {
 
       {showAdelanto && (
         <AdelantoParcialDialog nota={nota} open={showAdelanto} onClose={() => setShowAdelanto(false)} />
+      )}
+
+      {showDetalle && (
+        <CicloDetalleDialog nota={nota} open={showDetalle} onClose={() => setShowDetalle(false)} />
       )}
     </Card>
   );

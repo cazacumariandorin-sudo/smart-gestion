@@ -30,9 +30,10 @@ const ESTADO_LABELS = {
  */
 export default function CiclosMensualesPanel() {
   const { user } = useAuth();
-  const { isAdmin, isGerencia, isAdministracion, isDirComercial } = useUserRole();
+  const { isAdmin, isGerencia, isAdministracion, isContabilidad, role } = useUserRole();
   const qc = useQueryClient();
-  const canExport = isAdmin || isGerencia;
+  const isDirComercial = role === 'director_comercial';
+  const canExport = isAdmin || isGerencia || isAdministracion || isDirComercial || isContabilidad;
   const canConsolidar = isAdmin || isGerencia || isAdministracion || isDirComercial;
 
   const [filtroMes, setFiltroMes] = useState('todos');
