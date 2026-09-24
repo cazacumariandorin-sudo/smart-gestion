@@ -26,6 +26,15 @@
       "type": "string",
       "description": "ID del operario asignado"
     },
+    "clasificacion": {
+      "type": "string",
+      "enum": [
+        "empresa",
+        "oficial"
+      ],
+      "default": "empresa",
+      "description": "Clasificaci\u00f3n de acceso definida por gerencia. empresa = visible para t\u00e9cnicos/jefe de obra; oficial = solo gerencia/administraci\u00f3n/director comercial."
+    },
     "notas": {
       "type": "string",
       "description": "Observaciones generales"
@@ -186,11 +195,6 @@
         },
         {
           "user_condition": {
-            "role": "director_comercial"
-          }
-        },
-        {
-          "user_condition": {
             "role": "gerencia"
           }
         },
@@ -201,18 +205,43 @@
         },
         {
           "user_condition": {
-            "role": "jefe_obra"
+            "role": "director_comercial"
           }
         },
         {
-          "user_condition": {
-            "role": "operario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "t\u00e9cnico"
-          }
+          "$and": [
+            {
+              "$or": [
+                {
+                  "data.clasificacion": "empresa"
+                },
+                {
+                  "data.clasificacion": {
+                    "$exists": false
+                  }
+                }
+              ]
+            },
+            {
+              "$or": [
+                {
+                  "user_condition": {
+                    "role": "jefe_obra"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "t\u00e9cnico"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "operario"
+                  }
+                }
+              ]
+            }
+          ]
         },
         {
           "$and": [
@@ -243,6 +272,16 @@
         {
           "user_condition": {
             "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         },
         {

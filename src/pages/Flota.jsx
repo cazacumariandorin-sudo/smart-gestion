@@ -35,6 +35,7 @@ const EMPTY_FORM = {
   ac_fecha: '',
   km_actuales: '',
   alertas_email: '', alertas_activas: true,
+  clasificacion: 'empresa',
 };
 
 const URGENCIA_COLORS = {
@@ -110,7 +111,7 @@ function FormField({ label, id, type = 'text', value, onChange, placeholder, hin
   );
 }
 
-function VehiculoCard({ v, onEdit, onDelete, isAdmin, onReportarAveria, onRepostaje }) {
+function VehiculoCard({ v, onEdit, onDelete, isAdmin, puedeGestionar, onReportarAveria, onRepostaje }) {
   const [expanded, setExpanded] = useState(false);
   const itvDias = diasHasta(v.itv_fecha);
   const aceiteDias = diasHasta(v.aceite_fecha);
@@ -133,6 +134,7 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin, onReportarAveria, onRepost
               <span className="text-sm text-muted-foreground">{v.modelo}</span>
               {v.anio && <Badge variant="outline" className="text-xs">{v.anio}</Badge>}
               {v.asignado_a && <Badge variant="secondary" className="text-xs">👤 {v.asignado_a}</Badge>}
+              {v.clasificacion === 'oficial' && <Badge className="text-xs bg-purple-100 text-purple-700 border-purple-200">★ Oficial</Badge>}
             </div>
             <div className="flex flex-wrap gap-1 mt-1.5">
               <AlertBadge dias={itvDias} label="ITV" />
@@ -153,11 +155,12 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin, onReportarAveria, onRepost
           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setExpanded(e => !e)}>
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
-          {isAdmin && (
+          {puedeGestionar && (
             <>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => onEdit(v)}>
                 <Edit2 className="w-3.5 h-3.5" />
               </Button>
+              {isAdmin && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -175,6 +178,7 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin, onReportarAveria, onRepost
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+              )}
             </>
           )}
         </div>
@@ -197,8 +201,8 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin, onReportarAveria, onRepost
 export default function Flota() {
   const qc = useQueryClient();
   const { user } = useAuth();
-  const { isAdmin, isGerencia, isAdministracion } = useUserRole();
-  const puedeGestionarFlota = isAdmin || isGerencia || isAdministracion;
+  const { isAdmin, isGerencia, isAdministracion, role } = useUserRole();
+  const puedeGestionarFlota = isAdmin || isGerencia || isAdministracion || role === 'director_comercial';
   const [flotaTab, setFlotaTab] = useState('vehiculos');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -342,6 +346,7 @@ export default function Flota() {
       ac_fecha: v.ac_fecha || '',
       km_actuales: v.km_actuales || '',
       alertas_email: v.alertas_email || '', alertas_activas: v.alertas_activas !== false,
+      clasificacion: v.clasificacion || 'empresa',
     });
     setOpen(true);
   };
@@ -388,7 +393,7 @@ export default function Flota() {
               { value: 'viajes',    label: `Viajes (${viajes.length})`,       icon: Route, color: 'bg-teal-500 hover:bg-teal-600 border-teal-600 shadow-teal-200' },
               { value: 'alertas',   label: alertasPendientes.length > 0 ? `Alertas (${alertasPendientes.length})` : 'Alertas', icon: Bell,  color: alertasPendientes.length > 0 ? 'bg-red-500 hover:bg-red-600 border-red-600 shadow-red-200' : 'bg-slate-500 hover:bg-slate-600 border-slate-600 shadow-slate-200' },
               ...(puedeGestionarFlota ? [{ value: 'costes', label: 'Costes por proyecto', icon: Fuel, color: 'bg-amber-500 hover:bg-amber-600 border-amber-600 shadow-amber-200' }] : []),
-              ...(puedeGestionarFlota ? [{ value: 'repostajes', label: 'Repostajes', icon: Fuel, color: 'bg-green-500 hover:bg-green-600 border-green-600 shadow-green-200' }] : []),
+              { value: 'repostajes', label: 'Repostajes', icon: Fuel, color: 'bg-green-500 hover:bg-green-600 border-green-600 shadow-green-200' },
               { value: 'multas', label: 'Multas', icon: ScrollText, color: 'bg-rose-500 hover:bg-rose-600 border-rose-600 shadow-rose-200' },
             ].map(({ value, label, icon: Icon, color }) => (
               <button
@@ -434,7 +439,7 @@ export default function Flota() {
             ) : (
               <div className="space-y-3">
                 {vehiculos.map(v => (
-                  <VehiculoCard key={v.id} v={v} onEdit={handleEdit} onDelete={(id) => deleteMutation.mutate(id)} isAdmin={isAdmin} onReportarAveria={setAveriaVehiculo} onRepostaje={setRepostajeVehiculo} />
+                  <VehiculoCard key={v.id} v={v} onEdit={handleEdit} onDelete={(id) => deleteMutation.mutate(id)} isAdmin={isAdmin} puedeGestionar={puedeGestionarFlota} onReportarAveria={setAveriaVehiculo} onRepostaje={setRepostajeVehiculo} />
                 ))}
               </div>
             )}
@@ -545,16 +550,14 @@ export default function Flota() {
           )}
 
           {/* TAB REPOSTAJES (reporte histórico gerencia/admin) */}
-          {puedeGestionarFlota && (
-            <TabsContent value="repostajes">
-              <div className="mb-3">
-                <p className="text-xs text-muted-foreground">
-                  Registro de repostajes. Los avisos del día son visibles para todos los usuarios; al archivarse a las 23:59 quedan como histórico accesible solo para gerencia y administración.
-                </p>
-              </div>
-              <RepostajesReporte />
-            </TabsContent>
-          )}
+          <TabsContent value="repostajes">
+            <div className="mb-3">
+              <p className="text-xs text-muted-foreground">
+                Registro histórico de repostajes (KPI visible para todos los usuarios).
+              </p>
+            </div>
+            <RepostajesReporte />
+          </TabsContent>
 
           {/* TAB MULTAS */}
           <TabsContent value="multas">
@@ -582,6 +585,14 @@ export default function Flota() {
                 </div>
                 <div className="col-span-2">
                   <FormField label="Km actuales" id="km_actuales" type="number" value={form.km_actuales} onChange={setF('km_actuales')} placeholder="125000" />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs font-medium">Clasificación del vehículo</Label>
+                  <p className="text-xs text-muted-foreground">Gerencia define el criterio: empresa (visible para técnicos/jefe de obra) u oficial (solo gerencia/administración/director comercial).</p>
+                  <div className="flex gap-2 mt-1.5">
+                    <button type="button" onClick={() => setF('clasificacion')('empresa')} className={cn('flex-1 rounded-md border-2 px-3 py-2 text-sm font-medium', form.clasificacion === 'oficial' ? 'border-border bg-transparent text-muted-foreground' : 'border-primary bg-primary/10 text-primary')}>🚐 Empresa</button>
+                    <button type="button" onClick={() => setF('clasificacion')('oficial')} className={cn('flex-1 rounded-md border-2 px-3 py-2 text-sm font-medium', form.clasificacion === 'oficial' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-border bg-transparent text-muted-foreground')}>★ Oficial</button>
+                  </div>
                 </div>
               </div>
             </div>
