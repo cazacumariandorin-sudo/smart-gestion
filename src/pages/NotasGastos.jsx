@@ -518,7 +518,7 @@ export default function NotasGastos() {
           if (info?.operario_id) setOperarioAbierto(info.operario_id);
         }}
         operario={operarioActual}
-        isAdmin={isAdmin}
+        isAdmin={isAdmin || isGerencia || isAdministracion}
         operarios={tecnicos}
       />
 
