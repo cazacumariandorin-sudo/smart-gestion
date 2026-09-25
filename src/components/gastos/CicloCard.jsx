@@ -208,6 +208,7 @@ export default function CicloCard({ nota, onExported }) {
                 className="gap-1.5"
                 onClick={handleExport}
                 disabled={exporting || sinRegistros}
+                title="Genera un PDF resumen con enlace a cada ticket. Para descargar los archivos reales en bloque, usa 'Descarga en bloque' en Contabilidad."
               >
                 {exporting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
