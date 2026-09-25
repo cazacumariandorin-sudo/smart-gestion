@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ScrollText, Plus, Loader2, Filter } from 'lucide-react';
+import { ScrollText, Plus, Loader2, Filter, SearchCheck } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { useUserRole } from '@/lib/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
@@ -11,13 +12,17 @@ import { ESTADO_MULTA, ESTADOS_RESUELTOS, estadoLabel, estadoColor } from './mul
 import MultaCard from './MultaCard';
 import MultaFormDialog from './MultaFormDialog';
 import MultaDetalleDialog from './MultaDetalleDialog';
+import PrecisionMultaPanel from './PrecisionMultaPanel';
 
 export default function MultasPanel({ vehiculos = [] }) {
+  const { isAdmin, isGerencia, isAdministracion } = useUserRole();
+  const puedePrecision = isAdmin || isGerencia || isAdministracion;
   const [filtroEstado, setFiltroEstado] = useState('pendientes');
   const [filtroVehiculo, setFiltroVehiculo] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
   const [openForm, setOpenForm] = useState(false);
   const [multaSel, setMultaSel] = useState(null);
+  const [showPrecision, setShowPrecision] = useState(false);
 
   const { data: multas = [], isLoading } = useQuery({
     queryKey: ['multas-vehiculo', vehiculos.map(v => v.id).join(',')],
@@ -78,7 +83,22 @@ export default function MultasPanel({ vehiculos = [] }) {
         <Button onClick={() => setOpenForm(true)} className="gap-2 shrink-0">
           <Plus className="w-4 h-4" /> Nueva multa
         </Button>
+        {puedePrecision && (
+          <Button
+            variant={showPrecision ? 'default' : 'outline'}
+            onClick={() => setShowPrecision(s => !s)}
+            className="gap-2 shrink-0"
+          >
+            <SearchCheck className="w-4 h-4" /> Precisión OCR
+          </Button>
+        )}
       </div>
+
+      {showPrecision && puedePrecision && (
+        <div className="mb-4">
+          <PrecisionMultaPanel vehiculos={vehiculos} />
+        </div>
+      )}
 
       {/* Listado */}
       {isLoading ? (
