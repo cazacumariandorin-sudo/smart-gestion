@@ -40,7 +40,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const doc = new jsPDF();
+    // orientation landscape + compress:false evita la corrupción de caracteres
+    // especiales (€, ñ, í, ó, ¿) que producía jsPDF con la compresión por defecto.
+    const doc = new jsPDF({ orientation: 'landscape', compress: false });
     const pageW = doc.internal.pageSize.getWidth();
 
     // Header
@@ -99,7 +101,7 @@ Deno.serve(async (req) => {
       doc.setFontSize(8);
       if (adelantos_detalle && adelantos_detalle.length) {
         adelantos_detalle.forEach(a => {
-          if (y > 280) { doc.addPage(); y = 20; }
+          if (y > 190) { doc.addPage(); y = 20; }
           doc.text(`  ${a.fecha || '-'}  ${String(a.concepto || '').substring(0, 50)}`, 22, y);
           doc.text(`[${a.estado || ''}]`, pageW - 70, y);
           doc.text(`${(a.importe || 0).toFixed(2)} €`, pageW - 30, y, { align: 'right' });
@@ -124,42 +126,50 @@ Deno.serve(async (req) => {
     doc.text(`Detalle de notas (${notas.length})`, 14, y);
     y += 8;
 
+    // Columnas dimensionadas para orientación horizontal (pageW ≈ 297mm),
+    // con ancho suficiente para que el número de nota completo no se trunque
+    // ni se solape con la columna de importe.
+    const COLS = {
+      numero: 16, fecha: 52, comercio: 78, localidad: 128, nif: 158,
+      factura: 184, pago: 210, categoria: 238, importe: pageW - 18,
+    };
+
     // Cabecera tabla
     doc.setFillColor(234, 88, 12);
     doc.setTextColor(255, 255, 255);
     doc.rect(14, y - 5, pageW - 28, 8, 'F');
     doc.setFontSize(8);
-    doc.text('Número', 16, y);
-    doc.text('Fecha', 40, y);
-    doc.text('Comercio', 58, y);
-    doc.text('Localidad', 92, y);
-    doc.text('NIF', 120, y);
-    doc.text('Nº Fact.', 138, y);
-    doc.text('F. Pago', 156, y);
-    doc.text('Categoría', 176, y);
-    doc.text('Importe', pageW - 18, y, { align: 'right' });
+    doc.text('Número', COLS.numero, y);
+    doc.text('Fecha', COLS.fecha, y);
+    doc.text('Comercio', COLS.comercio, y);
+    doc.text('Localidad', COLS.localidad, y);
+    doc.text('NIF', COLS.nif, y);
+    doc.text('Nº Fact.', COLS.factura, y);
+    doc.text('F. Pago', COLS.pago, y);
+    doc.text('Categoría', COLS.categoria, y);
+    doc.text('Importe', COLS.importe, y, { align: 'right' });
     y += 6;
 
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'normal');
 
     notas.forEach((nota, idx) => {
-      if (y > 272) { doc.addPage(); y = 20; }
+      if (y > 190) { doc.addPage(); y = 20; }
       if (idx % 2 === 0) {
         doc.setFillColor(249, 249, 249);
         doc.rect(14, y - 4, pageW - 28, 7, 'F');
       }
       if (nota.es_gasto_tardio) doc.setTextColor(200, 0, 0);
-      doc.text((nota.numero_nota || '-').substring(0, 12), 16, y);
-      doc.text(nota.fecha_documento || '-', 40, y);
-      doc.text((nota.nombre_comercio || '-').substring(0, 14), 58, y);
-      doc.text((nota.localidad || '-').substring(0, 12), 92, y);
-      doc.text((nota.nif_comercio || '-').substring(0, 10), 120, y);
-      doc.text((nota.numero_factura || '-').substring(0, 10), 138, y);
-      doc.text((nota.forma_pago_documento || '-').substring(0, 9), 156, y);
-      doc.text((nota.categoria || '-').substring(0, 8), 176, y);
+      doc.text((nota.numero_nota || '-'), COLS.numero, y);
+      doc.text(nota.fecha_documento || '-', COLS.fecha, y);
+      doc.text((nota.nombre_comercio || '-').substring(0, 20), COLS.comercio, y);
+      doc.text((nota.localidad || '-').substring(0, 18), COLS.localidad, y);
+      doc.text((nota.nif_comercio || '-').substring(0, 14), COLS.nif, y);
+      doc.text((nota.numero_factura || '-').substring(0, 14), COLS.factura, y);
+      doc.text((nota.forma_pago_documento || '-').substring(0, 14), COLS.pago, y);
+      doc.text((nota.categoria || '-').substring(0, 12), COLS.categoria, y);
       doc.setTextColor(0, 0, 0);
-      doc.text(`${(nota.importe || 0).toFixed(2)} €`, pageW - 18, y, { align: 'right' });
+      doc.text(`${(nota.importe || 0).toFixed(2)} €`, COLS.importe, y, { align: 'right' });
       y += 7;
     });
 
@@ -169,7 +179,7 @@ Deno.serve(async (req) => {
       doc.setPage(i);
       doc.setFontSize(7);
       doc.setTextColor(150, 150, 150);
-      doc.text(`Página ${i} de ${totalPages} - SIMANTEC Gestión Empresarial`, pageW / 2, 290, { align: 'center' });
+      doc.text(`Página ${i} de ${totalPages} - SIMANTEC Gestión Empresarial`, pageW / 2, 200, { align: 'center' });
     }
 
     const pdfBytes = doc.output('arraybuffer');

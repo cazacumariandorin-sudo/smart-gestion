@@ -12,51 +12,51 @@ function ultimoDiaDelMes(y, m) {
   return new Date(y, m, 0).getDate();
 }
 
-// El ciclo de gasto es 26→25: del día 26 del mes anterior al día 25 del mes del ciclo.
-// Ej.: ciclo "2026-09" = 26 ago 2026 → 25 sep 2026.
+// A partir de 2026-09 el ciclo es el mes de calendario completo (1 → último día real).
+// Históricos pre-2026-09 mantienen el modelo 26→25 (no se recalculan aquí).
 function calcularCiclo(fecha) {
   const y = fecha.getFullYear();
   const m = fecha.getMonth(); // 0-based
   const d = fecha.getDate();
-  let cicloYear, cicloMonthIdx, apertura, cierre;
-  if (d >= 26) {
-    // A partir del día 26, el ciclo activo es el mes siguiente.
-    cicloMonthIdx = m + 1;
-    cicloYear = y;
-    if (cicloMonthIdx > 11) { cicloMonthIdx = 0; cicloYear = y + 1; }
-    apertura = new Date(y, m, 26);
-    cierre = new Date(cicloYear, cicloMonthIdx, 25);
-  } else {
-    // Del 1 al 25, el ciclo activo es el mes en curso.
-    cicloMonthIdx = m;
-    cicloYear = y;
-    const apY = m === 0 ? y - 1 : y;
-    const apM = m === 0 ? 11 : m - 1;
-    apertura = new Date(apY, apM, 26);
-    cierre = new Date(y, m, 25);
-  }
-  const cicloMes = `${cicloYear}-${String(cicloMonthIdx + 1).padStart(2, '0')}`;
-  const diasRestantes = Math.max(0, Math.ceil((cierre.getTime() - fecha.getTime()) / (1000 * 60 * 60 * 24)));
+  const mesHum = m + 1;
+  const cierre = new Date(y, m + 1, 0); // último día real del mes
+  const apertura = new Date(y, m, 1);
+  const ultimoDia = cierre.getDate();
+  const diasRestantes = Math.max(0, ultimoDia - d);
   return {
-    cicloMes,
+    cicloMes: `${y}-${String(mesHum).padStart(2, '0')}`,
     apertura,
     cierre,
     diasRestantes,
-    esUltimoDia: d === cierre.getDate() && m === cierre.getMonth() && y === cierre.getFullYear(),
-    esPrimerDia: d === 26,
-    cicloYLit: `${apertura.getDate()} ${MESES_ES[apertura.getMonth()]} → ${cierre.getDate()} ${MESES_ES[cierre.getMonth()]} ${cicloYear}`,
+    esUltimoDia: d === ultimoDia,
+    esPrimerDia: d === 1,
+    cicloYLit: `1 ${MESES_ES[m]} → ${ultimoDia} ${MESES_ES[m]} ${y}`,
   };
 }
 
 /**
  * Calcula la info de un ciclo cualquiera a partir de su clave "YYYY-MM".
- * Modelo 26→25: apertura = 26 del mes anterior, cierre = 25 del mes del ciclo.
+ * A partir de 2026-09: apertura = día 1, cierre = último día real del mes.
+ * Pre-2026-09: modelo histórico 26→25 (apertura 26 mes anterior, cierre 25).
  */
 function infoCicloPorMes(cicloMes) {
-  const [y, m] = cicloMes.split('-').map(Number); // m 1-based
-  const cierre = new Date(y, m - 1, 25); // 25 del mes del ciclo
+  const [y, m] = cicloMes.split('-').map(Number);
+  const esNatural = cicloMes >= '2026-09';
+  if (esNatural) {
+    const cierre = new Date(y, m, 0);
+    const apertura = new Date(y, m - 1, 1);
+    return {
+      cicloMes,
+      apertura,
+      cierre,
+      diasRestantes: null,
+      cicloYLit: `1 ${MESES_ES[apertura.getMonth()]} → ${cierre.getDate()} ${MESES_ES[cierre.getMonth()]} ${y}`,
+    };
+  }
+  // Histórico 26→25
+  const cierre = new Date(y, m - 1, 25);
   const apY = m === 1 ? y - 1 : y;
-  const apM = m === 1 ? 11 : m - 2; // 0-based del mes anterior
+  const apM = m === 1 ? 11 : m - 2;
   const apertura = new Date(apY, apM, 26);
   return {
     cicloMes,
@@ -70,8 +70,8 @@ function infoCicloPorMes(cicloMes) {
 export { calcularCiclo, infoCicloPorMes, ultimoDiaDelMes };
 
 /**
- * Banner informativo del ciclo de gasto activo (modelo 26→25: del 26 del mes
- * anterior al 25 del mes del ciclo).
+ * Banner informativo del ciclo de gasto activo (mes natural: 1 → último día real del mes).
+ * Históricos pre-2026-09 conservan el modelo 26→25.
  *
  * Props opcionales para permitir cambiar de ciclo (gerencia / administración):
  *  - cicloMes: clave "YYYY-MM" del ciclo a mostrar (o "todos"). Si se omite, muestra el activo.
@@ -95,10 +95,10 @@ export default function BannerCicloActivo({
   const diasRestantes = esActivo && cicloInfo
     ? Math.max(0, Math.ceil((cicloInfo.cierre.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
+  const diaHoy = hoy.getDate();
   const diasAlCierre = esActivo && cicloInfo ? Math.max(0, Math.ceil((cicloInfo.cierre.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))) : 0;
-  const diasDesdeApertura = esActivo && cicloInfo ? Math.floor((hoy.getTime() - cicloInfo.apertura.getTime()) / (1000 * 60 * 60 * 24)) : 0;
   const avisoCierre = esActivo && diasAlCierre <= 3 && diasAlCierre > 0;
-  const cicloRecienAbierto = esActivo && diasDesdeApertura <= 3;
+  const cicloRecienAbierto = esActivo && diaHoy <= 3;
   const cicloCerrado = !esActivo && cicloInfo && cicloInfo.cierre.getTime() < hoy.getTime();
 
   const variant = esTodos
@@ -127,7 +127,7 @@ export default function BannerCicloActivo({
       : avisoCierre
         ? `Cierre inminente: faltan ${diasAlCierre} día${diasAlCierre === 1 ? '' : 's'} hasta el ${cicloInfo.cierre.getDate()} de ${MESES_ES[cicloInfo.cierre.getMonth()]}. Valida tus registros antes del cierre.`
         : cicloRecienAbierto
-          ? `Ciclo recién abierto (26 de ${MESES_ES[cicloInfo.apertura.getMonth()]}). Los registros entran en este ciclo (26→25).`
+          ? `Ciclo recién abierto (1 de ${MESES_ES[cicloInfo.apertura.getMonth()]}). Los registros del mes entran en este ciclo.`
           : `Faltan ${diasRestantes} día${diasRestantes === 1 ? '' : 's'} para el cierre (${cicloInfo.cierre.getDate()} de ${MESES_ES[cicloInfo.cierre.getMonth()]}).`;
 
   const mostrarSelector = permitirCambiar && ciclosDisponibles && ciclosDisponibles.length > 1;

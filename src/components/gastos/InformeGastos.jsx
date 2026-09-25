@@ -229,7 +229,7 @@ export default function InformeGastos({ operario, notas = [], tecnicos = [], isA
           <MobileSelect value={periodo} onValueChange={setPeriodo} placeholder="Período" triggerClassName="w-36">
             <MobileSelectItem value="semana">Semana actual</MobileSelectItem>
             <MobileSelectItem value="mes">Por mes</MobileSelectItem>
-            <MobileSelectItem value="ciclo">Por ciclo (26→25)</MobileSelectItem>
+            <MobileSelectItem value="ciclo">Por ciclo</MobileSelectItem>
             <MobileSelectItem value="anual">Anual</MobileSelectItem>
           </MobileSelect>
         </div>

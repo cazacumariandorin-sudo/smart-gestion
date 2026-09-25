@@ -51,10 +51,15 @@ export default async function(req) {
     if (!inicio || !fin) return Response.json({ error: 'inicio y fin requeridos' }, { status: 400 });
 
     // 1. Candidatos: RegistroGasto del periodo con archivo y campos clave faltantes
-    //    (o marcados precisa_precision). $or para abarcar varios criterios.
+    //    (o marcados precisa_precision), EXCLUYENDO los ya escaneados por esta
+    //    función (precision_fecha con valor): si el documento sigue sin esos
+    //    datos es porque el propio justificante no los tiene, no porque falte
+    //    volver a analizarlo. Sin esta exclusión, "Analizar ciclo" devolvía
+    //    siempre el mismo lote de 20 y nunca avanzaba al resto.
     const f = {
       fecha_documento: { $gte: inicio, $lte: fin },
       archivos: { $exists: true, $ne: [] },
+      precision_fecha: { $in: [null, ''] },
       $or: [
         { precisa_precision: true },
         { numero_factura: { $in: [null, ''] } },
@@ -115,6 +120,18 @@ export default async function(req) {
         fecha_documento: c.fecha_documento, importe: c.importe, categoria: c.categoria,
         estado, diffs, datos_propuestos: datos, file_url: url,
       });
+    }
+
+    // 4. Marca TODOS los candidatos analizados (confirmados, con propuestas o con
+    //    error) como escaneados, para que no vuelvan a salir en el próximo lote
+    //    aunque sus campos sigan vacíos (el documento no tiene esos datos). Los
+    //    que el usuario aplique desde el frontend sobreescriben este campo igual.
+    const idsEscaneados = resultados.filter(r => r.estado !== 'error').map(r => r.id);
+    if (idsEscaneados.length) {
+      const now = new Date().toISOString();
+      await base44.asServiceRole.entities.RegistroGasto.bulkUpdate(
+        idsEscaneados.map(id => ({ id, precision_fecha: now, precision_revisado_por: user.email }))
+      );
     }
 
     const discrepancias = resultados.filter(r => r.estado === 'discrepancia').length;

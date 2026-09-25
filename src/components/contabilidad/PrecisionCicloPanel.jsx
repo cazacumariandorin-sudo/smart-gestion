@@ -109,7 +109,7 @@ export default function PrecisionCicloPanel({ rango }) {
           <span className="font-medium">Precisión de ciclo — periodo {rango.etiqueta}</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Re-examina los gastos del periodo con campos clave faltantes (numero de factura, NIF, localidad, código fiscal...) ejecutando el OCR de nuevo sobre el archivo guardado. Devuelve propuestas de relleno/corrección; tú decides cuáles aplicar. No toca los registros que ya están completos.
+          Re-examina los gastos del periodo con campos clave faltantes (numero de factura, NIF, localidad, código fiscal...) ejecutando el OCR de nuevo sobre el archivo guardado. Devuelve propuestas de relleno/corrección; tú decides cuáles aplicar. No toca los registros que ya están completos. Cada registro analizado queda marcado como revisado, aunque el documento no tenga esos datos, para no repetirlo en el próximo análisis.
         </p>
         <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">

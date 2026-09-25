@@ -175,7 +175,7 @@ export default function ResumenPeriodoGastos({
                   <>
                     <p className="font-semibold mb-1">Registra tus gastos</p>
                     <p className="text-xs text-slate-600 dark:text-slate-400">
-                      El ciclo cierra el día 25. Podrás cerrar tu período desde el día 22.
+                      Podrás cerrar el período en los últimos 3 días antes del cierre ({format(cicloActivo.cierre, 'd MMM')}).
                     </p>
                   </>
                 )}
