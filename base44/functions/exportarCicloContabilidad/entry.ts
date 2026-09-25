@@ -154,12 +154,34 @@ Deno.serve(async (req) => {
       doc.text((r.nombre_comercio || '-').substring(0, 30), 50, y);
       doc.text(r.categoria || '-', 110, y);
       doc.text(r.estado || '-', 142, y);
-      const tieneTicket = (r.archivos && r.archivos.length > 0) ? 'Sí' : '-';
-      doc.text(tieneTicket, 170, y);
+      const primerArchivo = (r.archivos && r.archivos.length > 0) ? r.archivos[0] : null;
+      const urlTicket = primerArchivo?.url || primerArchivo?.file_url || null;
+      if (urlTicket) {
+        doc.setTextColor(37, 99, 235);
+        doc.textWithLink('Ver ticket', 170, y, { url: urlTicket });
+      } else {
+        doc.setTextColor(150, 150, 150);
+        doc.text('Sin adjunto', 170, y);
+      }
       doc.setTextColor(0, 0, 0);
       doc.text(`${(r.importe || 0).toFixed(2)} €`, pageW - 20, y, { align: 'right' });
       y += 7;
     });
+
+    // Nota aclaratoria: este PDF es un ÍNDICE con enlaces a cada ticket, no
+    // contiene los archivos incrustados. Para un paquete descargable con las
+    // fotos/PDFs reales (útil para trabajar sin conexión o adjuntar en bloque
+    // a un email), usar "Descarga en bloque" en la sección Contabilidad.
+    if (y > 260) { doc.addPage(); y = 20; }
+    y += 6;
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Este PDF es un índice con enlace a cada ticket (columna derecha). Para descargar los', 14, y);
+    y += 4;
+    doc.text('archivos reales en un ZIP, usa "Descarga en bloque" en la sección Contabilidad.', 14, y);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
 
     // Footer
     const totalPages = doc.internal.getNumberOfPages();
