@@ -62,6 +62,9 @@ export default function DescargaBloquePanel({ rango }) {
         <p className="text-xs text-muted-foreground">
           Recopila todos los justificantes del periodo, genera un ZIP (troceado por operario si supera 200 documentos) y un Excel índice con todas las columnas para que la gestoría cruce los archivos físicos contra el listado.
         </p>
+        <p className="text-[10px] text-muted-foreground bg-blue-50 dark:bg-blue-950/30 rounded-md px-2 py-1.5">
+          Esto es el paquete con los <b>archivos reales</b> (fotos/PDFs de cada ticket). El botón <b>"Informe"</b> de un ciclo concreto genera en cambio un PDF resumen con enlaces a cada ticket — útil para mirar de un vistazo, pero no sustituye descargar este ZIP si la gestoría necesita los archivos en sí.
+        </p>
 
         <div className="grid sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
