@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Calendar, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { calcularCiclo } from './BannerCicloActivo';
 
 export default function ResumenPeriodoGastos({ 
   operario, 
@@ -19,14 +20,18 @@ export default function ResumenPeriodoGastos({
   const [showCierreDialog, setShowCierreDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const hoy = new Date();
-  const diaActual = hoy.getDate();
-  const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+  const cicloActivo = useMemo(() => calcularCiclo(hoy), []);
+  const mesActual = cicloActivo.cicloMes;
+  const diasAlCierre = cicloActivo.diasRestantes;
+  const diaDelCiclo = Math.floor((hoy.getTime() - cicloActivo.apertura.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const diasTotalesCiclo = Math.floor((cicloActivo.cierre.getTime() - cicloActivo.apertura.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
   const notasDelMes = useMemo(() => {
     return notas.filter(n => {
-      if (!n.fecha_documento) return false;
-      const fechaNota = format(new Date(n.fecha_documento), 'yyyy-MM');
-      if (fechaNota !== mesActual) return false;
+      const ref = n.fecha_documento || n.fecha_creacion_real || n.created_date;
+      if (!ref) return false;
+      const cicloNota = n.ciclo_mes || calcularCiclo(new Date(ref)).cicloMes;
+      if (cicloNota !== mesActual) return false;
       if (!isAdmin && n.operario_id !== operario?.id) return false;
       if (n.estado === 'rechazada') return false;
       return true;
@@ -58,7 +63,7 @@ export default function ResumenPeriodoGastos({
   }, [mesActual, operario?.id]);
 
   const saldoARecuperar = Math.max(0, totalGastos - adelanto);
-  const puedeCerrar = diaActual >= 25;
+  const puedeCerrar = diasAlCierre <= 3;
 
   const handleCerrarPeriodo = async () => {
     if (!operario?.id) {
@@ -150,7 +155,7 @@ export default function ResumenPeriodoGastos({
               <Badge variant={puedeCerrar ? 'default' : 'secondary'} className="text-xs">
                 {puedeCerrar ? '✓ Listo' : 'Esperar'}
               </Badge>
-              <p className="text-xs text-slate-500 mt-1">Día {diaActual}/31</p>
+              <p className="text-xs text-slate-500 mt-1">Día {diaDelCiclo}/{diasTotalesCiclo} del ciclo</p>
             </div>
           </div>
 
@@ -170,7 +175,7 @@ export default function ResumenPeriodoGastos({
                   <>
                     <p className="font-semibold mb-1">Registra tus gastos</p>
                     <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Desde el día 25 podrás cerrar el período y recuperar tus gastos.
+                      El ciclo cierra el día 25. Podrás cerrar tu período desde el día 22.
                     </p>
                   </>
                 )}
