@@ -41,6 +41,8 @@ export default function MultaDetalleDialog({ multa, open, onOpenChange }) {
 
   const estado = esMulta?.estado;
   const abiertoParaTecnico = estado && ESTADOS_ABIERTOS_TECNICO.includes(estado);
+  // Gerencia/admin/administración pueden subir/corregir descargo en cualquier estado no resuelto.
+  const puedeSubirDescargo = abiertoParaTecnico || (puedeResolver && estado && !ESTADOS_RESUELTOS.includes(estado));
 
   const subirDescargoMutation = useMutation({
     mutationFn: async () => {
@@ -259,10 +261,12 @@ export default function MultaDetalleDialog({ multa, open, onOpenChange }) {
             )}
           </section>
 
-          {/* Acción del técnico: subir/corregir descargo */}
-          {abiertoParaTecnico && (
+          {/* Subir / corregir descargo (justificante del técnico) */}
+          {puedeSubirDescargo && (
             <section className="rounded-lg border border-blue-200 bg-blue-50/50 p-3 space-y-2">
-              <p className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Presentar descargo</p>
+              <p className="text-xs font-semibold text-blue-800 uppercase tracking-wider flex items-center gap-1">
+                <Gavel className="w-3.5 h-3.5" /> Subir descargo {esMulta?.descargo_presenta ? '(corregir)' : ''}
+              </p>
               <MultaUpload
                 value={descargo.justificante_url}
                 onChange={(v) => setDescargo(d => ({ ...d, justificante_url: v }))}
