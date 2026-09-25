@@ -312,7 +312,7 @@ export default function InformesTab() {
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
 
   const { isAdmin, isJefeObra, user, role } = useUserRole();
-  const canSeeAll = isAdmin || isJefeObra || role === 'gerencia' || role === 'director_comercial';
+  const canSeeAll = isAdmin || isJefeObra || role === 'gerencia' || role === 'director_comercial' || role === 'administracion';
   // Roles restringidos: solo ven y totalizan SUS propios fichajes (diario, semanal, mensual)
   const isOwnDataOnly = ['operario', 'control_horario', 'técnico', 'usuario_demo', 'cliente_obra'].includes(role);
 

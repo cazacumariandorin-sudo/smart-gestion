@@ -12,17 +12,19 @@ import { useTabState } from '@/hooks/useTabState';
 import { useUserRole } from '@/lib/useUserRole';
 
 export default function ControlHorario() {
-  const { isAdmin, isJefeObra, role } = useUserRole();
+  const { isAdmin, isJefeObra, isAdministracion, role } = useUserRole();
   const isOperario = role === 'operario';
   const isGerencia = role === 'gerencia';
-  const showCierreForzado = isAdmin || isGerencia;
-  const showAlarmas = isAdmin; // Alarmas solo para admin (RLS)
-  const showApuntes = isAdmin || isJefeObra || isOperario || role === 'técnico'; // Operario/técnico pueden ver sus apuntes
+  // Cierre Forzado, Alarmas y Apuntes visibles para gerencia y administración
+  // además de admin/propietario. (Antes estaban restringidos solo a admin.)
+  const showCierreForzado = isAdmin || isGerencia || isAdministracion;
+  const showAlarmas = isAdmin || isGerencia || isAdministracion;
+  const showApuntes = isAdmin || isGerencia || isAdministracion || isJefeObra || isOperario || role === 'técnico';
 
   const { data: alarmas = [] } = useQuery({
     queryKey: ['alarmas'],
     queryFn: () => base44.entities.AlarmaHorario.list('hora', 100),
-    enabled: isAdmin,
+    enabled: showAlarmas,
   });
 
   useAlarmas(alarmas);

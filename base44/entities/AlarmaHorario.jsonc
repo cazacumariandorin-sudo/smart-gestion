@@ -1,5 +1,6 @@
 {
   "name": "AlarmaHorario",
+  "type": "object",
   "properties": {
     "activa": {
       "default": true,
@@ -48,6 +49,16 @@
           "user_condition": {
             "role": "propietario"
           }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
         }
       ]
     },
@@ -61,6 +72,16 @@
         {
           "user_condition": {
             "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
           }
         }
       ]
@@ -76,6 +97,16 @@
           "user_condition": {
             "role": "propietario"
           }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
         }
       ]
     },
@@ -90,9 +121,18 @@
           "user_condition": {
             "role": "propietario"
           }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
         }
       ]
     }
-  },
-  "type": "object"
+  }
 }
