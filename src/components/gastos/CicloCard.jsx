@@ -85,7 +85,7 @@ export default function CicloCard({ nota, onExported }) {
       }
       toast({
         title: 'Ciclo exportado a contabilidad',
-        description: `PDF + índice subido a Drive (${data.registros || 0} registros, ${((data.total || 0)).toFixed(2)} €).`,
+        description: `PDF índice subido a Drive (${data.registros || 0} registros, ${((data.total || 0)).toFixed(2)} €). Para los archivos reales, usa "Descarga en bloque" en Contabilidad.`,
       });
       if (typeof onExported === 'function') onExported(nota.id, data);
     } catch (err) {
