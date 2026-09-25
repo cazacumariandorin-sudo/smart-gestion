@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, ScrollText, FileText, Image as ImageIcon, Gavel, History } from 'lucide-react';
+import { Loader2, ScrollText, FileText, Image as ImageIcon, Gavel, History, Clock } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useUserRole } from '@/lib/useUserRole';
@@ -128,12 +128,22 @@ export default function MultaDetalleDialog({ multa, open, onOpenChange }) {
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Datos oficiales</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
               <Dato label="Fecha" valor={esMulta.fecha_multa} />
+              <Dato label="Hora" valor={esMulta.hora_multa || '—'} />
               <Dato label="Importe" valor={esMulta.importe != null ? `${Number(esMulta.importe).toFixed(2)} €` : '—'} />
               <Dato label="Autoridad" valor={esMulta.autoridad} />
               <Dato label="Expediente" valor={esMulta.numero_expediente || '—'} />
+              <Dato label="Lugar" valor={esMulta.lugar_infraccion || '—'} />
               <Dato label="Motivo" valor={esMulta.motivo_autoridad_detalle || MOTIVO_DESCARGO[esMulta.motivo_autoridad] || esMulta.motivo_autoridad || '—'} />
               <Dato label="Notificación" valor={esMulta.fecha_notificacion || '—'} />
             </div>
+            {esMulta.volante_ocr_procesado && esMulta.volante_ocr_confianza != null && (
+              <div className="flex items-center gap-2 flex-wrap mt-2">
+                <Badge variant="outline" className="text-[10px]">OCR volante: {Math.round(esMulta.volante_ocr_confianza * 100)}%</Badge>
+                {esMulta.volante_precision_revisado && (
+                  <Badge className="text-[10px] bg-purple-100 text-purple-700 border-purple-200">Respaldo IA aplicado</Badge>
+                )}
+              </div>
+            )}
           </section>
 
           {/* Documentos enfrentados: volante + descargo */}
@@ -155,6 +165,12 @@ export default function MultaDetalleDialog({ multa, open, onOpenChange }) {
                 fecha={esMulta.descargo_fecha_subida}
                 pendiente={!esMulta.descargo_presenta}
               />
+              {esMulta.descargo_presenta && esMulta.descargo_fecha_hora && (
+                <div className="text-[11px] text-blue-700 dark:text-blue-300 flex items-center gap-1 mt-1">
+                  <Clock className="w-3 h-3" /> Justificante: {esMulta.descargo_fecha_hora}
+                  {esMulta.descargo_lugar && <> · {esMulta.descargo_lugar}</>}
+                </div>
+              )}
             </div>
             {esMulta.descargo_explicacion && (
               <div className="mt-2 rounded-lg border border-border bg-muted/40 p-2.5">

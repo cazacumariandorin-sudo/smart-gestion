@@ -1,4 +1,4 @@
-import { ScrollText, Car, AlertCircle } from 'lucide-react';
+import { ScrollText, Car, AlertCircle, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -23,8 +23,8 @@ export default function MultaCard({ multa, onClick }) {
               <Badge className="bg-amber-100 text-amber-700 text-[10px]">Sin descargo</Badge>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 truncate">
-            {m.fecha_multa} · {m.autoridad} · {MOTIVO_DESCARGO[m.motivo_autoridad] || m.motivo_autoridad}
+          <p className="text-xs text-muted-foreground mt-0.5 truncate flex items-center gap-1">
+            {m.fecha_multa}{m.hora_multa ? <><Clock className="w-3 h-3 inline" /> {m.hora_multa}</> : ''} · {m.autoridad} · {MOTIVO_DESCARGO[m.motivo_autoridad] || m.motivo_autoridad}
           </p>
         </div>
         <div className="text-right shrink-0">

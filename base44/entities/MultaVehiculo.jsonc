@@ -19,6 +19,10 @@
       "format": "date",
       "description": "Fecha de la infracci\u00f3n."
     },
+    "hora_multa": {
+      "type": "string",
+      "description": "Hora y minuto de la infracci\u00f3n en formato HH:MM (24h), extra\u00eddo por OCR. IMPRESCINDIBLE para validar descargos de parking."
+    },
     "fecha_notificacion": {
       "type": "string",
       "format": "date",
@@ -32,9 +36,21 @@
       "type": "string",
       "description": "Organismo/empresa que emite la multa (Ayuntamiento, SER, empresa de parking\u2026)."
     },
+    "autoridad_nif": {
+      "type": "string",
+      "description": "NIF/CIF de la autoridad emisora (extra\u00eddo por OCR si aparece)."
+    },
     "numero_expediente": {
       "type": "string",
       "description": "Referencia/expediente impreso en el volante."
+    },
+    "lugar_infraccion": {
+      "type": "string",
+      "description": "Lugar o direcci\u00f3n donde se cometi\u00f3 la infracci\u00f3n (extra\u00eddo por OCR)."
+    },
+    "matricula_impresa": {
+      "type": "string",
+      "description": "Matr\u00edcula del veh\u00edculo impresa en el documento (extra\u00edda por OCR)."
     },
     "motivo_autoridad": {
       "type": "string",
@@ -64,6 +80,29 @@
       "format": "date-time",
       "description": "Timestamp de subida del volante."
     },
+    "volante_ocr_datos": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "JSON crudo de la extracci\u00f3n IA del volante (fecha, hora, importe, autoridad...). Auditor\u00eda."
+    },
+    "volante_ocr_confianza": {
+      "type": "number",
+      "description": "Confianza global 0-1 de la extracci\u00f3n OCR del volante."
+    },
+    "volante_ocr_procesado": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si el volante fue procesado por LLM+OCR."
+    },
+    "volante_precision_revisado": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si el volante requiri\u00f3 respaldo IA (gemini_3_flash) por baja confianza."
+    },
+    "volante_precision_motivo": {
+      "type": "string",
+      "description": "Motivo por el que se activ\u00f3 el respaldo IA del volante."
+    },
     "descargo_presenta": {
       "type": "boolean",
       "default": false,
@@ -89,6 +128,28 @@
     "descargo_justificante_url": {
       "type": "string",
       "description": "Foto del tique v\u00e1lido / parqu\u00edmetro / evidencia del t\u00e9cnico."
+    },
+    "descargo_ocr_datos": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "JSON crudo de la extracci\u00f3n IA del justificante del t\u00e9cnico (fecha, hora, importe, lugar...)."
+    },
+    "descargo_ocr_confianza": {
+      "type": "number",
+      "description": "Confianza global 0-1 de la extracci\u00f3n OCR del justificante."
+    },
+    "descargo_ocr_procesado": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si el justificante del t\u00e9cnico fue procesado por LLM+OCR."
+    },
+    "descargo_fecha_hora": {
+      "type": "string",
+      "description": "Fecha y hora extra\u00edda del justificante del t\u00e9cnico (ej: '2026-09-25 14:30'). Clave para validar que el tique de parking cubre el momento de la multa."
+    },
+    "descargo_lugar": {
+      "type": "string",
+      "description": "Lugar extra\u00eddo del justificante del t\u00e9cnico (para comparar con lugar_infraccion)."
     },
     "descargo_explicacion": {
       "type": "string",
