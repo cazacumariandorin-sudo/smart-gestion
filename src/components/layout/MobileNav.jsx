@@ -162,7 +162,7 @@ export default function MobileNav() {
 
           {/* Hub tabs */}
           {pinnedHubs.map(hub => {
-            const isActive = hub.items.some(i => location.pathname === i.path || (i.path !== '/' && location.pathname.startsWith(i.path)));
+            const isActive = hub.items.some(i => matchNavItem(i, location.pathname, location.search));
             const isOpen = openHub?.id === hub.id;
             return (
               <NavTab
