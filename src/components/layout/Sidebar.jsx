@@ -57,7 +57,7 @@ function HubGroup({ hub, currentPath, currentFullPath, canAccess, isAdmin, isGer
       {open && (
         <div className={cn('ml-3 mt-0.5 mb-1 space-y-0.5 border-l-2 pl-3 opacity-0 lg:opacity-100 group-hover/sidebar:opacity-100 transition-opacity duration-150', hub.borderColor)}>
           {items.map(item => {
-            const isActive = currentPath === item.path || (item.path !== '/' && currentPath.startsWith(item.path));
+            const isActive = matchItem(item);
             return (
               <Link
                 key={item.path}
