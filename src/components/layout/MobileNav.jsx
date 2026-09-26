@@ -49,7 +49,7 @@ function BottomSheet({ hub, onClose, saveTabPath }) {
         </div>
         <div className="grid grid-cols-3 gap-2.5">
           {items.map(item => {
-            const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+            const isActive = matchNavItem(item, location.pathname, location.search);
             return (
               <Link
                 key={item.path}
