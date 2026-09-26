@@ -85,6 +85,7 @@ export default function Sidebar() {
   const { t, lang, setLang } = useI18n();
   const { canAccess, isAdmin, isDemo, role } = useUserRole();
   const path = location.pathname;
+  const fullPath = path + (location.search || '');
   const isGerencia = role === 'gerencia';
   const isDashboard = path === '/';
 
