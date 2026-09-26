@@ -9,9 +9,18 @@ import { HUBS, isHubVisible } from '@/lib/hubs';
 
 
 
-function HubGroup({ hub, currentPath, canAccess, isAdmin, isGerencia, isDemo, role, pendingCount = 0 }) {
+function HubGroup({ hub, currentPath, currentFullPath, canAccess, isAdmin, isGerencia, isDemo, role, pendingCount = 0 }) {
   const items = hub.items.filter(i => i.module === null || canAccess(i.module));
-  const isChildActive = items.some(i => currentPath === i.path || (i.path !== '/' && currentPath.startsWith(i.path)));
+  // Los items cuyo `path` lleva query string (p. ej. '/notas-gastos?vista=admin')
+  // deben compararse contra la ruta completa (pathname + search), no solo el
+  // pathname — si no, un item hermano con el mismo pathname pero sin query
+  // (p. ej. 'Mis Gastos' -> '/notas-gastos') siempre "gana" el resaltado activo,
+  // porque el pathname coincide igual esté o no el query presente.
+  const matchItem = (i) => {
+    if (i.path.includes('?')) return currentFullPath === i.path;
+    return currentPath === i.path || (i.path !== '/' && currentPath.startsWith(i.path));
+  };
+  const isChildActive = items.some(matchItem);
   const [open, setOpen] = useState(isChildActive);
 
   if (items.length === 0) return null;
