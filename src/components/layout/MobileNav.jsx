@@ -10,6 +10,15 @@ function haptic(ms = 8) {
   if (navigator?.vibrate) navigator.vibrate(ms);
 }
 
+// Mismo criterio que Sidebar.jsx: un item cuyo `path` lleva query string
+// (p. ej. '/notas-gastos?vista=admin') debe compararse contra pathname+search
+// completo, no solo el pathname — si no, el item hermano sin query (p. ej.
+// 'Mis Gastos') siempre gana el resaltado activo.
+function matchNavItem(item, pathname, search) {
+  if (item.path.includes('?')) return (pathname + (search || '')) === item.path;
+  return pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
+}
+
 function BottomSheet({ hub, onClose, saveTabPath }) {
   const location = useLocation();
   const { canAccess } = useUserRole();
