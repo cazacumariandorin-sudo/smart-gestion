@@ -146,6 +146,7 @@ export default function Sidebar() {
             key={hub.id}
             hub={hub}
             currentPath={path}
+            currentFullPath={fullPath}
             canAccess={canAccess}
             isAdmin={isAdmin}
             isGerencia={isGerencia}
