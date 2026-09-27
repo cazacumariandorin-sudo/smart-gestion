@@ -20,7 +20,7 @@ import InformeGastos from '@/components/gastos/InformeGastos';
 import ResumenPeriodoGastos from '@/components/gastos/ResumenPeriodoGastos';
 import CiclosMensualesPanel from '@/components/gastos/CiclosMensualesPanel';
 import BannerCicloActivo, { calcularCiclo } from '@/components/gastos/BannerCicloActivo';
-import PrecisionPanel from '@/components/gastos/PrecisionPanel';
+import PrecisionCicloPanel from '@/components/contabilidad/PrecisionCicloPanel';
 import MisAdelantosTab from '@/components/adelantos/MisAdelantosTab';
 import { useAuth } from '@/lib/AuthContext';
 import { useTecnicoName } from '@/hooks/useTecnicoName';
