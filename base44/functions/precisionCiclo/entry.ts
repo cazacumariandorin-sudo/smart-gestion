@@ -47,7 +47,7 @@ export default async function(req) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { inicio, fin, categoria } = body;
+    const { inicio, fin, categoria, operario_id } = body;
     if (!inicio || !fin) return Response.json({ error: 'inicio y fin requeridos' }, { status: 400 });
 
     // 1. Candidatos: RegistroGasto del periodo con archivo y campos clave faltantes
@@ -69,6 +69,7 @@ export default async function(req) {
       ],
     };
     if (categoria) f.categoria = categoria;
+    if (operario_id) f.operario_id = operario_id;
     const candidatos = await base44.asServiceRole.entities.RegistroGasto.filter(f, '-updated_date', LIMITE);
 
     if (!candidatos.length) {
