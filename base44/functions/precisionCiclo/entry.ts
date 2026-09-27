@@ -97,6 +97,7 @@ export default async function(req) {
         resultados.push({
           id: c.id, numero_nota: c.numero_nota, nombre_comercio: c.nombre_comercio,
           fecha_documento: c.fecha_documento, importe: c.importe,
+          operario_id: c.operario_id, operario_name: c.operario_name,
           estado: 'error', error, diffs: [], datos_propuestos: null,
         });
         continue;
@@ -119,6 +120,7 @@ export default async function(req) {
       resultados.push({
         id: c.id, numero_nota: c.numero_nota, nombre_comercio: c.nombre_comercio,
         fecha_documento: c.fecha_documento, importe: c.importe, categoria: c.categoria,
+        operario_id: c.operario_id, operario_name: c.operario_name,
         estado, diffs, datos_propuestos: datos, file_url: url,
       });
     }
