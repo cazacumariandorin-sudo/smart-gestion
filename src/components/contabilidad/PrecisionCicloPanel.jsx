@@ -141,6 +141,29 @@ export default function PrecisionCicloPanel({ rango: rangoProp }) {
           Re-examina los gastos del periodo con campos clave faltantes (numero de factura, NIF, localidad, código fiscal...) ejecutando el OCR de nuevo sobre el archivo guardado. Devuelve propuestas de relleno/corrección; tú decides cuáles aplicar. No toca los registros que ya están completos. Cada registro analizado queda marcado como revisado, aunque el documento no tenga esos datos, para no repetirlo en el próximo análisis.
         </p>
         <div className="flex flex-wrap items-end gap-2">
+          {!rangoProp && (
+            <>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Año</label>
+                <Input type="number" min="2000" max="2100" value={selAnio} onChange={e => setSelAnio(e.target.value)} className="w-24" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Mes</label>
+                <MobileSelect value={selMes} onValueChange={setSelMes} placeholder="Mes" triggerClassName="w-36">
+                  {MESES.map(([v, l]) => <MobileSelectItem key={v} value={v}>{l}</MobileSelectItem>)}
+                </MobileSelect>
+              </div>
+            </>
+          )}
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Técnico (opcional)</label>
+            <MobileSelect value={operarioId} onValueChange={setOperarioId} placeholder="Todos" triggerClassName="w-48">
+              <MobileSelectItem value="todos">Todos los técnicos</MobileSelectItem>
+              {operarios.map(op => (
+                <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>
+              ))}
+            </MobileSelect>
+          </div>
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Categoría (opcional)</label>
             <MobileSelect value={categoria} onValueChange={setCategoria} placeholder="Todas" triggerClassName="w-44">
