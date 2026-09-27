@@ -16,7 +16,7 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
@@ -30,7 +30,7 @@ import { toast } from 'sonner';
 import {
   Upload, Loader2, CheckCircle2, AlertCircle, AlertTriangle,
   FileText, Download, Copy, Eye, Pencil, Trash2,
-  ChevronDown, ChevronRight, Receipt, Users, Building2,
+  ChevronDown, ChevronRight, Receipt, Users, Building2, RefreshCw,
 } from 'lucide-react';
 
 const fmt = (n) => (n ?? 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
@@ -338,6 +338,29 @@ export default function Retencion111Panel() {
     toast.success('Descargando informe...');
   };
 
+  // ── Auto-visualizar informe al entrar en la pestaña o cambiar de trimestre ──
+  // La empresa ve el coste del Modelo 111 al instante, sin pulsar "Generar".
+  useEffect(() => {
+    if (subTab !== 'informe' || !puedeDescargar) return;
+    let cancelled = false;
+    (async () => {
+      setGenerandoInforme(true);
+      try {
+        const res = await base44.functions.invoke('exportarInforme111', {
+          trimestre,
+          incluir_trabajadores: true,
+        });
+        const data = res?.data || res;
+        if (!cancelled && data?.ok) setInforme(data);
+      } catch {
+        /* el toast de error lo gestiona el botón manual */
+      } finally {
+        if (!cancelled) setGenerandoInforme(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [subTab, trimestre, puedeDescargar]);
+
   // Totales del trimestre actual
   const totalBase = facturas.reduce((s, f) => s + (f.base_imponible || 0), 0);
   const totalRetencion = facturas.reduce((s, f) => s + (f.importe_retencion || 0), 0);
@@ -482,17 +505,26 @@ export default function Retencion111Panel() {
                         {trimestresDisp.map(t => <MobileSelectItem key={t.value} value={t.value}>{t.label}</MobileSelectItem>)}
                       </MobileSelect>
                     </div>
-                    <Button onClick={generarInforme} disabled={generandoInforme} className="gap-2">
+                    <Button onClick={generarInforme} disabled={generandoInforme} variant="outline" className="gap-2">
                       {generandoInforme
-                        ? <><Loader2 className="w-4 h-4 animate-spin" />Generando...</>
-                        : <><Receipt className="w-4 h-4" />Generar informe 111</>}
+                        ? <><Loader2 className="w-4 h-4 animate-spin" />Calculando...</>
+                        : <><RefreshCw className="w-4 h-4" />Recalcular</>}
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Consolida retenciones de autónomos (Mod. 111 casillas 04-06) + trabajadores empleados (casillas 01-03) del trimestre seleccionado.
+                    Visualización automática del coste del Modelo 111 (autónomos casillas 04-06 + trabajadores casillas 01-03) antes de tramitarlo en AEAT.
                   </p>
                 </CardContent>
               </Card>
+
+              {generandoInforme && !informe && (
+                <Card>
+                  <CardContent className="py-12 flex flex-col items-center gap-3 text-muted-foreground">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    <span className="text-sm">Calculando retenciones del trimestre…</span>
+                  </CardContent>
+                </Card>
+              )}
 
               {informe && (
                 <>
