@@ -338,7 +338,7 @@ export default function NotasGastos() {
       ) : tab === 'ciclos' ? (
         <CiclosMensualesPanel />
       ) : tab === 'precision' ? (
-        <PrecisionPanel notas={notasRaw} onVerNota={setNotaSeleccionada} />
+        <PrecisionCicloPanel />
       ) : (
         <>
           <div className="mb-4">
