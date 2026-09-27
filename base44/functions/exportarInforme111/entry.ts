@@ -91,14 +91,17 @@ export default async function(req) {
     // ── TRABAJADORES: retenciones de nóminas (datos AGREGADOS) ──
     let trabajadoresResumen = null;
     if (incluir_trabajadores) {
+      // Nóminas del trimestre. Ambos tipos (nomina_individual y resumen_costes)
+      // son registros por trabajador con operario_id y retencion_irpf propios;
+      // no hay duplicación (1 registro por trabajador/mes). Se incluyen ambos.
       const todasNominas = await base44.asServiceRole.entities.Nomina
-        .list('anio', 500)
+        .list('-anio', 500)
         .catch(() => []);
 
       const nominasTrims = (todasNominas || []).filter((n) => {
         const mes = n.mes || 0;
         const anioN = n.anio || 0;
-        return anioN === anioNum && mes >= mesInicio && mes <= mesFin && n.tipo_documento !== 'resumen_costes';
+        return anioN === anioNum && mes >= mesInicio && mes <= mesFin;
       });
 
       const totalRetencionTrabajadores = nominasTrims.reduce((s, n) => s + (n.retencion_irpf || 0), 0);
