@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
@@ -6,9 +6,15 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Loader2, SearchCheck, AlertTriangle, CheckCircle2, RefreshCw, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+
+const MESES = [
+  ['1', 'Enero'], ['2', 'Febrero'], ['3', 'Marzo'], ['4', 'Abril'], ['5', 'Mayo'], ['6', 'Junio'],
+  ['7', 'Julio'], ['8', 'Agosto'], ['9', 'Septiembre'], ['10', 'Octubre'], ['11', 'Noviembre'], ['12', 'Diciembre'],
+];
 
 /**
  * Precisión de ciclo — re-examina TODOS los RegistroGasto del periodo (no solo
@@ -16,19 +22,41 @@ import { toast } from 'sonner';
  * faltantes, re-ejecuta OCR y devuelve propuestas. Gerencia/administración
  * revisa y aplica las correcciones seleccionadas.
  *
+ * Componente único reutilizado en Contabilidad ("Precisión de ciclo", recibe
+ * `rango` ya calculado por el selector compartido de esa página) y en Gestión
+ * Gastos ("Precisión", sin `rango`: aquí el propio panel monta su selector
+ * de mes/año) — antes eran dos implementaciones distintas con criterios
+ * distintos; ahora es el mismo código y el mismo backend en los dos sitios.
+ *
  * Acceso: gerencia, administracion, admin, propietario.
  */
-export default function PrecisionCicloPanel({ rango }) {
+export default function PrecisionCicloPanel({ rango: rangoProp }) {
   const { isGerencia, isAdministracion, isAdmin } = useUserRole();
   const qc = useQueryClient();
   const puede = isGerencia || isAdministracion || isAdmin;
 
+  // Selector de mes/año propio, solo quando no se recibe `rango` por prop
+  // (uso desde Gestión Gastos). Contabilidad sigue pasando su propio rango.
+  const [selAnio, setSelAnio] = useState(() => String(new Date().getFullYear()));
+  const [selMes, setSelMes] = useState(() => String(new Date().getMonth() + 1));
+  const rangoPropio = useMemo(() => {
+    const m = String(selMes).padStart(2, '0');
+    return { inicio: `${selAnio}-${m}-01`, fin: `${selAnio}-${m}-31`, etiqueta: `${m}/${selAnio}` };
+  }, [selAnio, selMes]);
+  const rango = rangoProp || rangoPropio;
+
   const [categoria, setCategoria] = useState('');
+  const [operarioId, setOperarioId] = useState('todos');
+  const [operarios, setOperarios] = useState([]);
   const [analizando, setAnalizando] = useState(false);
   const [candidatos, setCandidatos] = useState([]);
   const [seleccion, setSeleccion] = useState({}); // { [id]: true }
   const [aplicando, setAplicando] = useState(false);
   const [resumen, setResumen] = useState(null);
+
+  useEffect(() => {
+    base44.entities.Operario.filter({ active: true }, 'name', 200).then(setOperarios).catch(() => setOperarios([]));
+  }, []);
 
   const analizar = async () => {
     if (!puede) { toast.error('Sin permiso'); return; }
@@ -41,6 +69,7 @@ export default function PrecisionCicloPanel({ rango }) {
         inicio: rango.inicio,
         fin: rango.fin,
         categoria: categoria || undefined,
+        operario_id: operarioId !== 'todos' ? operarioId : undefined,
       });
       const data = res?.data || res;
       if (data?.success === false) throw new Error(data?.error || 'Error');
