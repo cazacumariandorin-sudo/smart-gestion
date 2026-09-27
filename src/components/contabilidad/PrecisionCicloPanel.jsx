@@ -210,6 +210,7 @@ export default function PrecisionCicloPanel({ rango: rangoProp }) {
                   )}
                   <span className="font-mono text-xs font-bold text-primary">{c.numero_nota || '—'}</span>
                   <span className="text-sm font-medium">{c.nombre_comercio || '—'}</span>
+                  {c.operario_name && <span className="text-[10px] text-muted-foreground">· {c.operario_name}</span>}
                   <span className="text-xs text-muted-foreground">{c.fecha_documento} · {(c.importe || 0).toFixed(2)} €</span>
                   {c.categoria && <Badge className="text-[10px] bg-slate-100 text-slate-600">{c.categoria}</Badge>}
                   {c.estado === 'discrepancia' && <Badge className="text-[10px] bg-amber-100 text-amber-700 border-amber-200"><AlertTriangle className="w-3 h-3 mr-1" />Propuestas</Badge>}
