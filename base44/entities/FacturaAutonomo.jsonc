@@ -1,0 +1,258 @@
+{
+  "name": "FacturaAutonomo",
+  "type": "object",
+  "description": "Factura de colaborador aut\u00f3nomo con retenci\u00f3n IRPF (Modelo 111). Subida por gerencia/administraci\u00f3n, consultada por contabilidad externa. El registro lo crea el backend tras el OCR, ya con los datos fiscales rellenos.",
+  "properties": {
+    "numero_factura": {
+      "type": "string",
+      "description": "N\u00famero de factura emitido por el aut\u00f3nomo"
+    },
+    "fecha_factura": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de emisi\u00f3n de la factura (YYYY-MM-DD)"
+    },
+    "fecha_pago": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en que Simantec pag\u00f3 la factura (YYYY-MM-DD)"
+    },
+    "trimestre": {
+      "type": "string",
+      "description": "Trimestre fiscal al que pertenece: 2026-T1, 2026-T2, 2026-T3, 2026-T4"
+    },
+    "anio": {
+      "type": "integer",
+      "description": "A\u00f1o fiscal"
+    },
+    "nombre_autonomo": {
+      "type": "string",
+      "description": "Nombre o raz\u00f3n social del aut\u00f3nomo emisor"
+    },
+    "nif_autonomo": {
+      "type": "string",
+      "description": "NIF/DNI/NIE del aut\u00f3nomo emisor"
+    },
+    "concepto": {
+      "type": "string",
+      "description": "Descripci\u00f3n del servicio facturado"
+    },
+    "base_imponible": {
+      "type": "number",
+      "description": "Base imponible de la factura (sin IVA, sin retenci\u00f3n)"
+    },
+    "porcentaje_retencion": {
+      "type": "number",
+      "description": "Porcentaje de retenci\u00f3n IRPF aplicado (ej: 15, 7)"
+    },
+    "importe_retencion": {
+      "type": "number",
+      "description": "Importe retenido en euros = base_imponible * porcentaje_retencion / 100"
+    },
+    "tipo_iva": {
+      "type": "number",
+      "description": "Porcentaje de IVA (0, 10, 21)"
+    },
+    "importe_iva": {
+      "type": "number",
+      "description": "Importe de IVA en euros"
+    },
+    "total_factura": {
+      "type": "number",
+      "description": "Total de la factura = base + IVA - retenci\u00f3n"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URI del PDF/imagen de la factura en almacenamiento PRIVADO (file_uri). Para visualizar, generar URL firmada con CreateFileSignedUrl."
+    },
+    "archivos": {
+      "type": "array",
+      "description": "Archivos adjuntos (puede haber varias p\u00e1ginas)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ocr_raw": {
+      "type": "string",
+      "description": "Texto completo extra\u00eddo por OCR para auditor\u00eda"
+    },
+    "ocr_status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "procesado",
+        "error",
+        "revision_manual"
+      ],
+      "default": "pendiente",
+      "description": "Estado del procesamiento OCR"
+    },
+    "confianza_ocr": {
+      "type": "number",
+      "description": "Confianza del OCR 0-1"
+    },
+    "precisa_revision": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marcado para revisi\u00f3n manual si la confianza es baja"
+    },
+    "revision_motivo": {
+      "type": "string",
+      "description": "Motivo por el que necesita revisi\u00f3n manual"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "pendiente_pago",
+        "pagada",
+        "incluida_111",
+        "anulada"
+      ],
+      "default": "borrador",
+      "description": "Estado del ciclo de vida de la factura"
+    },
+    "subido_por": {
+      "type": "string",
+      "description": "Email del usuario que subi\u00f3 la factura"
+    },
+    "subido_por_nombre": {
+      "type": "string",
+      "description": "Nombre del usuario que subi\u00f3 la factura"
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "Obra vinculada (opcional, para imputaci\u00f3n de coste)"
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra vinculada"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Notas internas de administraci\u00f3n"
+    },
+    "incluida_en_declaracion_111": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marcada como incluida en la declaraci\u00f3n 111 presentada"
+    },
+    "fecha_declaracion_111": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en que se present\u00f3 la declaraci\u00f3n 111 que incluye esta factura"
+    }
+  },
+  "required": [
+    "fecha_factura"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    }
+  }
+}
