@@ -1,0 +1,44 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "escaneo_semanal_duplicados",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "escanear": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "escaneoSemanalDuplicados"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Escanear duplicados econ\u00f3micos",
+            "description": "Detecta duplicados y crea tarea para gerencia si hay cr\u00edticos"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Escaneo semanal duplicados econ\u00f3micos",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 5 * * 5",
+      "one_time_date": null,
+      "timezone": "Europe/Madrid",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Cada viernes a las 05:00 (Europe/Madrid) escanea todo el m\u00f3dulo econ\u00f3mico en busca de duplicados y crea/refresca una AsistenteTarea de alta prioridad para gerencia si detecta grupos cr\u00edticos o altos."
+}
