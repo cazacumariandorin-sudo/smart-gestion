@@ -347,15 +347,31 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
             <div>
               <p className="text-xs font-semibold text-muted-foreground mb-2">ARCHIVOS ADJUNTOS ({nota.archivos.length})</p>
               <div className="space-y-1.5">
-                {nota.archivos.map((a, i) => (
-                  <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-2 p-2 rounded-lg border hover:bg-accent transition-colors text-sm"
-                  >
-                    {a.tipo?.startsWith('image/') ? <Image className="w-4 h-4 text-blue-500" /> : <FileText className="w-4 h-4 text-slate-500" />}
-                    <span className="flex-1 truncate">{a.nombre}</span>
-                    <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                  </a>
-                ))}
+                {nota.archivos.map((a, i) => {
+                  const esImagen = a.tipo?.startsWith('image/');
+                  const contenido = (
+                    <>
+                      {esImagen ? <Image className="w-4 h-4 text-blue-500" /> : <FileText className="w-4 h-4 text-slate-500" />}
+                      <span className="flex-1 truncate">{a.nombre}</span>
+                      {esImagen ? <ZoomIn className="w-3 h-3 text-muted-foreground" /> : <ExternalLink className="w-3 h-3 text-muted-foreground" />}
+                    </>
+                  );
+                  // Imágenes: visor propio con ampliar/reducir y descarga. PDF: pestaña nueva
+                  // (un PDF no necesita zoom de imagen, el visor del navegador ya lo resuelve).
+                  return esImagen ? (
+                    <button key={i} type="button" onClick={() => setVisor({ url: a.url, nombre: a.nombre })}
+                      className="w-full flex items-center gap-2 p-2 rounded-lg border hover:bg-accent transition-colors text-sm text-left"
+                    >
+                      {contenido}
+                    </button>
+                  ) : (
+                    <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-lg border hover:bg-accent transition-colors text-sm"
+                    >
+                      {contenido}
+                    </a>
+                  );
+                })}
               </div>
             </div>
           )}
