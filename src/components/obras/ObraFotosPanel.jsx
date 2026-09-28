@@ -276,50 +276,29 @@ export default function ObraFotosPanel({ obra }) {
         </>
       )}
 
-      {/* Lightbox */}
+      {/* Visor compartido: zoom (rueda/pellizco/doble clic) + arrastre + descarga */}
       {selectedFoto && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-4"
-          onClick={() => setSelectedFoto(null)}
-        >
-          <div
-            className="bg-card rounded-2xl overflow-hidden max-w-xl w-full max-h-[90vh] flex flex-col"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-3 border-b border-border gap-2">
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm truncate">{selectedFoto.titulo || 'Sin título'}</h3>
-                {selectedFoto.operario_name && (
-                  <p className="text-xs text-muted-foreground">👤 {selectedFoto.operario_name}</p>
-                )}
-              </div>
-              <div className="flex gap-1 shrink-0">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(selectedFoto)}>
-                  <Download className="w-4 h-4" />
-                </Button>
-                {puedeGestionarFoto(selectedFoto, user) && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setBorrarFoto(selectedFoto)} title="Eliminar">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedFoto(null)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-            <img
-              src={selectedFoto.foto_url}
-              alt={selectedFoto.titulo}
-              className="w-full object-contain max-h-[55vh] bg-black"
-            />
-            <div className="p-3 text-xs space-y-1 text-muted-foreground">
-              {selectedFoto.fecha_foto && (
-                <p>📅 {format(new Date(selectedFoto.fecha_foto), 'dd MMMM yyyy', { locale: es })}</p>
-              )}
-              {selectedFoto.descripcion && <p className="text-foreground">{selectedFoto.descripcion}</p>}
-            </div>
-          </div>
-        </div>
+        <ImageLightbox
+          url={selectedFoto.foto_url}
+          nombre={selectedFoto.titulo || 'Sin título'}
+          subtitulo={[
+            selectedFoto.operario_name && `👤 ${selectedFoto.operario_name}`,
+            selectedFoto.fecha_foto && `📅 ${format(new Date(selectedFoto.fecha_foto), 'dd MMMM yyyy', { locale: es })}`,
+            selectedFoto.descripcion,
+          ].filter(Boolean).join(' · ')}
+          onClose={() => setSelectedFoto(null)}
+          extra={puedeGestionarFoto(selectedFoto, user) ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-red-400 hover:bg-white/10 hover:text-red-300"
+              title="Eliminar"
+              onClick={() => { setBorrarFoto(selectedFoto); setSelectedFoto(null); }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          ) : null}
+        />
       )}
 
       {borrarFoto && (
