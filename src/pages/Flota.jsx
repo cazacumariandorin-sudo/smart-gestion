@@ -122,10 +122,15 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin, puedeGestionar, onReportar
   const critico = alertas.some(d => d <= 5);
   const advertencia = !critico && alertas.length > 0;
 
+  const tieneDocs = Array.isArray(v.documentos) && v.documentos.length > 0;
+
   return (
     <Card className={`p-4 transition-all ${critico ? 'border-red-300 bg-red-50/30 dark:bg-red-950/20' : advertencia ? 'border-amber-300 bg-amber-50/30 dark:bg-amber-950/20' : ''}`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
+        <div
+          className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer select-none"
+          onClick={() => setExpanded(e => !e)}
+        >
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${critico ? 'bg-red-100 text-red-600' : advertencia ? 'bg-amber-100 text-amber-600' : 'bg-primary/10 text-primary'}`}>
             <Car className="w-5 h-5" />
           </div>
@@ -146,6 +151,12 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin, puedeGestionar, onReportar
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <Button size="icon" variant="ghost" className="relative h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+            title={tieneDocs ? `Ver documentación (${v.documentos.length})` : 'Subir documentación'}
+            onClick={() => setExpanded(e => !e)}>
+            <FileText className="w-4 h-4" />
+            {tieneDocs && <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 text-white text-[8px] flex items-center justify-center leading-none">{v.documentos.length}</span>}
+          </Button>
           <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" title="Registrar repostaje" onClick={() => onRepostaje(v)}>
             <Fuel className="w-4 h-4" />
           </Button>
@@ -185,14 +196,17 @@ function VehiculoCard({ v, onEdit, onDelete, isAdmin, puedeGestionar, onReportar
         </div>
       </div>
       {expanded && (
-        <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <DetailItem icon={<StatusIcon dias={itvDias} />} label="ITV" value={v.itv_fecha ? format(parseISO(v.itv_fecha), 'dd/MM/yyyy') : '—'} dias={itvDias} />
-          <DetailItem icon={<Wrench className="w-4 h-4 text-muted-foreground" />} label="Aceite" value={v.aceite_fecha ? format(parseISO(v.aceite_fecha), 'dd/MM/yyyy') : '—'} dias={aceiteDias} />
-          <DetailItem icon={<Wrench className="w-4 h-4 text-muted-foreground" />} label="Filtros" value={v.filtros_fecha ? format(parseISO(v.filtros_fecha), 'dd/MM/yyyy') : '—'} dias={filtrosDias} />
-          <DetailItem icon={<Wrench className="w-4 h-4 text-muted-foreground" />} label="A/C" value={v.ac_fecha ? format(parseISO(v.ac_fecha), 'dd/MM/yyyy') : '—'} dias={acDias} />
-          {v.km_actuales && <DetailItem icon={<Car className="w-4 h-4 text-muted-foreground" />} label="Km actuales" value={`${Number(v.km_actuales).toLocaleString('es-ES')} km`} />}
-          {v.neumaticos_km_cambio && <DetailItem icon={<Car className="w-4 h-4 text-muted-foreground" />} label="Km cambio neumáticos" value={`${Number(v.neumaticos_km_cambio).toLocaleString('es-ES')} km`} />}
-          {v.alertas_email && <div className="col-span-2 sm:col-span-4"><p className="text-xs text-muted-foreground">📧 Alertas: {v.alertas_email}</p></div>}
+        <div className="mt-4 pt-4 border-t border-border space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <DetailItem icon={<StatusIcon dias={itvDias} />} label="ITV" value={v.itv_fecha ? format(parseISO(v.itv_fecha), 'dd/MM/yyyy') : '—'} dias={itvDias} />
+            <DetailItem icon={<Wrench className="w-4 h-4 text-muted-foreground" />} label="Aceite" value={v.aceite_fecha ? format(parseISO(v.aceite_fecha), 'dd/MM/yyyy') : '—'} dias={aceiteDias} />
+            <DetailItem icon={<Wrench className="w-4 h-4 text-muted-foreground" />} label="Filtros" value={v.filtros_fecha ? format(parseISO(v.filtros_fecha), 'dd/MM/yyyy') : '—'} dias={filtrosDias} />
+            <DetailItem icon={<Wrench className="w-4 h-4 text-muted-foreground" />} label="A/C" value={v.ac_fecha ? format(parseISO(v.ac_fecha), 'dd/MM/yyyy') : '—'} dias={acDias} />
+            {v.km_actuales && <DetailItem icon={<Car className="w-4 h-4 text-muted-foreground" />} label="Km actuales" value={`${Number(v.km_actuales).toLocaleString('es-ES')} km`} />}
+            {v.neumaticos_km_cambio && <DetailItem icon={<Car className="w-4 h-4 text-muted-foreground" />} label="Km cambio neumáticos" value={`${Number(v.neumaticos_km_cambio).toLocaleString('es-ES')} km`} />}
+            {v.alertas_email && <div className="col-span-2 sm:col-span-4"><p className="text-xs text-muted-foreground">📧 Alertas: {v.alertas_email}</p></div>}
+          </div>
+          <VehiculoDocumentos vehiculo={v} puedeGestionar={puedeGestionar} />
         </div>
       )}
     </Card>
