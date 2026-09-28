@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Lock, CheckCircle2, XCircle, Edit2, Trash2, FileText, Image, ExternalLink, Loader2, Save, UserCheck, CreditCard, Send, RotateCcw } from 'lucide-react';
+import { Lock, CheckCircle2, XCircle, Edit2, Trash2, FileText, Image, ExternalLink, Loader2, Save, UserCheck, CreditCard, Send, RotateCcw, ZoomIn } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
+import ImageLightbox from '@/components/ui/ImageLightbox';
 import CambiarCicloGasto from '@/components/gastos/CambiarCicloGasto';
 import ConciliacionBadge from '@/components/conciliacion/ConciliacionBadge';
 import { toast } from 'sonner';
@@ -47,6 +48,7 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
   const { user } = useAuth();
   const { isAdmin: roleAdmin, isGerencia, isDirComercial, isAdministracion } = useUserRole();
   const [editando, setEditando] = useState(false);
+  const [visor, setVisor] = useState(null); // { url, nombre } — imagen abierta en el visor con zoom/descarga
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(false);
   // Estado para formulario de pago
