@@ -5,10 +5,11 @@ import PageHeader from '@/components/layout/PageHeader';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useUserRole } from '@/lib/useUserRole';
-import { Wallet, TrendingUp, FileText, Banknote, AlertTriangle, PieChart, RotateCcw, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Wallet, TrendingUp, FileText, Banknote, AlertTriangle, PieChart, RotateCcw, CreditCard, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
 import EconomicoObrasChart from '@/components/economico/EconomicoObrasChart';
 import ContabilidadAnalitica from '@/components/economico/ContabilidadAnalitica';
 import AdelantosPanel from '@/components/adelantos/AdelantosPanel';
+import DetectorDuplicadosPanel from '@/components/economico/DetectorDuplicadosPanel';
 
 function KpiCard({ icon: Icon, label, value, color, active, onClick }) {
   const interactive = !!onClick;
@@ -40,6 +41,7 @@ export default function EconomicoDashboard() {
   const { isAdmin, isGerencia, isDirComercial, isAdministracion } = useUserRole();
   const puedeAnalitica = isAdmin || isGerencia || isAdministracion;
   const puedeAdelantos = isAdmin || isGerencia || isDirComercial || isAdministracion;
+  const puedeDuplicados = isAdmin || isGerencia || isAdministracion;
   const [tab, setTab] = useState('resumen');
   const [filtroOrigen, setFiltroOrigen] = useState('todos');
 
@@ -288,10 +290,16 @@ export default function EconomicoDashboard() {
               <TabsTrigger value="analitica" className="gap-1.5">
                 <PieChart className="w-4 h-4" /> Contabilidad analítica
               </TabsTrigger>
+              {puedeDuplicados && (
+                <TabsTrigger value="duplicados" className="gap-1.5">
+                  <Copy className="w-4 h-4" /> Duplicados
+                </TabsTrigger>
+              )}
             </TabsList>
             <TabsContent value="resumen">{resumen}</TabsContent>
             {puedeAdelantos && <TabsContent value="adelantos"><AdelantosPanel /></TabsContent>}
             <TabsContent value="analitica"><ContabilidadAnalitica /></TabsContent>
+            {puedeDuplicados && <TabsContent value="duplicados"><DetectorDuplicadosPanel rango={{ inicio: `${mesFiltro}-01`, fin: `${mesFiltro}-31` }} /></TabsContent>}
           </Tabs>
         ) : (
           resumen

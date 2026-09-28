@@ -10,8 +10,9 @@ import FacturacionEmitidaPanel from '@/components/contabilidad/FacturacionEmitid
 import SubidaMasivaPanel from '@/components/contabilidad/SubidaMasivaPanel';
 import DescargaBloquePanel from '@/components/contabilidad/DescargaBloquePanel';
 import PrecisionCicloPanel from '@/components/contabilidad/PrecisionCicloPanel';
-import { ClipboardCheck, FileText, UploadCloud, Download, TrendingUp, SearchCheck, Receipt } from 'lucide-react';
+import { ClipboardCheck, FileText, UploadCloud, Download, TrendingUp, SearchCheck, Receipt, Copy } from 'lucide-react';
 import Retencion111Panel from '@/components/contabilidad/Retencion111Panel';
+import DetectorDuplicadosPanel from '@/components/economico/DetectorDuplicadosPanel';
 
 /**
  * Sección Contabilidad — antes "Conciliación", ahora con 4 pestañas.
@@ -97,6 +98,7 @@ export default function Contabilidad() {
           <TabsTrigger value="descarga" className="gap-1.5"><Download className="w-3.5 h-3.5" /> Descarga en bloque</TabsTrigger>
           {puedePrecision && <TabsTrigger value="precision" className="gap-1.5"><SearchCheck className="w-3.5 h-3.5" /> Precisión de ciclo</TabsTrigger>}
           <TabsTrigger value="retencion111" className="gap-1.5"><Receipt className="w-3.5 h-3.5" /> Retención 111</TabsTrigger>
+          {puedePrecision && <TabsTrigger value="duplicados" className="gap-1.5"><Copy className="w-3.5 h-3.5" /> Duplicados</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="conciliacion"><ConciliacionPanel rango={rango} periodoKey={periodoKey} /></TabsContent>
@@ -106,6 +108,7 @@ export default function Contabilidad() {
         <TabsContent value="descarga"><DescargaBloquePanel rango={rango} /></TabsContent>
         {puedePrecision && <TabsContent value="precision"><PrecisionCicloPanel rango={rango} /></TabsContent>}
         <TabsContent value="retencion111"><Retencion111Panel /></TabsContent>
+        {puedePrecision && <TabsContent value="duplicados"><DetectorDuplicadosPanel rango={rango} periodoKey={periodoKey} /></TabsContent>}
       </Tabs>
     </div>
   );
