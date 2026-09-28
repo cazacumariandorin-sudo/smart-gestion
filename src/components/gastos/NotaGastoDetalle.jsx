@@ -464,6 +464,15 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
           )}
         </DialogFooter>
       </DialogContent>
+
+      {visor && (
+        <ImageLightbox
+          url={visor.url}
+          nombre={visor.nombre}
+          subtitulo={nota?.nombre_comercio ? `${nota.nombre_comercio}${nota.importe != null ? ` · ${Number(nota.importe).toFixed(2)} €` : ''}` : undefined}
+          onClose={() => setVisor(null)}
+        />
+      )}
     </Dialog>
   );
 }
