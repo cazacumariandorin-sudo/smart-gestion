@@ -24,6 +24,7 @@ export default function ImageLightbox({ url, nombre, subtitulo, onClose, extra }
   const [zoom, setZoom] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const dragState = useRef(null);
+  const zonaRef = useRef(null);
 
   const clampZoom = (z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
@@ -37,15 +38,23 @@ export default function ImageLightbox({ url, nombre, subtitulo, onClose, extra }
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const handleWheel = (e) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 0.25 : -0.25;
-    setZoom(z => {
-      const nz = clampZoom(z + delta);
-      if (nz === 1) setPos({ x: 0, y: 0 });
-      return nz;
-    });
-  };
+  // Rueda del ratón: listener nativo NO pasivo (el onWheel de React es pasivo, y
+  // su preventDefault no evitaría el scroll de la página de fondo).
+  useEffect(() => {
+    const el = zonaRef.current;
+    if (!el) return undefined;
+    const onWheel = (e) => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.25 : -0.25;
+      setZoom(z => {
+        const nz = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z + delta));
+        if (nz === 1) setPos({ x: 0, y: 0 });
+        return nz;
+      });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [url]);
 
   const handleDoubleClick = () => {
     setZoom(z => (z > 1 ? 1 : 2.5));
@@ -76,7 +85,6 @@ export default function ImageLightbox({ url, nombre, subtitulo, onClose, extra }
   };
   const handleTouchMove = (e) => {
     if (e.touches.length === 2 && pinchState.current) {
-      e.preventDefault();
       const [a, b] = e.touches;
       const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
       const ratio = dist / pinchState.current.dist;
@@ -140,8 +148,8 @@ export default function ImageLightbox({ url, nombre, subtitulo, onClose, extra }
       </div>
 
       <div
+        ref={zonaRef}
         className="flex-1 overflow-hidden flex items-center justify-center select-none"
-        onWheel={handleWheel}
         onDoubleClick={handleDoubleClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
