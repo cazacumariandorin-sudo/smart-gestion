@@ -39,6 +39,43 @@
       "type": "string",
       "description": "Observaciones generales"
     },
+    "documentos": {
+      "type": "array",
+      "description": "Documentaci\u00f3n del veh\u00edculo (permiso de circulaci\u00f3n, ficha t\u00e9cnica, seguro, ITV...). Almacenados con URL P\u00daBLICA permanente para poder compartir con terceros (talleres, proveedores, autoridades) sin necesidad de login.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "permiso_circulacion",
+              "ficha_tecnica",
+              "seguro",
+              "itv",
+              "otro"
+            ],
+            "description": "Tipo de documento del veh\u00edculo"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL p\u00fablica permanente del archivo (UploadPublicFile). Cualquiera con el enlace puede acceder."
+          },
+          "nombre": {
+            "type": "string",
+            "description": "Nombre original del archivo"
+          },
+          "fecha_subida": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp de subida"
+          },
+          "subido_por": {
+            "type": "string",
+            "description": "Email de quien subi\u00f3 el documento"
+          }
+        }
+      }
+    },
     "itv_fecha": {
       "type": "string",
       "format": "date",
