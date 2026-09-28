@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Download, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -27,6 +28,14 @@ export default function ImageLightbox({ url, nombre, subtitulo, onClose, extra }
   const clampZoom = (z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
   const resetView = useCallback(() => { setZoom(1); setPos({ x: 0, y: 0 }); }, []);
+
+  // Cerrar con Escape (el visor puede abrirse encima de un Dialog modal, cuyo
+  // propio Escape se desactiva mientras el visor está abierto).
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const handleWheel = (e) => {
     e.preventDefault();
@@ -97,8 +106,11 @@ export default function ImageLightbox({ url, nombre, subtitulo, onClose, extra }
 
   if (!url) return null;
 
-  return (
-    <div className="fixed inset-0 z-[70] bg-black/90 flex flex-col" onClick={onClose}>
+  // Portal a document.body + pointer-events explícito: si el visor se abre desde
+  // un Dialog modal de Radix, el body queda con pointer-events:none y el visor,
+  // al estar fuera del contenido del Dialog, no recibiría clics ni rueda.
+  return createPortal(
+    <div className="fixed inset-0 z-[80] bg-black/90 flex flex-col" style={{ pointerEvents: 'auto' }} onClick={onClose}>
       <div className="flex items-center justify-between gap-2 p-3 shrink-0" onClick={(e) => e.stopPropagation()}>
         <div className="min-w-0 text-white">
           {nombre && <p className="text-sm font-medium truncate">{nombre}</p>}
@@ -150,8 +162,9 @@ export default function ImageLightbox({ url, nombre, subtitulo, onClose, extra }
         />
       </div>
       <p className="text-center text-white/40 text-[10px] pb-2 hidden sm:block">
-        Rueda del ratón o doble clic para ampliar · arrastra para mover
+        Rueda del ratón o doble clic para ampliar · arrastra para mover · Esc para cerrar
       </p>
-    </div>
+    </div>,
+    document.body
   );
 }
