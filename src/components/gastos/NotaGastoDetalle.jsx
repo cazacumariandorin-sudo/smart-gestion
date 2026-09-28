@@ -153,7 +153,14 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      {/* Mientras el visor de imagen está abierto, el Dialog no debe cerrarse por
+          interacciones "fuera" (el visor va en un portal a body, fuera del contenido
+          del Dialog) ni por Escape (lo gestiona el propio visor). */}
+      <DialogContent
+        className="max-w-lg max-h-[90vh] overflow-y-auto"
+        onInteractOutside={(e) => { if (visor) e.preventDefault(); }}
+        onEscapeKeyDown={(e) => { if (visor) e.preventDefault(); }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <span className="font-mono text-primary">{nota.numero_nota}</span>
