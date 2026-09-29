@@ -14,7 +14,6 @@ import { es } from 'date-fns/locale';
 import { useToast } from '@/components/ui/use-toast';
 import FotoGestionDialog, { puedeGestionarFoto } from '@/components/fotos/FotoGestionDialog';
 import ImageLightbox from '@/components/ui/ImageLightbox';
-import ImageLightbox from '@/components/ui/ImageLightbox';
 
 export default function ObraFotosPanel({ obra }) {
   const qc = useQueryClient();
