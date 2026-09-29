@@ -431,7 +431,7 @@ export default function InformesTab() {
         <QueryErrorFallback isLoading={fichajesLoading} error={fichajesError ? fichajesErrorObj : null} retryFn={refetchFichajes} />
       ) : (
         <>
-          {mode === 'calendario' && <CalendarioHorarioView fichajes={filtered} canSeeAll={canSeeAll} canForce={isAdmin || role === 'gerencia'} operarios={operarios} month={monthFilter} onMonthChange={setMonthFilter} />}
+          {mode === 'calendario' && <CalendarioHorarioView fichajes={filtered} canSeeAll={canSeeAll} canForce={isAdmin || role === 'gerencia' || role === 'administracion'} operarios={operarios} month={monthFilter} onMonthChange={setMonthFilter} />}
           {mode === 'tabla' && <TablaView fichajes={filtered} />}
           {mode === 'duplicados' && isAdmin && <DuplicadosView fichajes={fichajes} />}
         </>
