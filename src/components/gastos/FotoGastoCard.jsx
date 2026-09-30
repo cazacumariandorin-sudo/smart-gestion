@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ImageLightbox from '@/components/ui/ImageLightbox';
 
 const CAT_COLORS = {
   combustible: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300/30',
@@ -21,8 +23,14 @@ function esPdf(archivo) {
 }
 
 export default function FotoGastoCard({ foto }) {
+  const [verImagen, setVerImagen] = useState(false);
+  const esImg = esImagen(foto.archivo);
+
   const abrirUrl = () => {
-    if (foto.archivo?.url) window.open(foto.archivo.url, '_blank', 'noopener,noreferrer');
+    if (!foto.archivo?.url) return;
+    // Imágenes: visor propio con zoom/descarga. PDF y otros: pestaña nueva.
+    if (esImg) setVerImagen(true);
+    else window.open(foto.archivo.url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -75,5 +83,15 @@ export default function FotoGastoCard({ foto }) {
         )}
       </div>
     </button>
+
+    {verImagen && esImg && (
+      <ImageLightbox
+        url={foto.archivo.url}
+        nombre={foto.archivo?.nombre || foto.numero_nota}
+        subtitulo={[foto.nombre_comercio, foto.fecha_documento, foto.importe != null ? `${Number(foto.importe).toFixed(2)} €` : null].filter(Boolean).join(' · ')}
+        onClose={() => setVerImagen(false)}
+      />
+    )}
+    </>
   );
 }
