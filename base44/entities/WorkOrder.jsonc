@@ -102,6 +102,28 @@
       "description": "ID de la obra vinculada",
       "type": "string"
     },
+    "vehiculo_id": {
+      "description": "ID del veh\u00edculo utilizado para el desplazamiento (opcional)",
+      "type": "string"
+    },
+    "vehiculo_matricula": {
+      "description": "Matr\u00edcula del veh\u00edculo (desnormalizada, opcional)",
+      "type": "string"
+    },
+    "desplazamiento_tipo": {
+      "description": "Tipo de desplazamiento realizado (opcional)",
+      "enum": [
+        "desplazamiento",
+        "traslado",
+        "compras",
+        "otro"
+      ],
+      "type": "string"
+    },
+    "desplazamiento_valor": {
+      "description": "Valor del desplazamiento en km (opcional, informativo)",
+      "type": "number"
+    },
     "order_number": {
       "description": "N\u00famero de parte generado autom\u00e1ticamente",
       "type": "string"

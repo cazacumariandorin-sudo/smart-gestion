@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import WorkerFields from '@/components/workorders/WorkerFields';
 import MaterialFields from '@/components/workorders/MaterialFields';
 import SignatureCanvas from '@/components/workorders/SignatureCanvas';
+import DesplazamientoFields from '@/components/partes/DesplazamientoFields';
 import PageHeader from '@/components/layout/PageHeader';
 
 export default function CreateWorkOrder() {
@@ -36,6 +37,7 @@ export default function CreateWorkOrder() {
     client_id: '',
     client_name: '',
     project: '',
+    obra_id: '',
     description: '',
     status: 'pendiente',
     hora_inicio: '',
@@ -45,6 +47,10 @@ export default function CreateWorkOrder() {
     notes: '',
     firma_operario: '',
     firma_cliente: '',
+    vehiculo_id: '',
+    vehiculo_matricula: '',
+    desplazamiento_tipo: '',
+    desplazamiento_valor: '',
   });
 
   const [photos, setPhotos] = useState([]); // pending photos before order is created
@@ -85,9 +91,44 @@ export default function CreateWorkOrder() {
 
   const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
+  // Obras filtradas por el cliente seleccionado (vínculo cliente→obra)
+  const obrasFiltradas = form.client_id
+    ? obras.filter(o => o.client_id === form.client_id)
+    : obras;
+
   const handleClientChange = (clientId) => {
     const client = clients.find(c => c.id === clientId);
-    setForm(prev => ({ ...prev, client_id: clientId, client_name: client?.name || '' }));
+    setForm(prev => {
+      const siguiente = { ...prev, client_id: clientId, client_name: client?.name || '' };
+      // Si la obra seleccionada no pertenece al cliente, limpiarla (salvo texto manual)
+      const obraSigue = obras.find(o => o.id === prev.obra_id && o.client_id === clientId);
+      if (!obraSigue) {
+        siguiente.obra_id = '';
+        // Limpiar project si era una obra de la lista (no manual)
+        if (obras.find(o => o.name === prev.project)) siguiente.project = '';
+      }
+      return siguiente;
+    });
+  };
+
+  // Al seleccionar una obra, autocompletar cliente + obra_id (vínculo obra→cliente)
+  const handleObraChange = (obraName) => {
+    if (obraName === '__manual__') {
+      setForm(prev => ({ ...prev, obra_id: '', project: '__manual__' }));
+      return;
+    }
+    const obra = obras.find(o => o.name === obraName);
+    if (obra) {
+      setForm(prev => ({
+        ...prev,
+        obra_id: obra.id,
+        project: obra.name,
+        client_id: obra.client_id || prev.client_id,
+        client_name: obra.client_name || prev.client_name,
+      }));
+    } else {
+      setForm(prev => ({ ...prev, obra_id: '', project: obraName }));
+    }
   };
 
   const handlePhotoFiles = async (files) => {
@@ -135,15 +176,15 @@ export default function CreateWorkOrder() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Obra *</Label>
-              <Select value={form.project} onValueChange={v => updateField('project', v)}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar obra..." /></SelectTrigger>
+              <Label className="text-xs">Obra * {form.client_id && obrasFiltradas.length === 0 && <span className="text-muted-foreground">(sin obras para este cliente)</span>}</Label>
+              <Select value={form.project} onValueChange={handleObraChange}>
+                <SelectTrigger><SelectValue placeholder={form.client_id ? "Solo obras del cliente..." : "Seleccionar obra..."} /></SelectTrigger>
                 <SelectContent>
-                  {obras.map(o => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}
+                  {obrasFiltradas.map(o => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}
                   <SelectItem value="__manual__">— Escribir manualmente —</SelectItem>
                 </SelectContent>
               </Select>
-              {(form.project === '__manual__' || (!obras.find(o => o.name === form.project) && form.project)) && (
+              {(form.project === '__manual__' || (!obras.find(o => o.name === form.project) && form.project && form.project !== '__manual__')) && (
                 <Input placeholder="Nombre de la obra" value={form.project === '__manual__' ? '' : form.project} onChange={e => updateField('project', e.target.value)} className="mt-1" />
               )}
             </div>
@@ -174,6 +215,17 @@ export default function CreateWorkOrder() {
         <Card className="p-5">
           <MaterialFields materials={form.materials} onChange={(m) => updateField('materials', m)} />
         </Card>
+
+        {/* Vehículo / Desplazamiento (opcional) */}
+        <DesplazamientoFields
+          value={{
+            vehiculo_id: form.vehiculo_id,
+            vehiculo_matricula: form.vehiculo_matricula,
+            desplazamiento_tipo: form.desplazamiento_tipo,
+            desplazamiento_valor: form.desplazamiento_valor,
+          }}
+          onChange={(patch) => setForm(prev => ({ ...prev, ...patch }))}
+        />
 
         {/* Fotos */}
         <Card className="p-5 space-y-3">

@@ -21,6 +21,28 @@
       ],
       "default": "obra_civil"
     },
+    "vehiculo_id": {
+      "type": "string",
+      "description": "ID del veh\u00edculo utilizado para el desplazamiento (opcional)"
+    },
+    "vehiculo_matricula": {
+      "type": "string",
+      "description": "Matr\u00edcula del veh\u00edculo (desnormalizada, opcional)"
+    },
+    "desplazamiento_tipo": {
+      "type": "string",
+      "enum": [
+        "desplazamiento",
+        "traslado",
+        "compras",
+        "otro"
+      ],
+      "description": "Tipo de desplazamiento realizado (opcional)"
+    },
+    "desplazamiento_valor": {
+      "type": "number",
+      "description": "Valor del desplazamiento en km (opcional, informativo)"
+    },
     "fecha": {
       "type": "string",
       "format": "date",

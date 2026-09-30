@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import ParteFotosInput from './ParteFotosInput';
 import ParteTecnicosDropdown from './ParteTecnicosDropdown';
 import ParteTrabajosExtras from './ParteTrabajosExtras';
 import SignatureCanvas from '@/components/workorders/SignatureCanvas';
+import DesplazamientoFields from '@/components/partes/DesplazamientoFields';
 
 export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
   const { user } = useAuth();
@@ -32,6 +33,19 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
   const [tecnicosAdicionales, setTecnicosAdicionales] = useState(editing?.tecnicos_adicionales || []);
   const [firmaUrl, setFirmaUrl] = useState(editing?.firma_url || '');
   const [trabajosExtras, setTrabajosExtras] = useState([]);
+  const [clienteFiltro, setClienteFiltro] = useState('');
+  const [desplazamiento, setDesplazamiento] = useState({
+    vehiculo_id: editing?.vehiculo_id || '',
+    vehiculo_matricula: editing?.vehiculo_matricula || '',
+    desplazamiento_tipo: editing?.desplazamiento_tipo || '',
+    desplazamiento_valor: editing?.desplazamiento_valor ?? '',
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients-parte-diario'],
+    queryFn: () => base44.entities.Client.list('name', 200),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const claveMensual = () => {
     const d = new Date(`${fecha}T00:00:00`);
@@ -106,6 +120,10 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
       trabajos_pendientes: trabajosPendientes,
       fotos,
       firma_url: firmaUrl,
+      vehiculo_id: desplazamiento.vehiculo_id || undefined,
+      vehiculo_matricula: desplazamiento.vehiculo_matricula || undefined,
+      desplazamiento_tipo: desplazamiento.desplazamiento_tipo || undefined,
+      desplazamiento_valor: desplazamiento.desplazamiento_valor === '' ? undefined : Number(desplazamiento.desplazamiento_valor),
       ...(firmaNueva ? { firmado_por: user?.email, fecha_firma: new Date().toISOString() } : {}),
     };
   };
@@ -163,8 +181,27 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
         <SimantecLogo size={36} />
       </div>
       <div className="space-y-1.5">
+        <Label className="text-xs">Cliente <span className="text-muted-foreground font-normal">(filtra las obras)</span></Label>
+        <select
+          value={clienteFiltro}
+          onChange={e => setClienteFiltro(e.target.value)}
+          disabled={!!editing}
+          className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm min-h-[44px] disabled:opacity-50"
+        >
+          <option value="">Todos los clientes</option>
+          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </div>
+
+      <div className="space-y-1.5">
         <Label className="text-xs">Obra *</Label>
-        <ObraSelectorObras value={obra} onChange={setObra} disabled={!!editing} />
+        <ObraSelectorObras
+          value={obra}
+          onChange={setObra}
+          disabled={!!editing}
+          clientFilter={clienteFiltro || undefined}
+          onClientDetected={({ client_id }) => { if (client_id) setClienteFiltro(client_id); }}
+        />
       </div>
 
       <div className="space-y-1.5">
@@ -220,6 +257,8 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
           <VoiceInputButton onResult={t => setTrabajosPendientes(p => (p ? p + ' ' : '') + t)} />
         </div>
       </div>
+
+      <DesplazamientoFields value={desplazamiento} onChange={setDesplazamiento} />
 
       <div className="space-y-1.5">
         <Label className="text-xs">Fotos</Label>

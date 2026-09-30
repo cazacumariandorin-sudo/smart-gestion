@@ -14,8 +14,8 @@ const FIXED = [
   { id: '__otro', name: '📍 Otro', tipo: 'otro' },
 ];
 
-export default function ObraSelectorObras({ value, onChange, placeholder = 'Seleccionar obra...', triggerClassName }) {
-  const { data: obrasCiviles = [] } = useQuery({
+export default function ObraSelectorObras({ value, onChange, placeholder = 'Seleccionar obra...', triggerClassName, clientFilter, onClientDetected }) {
+  const { data: obrasCivilesRaw = [] } = useQuery({
     queryKey: ['obras-selector'],
     queryFn: async () => {
       const all = await base44.entities.Obra.list('name', 300);
@@ -23,7 +23,7 @@ export default function ObraSelectorObras({ value, onChange, placeholder = 'Sele
     },
     staleTime: 5 * 60 * 1000,
   });
-  const { data: obrasSolar = [] } = useQuery({
+  const { data: obrasSolarRaw = [] } = useQuery({
     queryKey: ['solar-obras-selector'],
     queryFn: async () => {
       const all = await base44.entities.SolarObra.list('name', 300);
@@ -32,12 +32,28 @@ export default function ObraSelectorObras({ value, onChange, placeholder = 'Sele
     staleTime: 5 * 60 * 1000,
   });
 
+  // Filtrado por cliente cuando se proporciona clientFilter (vínculo cliente↔obra)
+  const obrasCiviles = clientFilter
+    ? obrasCivilesRaw.filter(o => o.client_id === clientFilter)
+    : obrasCivilesRaw;
+  const obrasSolar = clientFilter
+    ? obrasSolarRaw.filter(o => o.client_id === clientFilter)
+    : obrasSolarRaw;
+
   const handleChange = (val) => {
     if (!val) { onChange({ obra_id: null, obra_name: '', obra_tipo: 'otro', project: '' }); return; }
     const civil = obrasCiviles.find(o => o.id === val);
-    if (civil) { onChange({ obra_id: civil.id, obra_name: civil.name, obra_tipo: 'obra_civil', project: civil.name }); return; }
+    if (civil) {
+      onClientDetected?.({ client_id: civil.client_id || '', client_name: civil.client_name || '' });
+      onChange({ obra_id: civil.id, obra_name: civil.name, obra_tipo: 'obra_civil', project: civil.name });
+      return;
+    }
     const solar = obrasSolar.find(o => o.id === val);
-    if (solar) { onChange({ obra_id: solar.id, obra_name: solar.name, obra_tipo: 'solar', project: solar.name }); return; }
+    if (solar) {
+      onClientDetected?.({ client_id: solar.client_id || '', client_name: solar.client_name || '' });
+      onChange({ obra_id: solar.id, obra_name: solar.name, obra_tipo: 'solar', project: solar.name });
+      return;
+    }
     const fixed = FIXED.find(f => f.id === val);
     if (fixed) { onChange({ obra_id: null, obra_name: fixed.name.replace(/^[^ ]+ /, ''), obra_tipo: fixed.tipo, project: fixed.name.replace(/^[^ ]+ /, '') }); return; }
   };
