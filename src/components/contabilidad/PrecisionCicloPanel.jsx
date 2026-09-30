@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Loader2, SearchCheck, AlertTriangle, CheckCircle2, RefreshCw, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import ReconstruirMultiTicketTool from '@/components/contabilidad/ReconstruirMultiTicketTool';
 
 const MESES = [
   ['1', 'Enero'], ['2', 'Febrero'], ['3', 'Marzo'], ['4', 'Abril'], ['5', 'Mayo'], ['6', 'Junio'],
@@ -132,6 +133,7 @@ export default function PrecisionCicloPanel({ rango: rangoProp }) {
 
   return (
     <div className="space-y-4">
+      <ReconstruirMultiTicketTool />
       <Card className="p-4 space-y-3">
         <div className="flex items-center gap-2 text-sm">
           <SearchCheck className="w-4 h-4 text-primary" />
