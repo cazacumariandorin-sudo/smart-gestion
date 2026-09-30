@@ -34,6 +34,7 @@ export default function FotoGastoCard({ foto }) {
   };
 
   return (
+    <>
     <button
       type="button"
       onClick={abrirUrl}
