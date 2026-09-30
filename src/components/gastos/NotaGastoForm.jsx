@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useAuth } from '@/lib/AuthContext';
 import { useUserRole } from '@/lib/useUserRole';
@@ -53,6 +53,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [precisaPrecision, setPrecisaPrecision] = useState(false);
   const [precisionMotivo, setPrecisionMotivo] = useState('');
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { isAdmin: isRoleAdmin, isGerencia, isAdministracion } = useUserRole();
   const puedeCorporativo = isRoleAdmin || isGerencia || isAdministracion;
 
@@ -175,6 +176,73 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     }
   };
 
+  const handleDoneMulti = async (registros) => {
+    // registros = array de { datos, precisa_precision, archivos, ocr_raw, _es_multi, _idx_en_foto, _total_en_foto }
+    if (!registros || registros.length === 0) return;
+    const hoy = format(new Date(), 'yyyy-MM-dd');
+    let creados = 0;
+    for (const r of registros) {
+      try {
+        const { numero_nota, numero_secuencia } = await generarNumeroNota();
+        const datos = r.datos || {};
+        const catNorm = (datos.categoria || '').toLowerCase().trim();
+        const catValida = ['combustible', 'peaje', 'parking', 'comida', 'material', 'otros'].includes(catNorm) ? catNorm : 'otros';
+        const cicloFields = resolverCicloParaGuardar();
+        await base44.entities.RegistroGasto.create({
+          numero_nota,
+          numero_secuencia,
+          origen_pago: form.origen_pago || 'medios_propios',
+          operario_id: operarioEfectivo?.id,
+          operario_name: operarioEfectivo?.name || operarioEfectivo?.full_name || '',
+          operario_email: operarioEfectivo?.user_email || user?.email || '',
+          categoria: catValida,
+          concepto: datos.concepto || `Ticket ${(r._idx_en_foto ?? 0) + 1} de ${r._total_en_foto ?? registros.length} (misma foto)`,
+          importe: parseFloat(datos.importe) || 0,
+          nombre_comercio: datos.nombre_comercio || '',
+          nif_comercio: datos.nif_comercio || '',
+          fecha_documento: datos.fecha_documento || hoy,
+          hora_documento: datos.hora_documento || '',
+          fecha_creacion_real: hoy,
+          ciclo_mes: cicloFields.ciclo_mes,
+          es_gasto_tardio: cicloFields.es_gasto_tardio,
+          justificacion_tardia: cicloFields.justificacion_tardia,
+          estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador',
+          archivos: r.archivos || [],
+          ocr_raw: r.ocr_raw || '',
+          ocr_status: r.ocr_raw ? 'procesado' : 'sin_ocr',
+          codigo_validacion_fiscal: datos.codigo_validacion_fiscal || null,
+          numero_factura: datos.numero_factura || null,
+          localidad: datos.localidad || null,
+          forma_pago_documento: datos.forma_pago_documento || null,
+          obra_id: form.obra_id || null,
+          obra_name: form.obra_name || null,
+          obra_tipo: form.obra_tipo || null,
+          ia_no_disponible: false,
+          precisa_precision: !!r.precisa_precision,
+          precision_motivo: r.precision_motivo || '',
+          notas: `Ticket ${(r._idx_en_foto ?? 0) + 1} de ${r._total_en_foto ?? registros.length} en la misma fotografía`,
+        });
+        creados++;
+      } catch (e) {
+        console.error('Error creando registro multi-ticket:', e);
+      }
+    }
+    toast.success(
+      creados === registros.length
+        ? `${creados} registros creados desde la misma foto`
+        : `${creados} de ${registros.length} registros creados (hubo errores)`,
+      {
+        description: registros.slice(0, 3).map((r, i) =>
+          `Ticket ${i + 1}: ${r.datos?.nombre_comercio || '—'} ${r.datos?.importe != null ? Number(r.datos.importe).toFixed(2) + '€' : ''}`
+        ).join(' · '),
+        duration: 7000,
+      }
+    );
+    queryClient.invalidateQueries({ queryKey: ['notas_gasto'] });
+    onCreated?.({ operario_id: operarioEfectivo?.id });
+    onClose();
+  };
+
   const checkDuplicado = () => {
     if (form.codigo_validacion_fiscal) { const d = notasExistentes.find(n => n.codigo_validacion_fiscal === form.codigo_validacion_fiscal && n.estado !== 'rechazada'); if (d) return { ...d, esDuplicadoFiscal: true }; }
     if (!form.fecha_documento || !form.nombre_comercio || !form.importe) return null;
@@ -232,7 +300,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
           </DialogHeader>
 
           <div className={paso === 'captura' ? '' : 'hidden'}>
-            <TicketCapture onDone={handleDone} onSkip={() => setPaso('formulario')} />
+            <TicketCapture onDone={handleDone} onDoneMulti={handleDoneMulti} onSkip={() => setPaso('formulario')} />
           </div>
 
           {paso === 'formulario' && (

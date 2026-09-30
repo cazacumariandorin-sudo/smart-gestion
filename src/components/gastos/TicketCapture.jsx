@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Camera, Upload, SkipForward, Loader2, CheckCircle2, AlertCircle, Plus, Trash2, FileText, Layers, RefreshCw } from 'lucide-react';
-import { extraerDatosGasto, evaluarPrecision } from '@/lib/ocrGastos';
+import { Input } from '@/components/ui/input';
+import { Camera, Upload, SkipForward, Loader2, CheckCircle2, AlertCircle, Plus, Trash2, FileText, Layers, RefreshCw, SplitSquareHorizontal, AlertTriangle, Edit3 } from 'lucide-react';
+import { extraerDatosGastoMulti, procesarResultadoMulti, evaluarPrecision } from '@/lib/ocrGastos';
 import DocumentEdgeCrop from '@/components/gastos/DocumentEdgeCrop';
 
 async function comprimirImagen(file) {
@@ -32,12 +33,11 @@ async function comprimirImagen(file) {
   });
 }
 
-// Fusiona los datos OCR de varias páginas. Para cada campo toma el primer
-// valor no vacío; para importe toma el máximo (el total suele ser el mayor).
 function fusionarDatos(paginas) {
   const merged = {
     fecha_documento: '', importe: null, nombre_comercio: '', nif_comercio: '',
     numero_factura: '', codigo_validacion_fiscal: '', categoria: '', concepto: '', confianza: 0,
+    hora_documento: '', localidad: '', forma_pago_documento: '',
   };
   let importes = [];
   let maxConfianza = 0;
@@ -51,6 +51,9 @@ function fusionarDatos(paginas) {
     if (!merged.codigo_validacion_fiscal && d.codigo_validacion_fiscal) merged.codigo_validacion_fiscal = d.codigo_validacion_fiscal;
     if (!merged.categoria && d.categoria) merged.categoria = d.categoria;
     if (!merged.concepto && d.concepto) merged.concepto = d.concepto;
+    if (!merged.hora_documento && d.hora_documento) merged.hora_documento = d.hora_documento;
+    if (!merged.localidad && d.localidad) merged.localidad = d.localidad;
+    if (!merged.forma_pago_documento && d.forma_pago_documento) merged.forma_pago_documento = d.forma_pago_documento;
     if (d.importe != null && !isNaN(Number(d.importe))) importes.push(Number(d.importe));
     if (typeof d.confianza === 'number' && d.confianza > maxConfianza) maxConfianza = d.confianza;
   }
@@ -59,25 +62,156 @@ function fusionarDatos(paginas) {
   return merged;
 }
 
-export default function TicketCapture({ onDone, onSkip }) {
-  const [paginas, setPaginas] = useState([]); // { file, preview, file_url, ocr_datos, ocr_raw, estado: 'subiendo'|'ocr'|'ok'|'error', errorMsg }
-  const [procesandoFinal, setProcesandoFinal] = useState(false);
-  const [pendienteEditar, setPendienteEditar] = useState(null); // File imagen pendiente de enderezado
+const CATEGORIAS = ['combustible', 'peaje', 'parking', 'comida', 'material', 'otros'];
 
-  // Las imágenes pasan por el enderezado híbrido antes de procesarse;
-  // los PDF y otros formatos van directos al flujo normal.
+function MultiTicketDialog({ registros, filePreview, onConfirmar, onCancelar }) {
+  const [items, setItems] = useState(registros.map((r, i) => ({ ...r, datos: { ...r.datos }, activo: true, _key: i })));
+  const [editando, setEditando] = useState(null);
+
+  const updateDatos = (idx, campo, valor) => {
+    setItems(prev => prev.map((it, i) => i === idx ? { ...it, datos: { ...it.datos, [campo]: valor } } : it));
+  };
+  const toggleActivo = (idx) => {
+    setItems(prev => prev.map((it, i) => i === idx ? { ...it, activo: !it.activo } : it));
+  };
+
+  const activosCount = items.filter(it => it.activo).length;
+  const importeTotal = items.filter(it => it.activo && it.datos.importe != null).reduce((a, it) => a + Number(it.datos.importe || 0), 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-background rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="flex items-start gap-3 p-5 border-b">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <SplitSquareHorizontal className="w-5 h-5 text-amber-700" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-base">{registros.length} tickets detectados en la misma foto</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Se creará <strong>{activosCount} registro{activosCount !== 1 ? 's' : ''}</strong> separado{activosCount !== 1 ? 's' : ''}. Revisa y confirma.
+            </p>
+          </div>
+        </div>
+
+        {registros[0]?.advertencias?.length > 0 && (
+          <div className="mx-4 mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex gap-2 items-start">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
+            <span className="text-xs text-amber-700">{registros[0].advertencias[0]}</span>
+          </div>
+        )}
+
+        {filePreview && (
+          <div className="mx-4 mt-3 flex items-center gap-2 p-2 bg-muted/40 rounded-lg">
+            <img src={filePreview} alt="foto original" className="w-12 h-12 object-cover rounded-lg border shrink-0" />
+            <p className="text-xs text-muted-foreground">Foto original compartida — todos los registros quedan vinculados a esta imagen.</p>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {items.map((it, idx) => (
+            <div key={it._key} className={`border rounded-xl transition-all ${it.activo ? 'border-primary/30 bg-card shadow-sm' : 'border-muted bg-muted/30 opacity-50'}`}>
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-inherit">
+                <input type="checkbox" checked={it.activo} onChange={() => toggleActivo(idx)} className="w-4 h-4 rounded accent-primary" />
+                <span className="text-xs font-bold text-muted-foreground flex-1">Ticket {idx + 1} de {items.length}</span>
+                {it.precisa_precision && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-300">Revisar</span>
+                )}
+                <button onClick={() => setEditando(editando === idx ? null : idx)} className="p-1 rounded hover:bg-muted transition-colors">
+                  <Edit3 className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+              </div>
+              <div className="px-3 py-2 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium truncate flex-1">{it.datos.nombre_comercio || <span className="text-muted-foreground italic">Sin comercio</span>}</span>
+                  <span className={`text-base font-bold font-mono shrink-0 ${it.datos.importe != null ? 'text-foreground' : 'text-destructive'}`}>
+                    {it.datos.importe != null ? `${Number(it.datos.importe).toFixed(2)} €` : '? €'}
+                  </span>
+                </div>
+                <div className="flex gap-3 text-xs text-muted-foreground">
+                  <span>{it.datos.fecha_documento || 'Sin fecha'}</span>
+                  {it.datos.hora_documento && <span>· {it.datos.hora_documento}</span>}
+                  {it.datos.localidad && <span>· {it.datos.localidad}</span>}
+                </div>
+                {it.datos.concepto && <p className="text-xs text-muted-foreground truncate">{it.datos.concepto}</p>}
+                {it.precisa_precision && it.precision_motivo && (
+                  <p className="text-[10px] text-amber-600 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 shrink-0" />{it.precision_motivo}
+                  </p>
+                )}
+              </div>
+              {editando === idx && (
+                <div className="px-3 pb-3 border-t border-inherit pt-2 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground">Comercio</label>
+                      <Input value={it.datos.nombre_comercio || ''} onChange={e => updateDatos(idx, 'nombre_comercio', e.target.value)} className="h-7 text-xs mt-0.5" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground">Importe (€)</label>
+                      <Input type="number" step="0.01" min="0" value={it.datos.importe ?? ''} onChange={e => updateDatos(idx, 'importe', parseFloat(e.target.value) || null)} className="h-7 text-xs mt-0.5 font-mono" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground">Fecha</label>
+                      <Input type="date" value={it.datos.fecha_documento || ''} onChange={e => updateDatos(idx, 'fecha_documento', e.target.value)} className="h-7 text-xs mt-0.5" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-medium text-muted-foreground">Categoría</label>
+                      <select value={it.datos.categoria || ''} onChange={e => updateDatos(idx, 'categoria', e.target.value)} className="w-full h-7 text-xs mt-0.5 border rounded-md px-1.5 bg-background">
+                        <option value="">— elegir —</option>
+                        {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-[10px] font-medium text-muted-foreground">Concepto</label>
+                      <Input value={it.datos.concepto || ''} onChange={e => updateDatos(idx, 'concepto', e.target.value)} className="h-7 text-xs mt-0.5" placeholder="Descripción del gasto" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="p-4 border-t space-y-3">
+          <div className="flex justify-between text-sm font-medium">
+            <span className="text-muted-foreground">{activosCount} registro{activosCount !== 1 ? 's' : ''} a crear</span>
+            <span className="font-bold font-mono">Total: {importeTotal.toFixed(2)} €</span>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1 text-sm" onClick={onCancelar}>Cancelar</Button>
+            <Button className="flex-1 text-sm gap-1.5 bg-primary" disabled={activosCount === 0} onClick={() => onConfirmar(items.filter(it => it.activo))}>
+              <CheckCircle2 className="w-4 h-4" />
+              Crear {activosCount} registro{activosCount !== 1 ? 's' : ''}
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center">Los registros marcados como "Revisar" irán al panel de precisión.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
+  const [paginas, setPaginas] = useState([]);
+  const [pendienteEditar, setPendienteEditar] = useState(null);
+  const [multiTicketPendiente, setMultiTicketPendiente] = useState(null);
+
   const nuevaCaptura = (f) => {
     if (!f) return;
     if (f.type.startsWith('image/')) setPendienteEditar(f);
     else procesarPagina(f);
   };
 
-  const procesarPagina = async (file) => {
+  // Procesa una página: sube + OCR multi-ticket. Si existingIdx, actualiza in situ (reintento).
+  const procesarPagina = async (file, existingIdx = null) => {
     if (!file) return;
-    const idx = paginas.length;
+    const idx = existingIdx != null ? existingIdx : paginas.length;
     const preview = URL.createObjectURL(file);
-    const nueva = { file, preview, file_url: null, ocr_datos: null, ocr_raw: '', estado: 'subiendo', errorMsg: '' };
-    setPaginas(prev => [...prev, nueva]);
+    if (existingIdx == null) {
+      setPaginas(prev => [...prev, { file, preview, file_url: null, ocr_datos: null, ocr_raw: '', estado: 'subiendo', errorMsg: '', tipo_caso: null, n_documentos: 0 }]);
+    } else {
+      setPaginas(prev => prev.map((p, i) => i === idx ? { ...p, estado: 'subiendo', errorMsg: '', file_url: null, ocr_datos: null, ocr_raw: '', tipo_caso: null, preview } : p));
+    }
 
     try {
       const esImagen = file.type.startsWith('image/');
@@ -97,16 +231,43 @@ export default function TicketCapture({ onDone, onSkip }) {
         subidaFile = new File([u8], file.name.replace(/\.(jpe?g|png|gif|webp|pdf)$/i, '') + '_comp.' + ext, { type: mime });
       }
 
-      // Marcar como subiendo
       setPaginas(prev => prev.map((p, i) => i === idx ? { ...p, estado: 'ocr' } : p));
       const subida = await base44.integrations.Core.UploadFile({ file: subidaFile });
       const file_url = subida?.file_url;
       if (!file_url) throw new Error('No se pudo subir el archivo');
 
-      const { datos, error } = await extraerDatosGasto(file_url);
-      const textoOcr = (datos && !error) ? JSON.stringify(datos, null, 2) : '';
+      // OCR multi-ticket
+      const { resultado, error } = await extraerDatosGastoMulti(file_url);
+      if (error || !resultado) throw new Error(error || 'Sin respuesta OCR');
+
+      const { tipo_caso, n_documentos, documentos = [] } = resultado;
+
+      // CASO MULTI-TICKET: diálogo de confirmación
+      if (tipo_caso === 'multi_ticket' && n_documentos > 1) {
+        const registrosProcesados = procesarResultadoMulti(resultado, file_url);
+        setPaginas(prev => prev.map((p, i) => i === idx ? {
+          ...p, file_url, estado: 'multi', tipo_caso: 'multi_ticket', n_documentos,
+          ocr_datos: documentos[0] || null, ocr_raw: JSON.stringify(resultado, null, 2),
+        } : p));
+        setMultiTicketPendiente({ registros: registrosProcesados, fileUrl: file_url, preview, paginaIdx: idx });
+        return;
+      }
+
+      // CASO INVÁLIDO / REVERSO
+      if (tipo_caso === 'imagen_invalida' || tipo_caso === 'reverso_sin_importe' || n_documentos === 0) {
+        setPaginas(prev => prev.map((p, i) => i === idx ? {
+          ...p, file_url, estado: 'ok', tipo_caso, n_documentos: 0, ocr_datos: null,
+          ocr_raw: tipo_caso,
+          errorMsg: tipo_caso === 'imagen_invalida' ? 'Imagen inválida o en blanco' : 'Parece el reverso del ticket',
+        } : p));
+        return;
+      }
+
+      // CASO NORMAL: 1 documento (uno_solo o ticket_parcial)
+      const datos = documentos[0] || null;
       setPaginas(prev => prev.map((p, i) => i === idx ? {
-        ...p, file_url, estado: 'ok', ocr_datos: datos || null, ocr_raw: textoOcr, errorMsg: error || '',
+        ...p, file_url, estado: 'ok', tipo_caso, n_documentos,
+        ocr_datos: datos, ocr_raw: datos ? JSON.stringify(datos, null, 2) : '', errorMsg: '',
       } : p));
     } catch (err) {
       setPaginas(prev => prev.map((p, i) => i === idx ? { ...p, estado: 'error', errorMsg: String(err?.message || '').slice(0, 120) } : p));
@@ -125,37 +286,51 @@ export default function TicketCapture({ onDone, onSkip }) {
   const reintentar = (idx) => {
     const pag = paginas[idx];
     if (!pag?.file) return;
-    setPaginas(prev => prev.map((p, i) => i === idx ? { ...p, estado: 'subiendo', errorMsg: '', file_url: null, ocr_datos: null, ocr_raw: '' } : p));
-    procesarPaginaIdx(idx, pag.file);
+    procesarPagina(pag.file, idx);
   };
 
-  const procesarPaginaIdx = async (idx, file) => {
-    try {
-      const esImagen = file.type.startsWith('image/');
-      const base64 = esImagen ? await comprimirImagen(file) : await new Promise((res, rej) => { const r = new FileReader(); r.readAsDataURL(file); r.onload = () => res(r.result); r.onerror = rej; });
-      if (!base64) throw new Error('No se pudo leer el archivo');
-      let subidaFile = file;
-      if (esImagen && base64.startsWith('data:')) {
-        const parts = base64.split(','); const mime = (parts[0].match(/:(.*?);/)?.[1]) || file.type;
-        const binStr = atob(parts[1]); const u8 = new Uint8Array(binStr.length);
-        for (let i = 0; i < binStr.length; i++) u8[i] = binStr.charCodeAt(i);
-        const ext = (mime.split('/')[1] || 'jpeg').split('+')[0];
-        subidaFile = new File([u8], file.name.replace(/\.(jpe?g|png|gif|webp|pdf)$/i, '') + '_comp.' + ext, { type: mime });
-      }
-      setPaginas(prev => prev.map((p, i) => i === idx ? { ...p, estado: 'ocr' } : p));
-      const subida = await base44.integrations.Core.UploadFile({ file: subidaFile });
-      const file_url = subida?.file_url;
-      if (!file_url) throw new Error('No se pudo subir');
-      const { datos, error } = await extraerDatosGasto(file_url);
-      const textoOcr = (datos && !error) ? JSON.stringify(datos, null, 2) : '';
-      setPaginas(prev => prev.map((p, i) => i === idx ? { ...p, file_url, estado: 'ok', ocr_datos: datos || null, ocr_raw: textoOcr, errorMsg: error || '' } : p));
-    } catch (err) {
-      setPaginas(prev => prev.map((p, i) => i === idx ? { ...p, estado: 'error', errorMsg: String(err?.message || '').slice(0, 120) } : p));
+  const confirmarMultiTicket = useCallback((registrosConfirmados) => {
+    if (!multiTicketPendiente) return;
+    const { fileUrl, preview, paginaIdx } = multiTicketPendiente;
+    setPaginas(prev => prev.map((p, i) => i === paginaIdx ? { ...p, estado: 'ok_multi', n_confirmados: registrosConfirmados.length } : p));
+    setMultiTicketPendiente(null);
+    const registrosParaCrear = registrosConfirmados.map((r) => ({
+      datos: r.datos || {},
+      precisa_precision: !!r.precisa_precision,
+      precision_motivo: r.precision_motivo || '',
+      archivos: [{ url: fileUrl, nombre: 'ticket_multi.jpg', tipo: 'image/jpeg', storage: 'cdn' }],
+      preview,
+      ocr_raw: (r.datos || {}).ocr_raw || JSON.stringify(r.datos || {}, null, 2),
+      ocr_ok: true,
+      error_ocr: null,
+      _es_multi: true,
+      _idx_en_foto: r._idx ?? 0,
+      _total_en_foto: r._total_en_foto ?? registrosConfirmados.length,
+    }));
+    if (onDoneMulti) {
+      onDoneMulti(registrosParaCrear);
+    } else if (registrosParaCrear.length === 1) {
+      onDone?.(registrosParaCrear[0]);
+    } else {
+      // Sin manejador multi: fusionar y enviar como uno solo
+      onDone?.(registrosParaCrear[0]);
     }
-  };
+  }, [multiTicketPendiente, onDone, onDoneMulti]);
 
-  const todasOk = paginas.length > 0 && paginas.every(p => p.estado === 'ok');
-  const algunaProcesando = paginas.some(p => p.estado === 'subiendo' || p.estado === 'ocr');
+  const cancelarMultiTicket = useCallback(() => {
+    if (!multiTicketPendiente) return;
+    const { registros, paginaIdx } = multiTicketPendiente;
+    setMultiTicketPendiente(null);
+    const datosFusionados = {
+      nombre_comercio: registros[0]?.datos?.nombre_comercio || '',
+      fecha_documento: registros[0]?.datos?.fecha_documento || '',
+      categoria: registros[0]?.datos?.categoria || '',
+      importe: registros.reduce((a, r) => a + Number(r.datos?.importe || 0), 0),
+      concepto: `${registros.length} tickets agrupados`,
+      confianza: 0.5,
+    };
+    setPaginas(prev => prev.map((p, i) => i === paginaIdx ? { ...p, estado: 'ok', ocr_datos: datosFusionados } : p));
+  }, [multiTicketPendiente]);
 
   const continuar = () => {
     const okPaginas = paginas.filter(p => p.estado === 'ok' && p.file_url);
@@ -175,8 +350,9 @@ export default function TicketCapture({ onDone, onSkip }) {
     });
   };
 
-  // Vista de enderezado/recorte del comprobante (híbrido: auto-detección +
-  // esquinas manuales). Solo para imágenes; los PDF van directos al flujo.
+  const todasOk = paginas.length > 0 && paginas.every(p => p.estado === 'ok' || p.estado === 'ok_multi');
+  const algunaProcesando = paginas.some(p => p.estado === 'subiendo' || p.estado === 'ocr' || p.estado === 'multi');
+
   if (pendienteEditar) {
     return (
       <div className="space-y-4 py-2">
@@ -193,42 +369,41 @@ export default function TicketCapture({ onDone, onSkip }) {
     );
   }
 
-  // No fiarse de heurísticas de dispositivo (p. ej. 'ontouchstart' in window):
-  // hay portátiles táctiles sin cámara trasera real y de escritorio sin pantalla
-  // táctil pero con webcam. Se muestran SIEMPRE las dos opciones — el atributo
-  // capture="environment" se ignora sin error en los navegadores/SO que no lo
-  // soportan y cae al selector de archivo normal, así nadie se queda sin vía
-  // para adjuntar el ticket.
-
   return (
     <div className="space-y-4 py-2">
+      {multiTicketPendiente && (
+        <MultiTicketDialog
+          registros={multiTicketPendiente.registros}
+          filePreview={multiTicketPendiente.preview}
+          onConfirmar={confirmarMultiTicket}
+          onCancelar={cancelarMultiTicket}
+        />
+      )}
+
       {paginas.length === 0 ? (
         <>
           <p className="text-sm text-center text-muted-foreground">Fotografía o sube el ticket / factura</p>
-          <p className="text-[11px] text-center text-muted-foreground opacity-70">Si tiene varias páginas, añade una por cada página</p>
+          <p className="text-[11px] text-center text-muted-foreground opacity-70">Si tiene varias páginas, añade una por cada página. Si hay varios tickets en la misma foto, se detectarán automáticamente.</p>
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors">
               <Camera className="w-8 h-8 text-primary" />
               <span className="text-sm font-medium text-primary">Hacer foto</span>
-              <input type="file" accept="image/*" capture="environment" className="sr-only"
-                onChange={e => { const f = e.target.files?.[0]; if (f) nuevaCaptura(f); e.target.value = '' }} />
+              <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) nuevaCaptura(f); e.target.value = ''; }} />
             </label>
             <label className="flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-dashed border-border cursor-pointer hover:bg-accent/20 transition-colors">
               <Upload className="w-8 h-8 text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground">Subir archivo</span>
-              <input type="file" accept="image/*,.pdf" className="sr-only"
-                onChange={e => { const f = e.target.files?.[0]; if (f) nuevaCaptura(f); e.target.value = '' }} />
+              <input type="file" accept="image/*,.pdf" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) nuevaCaptura(f); e.target.value = ''; }} />
             </label>
           </div>
         </>
       ) : (
         <>
-          {/* Lista de páginas */}
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
               <Layers className="w-3.5 h-3.5" />
               {paginas.length} página{paginas.length !== 1 ? 's' : ''} capturada{paginas.length !== 1 ? 's' : ''}
-              {algunProcesando(paginas) && <span className="text-primary font-normal">· procesando…</span>}
+              {algunaProcesando && <span className="text-primary font-normal">· procesando…</span>}
             </div>
             {paginas.map((p, idx) => (
               <div key={idx} className="flex items-center gap-3 p-2.5 rounded-xl border bg-card">
@@ -244,10 +419,12 @@ export default function TicketCapture({ onDone, onSkip }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium truncate">{p.file?.name || `Página ${idx + 1}`}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     {p.estado === 'subiendo' && <><Loader2 className="w-3 h-3 animate-spin text-primary" /><span className="text-[10px] text-muted-foreground">Subiendo…</span></>}
-                    {p.estado === 'ocr' && <><Loader2 className="w-3 h-3 animate-spin text-primary" /><span className="text-[10px] text-muted-foreground">OCR…</span></>}
-                    {p.estado === 'ok' && <><CheckCircle2 className="w-3 h-3 text-emerald-600" /><span className="text-[10px] text-emerald-700">{p.ocr_datos ? 'Datos extraídos' : 'Sin texto legible'}</span></>}
+                    {p.estado === 'ocr' && <><Loader2 className="w-3 h-3 animate-spin text-primary" /><span className="text-[10px] text-muted-foreground">Analizando tickets…</span></>}
+                    {p.estado === 'multi' && <><SplitSquareHorizontal className="w-3 h-3 text-amber-600 animate-pulse" /><span className="text-[10px] text-amber-700 font-medium">{p.n_documentos} tickets detectados — confirmando…</span></>}
+                    {p.estado === 'ok_multi' && <><CheckCircle2 className="w-3 h-3 text-emerald-600" /><span className="text-[10px] text-emerald-700">{p.n_confirmados} registros separados listos</span></>}
+                    {p.estado === 'ok' && <><CheckCircle2 className="w-3 h-3 text-emerald-600" /><span className="text-[10px] text-emerald-700">{p.ocr_datos ? (p.tipo_caso === 'ticket_parcial' ? 'Ticket incompleto — revisa' : 'Datos extraídos') : 'Sin texto legible'}</span>{p.ocr_datos?.importe != null && <span className="text-[10px] font-bold font-mono text-foreground ml-1">{Number(p.ocr_datos.importe).toFixed(2)} €</span>}</>}
                     {p.estado === 'error' && <><AlertCircle className="w-3 h-3 text-amber-500" /><span className="text-[10px] text-amber-600">Error — reintentar</span></>}
                   </div>
                 </div>
@@ -263,35 +440,30 @@ export default function TicketCapture({ onDone, onSkip }) {
             ))}
           </div>
 
-          {/* Añadir otra página */}
           <div className="flex gap-2">
             <label className="flex-1 flex items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors text-sm font-medium text-primary">
               <Camera className="w-4 h-4" /> Otra foto
-              <input type="file" accept="image/*" capture="environment" className="sr-only"
-                onChange={e => { const f = e.target.files?.[0]; if (f) nuevaCaptura(f); e.target.value = '' }} />
+              <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) nuevaCaptura(f); e.target.value = ''; }} />
             </label>
             <label className="flex-1 flex items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-dashed border-border cursor-pointer hover:bg-accent/20 transition-colors text-sm font-medium text-muted-foreground">
               <Upload className="w-4 h-4" /> Subir
-              <input type="file" accept="image/*,.pdf" className="sr-only"
-                onChange={e => { const f = e.target.files?.[0]; if (f) nuevaCaptura(f); e.target.value = '' }} />
+              <input type="file" accept="image/*,.pdf" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) nuevaCaptura(f); e.target.value = ''; }} />
             </label>
           </div>
 
-          {/* Resumen OCR si hay datos */}
           {todasOk && paginas.some(p => p.ocr_datos) && (
             <div className="flex items-start gap-2 p-2.5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-              <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                Datos fusionados de {paginas.filter(p => p.ocr_datos).length} página{paginas.filter(p => p.ocr_datos).length !== 1 ? 's' : ''}. Revisa el formulario antes de guardar.
-              </p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-300">Datos de {paginas.filter(p => p.ocr_datos).length} página{paginas.filter(p => p.ocr_datos).length !== 1 ? 's' : ''} extraídos. Revisa el formulario antes de guardar.</p>
             </div>
           )}
 
-          {/* Botón continuar */}
-          <Button onClick={continuar} disabled={algunaProcesando || !paginas.length} className="w-full gap-2">
-            {algunaProcesando ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            {algunaProcesando ? 'Procesando páginas…' : `Continuar con ${paginas.length} página${paginas.length !== 1 ? 's' : ''}`}
-          </Button>
+          {paginas.some(p => p.estado === 'ok') && (
+            <Button onClick={continuar} disabled={algunaProcesando || !paginas.some(p => p.estado === 'ok')} className="w-full gap-2">
+              {algunaProcesando ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              {algunaProcesando ? 'Procesando páginas…' : `Continuar con ${paginas.filter(p => p.estado === 'ok').length} página${paginas.filter(p => p.estado === 'ok').length !== 1 ? 's' : ''}`}
+            </Button>
+          )}
         </>
       )}
 
@@ -303,5 +475,5 @@ export default function TicketCapture({ onDone, onSkip }) {
 }
 
 function algunProcesando(paginas) {
-  return paginas.some(p => p.estado === 'subiendo' || p.estado === 'ocr');
+  return paginas.some(p => p.estado === 'subiendo' || p.estado === 'ocr' || p.estado === 'multi');
 }
