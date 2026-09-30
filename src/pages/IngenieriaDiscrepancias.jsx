@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useSearchParams, Link } from 'react-router-dom';
 import { AlertTriangle, Check, X, FileSearch } from 'lucide-react';
 import { DISCREPANCIA_TIPO_LABEL, SEVERIDAD_STYLE, ESTADO_DISCREP_STYLE, moneda } from '@/lib/ingenieriaUtils';
+import { useIngenieriaProyectos } from '@/components/ingenieria/ProyectoSelector';
 import PageHeader from '@/components/layout/PageHeader';
 
 const TIPOS = Object.keys(DISCREPANCIA_TIPO_LABEL);
@@ -18,10 +19,7 @@ export default function IngenieriaDiscrepancias() {
   const [filtroEstado, setFiltroEstado] = useState('todas');
   const [resolviendo, setResolviendo] = useState(null);
 
-  const { data: obras = [] } = useQuery({
-    queryKey: ['ing-obras'],
-    queryFn: async () => base44.entities.Obra.filter({ es_proyecto_ingenieria: true }, '-updated_date', 100),
-  });
+  const { obras = [] } = useIngenieriaProyectos();
 
   const { data: discreps = [], isLoading } = useQuery({
     queryKey: ['ing-discreps-all', obraId],
@@ -58,7 +56,10 @@ export default function IngenieriaDiscrepancias() {
           {!obraId && (
             <select value="" onChange={e => e.target.value && setParams({ obra_id: e.target.value })} className="h-9 rounded-md border border-input bg-background px-2 text-sm min-h-[36px]">
               <option value="">Todos los proyectos</option>
-              {obras.map(o => <option key={o.id} value={o.id}>{o.name?.trim()}</option>)}
+              {obras.map(o => {
+                const etiqueta = o._tipo === 'solar' ? '☀ Solar' : '🏗 Civil';
+                return <option key={`${o._sourceEntity}:${o.id}`} value={o.id}>{etiqueta} · {o.name?.trim()}</option>;
+              })}
             </select>
           )}
           {obraId && <Link to="/ingenieria/discrepancias" className="text-xs text-primary underline">Quitar filtro de proyecto</Link>}
