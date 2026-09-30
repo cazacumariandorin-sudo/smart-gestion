@@ -5,6 +5,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import FotoGastoCard from '@/components/gastos/FotoGastoCard';
 import { Receipt, Camera } from 'lucide-react';
+import DescargarFotosCicloButton from '@/components/gastos/DescargarFotosCicloButton';
 
 const CATEGORIAS = ['material', 'combustible', 'peaje', 'parking', 'comida', 'otros'];
 const MES_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -139,14 +140,26 @@ export default function FotosContabilidad() {
                   <span className="text-xs font-semibold ml-auto">{importeCiclo.toFixed(2)} €</span>
                 </div>
 
-                {Array.from(opMap.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([opName, fotosOp]) => (
+                {Array.from(opMap.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([opName, fotosOp]) => {
+                  const opId = fotosOp[0]?.operario_id;
+                  return (
                   <div key={opName} className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground px-1">{opName}</p>
+                    <div className="flex items-center justify-between gap-2 px-1">
+                      <p className="text-xs font-semibold text-muted-foreground">{opName}</p>
+                      <DescargarFotosCicloButton
+                        cicloMes={ciclo}
+                        operarioId={opId}
+                        size="sm"
+                        variant="outline"
+                        label="Descargar fotos"
+                      />
+                    </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                       {fotosOp.map(f => <FotoGastoCard key={f.key} foto={f} />)}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import AdelantoParcialDialog from '@/components/gastos/AdelantoParcialDialog';
 import CicloDetalleDialog from '@/components/gastos/CicloDetalleDialog';
+import DescargarFotosCicloButton from '@/components/gastos/DescargarFotosCicloButton';
 import { aplicarConciliacionCierre } from '@/lib/adelantosConciliacion';
 import ReabrirCicloDialog from '@/components/gastos/ReabrirCicloDialog';
 
@@ -157,6 +158,13 @@ export default function CicloCard({ nota, onExported }) {
               <Eye className="w-4 h-4" />
               <span className="hidden sm:inline">Ver detalle</span>
             </Button>
+            <DescargarFotosCicloButton
+              cicloMes={nota.ciclo_mes}
+              operarioId={nota.operario_id}
+              size="sm"
+              variant="outline"
+              label="Fotos"
+            />
             {yaExportada && (
               <Button variant="outline" size="sm" className="gap-1.5" onClick={abrirExport}>
                 <ExternalLink className="w-4 h-4" /> Abrir PDF
