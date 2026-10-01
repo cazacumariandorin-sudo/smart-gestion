@@ -51,6 +51,7 @@ export default function CreateWorkOrder() {
     vehiculo_matricula: '',
     desplazamiento_tipo: '',
     desplazamiento_valor: '',
+    desplazamiento_importe_eur: '',
   });
 
   const [photos, setPhotos] = useState([]); // pending photos before order is created

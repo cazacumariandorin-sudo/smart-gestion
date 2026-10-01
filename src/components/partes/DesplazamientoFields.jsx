@@ -4,7 +4,7 @@
  * No bloquea el guardado: si está vacío, el parte se crea igual.
  *
  * Props:
- *   value: { vehiculo_id, vehiculo_matricula, desplazamiento_tipo, desplazamiento_valor }
+ *   value: { vehiculo_id, vehiculo_matricula, desplazamiento_tipo, desplazamiento_valor, desplazamiento_importe_eur }
  *   onChange: (partial) => void
  */
 import { useQuery } from '@tanstack/react-query';
@@ -13,7 +13,7 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Car } from 'lucide-react';
+import { Car, Euro } from 'lucide-react';
 
 const TIPOS = [
   { value: 'desplazamiento', label: 'Desplazamiento a obra' },
@@ -21,6 +21,9 @@ const TIPOS = [
   { value: 'compras', label: 'Compra de materiales' },
   { value: 'otro', label: 'Otro' },
 ];
+
+// Tarifa de la empresa por km desplazado (€). Edítala si la política cambia.
+export const KM_RATE_EUR = 0.30;
 
 export default function DesplazamientoFields({ value = {}, onChange }) {
   const { data: vehiculos = [] } = useQuery({
@@ -36,6 +39,15 @@ export default function DesplazamientoFields({ value = {}, onChange }) {
     const v = vehiculos.find(x => x.id === vehiculoId);
     set({ vehiculo_id: vehiculoId, vehiculo_matricula: v?.matricula || '' });
   };
+
+  const handleKm = (raw) => {
+    const km = raw === '' ? '' : Number(raw);
+    const importe = (km === '' || isNaN(km) || km <= 0) ? '' : Math.round(km * KM_RATE_EUR * 100) / 100;
+    set({ desplazamiento_valor: km, desplazamiento_importe_eur: importe });
+  };
+
+  const importeEur = value.desplazamiento_importe_eur;
+  const mostrarImporte = importeEur !== '' && importeEur !== undefined && importeEur !== null && !isNaN(importeEur);
 
   return (
     <Card className="p-5 space-y-4">
@@ -75,8 +87,15 @@ export default function DesplazamientoFields({ value = {}, onChange }) {
             inputMode="decimal"
             placeholder="0"
             value={value.desplazamiento_valor ?? ''}
-            onChange={e => set({ desplazamiento_valor: e.target.value === '' ? '' : Number(e.target.value) })}
+            onChange={e => handleKm(e.target.value)}
           />
+          {mostrarImporte && (
+            <div className="flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 rounded-md px-2 py-1.5">
+              <Euro className="w-3.5 h-3.5" />
+              <span>{Number(importeEur).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</span>
+              <span className="text-muted-foreground font-normal">· {KM_RATE_EUR.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €/km</span>
+            </div>
+          )}
         </div>
       </div>
     </Card>

@@ -39,6 +39,7 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
     vehiculo_matricula: editing?.vehiculo_matricula || '',
     desplazamiento_tipo: editing?.desplazamiento_tipo || '',
     desplazamiento_valor: editing?.desplazamiento_valor ?? '',
+    desplazamiento_importe_eur: editing?.desplazamiento_importe_eur ?? '',
   });
 
   const { data: clients = [] } = useQuery({
@@ -124,6 +125,7 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
       vehiculo_matricula: desplazamiento.vehiculo_matricula || undefined,
       desplazamiento_tipo: desplazamiento.desplazamiento_tipo || undefined,
       desplazamiento_valor: desplazamiento.desplazamiento_valor === '' ? undefined : Number(desplazamiento.desplazamiento_valor),
+      desplazamiento_importe_eur: desplazamiento.desplazamiento_importe_eur === '' || desplazamiento.desplazamiento_importe_eur === undefined ? undefined : Number(desplazamiento.desplazamiento_importe_eur),
       ...(firmaNueva ? { firmado_por: user?.email, fecha_firma: new Date().toISOString() } : {}),
     };
   };
