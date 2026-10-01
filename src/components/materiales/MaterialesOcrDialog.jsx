@@ -53,7 +53,7 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
     setPaso('ocr');
     setOcrError('');
     try {
-      const subida = await base44.integrations.Core.UploadFile({ file });
+      const subida = await base44.integrations.Core.UploadPublicFile({ file });
       const file_url = subida?.file_url;
       if (!file_url) throw new Error('No se pudo subir el archivo');
       setScanResult(prev => ({ ...prev, file_url }));
@@ -124,7 +124,7 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
       const f = e.target.files?.[0];
       if (!f) { setPaso('captura'); return; }
       try {
-        const subida = await base44.integrations.Core.UploadFile({ file: f });
+        const subida = await base44.integrations.Core.UploadPublicFile({ file: f });
         const file_url = subida?.file_url;
         if (!file_url) throw new Error('No se pudo subir el archivo');
         setScanResult({ file: f, preview: URL.createObjectURL(f), file_url });
