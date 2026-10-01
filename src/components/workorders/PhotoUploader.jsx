@@ -114,25 +114,11 @@ export default function PhotoUploader({ workOrderId, clientId, clientName, proje
 
       {/* Lightbox */}
       {lightbox && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setLightbox(null)}
-        >
-          <button className="absolute top-4 right-4 text-white" onClick={() => setLightbox(null)}>
-            <X className="w-6 h-6" />
-          </button>
-          <img
-            src={lightbox.photo_url}
-            alt={lightbox.caption}
-            className="max-w-full max-h-full rounded-lg object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-          {lightbox.caption && (
-            <p className="absolute bottom-6 text-white text-sm bg-black/50 px-3 py-1.5 rounded-full">
-              {lightbox.caption}
-            </p>
-          )}
-        </div>
+        <ImageLightbox
+          url={lightbox.photo_url}
+          nombre={lightbox.caption || 'Foto'}
+          onClose={() => setLightbox(null)}
+        />
       )}
     </div>
   );
