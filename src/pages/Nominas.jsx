@@ -17,7 +17,7 @@ export default function Nominas() {
 
   const handleResultado = (res) => {
     setResultado(res);
-    if (!res.error) setTab('resultado');
+    setTab('resultado');
   };
 
   return (

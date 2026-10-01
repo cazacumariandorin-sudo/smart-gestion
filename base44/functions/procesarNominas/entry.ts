@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { PDFDocument, StandardFonts, rgb } from 'npm:pdf-lib@1.17.1';
 
 const ROOT_FOLDER_ID = '1yJzcwSzo2acrswgmtKLbNTKVd7WxUtF1';
@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
       try {
         const pdfBase64Clean = pdf_base64.includes(',') ? pdf_base64.split(',')[1] : pdf_base64;
         const pdfBytes = Uint8Array.from(atob(pdfBase64Clean), c => c.charCodeAt(0));
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const upload = await base44.integrations.Core.UploadFile({ file: blob as any });
+        const pdfFile = new File([pdfBytes], 'nominas.pdf', { type: 'application/pdf' });
+        const upload = await base44.integrations.Core.UploadPublicFile({ file: pdfFile });
         pdf_url = upload.file_url;
       } catch (e) {
         return Response.json({ error: 'No se pudo subir el PDF para análisis IA', detalle: e.message }, { status: 500 });
@@ -336,11 +336,9 @@ async function subirPDF(accessToken: string | null, useGdrive: boolean, base64Da
       console.warn('GDrive error, usando local:', e.message);
     }
   }
-  const bytes = Uint8Array.from(atob(base64Clean), c => c.charCodeAt(0));
-  const blob = new Blob([bytes], { type: 'application/pdf' });
-  const formData = new FormData();
-  formData.append('file', blob, fileName);
-  const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file: formData.get('file') });
+  const localBytes = Uint8Array.from(atob(base64Clean), c => c.charCodeAt(0));
+  const localFile = new File([localBytes], fileName, { type: 'application/pdf' });
+  const uploadRes = await base44.asServiceRole.integrations.Core.UploadPublicFile({ file: localFile });
   return { file_url: uploadRes.file_url, drive_file_id: '' };
 }
 
