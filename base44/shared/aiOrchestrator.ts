@@ -49,6 +49,15 @@ async function primaryInvokeLLM(base44, params: OCRParams): Promise<OCRResult> {
     }
     // Si se pidió schema, Base44 devuelve objeto; si no, devuelve string.
     if (params.response_json_schema) {
+      // Fallo "silencioso": InvokeLLM no lanza excepción pero el propio modelo
+      // avisa en ocr_raw que no pudo leer/procesar el archivo (p.ej. PDFs
+      // escaneados o imágenes). Sin esta detección se queda como "éxito" con
+      // listas vacías y nunca se activa el respaldo Anthropic.
+      const raw = String(result?.ocr_raw || '').toLowerCase();
+      const noLegible = /no pudo ser procesad|no es legible|no puedo (procesar|leer)|no se pudo (procesar|leer)|unable to process|cannot process|could not (read|process)/.test(raw);
+      if (noLegible) {
+        return { success: false, modelo: null, fallback: false, error: 'InvokeLLM: archivo no legible (respuesta vacía del modelo)' };
+      }
       return { success: true, datos: result, ocr_raw: result?.ocr_raw, modelo: 'base44', fallback: false };
     }
     const texto = typeof result === 'string' ? result : JSON.stringify(result);

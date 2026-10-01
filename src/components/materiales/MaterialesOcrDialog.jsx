@@ -11,6 +11,7 @@ import DocumentScanner from './DocumentScanner';
 import LineasMaterialesEditor from './LineasMaterialesEditor';
 import NotasGastosSourceDialog from './NotasGastosSourceDialog';
 import { ocrDocumentoMateriales, guardarMaterialesOcr } from '@/lib/materialesOcrClient';
+import { limpiarPdfSiNecesario } from '@/lib/limpiarPdf';
 import { toast } from 'sonner';
 
 const TIPOS_DOC = [
@@ -121,9 +122,10 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
     input.type = 'file';
     input.accept = 'image/*,.pdf';
     input.onchange = async (e) => {
-      const f = e.target.files?.[0];
+      let f = e.target.files?.[0];
       if (!f) { setPaso('captura'); return; }
       try {
+        f = await limpiarPdfSiNecesario(f);
         const subida = await base44.integrations.Core.UploadPublicFile({ file: f });
         const file_url = subida?.file_url;
         if (!file_url) throw new Error('No se pudo subir el archivo');

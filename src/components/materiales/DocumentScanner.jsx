@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, Upload, RefreshCw, Check, Loader2, ScanLine } from 'lucide-react';
+import { limpiarPdfSiNecesario } from '@/lib/limpiarPdf';
 
 /**
  * DocumentScanner — captura/recorte tipo CamScanner (cliente, canvas):
@@ -135,7 +136,8 @@ export default function DocumentScanner({ onDone, onSkip }) {
     if (!file) return;
     // Los PDF no pueden pasar por el canvas/recorte (solo imágenes). Se suben directo al OCR.
     if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
-      onDone({ file, preview: null });
+      const limpio = await limpiarPdfSiNecesario(file);
+      onDone({ file: limpio, preview: null });
       return;
     }
     setEstado('processing');
