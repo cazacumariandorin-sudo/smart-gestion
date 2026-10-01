@@ -133,6 +133,11 @@ export default function DocumentScanner({ onDone, onSkip }) {
 
   const handleFile = async (file) => {
     if (!file) return;
+    // Los PDF no pueden pasar por el canvas/recorte (solo imágenes). Se suben directo al OCR.
+    if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
+      onDone({ file, preview: null });
+      return;
+    }
     setEstado('processing');
     try {
       const loaded = await loadImgFromFile(file);
@@ -275,9 +280,9 @@ export default function DocumentScanner({ onDone, onSkip }) {
           <Upload className="w-10 h-10 text-primary" />
           <div className="text-center">
             <p className="text-sm font-medium text-primary">Selecciona o arrastra el documento</p>
-            <p className="text-xs text-muted-foreground mt-0.5">JPEG, PNG</p>
+            <p className="text-xs text-muted-foreground mt-0.5">JPEG, PNG, PDF</p>
           </div>
-          <input type="file" accept="image/*" className="sr-only"
+          <input type="file" accept="image/*,.pdf" className="sr-only"
             onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }} />
         </label>
       )}
