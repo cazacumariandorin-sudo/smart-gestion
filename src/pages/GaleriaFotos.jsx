@@ -21,6 +21,7 @@ import { useAuth } from '@/lib/AuthContext';
 import ClientObraTree from '@/components/documentos/ClientObraTree';
 import { useObrasActivasMap, esItemVisible } from '@/hooks/useObrasActivasMap';
 import ObraPickerInput from '@/components/fotos/ObraPickerInput';
+import ImageLightbox from '@/components/ui/ImageLightbox';
 
 const CATEGORIAS = ['parte_trabajo', 'obra', 'nota_gastos', 'presupuesto', 'averia'];
 const CAT_LABELS = {

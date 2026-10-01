@@ -43,6 +43,10 @@
       "type": "number",
       "description": "Valor del desplazamiento en km (opcional, informativo)"
     },
+    "desplazamiento_importe_eur": {
+      "type": "number",
+      "description": "Importe econ\u00f3mico del desplazamiento en euros (opcional). Calculado autom\u00e1ticamente como km \u00d7 tarifa de la empresa al registrar el parte."
+    },
     "fecha": {
       "type": "string",
       "format": "date",
