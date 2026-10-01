@@ -78,21 +78,13 @@ const RESPONSE_SCHEMA = {
   required: ['lineas'],
 };
 
-/** OCR de un documento de materiales vía InvokeLLM (plan Starter). */
+/** OCR de un documento de materiales vía función backend (orquestador primario + respaldo Anthropic). */
 export async function ocrDocumentoMateriales(file_url, file_tipo = 'image/jpeg') {
-  // InvokeLLM con file_urls (visión) — soporta imágenes y PDFs.
-  const res = await base44.integrations.Core.InvokeLLM({
-    prompt: PROMPT_OCR,
-    file_urls: [file_url],
-    response_json_schema: RESPONSE_SCHEMA,
-    model: 'gemini_3_flash', // modelo con visión + rápido; respeta límites del plan
-  });
-  // InvokeLLM con response_json_schema devuelve ya un objeto
-  const datos = res && typeof res === 'object' && !res.error ? res : null;
-  if (!datos || !Array.isArray(datos.lineas)) {
-    throw new Error('OCR no devolvió líneas válidas');
+  const res = await base44.functions.invoke('procesarFacturaMateriales', { file_url, file_tipo });
+  if (!res?.success || !res?.datos || !Array.isArray(res.datos.lineas)) {
+    throw new Error(res?.error || 'OCR no devolvió líneas válidas');
   }
-  return { datos, modelo: 'gemini_3_flash (InvokeLLM)', fallback: false };
+  return { datos: res.datos, modelo: res.modelo || 'backend', fallback: !!res.fallback };
 }
 
 /** Normaliza nombre: UPPERCASE, sin tildes ni signos. */
