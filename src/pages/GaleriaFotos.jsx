@@ -363,41 +363,29 @@ export default function GaleriaFotos() {
 
       {/* Modal detalle */}
       {selectedFoto && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setSelectedFoto(null)}>
-          <div className="bg-card rounded-2xl overflow-hidden max-w-2xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <div>
-                <h3 className="font-semibold">{selectedFoto.titulo || 'Sin título'}</h3>
-                <p className="text-xs text-muted-foreground">{selectedFoto.proyecto_name}</p>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" onClick={() => handleDescargar(selectedFoto)} disabled={descargando} title="Descargar">
-                  {descargando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+        <ImageLightbox
+          url={selectedFoto.foto_url}
+          nombre={selectedFoto.titulo || 'Sin título'}
+          subtitulo={[
+            selectedFoto.proyecto_name,
+            selectedFoto.operario_name && `👤 ${selectedFoto.operario_name}`,
+            selectedFoto.fecha_foto && `📅 ${format(new Date(selectedFoto.fecha_foto), 'dd MMMM yyyy', { locale: es })}`,
+            selectedFoto.descripcion,
+          ].filter(Boolean).join(' · ')}
+          onClose={() => setSelectedFoto(null)}
+          extra={(
+            <>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/10" onClick={() => handleCompartir(selectedFoto)} title="Compartir">
+                <Share2 className="w-4 h-4" />
+              </Button>
+              {puedeGestionarFoto(selectedFoto, user) && (
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:bg-white/10 hover:text-red-300" onClick={() => { setBorrarFoto(selectedFoto); setSelectedFoto(null); }} title="Eliminar">
+                  <Trash2 className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => handleCompartir(selectedFoto)} title="Compartir">
-                  <Share2 className="w-4 h-4" />
-                </Button>
-                {puedeGestionarFoto(selectedFoto, user) && (
-                  <Button variant="ghost" size="icon" onClick={() => setBorrarFoto(selectedFoto)} title="Eliminar" className="text-destructive hover:text-destructive">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
-                <Button variant="ghost" size="icon" onClick={() => setSelectedFoto(null)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <img src={selectedFoto.foto_url} alt={selectedFoto.titulo} className="w-full h-full object-contain max-h-[60vh]" />
-            </div>
-            <div className="p-4 text-sm space-y-1">
-              {selectedFoto.operario_name && <p className="text-muted-foreground">👤 {selectedFoto.operario_name}</p>}
-              {selectedFoto.fecha_foto && <p className="text-muted-foreground">📅 {format(new Date(selectedFoto.fecha_foto), 'dd MMMM yyyy', { locale: es })}</p>}
-              {selectedFoto.descripcion && <p>{selectedFoto.descripcion}</p>}
-              {selectedFoto.categoria && <Badge className={cn('text-xs', CAT_COLORS[selectedFoto.categoria])}>{CAT_LABELS[selectedFoto.categoria]}</Badge>}
-            </div>
-          </div>
-        </div>
+              )}
+            </>
+          )}
+        />
       )}
 
       {/* Upload Dialog */}
