@@ -121,23 +121,11 @@ export default function PedidoDocumentoOriginal({ fileUrl, items = [], showPrice
 
       {/* Zoom overlay */}
       {zoom && isImage && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-          onClick={() => setZoom(false)}
-        >
-          <img
-            src={fileUrl}
-            alt="Documento original ampliado"
-            className="max-w-full max-h-full object-contain rounded-lg"
-          />
-          <button
-            type="button"
-            onClick={() => setZoom(false)}
-            className="absolute top-4 right-4 bg-background/90 border border-border rounded-lg px-3 py-1.5 text-sm font-medium shadow"
-          >
-            Cerrar
-          </button>
-        </div>
+        <ImageLightbox
+          url={fileUrl}
+          nombre="Documento original del pedido"
+          onClose={() => setZoom(false)}
+        />
       )}
     </div>
   );
