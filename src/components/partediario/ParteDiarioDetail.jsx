@@ -295,12 +295,7 @@ export default function ParteDiarioDetail({ parte, onClose }) {
         </div>
 
         {viewerImg && (
-          <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4" onClick={() => setViewerImg(null)}>
-            <img src={viewerImg} alt="" className="max-w-full max-h-full object-contain" />
-            <button className="absolute top-4 right-4 text-white p-2" aria-label="Cerrar">
-              <X className="w-6 h-6" />
-            </button>
-          </div>
+          <ImageLightbox url={viewerImg} nombre="Foto del parte" onClose={() => setViewerImg(null)} />
         )}
       </DialogContent>
     </Dialog>
