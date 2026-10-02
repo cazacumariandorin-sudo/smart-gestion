@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileText, Eye, Maximize2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ImageLightbox from '@/components/ui/ImageLightbox';
 
 /**
  * Panel "Documento original vs. líneas extraídas".
