@@ -5,6 +5,7 @@ import { subirImagen } from '@/lib/uploadPhoto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Camera, Upload, Trash2, Loader2, ImageIcon, X } from 'lucide-react';
+import ImageLightbox from '@/components/ui/ImageLightbox';
 
 export default function PhotoUploader({ workOrderId, clientId, clientName, project, date }) {
   const queryClient = useQueryClient();
