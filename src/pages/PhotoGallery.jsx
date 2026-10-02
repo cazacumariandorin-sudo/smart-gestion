@@ -157,30 +157,16 @@ export default function PhotoGallery() {
       </div>
       {/* Lightbox */}
       {lightbox && (
-        <div
-          className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4"
-          onClick={() => setLightbox(null)}
-        >
-          <button className="absolute top-4 right-4 text-white z-10" onClick={() => setLightbox(null)}>
-            <X className="w-7 h-7" />
-          </button>
-          <img
-            src={lightbox.photo_url}
-            alt={lightbox.caption}
-            className="max-w-full max-h-[80vh] rounded-lg object-contain"
-            onClick={e => e.stopPropagation()}
-          />
-          <div className="mt-4 text-center text-white" onClick={e => e.stopPropagation()}>
-            <p className="font-semibold">{lightbox.project || 'Sin obra'}</p>
-            <p className="text-sm text-white/70">{lightbox.client_name}</p>
-            {lightbox.date && (
-              <p className="text-sm text-white/60 mt-1">
-                {format(parseISO(lightbox.date), "d 'de' MMMM yyyy", { locale: es })}
-              </p>
-            )}
-            {lightbox.caption && <p className="text-sm mt-1 italic text-white/80">{lightbox.caption}</p>}
-          </div>
-        </div>
+        <ImageLightbox
+          url={lightbox.photo_url}
+          nombre={lightbox.project || 'Sin obra'}
+          subtitulo={[
+            lightbox.client_name,
+            lightbox.date && format(parseISO(lightbox.date), "d 'de' MMMM yyyy", { locale: es }),
+            lightbox.caption,
+          ].filter(Boolean).join(' · ')}
+          onClose={() => setLightbox(null)}
+        />
       )}
     </div>
   );
