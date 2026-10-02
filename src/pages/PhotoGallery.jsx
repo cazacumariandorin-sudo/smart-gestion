@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Camera, Search, X } from 'lucide-react';
+import ImageLightbox from '@/components/ui/ImageLightbox';
 import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
