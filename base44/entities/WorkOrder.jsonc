@@ -56,7 +56,7 @@
       "enum": [
         "sin_firmar",
         "pendiente_cliente",
-        "pendiente_operario",
+        "pendiente_tecnico",
         "firmado_tecnico",
         "firmado_ambos",
         "rechazado"
