@@ -1,0 +1,145 @@
+{
+  "name": "PatronTarjeta",
+  "properties": {
+    "confirmado": {
+      "default": false,
+      "description": "true cuando gerencia/administraci\u00f3n ha confirmado expl\u00edcitamente que esta tarjeta corresponde a este titular_tipo \u2014 solo entonces se usa para sugerir origen_pago autom\u00e1ticamente en nuevos registros.",
+      "type": "boolean"
+    },
+    "confirmado_por": {
+      "description": "Email de quien confirm\u00f3 el patr\u00f3n.",
+      "type": "string"
+    },
+    "digitos_finales": {
+      "description": "\u00daltimos 4 d\u00edgitos visibles de la tarjeta (nunca el n\u00famero completo). Clave de coincidencia junto con titular_tipo/operario_id.",
+      "type": "string"
+    },
+    "fecha_confirmacion": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "notas": {
+      "description": "Notas libres, ej. 'Tarjeta Visa de empresa, la usa indistintamente cualquier t\u00e9cnico de obra'.",
+      "type": "string"
+    },
+    "operario_id": {
+      "description": "ID del Operario due\u00f1o de la tarjeta, solo cuando titular_tipo = 'tecnico'. Vac\u00edo/ausente si es de empresa.",
+      "type": "string"
+    },
+    "operario_name": {
+      "description": "Nombre del operario (desnormalizado), solo cuando titular_tipo = 'tecnico'.",
+      "type": "string"
+    },
+    "titular_tipo": {
+      "description": "A qui\u00e9n pertenece esta tarjeta: medio de pago de la empresa (origen_pago medio_empresa) o tarjeta personal de un t\u00e9cnico (origen_pago medios_propios).",
+      "enum": [
+        "empresa",
+        "tecnico"
+      ],
+      "type": "string"
+    },
+    "ultima_vez_vista": {
+      "description": "Fecha/hora del \u00faltimo RegistroGasto en el que se detectaron estos d\u00edgitos.",
+      "format": "date-time",
+      "type": "string"
+    },
+    "veces_visto": {
+      "default": 1,
+      "description": "N\u00ba de registros de gasto en los que se ha visto esta combinaci\u00f3n de d\u00edgitos finales + titular_tipo (+ operario si aplica).",
+      "type": "number"
+    }
+  },
+  "required": [
+    "digitos_finales",
+    "titular_tipo"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    }
+  },
+  "type": "object"
+}
