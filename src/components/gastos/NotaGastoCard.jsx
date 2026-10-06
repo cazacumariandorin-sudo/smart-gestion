@@ -100,6 +100,8 @@ export default function NotaGastoCard({ nota, onVer }) {
             {nota.fecha_documento && <span>📅 {nota.fecha_documento}</span>}
             {nota.obra_name && <span>🏗️ {nota.obra_name}</span>}
             {nota.localidad && <span>📍 {nota.localidad}</span>}
+            {nota.numero_factura && <span title="Número de factura/ticket">🧾 {nota.numero_factura}</span>}
+            {nota.nif_comercio && <span title="NIF del comercio">🆔 {nota.nif_comercio}</span>}
             {nota.archivos?.length > 0 && (
               <span className="flex items-center gap-0.5">
                 <FileText className="w-3 h-3" /> {nota.archivos.length}
