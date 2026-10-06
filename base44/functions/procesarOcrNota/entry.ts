@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
 - codigo_validacion_fiscal: número de factura simplificada, código QR o de barras que aparece como identificador fiscal único; si no aparece, cadena vacía.
 - localidad: población/localidad del emisor impresa en el justificante (ej: Madrid, Valencia). Solo la localidad, no la dirección completa. Si no aparece, cadena vacía.
 - forma_pago_documento: forma de pago impresa en el justificante (EFECTIVO, TARJETA, TRANSFERENCIA, etc.), tal cual aparece. Si no aparece, cadena vacía.
+- tarjeta_ultimos_digitos: SOLO si el documento muestra una tarjeta de pago enmascarada (ej. "**** **** **** 4417", "VISA ...4417", "XXXX XXXX XXXX 4417"), extrae ÚNICAMENTE los últimos 4 dígitos visibles (ej: "4417"). NUNCA extraigas un número de tarjeta completo aunque aparezca legible — en ese caso, devuelve también solo los últimos 4 dígitos. Si no hay tarjeta o no se ven dígitos, cadena vacía "".
 - ocr_raw: transcripción COMPLETA del texto visible, línea por línea, tal cual aparece.`;
 
     const schema = {
@@ -55,6 +56,7 @@ Deno.serve(async (req) => {
         numero_factura: { type: 'string' },
         localidad: { type: 'string' },
         forma_pago_documento: { type: 'string' },
+        tarjeta_ultimos_digitos: { type: 'string' },
         codigo_validacion_fiscal: { type: 'string' },
         ocr_raw: { type: 'string' },
       },
