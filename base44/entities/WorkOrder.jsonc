@@ -57,7 +57,7 @@
         "sin_firmar",
         "pendiente_cliente",
         "pendiente_operario",
-        "firmado_operario",
+        "firmado_tecnico",
         "firmado_ambos",
         "rechazado"
       ],
