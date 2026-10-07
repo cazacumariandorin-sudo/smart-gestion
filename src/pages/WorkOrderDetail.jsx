@@ -45,8 +45,8 @@ const statusConfig = {
 const firmaStatusConfig = {
   sin_firmar: { label: 'Sin firmar', className: 'bg-slate-100 text-slate-600 border-slate-200' },
   pendiente_cliente: { label: 'Pendiente cliente', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-  pendiente_operario: { label: 'Pendiente operario', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  firmado_operario: { label: 'Firmado operario', className: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  pendiente_técnico: { label: 'Pendiente técnico', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+  firmado_técnico: { label: 'Firmado técnico', className: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
   firmado_ambos: { label: 'Firmado ✓', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
   rechazado: { label: 'Rechazado', className: 'bg-red-100 text-red-700 border-red-200' },
 };
