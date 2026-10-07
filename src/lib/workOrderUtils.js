@@ -29,8 +29,8 @@ export function hoyLocal() {
 export function calcularFirmaStatus(actual, firmaOperario, firmaCliente) {
   if (firmaOperario && firmaCliente) return 'firmado_ambos';
   if (actual === 'rechazado') return 'rechazado';
-  if (firmaOperario) return actual === 'pendiente_cliente' ? 'pendiente_cliente' : 'firmado_operario';
-  if (firmaCliente) return 'pendiente_operario';
+  if (firmatécnico) return actual === 'pendiente_cliente' ? 'pendiente_cliente' : 'firmado_técnico';
+  if (firmaCliente) return 'pendiente_técnico';
   return 'sin_firmar';
 }
 
