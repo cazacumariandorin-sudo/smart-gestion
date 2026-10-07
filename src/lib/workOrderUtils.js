@@ -12,8 +12,8 @@ export const DESPLAZAMIENTO_LABELS = {
 export const FIRMA_STATUS_LABELS = {
   sin_firmar: 'Sin firmar',
   pendiente_cliente: 'Pendiente cliente',
-  pendiente_operario: 'Pendiente operario',
-  firmado_operario: 'Firmado operario',
+  pendiente_técnico: 'Pendiente técnico',
+  firmado_técnico: 'Firmado técnico',
   firmado_ambos: 'Firmado ✓',
   rechazado: 'Rechazado',
 };
