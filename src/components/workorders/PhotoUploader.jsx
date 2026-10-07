@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Camera, Upload, Trash2, Loader2, ImageIcon, X } from 'lucide-react';
 import ImageLightbox from '@/components/ui/ImageLightbox';
+import { toast } from 'sonner';
+import { comprimirImagen } from '@/lib/workOrderUtils';
 
 export default function PhotoUploader({ workOrderId, clientId, clientName, project, date }) {
   const queryClient = useQueryClient();
@@ -25,27 +27,38 @@ export default function PhotoUploader({ workOrderId, clientId, clientName, proje
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['photos', workOrderId] }),
   });
 
-  const handleFiles = async (files) => {
+    const handleFiles = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
     setUploading(true);
+    let fallidas = 0;
     try {
-      for (const file of Array.from(files)) {
-        const { file_url } = await subirImagen(file);
-        await base44.entities.WorkPhoto.create({
-          work_order_id: workOrderId,
-          client_id: clientId,
-          client_name: clientName,
-          project,
-          date,
-          photo_url: file_url,
-          caption: '',
-          storage: 'cdn',
-          drive_file_id: null,
-        });
+      for (const original of files) {
+        try {
+          const file = await comprimirImagen(original);
+          const { file_url } = await subirImagen(file);
+          await base44.entities.WorkPhoto.create({
+            work_order_id: workOrderId,
+            client_id: clientId,
+            client_name: clientName,
+            project,
+            date,
+            photo_url: file_url,
+            caption: '',
+            storage: 'cdn',
+            drive_file_id: null,
+          });
+        } catch (err) {
+          console.error('[PhotoUploader] Error', err);
+          fallidas++;
+        }
       }
       queryClient.invalidateQueries({ queryKey: ['photos', workOrderId] });
       queryClient.invalidateQueries({ queryKey: ['all_photos'] });
+      if (fallidas) toast.error(`${fallidas} foto(s) no se pudieron subir. Revisa la conexión o los permisos.`);
     } finally {
       setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
     }
   };
 
@@ -98,7 +111,7 @@ export default function PhotoUploader({ workOrderId, clientId, clientName, proje
               <button
                 type="button"
                 onClick={() => deleteMutation.mutate(photo.id)}
-                className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
               >
                 <X className="w-3 h-3" />
               </button>
