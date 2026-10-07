@@ -59,7 +59,9 @@ export default function MonthlyReport() {
         };
       }
       map[clientId].orders.push(order);
-      map[clientId].totalHours += order.total_hours || 0;
+            map[clientId].totalHours += order.total_hours || 0;
+      map[clientId].totalKm += Number(order.desplazamiento_valor) || 0;
+      map[clientId].totalDespEur += Number(order.desplazamiento_importe_eur) || 0;
 
       (order.materials || []).forEach(mat => {
         const key = `${mat.name}__${mat.unit}`;
