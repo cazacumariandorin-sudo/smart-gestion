@@ -54,6 +54,8 @@ export default function MonthlyReport() {
           totalHours: 0,
           materials: {},
           workerSummary: {},
+          totalKm: 0,
+          totalDespEur: 0,
         };
       }
       map[clientId].orders.push(order);
