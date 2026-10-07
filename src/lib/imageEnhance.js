@@ -79,7 +79,9 @@ export async function sharpenAndEnhance(file, { upscaleMax = 0 } = {}) {
       : Math.min(1, MAX / lado);
     const w = Math.max(1, Math.round(img.width * scale));
     const h = Math.max(1, Math.round(img.height * scale));
-    const canvas = document.createElement('canvas');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, w, h);
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
