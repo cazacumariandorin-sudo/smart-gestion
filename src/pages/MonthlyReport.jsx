@@ -157,6 +157,12 @@ export default function MonthlyReport() {
                       <Package className="w-3 h-3 mr-1" />
                       {Object.keys(cs.materials).length} mat.
                     </Badge>
+                    {cs.totalKm > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        <Car className="w-3 h-3 mr-1" />
+                        {Math.round(cs.totalKm * 10) / 10} km
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </AccordionTrigger>
