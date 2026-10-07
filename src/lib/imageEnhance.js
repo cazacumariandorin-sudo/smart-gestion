@@ -66,7 +66,7 @@ function autoContrast(data) {
  * @param {File} file
  * @returns {Promise<File>}
  */
-export async function sharpenAndEnhance(file) {
+export async function sharpenAndEnhance(file, { upscaleMax = 0 } = {}) {
   if (!file || !file.type || !file.type.startsWith('image/')) return file;
   try {
     const img = await loadImage(file);
