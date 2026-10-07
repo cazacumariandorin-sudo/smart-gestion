@@ -72,7 +72,11 @@ export async function sharpenAndEnhance(file, { upscaleMax = 0 } = {}) {
     const img = await loadImage(file);
     // Limitar tamaño para que la convolución sea rápida en móvil
     const MAX = 1400;
-    const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+    const lado = Math.max(img.width, img.height);
+    // upscaleMax > 0: amplía (máx. x2) las imágenes pequeñas hasta ese lado antes de afinar
+    const scale = upscaleMax > 0 && lado < upscaleMax
+      ? Math.min(2, upscaleMax / lado)
+      : Math.min(1, MAX / lado);
     const w = Math.max(1, Math.round(img.width * scale));
     const h = Math.max(1, Math.round(img.height * scale));
     const canvas = document.createElement('canvas');
