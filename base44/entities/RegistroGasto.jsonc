@@ -52,6 +52,10 @@
       "type": "string",
       "description": "Forma de pago impresa en el justificante (EFECTIVO, TARJETA, TRANSFERENCIA, etc.). Texto libre extra\u00eddo por OCR+IA; independiente del campo metodo_pago (reembolso)."
     },
+    "tarjeta_ultimos_digitos": {
+      "type": "string",
+      "description": "Ultimos 4 digitos visibles de la tarjeta usada, si el documento muestra una tarjeta enmascarada (extraido por OCR+IA). Nunca el numero completo. Se cruza contra PatronTarjeta para sugerir origen_pago."
+    },
     "hora_documento": {
       "type": "string",
       "description": "Hora impresa en el justificante (HH:MM), extra\u00edda por OCR+IA. Clave de detecci\u00f3n de duplicados: dos peajes de la misma autopista, mismo d\u00eda, mismo importe y mismo comercio pero a HORA distinta son documentos distintos (tramos sucesivos), no duplicados."
