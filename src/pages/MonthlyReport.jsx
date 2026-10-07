@@ -251,7 +251,7 @@ export default function MonthlyReport() {
                             {order.status === 'completado' ? 'Completado' : order.status === 'en_curso' ? 'En curso' : 'Pendiente'}
                           </Badge>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>
