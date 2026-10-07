@@ -222,12 +222,21 @@ export default function MonthlyReport() {
                   </h4>
                   <div className="space-y-1.5">
                     {cs.orders.map(order => (
-                      <div key={order.id} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2 text-xs">
-                        <div>
+                  <Link key={order.id} to={`/work-orders/${order.id}`} className="flex items-center justify-between bg-muted/30 hover:bg-muted/50 rounded-lg px-3 py-2 text-xs">
+                        <div className="min-w-0">
                           <span className="font-medium">{order.project}</span>
                           <span className="text-muted-foreground ml-2">
                             {order.date ? format(parseISO(order.date), 'd MMM', { locale: es }) : ''}
                           </span>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {[
+                              order.order_number,
+                              (order.hora_inicio || order.hora_fin) ? `${order.hora_inicio || '—'}→${order.hora_fin || '—'}` : '',
+                              order.vehiculo_matricula,
+                              order.desplazamiento_valor > 0 ? `${order.desplazamiento_valor} km` : '',
+                              FIRMA_STATUS_LABELS[order.firma_status] || 'Sin firmar',
+                            ].filter(Boolean).join(' · ')}
+                          </p>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-primary font-semibold">{order.total_hours || 0}h</span>
