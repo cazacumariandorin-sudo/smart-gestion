@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Clock, Package, ClipboardList, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Package, ClipboardList, Users, Car } from 'lucide-react';
+import { FIRMA_STATUS_LABELS } from '@/lib/workOrderUtils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
