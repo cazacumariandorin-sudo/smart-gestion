@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AutoCorrectTextarea from '@/components/ui/AutoCorrectTextarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Card } from '@/components/ui/card';
 import { Save, Loader2, Camera, Upload, X, ImageIcon } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
@@ -16,6 +17,33 @@ import MaterialFields from '@/components/workorders/MaterialFields';
 import SignatureCanvas from '@/components/workorders/SignatureCanvas';
 import DesplazamientoFields from '@/components/partes/DesplazamientoFields';
 import PageHeader from '@/components/layout/PageHeader';
+import { subirImagen } from '@/lib/uploadPhoto';
+import {
+  hoyLocal, limpiarParte, validarFilas, calcularFirmaStatus, mensajeErrorGuardado,
+  leerBorrador, guardarBorrador, borrarBorrador, comprimirImagen,
+} from '@/lib/workOrderUtils';
+
+const formVacio = () => ({
+  date: hoyLocal(),
+  client_id: '',
+  client_name: '',
+  project: '',
+  obra_id: '',
+  description: '',
+  status: 'pendiente',
+  hora_inicio: '',
+  hora_fin: '',
+  workers: [],
+  materials: [],
+  notes: '',
+  firma_operario: '',
+  firma_cliente: '',
+  vehiculo_id: '',
+  vehiculo_matricula: '',
+  desplazamiento_tipo: '',
+  desplazamiento_valor: '',
+  desplazamiento_importe_eur: '',
+});
 
 export default function CreateWorkOrder() {
   const navigate = useNavigate();
@@ -32,62 +60,86 @@ export default function CreateWorkOrder() {
     queryFn: () => base44.entities.Obra.list('name', 300),
   });
 
-  const [form, setForm] = useState({
-    date: new Date().toISOString().split('T')[0],
-    client_id: '',
-    client_name: '',
-    project: '',
-    obra_id: '',
-    description: '',
-    status: 'pendiente',
-    hora_inicio: '',
-    hora_fin: '',
-    workers: [],
-    materials: [],
-    notes: '',
-    firma_operario: '',
-    firma_cliente: '',
-    vehiculo_id: '',
-    vehiculo_matricula: '',
-    desplazamiento_tipo: '',
-    desplazamiento_valor: '',
-    desplazamiento_importe_eur: '',
-  });
+  const [recuperado] = useState(() => !!leerBorrador());
+  const [form, setForm] = useState(() => ({ ...formVacio(), ...(leerBorrador() || {}) }));
 
-  const [photos, setPhotos] = useState([]); // pending photos before order is created
+  const [photos, setPhotos] = useState([]); // fotos ya subidas, pendientes de vincular al parte
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
+
+  // Borrador local: si falla la red o se cierra la pestaña no se pierde el trabajo
+  useEffect(() => {
+    const t = setTimeout(() => guardarBorrador(form), 500);
+    return () => clearTimeout(t);
+  }, [form]);
+
+  useEffect(() => {
+    if (recuperado) {
+      toast.info('Se ha recuperado un borrador sin guardar', {
+        duration: 8000,
+        action: { label: 'Descartar', onClick: () => { borrarBorrador(); setForm(formVacio()); } },
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mutation = useMutation({
     mutationFn: async (data) => {
       const order = await base44.entities.WorkOrder.create(data);
-      // Save pending photos now that we have the order id
+      // Las fotos NO deben invalidar el parte ya creado (evita duplicados al reintentar)
+      let fotosFallidas = 0;
       for (const photoUrl of photos) {
-        await base44.entities.WorkPhoto.create({
-          work_order_id: order.id,
-          client_id: data.client_id,
-          client_name: data.client_name,
-          project: data.project,
-          date: data.date,
-          photo_url: photoUrl,
-          caption: '',
-        });
+        try {
+          await base44.entities.WorkPhoto.create({
+            work_order_id: order.id,
+            client_id: data.client_id,
+            client_name: data.client_name,
+            project: data.project,
+            date: data.date,
+            photo_url: photoUrl,
+            caption: '',
+          });
+        } catch (e) {
+          console.error('[WorkOrder] No se pudo vincular una foto', e);
+          fotosFallidas++;
+        }
       }
-      return order;
+      return { order, fotosFallidas };
     },
-    onSuccess: () => {
+    onSuccess: ({ fotosFallidas }) => {
+      borrarBorrador();
       queryClient.invalidateQueries({ queryKey: ['workorders'] });
-      toast.success('✅ Parte creado correctamente');
+      if (fotosFallidas) toast.warning(`Parte creado, pero ${fotosFallidas} foto(s) no se pudieron vincular. Añádelas desde el detalle del parte.`, { duration: 8000 });
+      else toast.success('✅ Parte creado correctamente');
       navigate('/work-orders');
     },
     onError: (err) => {
-      toast.error('Error al guardar el parte: ' + (err?.message || 'Inténtalo de nuevo'));
+      console.error('[WorkOrder] Error al crear', err);
+      toast.error(mensajeErrorGuardado(err), { duration: 9000 });
     },
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const totalHours = form.workers.reduce((sum, w) => sum + (w.hours || 0), 0);
-    mutation.mutate({ ...form, total_hours: totalHours });
+    if (mutation.isPending) return;
+    if (uploadingPhotos) { toast.warning('Espera a que terminen de subirse las fotos'); return; }
+
+    const datos = limpiarParte(form);
+    if (!datos.date) { toast.error('Indica la fecha del parte'); return; }
+    if (!datos.client_id) { toast.error('Selecciona un cliente'); return; }
+    if (!datos.project) { toast.error('Selecciona o escribe la obra'); return; }
+
+    const filas = validarFilas(datos.workers, datos.materials);
+    if (!filas.ok) { toast.error(filas.error); return; }
+
+    const ahora = new Date().toISOString();
+    mutation.mutate({
+      ...datos,
+      workers: filas.workers,
+      materials: filas.materials,
+      total_hours: filas.workers.reduce((sum, w) => sum + (Number(w.hours) || 0), 0),
+      firma_status: calcularFirmaStatus('sin_firmar', datos.firma_operario, datos.firma_cliente),
+      ...(datos.firma_operario ? { firma_operario_fecha: ahora } : {}),
+      ...(datos.firma_cliente ? { firma_cliente_fecha: ahora } : {}),
+    });
   };
 
   const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -132,13 +184,25 @@ export default function CreateWorkOrder() {
     }
   };
 
-  const handlePhotoFiles = async (files) => {
+  const handlePhotoFiles = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
     setUploadingPhotos(true);
-    for (const file of Array.from(files)) {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setPhotos(p => [...p, file_url]);
+    try {
+      for (const original of files) {
+        try {
+          const file = await comprimirImagen(original);
+          const { file_url } = await subirImagen(file);
+          setPhotos(p => [...p, file_url]);
+        } catch (err) {
+          console.error('[WorkOrder] Error subiendo foto', err);
+          toast.error(`No se pudo subir "${original.name}". Revisa la conexión e inténtalo de nuevo.`);
+        }
+      }
+    } finally {
+      setUploadingPhotos(false);
+      if (fileRef.current) fileRef.current.value = '';
     }
-    setUploadingPhotos(false);
   };
 
   const removePhoto = (url) => setPhotos(p => p.filter(u => u !== url));
@@ -149,42 +213,35 @@ export default function CreateWorkOrder() {
         title="Nuevo Parte de Trabajo"
         subtitle="Completa los datos del parte"
       />
-      <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6 lg:p-8">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6 p-4 sm:p-6 lg:p-8">
         {/* Info general */}
         <Card className="p-5 space-y-4">
           <h2 className="font-semibold text-sm">Información General</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs">Fecha *</Label>
-              <Input type="date" value={form.date} onChange={(e) => updateField('date', e.target.value)} required />
+              <Input type="date" value={form.date} onChange={(e) => updateField('date', e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Estado</Label>
-              <Select value={form.status} onValueChange={(v) => updateField('status', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="en_curso">En curso</SelectItem>
-                  <SelectItem value="completado">Completado</SelectItem>
-                </SelectContent>
-              </Select>
+              <MobileSelect value={form.status} onValueChange={(v) => updateField('status', v)} placeholder="Estado">
+                <MobileSelectItem value="pendiente">Pendiente</MobileSelectItem>
+                <MobileSelectItem value="en_curso">En curso</MobileSelectItem>
+                <MobileSelectItem value="completado">Completado</MobileSelectItem>
+              </MobileSelect>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Cliente *</Label>
-              <Select value={form.client_id} onValueChange={handleClientChange} required>
-                <SelectTrigger><SelectValue placeholder="Seleccionar cliente..." /></SelectTrigger>
-                <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <MobileSelect value={form.client_id} onValueChange={handleClientChange} placeholder="Seleccionar cliente...">
+                {clients.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
+              </MobileSelect>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Obra * {form.client_id && obrasFiltradas.length === 0 && <span className="text-muted-foreground">(sin obras para este cliente)</span>}</Label>
-              <Select value={form.project} onValueChange={handleObraChange}>
-                <SelectTrigger><SelectValue placeholder={form.client_id ? "Solo obras del cliente..." : "Seleccionar obra..."} /></SelectTrigger>
-                <SelectContent>
-                  {obrasFiltradas.map(o => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}
-                  <SelectItem value="__manual__">— Escribir manualmente —</SelectItem>
-                </SelectContent>
-              </Select>
+              <MobileSelect value={form.project} onValueChange={handleObraChange} placeholder={form.client_id ? "Solo obras del cliente..." : "Seleccionar obra..."}>
+                {obrasFiltradas.map(o => <MobileSelectItem key={o.id} value={o.name}>{o.name}</MobileSelectItem>)}
+                <MobileSelectItem value="__manual__">— Escribir manualmente —</MobileSelectItem>
+              </MobileSelect>
               {(form.project === '__manual__' || (!obras.find(o => o.name === form.project) && form.project && form.project !== '__manual__')) && (
                 <Input placeholder="Nombre de la obra" value={form.project === '__manual__' ? '' : form.project} onChange={e => updateField('project', e.target.value)} className="mt-1" />
               )}
@@ -224,6 +281,7 @@ export default function CreateWorkOrder() {
             vehiculo_matricula: form.vehiculo_matricula,
             desplazamiento_tipo: form.desplazamiento_tipo,
             desplazamiento_valor: form.desplazamiento_valor,
+            desplazamiento_importe_eur: form.desplazamiento_importe_eur,
           }}
           onChange={(patch) => setForm(prev => ({ ...prev, ...patch }))}
         />
@@ -250,7 +308,7 @@ export default function CreateWorkOrder() {
               {photos.map((url) => (
                 <div key={url} className="relative group aspect-square rounded-lg overflow-hidden bg-muted">
                   <img src={url} alt="foto" className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => removePhoto(url)} className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button type="button" onClick={() => removePhoto(url)} className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
@@ -282,9 +340,9 @@ export default function CreateWorkOrder() {
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancelar</Button>
-          <Button type="submit" disabled={mutation.isPending || !form.project} className="gap-2 min-w-32">
+          <Button type="submit" disabled={mutation.isPending || uploadingPhotos} className="gap-2 min-w-32">
             {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Guardar Parte
+            {mutation.isPending ? 'Guardando…' : 'Guardar Parte'}
           </Button>
         </div>
       </form>
