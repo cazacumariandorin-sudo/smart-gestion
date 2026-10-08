@@ -203,6 +203,8 @@ export default function WorkOrderDetail() {
   const handleSave = () => {
     if (updateMutation.isPending) return;
     const datos = limpiarParte({ ...form }, { clear: true });
+    const errDesp = validarDesplazamiento(form);
+    if (errDesp) { toast.error(errDesp, { duration: 7000 }); return; }
     if (!datos.date) { toast.error('Indica la fecha del parte'); return; }
     if (!datos.project) { toast.error('Selecciona o escribe la obra'); return; }
     const filas = validarFilas(datos.workers, datos.materials);
