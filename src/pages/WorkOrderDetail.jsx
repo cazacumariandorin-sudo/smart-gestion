@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useUserRole } from '@/lib/useUserRole';
 import { drawSimantecLogoPdf } from '@/lib/simantecLogoPdf';
+import { getEmpresaPrincipalPdf, drawEmpresaDatosPdf } from '@/lib/simantecEmpresaPdf';
 import {
   limpiarParte, validarFilas, calcularFirmaStatus, mensajeErrorGuardado,
   DESPLAZAMIENTO_LABELS, FIRMA_STATUS_LABELS,
@@ -127,7 +128,8 @@ export default function WorkOrderDetail() {
     setEditing(true);
   };
 
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
+    const empresa = await getEmpresaPrincipalPdf();
     const doc = new jsPDF();
     const margin = 14;
     const bottom = doc.internal.pageSize.getHeight() - 18;
@@ -140,6 +142,7 @@ export default function WorkOrderDetail() {
     };
 
     const logoH = drawSimantecLogoPdf(doc, margin, y, 16);
+    drawEmpresaDatosPdf(doc, empresa, 196, 16);
     y = 12 + logoH + 4;
 
     doc.setFontSize(18); doc.setTextColor(40, 40, 40);
