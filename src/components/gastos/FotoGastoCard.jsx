@@ -84,7 +84,8 @@ export default function FotoGastoCard({ foto }) {
           <p className="text-[10px] text-blue-600 dark:text-blue-400 truncate">Nº {foto.numero_factura}</p>
         )}
       </div>
-    </button>
+        </button>
+    {esImg && <MejorarFotoButton foto={foto} />}
 
     {verImagen && esImg && (
       <ImageLightbox
