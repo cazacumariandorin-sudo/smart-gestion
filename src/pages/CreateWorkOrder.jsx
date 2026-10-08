@@ -18,6 +18,7 @@ import SignatureCanvas from '@/components/workorders/SignatureCanvas';
 import DesplazamientoFields from '@/components/partes/DesplazamientoFields';
 import PageHeader from '@/components/layout/PageHeader';
 import { subirImagen } from '@/lib/uploadPhoto';
+import { revisarParte } from '@/lib/ortografiaPartes';
 import {
   hoyLocal, limpiarParte, validarFilas, calcularFirmaStatus, mensajeErrorGuardado,
   leerBorrador, guardarBorrador, borrarBorrador, comprimirImagen,
@@ -65,7 +66,7 @@ export default function CreateWorkOrder() {
 
   const [photos, setPhotos] = useState([]); // fotos ya subidas, pendientes de vincular al parte
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
-
+  const [revisando, setRevisando] = useState(false);
   // Borrador local: si falla la red o se cierra la pestaña no se pierde el trabajo
   useEffect(() => {
     const t = setTimeout(() => guardarBorrador(form), 500);
