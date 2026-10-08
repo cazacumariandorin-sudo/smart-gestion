@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ImageLightbox from '@/components/ui/ImageLightbox';
+import MejorarFotoButton from '@/components/gastos/MejorarFotoButton';
 
 const CAT_COLORS = {
   combustible: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-300/30',
