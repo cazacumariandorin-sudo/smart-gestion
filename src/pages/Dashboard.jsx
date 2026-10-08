@@ -41,6 +41,7 @@ const DASHBOARD_META = {
   chat: { watermark: null, bg: 'bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/50 dark:to-emerald-950/40', border: 'border-emerald-300 dark:border-emerald-700', iconBg: 'bg-emerald-600', color: 'text-emerald-800' },
   documental: { watermark: 'https://images.unsplash.com/photo-1568219656418-15c329312bf1?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/50 dark:to-orange-950/40', border: 'border-orange-300 dark:border-orange-700', iconBg: 'bg-orange-500', color: 'text-orange-800' },
   sistema: { watermark: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&q=60&fit=crop', bg: 'bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-900/50 dark:to-slate-950/40', border: 'border-slate-300 dark:border-slate-700', iconBg: 'bg-slate-600', color: 'text-slate-800' },
+    ingenieria: { watermark: '/hub-ingenieria.jpg', bg: 'bg-gradient-to-br from-cyan-100 to-cyan-50 dark:from-cyan-900/50 dark:to-cyan-950/40', border: 'border-cyan-300 dark:border-cyan-700', iconBg: 'bg-cyan-600', color: 'text-cyan-800' },
 };
 
 import { ROLE_LABELS } from '@/lib/roleLabels';
