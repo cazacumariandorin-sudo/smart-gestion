@@ -47,7 +47,14 @@ export function limpiarParte(data, opts = {}) {
   const out = { ...data };
   if (out.project === '__manual__') out.project = '';
   out.project = (out.project || '').trim();
-
+  // Modalidad del desplazamiento: 'pactado' no usa km
+  if (!Object.keys(DESPLAZAMIENTO_MODALIDAD_LABELS).includes(out.desplazamiento_modalidad)) {
+    if (opts.clear) out.desplazamiento_modalidad = 'km'; else delete out.desplazamiento_modalidad;
+  }
+  const pactado = out.desplazamiento_modalidad === 'pactado';
+  out.desplazamiento_concepto = pactado ? (out.desplazamiento_concepto || '').trim() : '';
+  if (!out.desplazamiento_concepto && !opts.clear) delete out.desplazamiento_concepto;
+  if (pactado) out.desplazamiento_valor = '';
   ['desplazamiento_valor', 'desplazamiento_importe_eur'].forEach((k) => {
     const v = out[k];
     const vacio = v === '' || v === null || v === undefined || Number.isNaN(Number(v));
@@ -62,7 +69,13 @@ export function limpiarParte(data, opts = {}) {
   });
   return out;
 }
-
+export function validarDesplazamiento(d = {}) {
+  if (d.desplazamiento_modalidad !== 'pactado') return null;
+  const importe = Number(d.desplazamiento_importe_eur);
+  if (!(importe > 0)) return 'Indica el importe pactado con el cliente (€) o cambia el desplazamiento a "Por kilómetros".';
+  if (!(d.desplazamiento_concepto || '').trim()) return 'Indica el concepto del importe pactado (nº de presupuesto o nombre representativo).';
+  return null;
+}
 /** Valida y limpia filas de operarios/materiales. Devuelve { ok, error, workers, materials }. */
 export function validarFilas(workers = [], materials = []) {
   for (const w of workers) {
