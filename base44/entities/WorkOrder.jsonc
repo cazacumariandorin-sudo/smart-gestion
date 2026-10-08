@@ -26,7 +26,7 @@
       "type": "string"
     },
     "firma_cliente_ip": {
-      "description": "IP desde la que firm\u00f3 el cliente",
+      "description": "IP desde la que firmó el cliente",
       "type": "string"
     },
     "firma_cliente_nif": {
@@ -64,11 +64,11 @@
       "type": "string"
     },
     "firma_token": {
-      "description": "Token \u00fanico para enlace de firma remota del cliente",
+      "description": "Token único para enlace de firma remota del cliente",
       "type": "string"
     },
     "firma_token_expiry": {
-      "description": "Fecha de expiraci\u00f3n del token de firma",
+      "description": "Fecha de expiración del token de firma",
       "format": "date-time",
       "type": "string"
     },
@@ -103,11 +103,11 @@
       "type": "string"
     },
     "vehiculo_id": {
-      "description": "ID del veh\u00edculo utilizado para el desplazamiento (opcional)",
+      "description": "ID del vehículo utilizado para el desplazamiento (opcional)",
       "type": "string"
     },
     "vehiculo_matricula": {
-      "description": "Matr\u00edcula del veh\u00edculo (desnormalizada, opcional)",
+      "description": "Matrícula del vehículo (desnormalizada, opcional)",
       "type": "string"
     },
     "desplazamiento_tipo": {
@@ -125,15 +125,20 @@
       "type": "number"
     },
     "desplazamiento_importe_eur": {
-      "description": "Importe econ\u00f3mico del desplazamiento en euros (opcional). Calculado autom\u00e1ticamente como km \u00d7 tarifa de la empresa al registrar el parte.",
+      "description": "Importe económico del desplazamiento en euros (opcional). Calculado automáticamente como km × tarifa de la empresa al registrar el parte.",
       "type": "number"
       "description": "Fecha en que se aplicó la revisión ortográfica masiva a este parte (evita volver a analizarlo).",
       "format": "date-time",
       "type": "string"
     },
     },
+    "ortografia_revisada_en": {
+      "description": "Fecha en que se aplicó la revisión ortográfica masiva a este parte (evita volver a analizarlo).",
+      "format": "date-time",
+      "type": "string"
+    },
     "order_number": {
-      "description": "N\u00famero de parte generado autom\u00e1ticamente",
+      "description": "Número de parte generado automáticamente",
       "type": "string"
     },
     "project": {
@@ -216,7 +221,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         }
       ]
@@ -255,12 +260,12 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
@@ -328,7 +333,7 @@
         },
         {
           "user_condition": {
-            "role": "t\u00e9cnico"
+            "role": "técnico"
           }
         },
         {
