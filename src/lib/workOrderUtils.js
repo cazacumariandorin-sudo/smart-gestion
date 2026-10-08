@@ -8,7 +8,10 @@ export const DESPLAZAMIENTO_LABELS = {
   compras: 'Compra de materiales',
   otro: 'Otro',
 };
-
+export const DESPLAZAMIENTO_MODALIDAD_LABELS = {
+  km: 'Por kilómetros',
+  pactado: 'Importe pactado con el cliente',
+};
 export const FIRMA_STATUS_LABELS = {
   sin_firmar: 'Sin firmar',
   pendiente_cliente: 'Pendiente cliente',
