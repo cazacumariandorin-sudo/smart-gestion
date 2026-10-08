@@ -127,7 +127,6 @@
     "desplazamiento_importe_eur": {
       "description": "Importe econ\u00f3mico del desplazamiento en euros (opcional). Calculado autom\u00e1ticamente como km \u00d7 tarifa de la empresa al registrar el parte.",
       "type": "number"
-      "ortografia_revisada_en": {
       "description": "Fecha en que se aplicó la revisión ortográfica masiva a este parte (evita volver a analizarlo).",
       "format": "date-time",
       "type": "string"
