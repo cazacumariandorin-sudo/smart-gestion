@@ -115,7 +115,7 @@ export default function Sidebar() {
       <div className="px-3 py-3 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
           <img 
-            src="https://media.base44.com/images/public/69de8e23b1cd7ac050397c82/7bb9498dd_logoSimantecnew.png" 
+            src="/simantec-icon-192.png"
             alt="SIMANTEC" 
             className="w-8 h-8 shrink-0 object-contain"
           />
