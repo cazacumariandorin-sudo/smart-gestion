@@ -128,6 +128,15 @@
       "description": "Importe econ\u00f3mico del desplazamiento en euros (opcional). Calculado autom\u00e1ticamente como km \u00d7 tarifa de la empresa al registrar el parte.",
       "type": "number"
     },
+      "desplazamiento_modalidad": {
+      "description": "Cómo se calcula el desplazamiento: 'km' o 'pactado' (importe aprobado por el cliente, sin km). Vacío = 'km'.",
+      "enum": ["km", "pactado"],
+      "type": "string"
+    },
+    "desplazamiento_concepto": {
+      "description": "Concepto o referencia del importe pactado (nº de presupuesto o nombre representativo).",
+      "type": "string"
+    },
     "order_number": {
       "description": "N\u00famero de parte generado autom\u00e1ticamente",
       "type": "string"
