@@ -15,7 +15,7 @@ async function comprimirImagen(file) {
       const img = new Image();
       img.onload = () => {
         try {
-          const MAX = 800;
+          const MAX = 1800;
           const scale = Math.min(1, MAX / Math.max(img.width, img.height));
           const canvas = document.createElement('canvas');
           canvas.width = Math.round(img.width * scale);
