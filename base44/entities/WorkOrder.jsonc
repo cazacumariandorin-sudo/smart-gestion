@@ -130,7 +130,7 @@
         "ortografia_revisada_en": {
       "description": "Fecha en que se aplicó la revisión ortográfica masiva a este parte (evita volver a analizarlo).",
       "format": "date-time",
-      "type": "string"
+      "type": "string" 
     },
     },
     "order_number": {
