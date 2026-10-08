@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useUserRole } from '@/lib/useUserRole';
 import { drawSimantecLogoPdf } from '@/lib/simantecLogoPdf';
+import { getEmpresaPrincipalPdf, drawEmpresaDatosPdf } from '@/lib/simantecEmpresaPdf';
 import {
   limpiarParte, validarFilas, calcularFirmaStatus, mensajeErrorGuardado,
   DESPLAZAMIENTO_LABELS, FIRMA_STATUS_LABELS,
