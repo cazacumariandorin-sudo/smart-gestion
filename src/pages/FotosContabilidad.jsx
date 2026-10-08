@@ -35,6 +35,8 @@ export default function FotosContabilidad() {
       archivos.forEach((archivo, i) => {
         out.push({
           key: `${g.id}_${i}`,
+          gasto_id: g.id,
+          archivos_gasto: g.archivos,
           archivo,
           numero_nota: g.numero_nota,
           fecha_documento: g.fecha_documento,
