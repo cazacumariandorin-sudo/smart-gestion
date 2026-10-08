@@ -19,7 +19,7 @@ import DesplazamientoFields from '@/components/partes/DesplazamientoFields';
 import PageHeader from '@/components/layout/PageHeader';
 import { subirImagen } from '@/lib/uploadPhoto';
 import {
-  hoyLocal, limpiarParte, validarFilas, calcularFirmaStatus, mensajeErrorGuardado,
+  hoyLocal, limpiarParte, validarFilas, validarDesplazamiento,
   leerBorrador, guardarBorrador, borrarBorrador, comprimirImagen,
 } from '@/lib/workOrderUtils';
 
@@ -43,6 +43,7 @@ const formVacio = () => ({
   desplazamiento_tipo: '',
   desplazamiento_valor: '',
   desplazamiento_importe_eur: '',
+  desplazamiento_modalidad: 'km', y desplazamiento_concepto: '',
 });
 
 export default function CreateWorkOrder() {
@@ -121,7 +122,8 @@ export default function CreateWorkOrder() {
     e.preventDefault();
     if (mutation.isPending) return;
     if (uploadingPhotos) { toast.warning('Espera a que terminen de subirse las fotos'); return; }
-
+    const errDesp = validarDesplazamiento(form);
+    if (errDesp) { toast.error(errDesp, { duration: 7000 }); return; }
     const datos = limpiarParte(form);
     if (!datos.date) { toast.error('Indica la fecha del parte'); return; }
     if (!datos.client_id) { toast.error('Selecciona un cliente'); return; }
@@ -282,8 +284,11 @@ export default function CreateWorkOrder() {
             desplazamiento_tipo: form.desplazamiento_tipo,
             desplazamiento_valor: form.desplazamiento_valor,
             desplazamiento_importe_eur: form.desplazamiento_importe_eur,
+            desplazamiento_modalidad: form.desplazamiento_modalidad,
+            desplazamiento_concepto: form.desplazamiento_concepto,
           }}
           onChange={(patch) => setForm(prev => ({ ...prev, ...patch }))}
+          allowPactado
         />
 
         {/* Fotos */}
