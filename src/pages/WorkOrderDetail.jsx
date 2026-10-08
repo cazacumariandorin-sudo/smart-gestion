@@ -128,7 +128,8 @@ export default function WorkOrderDetail() {
     setEditing(true);
   };
 
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
+    const empresa = await getEmpresaPrincipalPdf();
     const doc = new jsPDF();
     const margin = 14;
     const bottom = doc.internal.pageSize.getHeight() - 18;
