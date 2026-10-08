@@ -23,7 +23,7 @@ async function comprimirImagen(file) {
           const ctx = canvas.getContext('2d');
           if (!ctx) { resolve(original); return; }
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/jpeg', 0.60));
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
         } catch { resolve(original); }
       };
       img.onerror = () => resolve(original);
