@@ -278,6 +278,12 @@ export default function WorkOrderDetail() {
           onBack={() => setEditing(false)}
         />
         <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+       {order.firma_status === 'firmado_ambos' && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-xs p-3">
+              Este parte ya está firmado por técnico y cliente. Puedes modificarlo, pero las firmas se conservan:
+              si cambias horas, materiales o importes, avisa al cliente.
+            </div>
+          )}
           <Card className="p-5 space-y-4">
             <h2 className="font-semibold text-sm">Información General</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -343,6 +349,8 @@ export default function WorkOrderDetail() {
               desplazamiento_importe_eur: form.desplazamiento_importe_eur,
             }}
             onChange={(patch) => setForm(prev => ({ ...prev, ...patch }))}
+            value
+            allowPactado
           />
           <Card className="p-5 space-y-3">
             <Label className="text-sm font-semibold">Observaciones</Label>
