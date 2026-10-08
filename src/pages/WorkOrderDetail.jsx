@@ -31,7 +31,7 @@ import { getEmpresaPrincipalPdf, drawEmpresaDatosPdf } from '@/lib/simantecEmpre
 import {
   limpiarParte, validarFilas, calcularFirmaStatus, mensajeErrorGuardado,
   DESPLAZAMIENTO_LABELS, FIRMA_STATUS_LABELS,
-} from '@/lib/workOrderUtils';
+} from '@/lib/workOrderUtils';validarDesplazamiento,
 
 const fmtFecha = (iso, pat = 'dd/MM/yyyy HH:mm') => {
   try { return iso ? format(parseISO(iso), pat) : ''; } catch { return ''; }
@@ -124,6 +124,8 @@ export default function WorkOrderDetail() {
       desplazamiento_tipo: order.desplazamiento_tipo || '',
       desplazamiento_valor: order.desplazamiento_valor ?? '',
       desplazamiento_importe_eur: order.desplazamiento_importe_eur ?? '',
+      desplazamiento_modalidad: order.desplazamiento_modalidad || 'km',
+      desplazamiento_concepto: order.desplazamiento_concepto || '',
     });
     setEditing(true);
   };
