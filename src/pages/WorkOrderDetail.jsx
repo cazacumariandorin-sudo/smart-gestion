@@ -142,6 +142,7 @@ export default function WorkOrderDetail() {
     };
 
     const logoH = drawSimantecLogoPdf(doc, margin, y, 16);
+        drawEmpresaDatosPdf(doc, empresa, 196, 16);
     y = 12 + logoH + 4;
 
     doc.setFontSize(18); doc.setTextColor(40, 40, 40);
