@@ -22,7 +22,10 @@ const SECUENCIA_INICIAL_POR_ANIO = { 2026: 100 };
 const secuenciaInicial = (anio) => SECUENCIA_INICIAL_POR_ANIO[anio] ?? 1;
 
 function partesNumero(numero) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})-(\d{4,})-C\d+$/.exec(String(numero || ''));
+      const s = String(numero || '');
+  let m = /^(\d{2})-(\d{2})-(\d{4})-(\d{4,})-C\d+$/.exec(s); // dd-mm-aaaa (formato actual)
+  if (m) return { anio: Number(m[3]), seq: Number(m[4]) };
+  m = /^(\d{4})-(\d{2})-(\d{2})-(\d{4,})-C\d+$/.exec(s); // aaaa-mm-dd (formato antiguo)
   return m ? { anio: Number(m[1]), seq: Number(m[4]) } : null;
 }
 
@@ -49,7 +52,7 @@ function siguienteCodigoCliente(clientes) {
 function formatearNumeroParte(fecha, seq, codigoCliente) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(fecha || ''));
   if (!m) throw new Error('La fecha del parte no es válida');
-  return `${m[1]}-${m[2]}-${m[3]}-${String(seq).padStart(4, '0')}-${codigoCliente}`;
+  return `${m[3]}-${m[2]}-${m[1]}-${String(seq).padStart(4, '0')}-${codigoCliente}`;
 }
 
 /** true si `a` se queda con el número y `b` debe reasignarse (el más antiguo gana). */
