@@ -141,6 +141,7 @@
       "description": "Número de parte generado automáticamente",
       "type": "string"
     },
+    numero_parte
     "project": {
       "type": "string"
     },
