@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 import { calcularCicloMes } from '@/lib/adelantosConciliacion';
 
 const CATEGORIAS = ['combustible', 'comida', 'material', 'peaje', 'parking', 'otros'];
-const defaultForm = { origen_pago: 'medios_propios', categoria: '', concepto: '', importe: '', nif_comercio: '', nombre_comercio: '', fecha_documento: '', codigo_validacion_fiscal: '', numero_factura: '', localidad: '', forma_pago_documento: '', obra_id: '', obra_name: '', obra_tipo: '', notas: '', justificacion_tardia: '' };
+const defaultForm = { origen_pago: 'medios_propios', categoria: '', concepto: '', importe: '', nif_comercio: '', nombre_comercio: '', fecha_documento: '', codigo_validacion_fiscal: '', numero_factura: '', localidad: '', forma_pago_documento: '', tarjeta_ultimos_digitos: '', obra_id: '', obra_name: '', obra_tipo: '', notas: '', justificacion_tardia: '' };
 
 async function generarNumeroNota() {
   const year = new Date().getFullYear();
