@@ -31,6 +31,7 @@
       "type": "string",
       "description": "ID \u00fanico generado"
     },
+    codigo_cliente
     "contacto_admin": {
       "type": "object",
       "description": "Contacto Administraci\u00f3n",
