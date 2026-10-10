@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Camera, Upload, SkipForward, Loader2, CheckCircle2, AlertCircle, Plus, Trash2, FileText, Layers, RefreshCw, SplitSquareHorizontal, AlertTriangle, Edit3 } from 'lucide-react';
 import { extraerDatosGastoMulti, procesarResultadoMulti, evaluarPrecision } from '@/lib/ocrGastos';
+import { subirArchivo } from '@/lib/subirArchivo';
 import DocumentEdgeCrop from '@/components/gastos/DocumentEdgeCrop';
 
 async function comprimirImagen(file) {
@@ -233,7 +234,7 @@ export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
       }
       const dhash = esImagen ? await calcularDHash(subidaFile) : '';
       setPaginas(prev => prev.map((p, i) => i === idx ? { ...p, estado: 'ocr', dhash } : p));
-      const subida =
+      const subida = await subirArchivo(subidaFile);
       const file_url = subida?.file_url;
       if (!file_url) throw new Error('No se pudo subir el archivo');
 

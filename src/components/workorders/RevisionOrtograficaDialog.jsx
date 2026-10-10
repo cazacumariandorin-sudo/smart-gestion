@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { revisarParte, extraerTextos } from '@/lib/ortografiaPartes';
 import { fechaES } from '@/lib/fechaES';
+import { numeroParteVisible } from '@/lib/numeroParte';
 
 const CONCURRENCIA = 3;
 

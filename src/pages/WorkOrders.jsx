@@ -41,6 +41,11 @@ export default function WorkOrders() {
     queryFn: () => base44.entities.Client.list('name', 200),
   });
 
+  const { data: orders = [], isLoading } = useQuery({
+    queryKey: ['workorders'],
+    queryFn: () => base44.entities.WorkOrder.filter({}, { sort: '-created_date', limit: 200 }).then(r => r.items),
+  });
+
   const numerarPendientes = async () => {
     setNumerando(true);
     const id = toast.loading('Asignando números a partes y clientes…');
@@ -123,7 +128,7 @@ export default function WorkOrders() {
                 <Hash className="w-4 h-4" />
                 <span className="hidden sm:inline">{numerando ? 'Numerando…' : `Asignar números (${orders.filter(o => !o.numero_parte).length})`}</span>
               </Button>
-                      <>
+            )}
             <Button variant={modoSeleccion ? 'default' : 'outline'} className="gap-2" size="sm"
               onClick={() => (modoSeleccion ? salirSeleccion() : setModoSeleccion(true))}>
               <CheckSquare className="w-4 h-4" />
@@ -213,11 +218,8 @@ export default function WorkOrders() {
       )}
       </div>
 
-      {puedeRevisar && (
-        <RevisionOrtograficaDialog open={revisionAbierta} onOpenChange={setRevisionAbierta} orders={filtered} />
-            {puedeRevisar && (
-        <RevisionOrtograficaDialog open={revSelAbierta} onOpenChange={setRevSelAbierta} orders={partesSeleccionados()} />
-      )}
+      <RevisionOrtograficaDialog open={revisionAbierta} onOpenChange={setRevisionAbierta} orders={filtered} />
+      <RevisionOrtograficaDialog open={revSelAbierta} onOpenChange={setRevSelAbierta} orders={partesSeleccionados()} />
       <AlertDialog open={confirmarBorrado} onOpenChange={setConfirmarBorrado}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -238,7 +240,6 @@ export default function WorkOrders() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      )}
     </div>
   );
 }

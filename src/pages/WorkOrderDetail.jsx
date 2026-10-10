@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -117,7 +116,7 @@ export default function WorkOrderDetail() {
     },
   });
 
-  const startEditing
+  const startEditing = () => {
     setForm({
       date: order.date || '',
       client_id: order.client_id || '',

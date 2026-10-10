@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Users, Package } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { fechaES } from '@/lib/fechaES';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -23,9 +25,9 @@ export default function WorkOrderCard({ order, seleccionable = false, selecciona
       to={`/work-orders/${order.id}`}
       onClick={(e) => { if (seleccionable) { e.preventDefault(); onToggle?.(order.id); } }}
     >
-      <div className="flex items-start justify-between mb-3">
+      <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer h-full flex flex-col">
+        <div className="flex items-start justify-between mb-3">
           {seleccionable && <Checkbox checked={seleccionado} className="mr-3 mt-1 shrink-0" onCheckedChange={() => onToggle?.(order.id)} />}
-          <div className="flex-1 min-w-0">
           <div className="flex-1 min-w-0">
             {numeroParteVisible(order) && (
               <p className="text-[10px] font-mono font-semibold text-primary/80 mb-0.5 truncate">{numeroParteVisible(order)}</p>
@@ -46,7 +48,7 @@ export default function WorkOrderCard({ order, seleccionable = false, selecciona
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            {fechaES(order.date) || '—'}
+            <Calendar className="w-3.5 h-3.5" />
             {order.date ? format(new Date(order.date), 'd MMM yyyy', { locale: es }) : '—'}
           </span>
           <span className="flex items-center gap-1">

@@ -464,7 +464,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-500" />{posibleDup?.esDuplicadoFiscal ? 'Duplicado exacto (QR)' : 'Posible duplicado'}</AlertDialogTitle>
-            <AlertDialogDescription>{posibleDup?.esDuplicadoFiscal ? <>Mismo código QR que <strong>{posibleDup?.numero_nota}</strong>. ¿Seguro que no es duplicado?</> : : posibleDup?.motivos?.length ? <>Parecido a <strong>{posibleDup?.numero_nota}</strong> ({posibleDup?.registrado_por}): {posibleDup.motivos.join(', ')}. ¿Es un gasto diferente?</><>Ya existe <strong>{posibleDup?.numero_nota}</strong> con mismo día, comercio e importe. ¿Es un gasto diferente?</>}</AlertDialogDescription>
+            <AlertDialogDescription>{posibleDup?.esDuplicadoFiscal ? <>Mismo código QR que <strong>{posibleDup?.numero_nota}</strong>. ¿Seguro que no es duplicado?</> : posibleDup?.motivos?.length ? <>Parecido a <strong>{posibleDup?.numero_nota}</strong> ({posibleDup?.registrado_por}): {posibleDup.motivos.join(', ')}. ¿Es un gasto diferente?</> : <>Ya existe <strong>{posibleDup?.numero_nota}</strong> con mismo día, comercio e importe. ¿Es un gasto diferente?</>}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => { setPosibleDup(null); setShowDupAlert(false); }}>Cancelar</AlertDialogCancel>
