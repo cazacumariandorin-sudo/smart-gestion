@@ -71,7 +71,7 @@ export async function sharpenAndEnhance(file, { upscaleMax = 0 } = {}) {
   try {
     const img = await loadImage(file);
     // Limitar tamaño para que la convolución sea rápida en móvil
-    const MAX = 1400;
+    const MAX = 3200; // no reducir tickets alargados (antes 1400 los dejaba peor que el original)
     const lado = Math.max(img.width, img.height);
     // upscaleMax > 0: amplía (máx. x2) las imágenes pequeñas hasta ese lado antes de afinar
     const scale = upscaleMax > 0 && lado < upscaleMax
@@ -79,9 +79,7 @@ export async function sharpenAndEnhance(file, { upscaleMax = 0 } = {}) {
       : Math.min(1, MAX / lado);
     const w = Math.max(1, Math.round(img.width * scale));
     const h = Math.max(1, Math.round(img.height * scale));
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(img, 0, 0, w, h);
+    const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
