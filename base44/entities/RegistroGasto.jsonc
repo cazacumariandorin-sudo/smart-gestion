@@ -5,16 +5,31 @@
     "archivos": {
       "items": {
         "properties": {
+                    "dhash": {
+            "type": "string"
+          },
           "fecha_subida": {
             "type": "string"
           },
+          "mejorada": {
+            "type": "boolean"
+          },
           "nombre": {
+            "type": "string"
+          },
+          "reemplazada": {
+            "type": "boolean"
+          },
+          "storage": {
             "type": "string"
           },
           "tipo": {
             "type": "string"
           },
-          "url": {
+                   "url": {
+            "type": "string"
+          },
+          "url_original": {
             "type": "string"
           }
         },

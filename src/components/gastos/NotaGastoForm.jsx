@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
+import { verificarDuplicado } from '@/lib/duplicadoGasto';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useAuth } from '@/lib/AuthContext';
@@ -251,8 +252,28 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     return notasExistentes.find(n => n.fecha_documento === form.fecha_documento && n.nombre_comercio?.toLowerCase() === form.nombre_comercio?.toLowerCase() && Math.abs((n.importe || 0) - parseFloat(form.importe || 0)) < 0.01 && n.estado !== 'rechazada') || null;
   };
 
+    // Cruce con TODOS los registros (también de otros técnicos) en el servidor
+  const cruzarConRegistros = async () => {
+    const coincidencias = await verificarDuplicado({
+      fecha_documento: form.fecha_documento,
+      hora_documento: form.hora_documento,
+      importe: parseFloat(form.importe),
+      nif_comercio: form.nif_comercio,
+      nombre_comercio: form.nombre_comercio,
+      localidad: form.localidad,
+      numero_factura: form.numero_factura,
+      codigo_validacion_fiscal: form.codigo_validacion_fiscal,
+      tarjeta_ultimos_digitos: form.tarjeta_ultimos_digitos,
+      archivos: archivos.map((a) => ({ dhash: a?.dhash || '' })),
+    });
+    const m = coincidencias.find((c) => c.severidad === 'critico' || c.severidad === 'alto');
+    if (!m) return null;
+    return { ...m, numero_nota: m.numero_nota || 'otro registro', esDuplicadoFiscal: m.motivos.some((x) => x.includes('código validación')) };
+  };
+
   const doGuardar = async (extraFields = {}) => {
-    const dup = checkDuplicado();
+    let dup = checkDuplicado();
+    if (!dup && !posibleDup) dup = await cruzarConRegistros();
     if (dup && !posibleDup) { setPosibleDup(dup); setShowDupAlert(true); return; }
     const { numero_nota, numero_secuencia } = await generarNumeroNota();
     const hoy = format(new Date(), 'yyyy-MM-dd');
@@ -443,7 +464,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-500" />{posibleDup?.esDuplicadoFiscal ? 'Duplicado exacto (QR)' : 'Posible duplicado'}</AlertDialogTitle>
-            <AlertDialogDescription>{posibleDup?.esDuplicadoFiscal ? <>Mismo código QR que <strong>{posibleDup?.numero_nota}</strong>. ¿Seguro que no es duplicado?</> : <>Ya existe <strong>{posibleDup?.numero_nota}</strong> con mismo día, comercio e importe. ¿Es un gasto diferente?</>}</AlertDialogDescription>
+            <AlertDialogDescription>{posibleDup?.esDuplicadoFiscal ? <>Mismo código QR que <strong>{posibleDup?.numero_nota}</strong>. ¿Seguro que no es duplicado?</> : : posibleDup?.motivos?.length ? <>Parecido a <strong>{posibleDup?.numero_nota}</strong> ({posibleDup?.registrado_por}): {posibleDup.motivos.join(', ')}. ¿Es un gasto diferente?</><>Ya existe <strong>{posibleDup?.numero_nota}</strong> con mismo día, comercio e importe. ¿Es un gasto diferente?</>}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => { setPosibleDup(null); setShowDupAlert(false); }}>Cancelar</AlertDialogCancel>

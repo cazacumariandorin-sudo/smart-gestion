@@ -83,10 +83,27 @@ export interface DocEconomico {
   archivos: any[];
   confianza_ocr?: number;
   tiene_hora: boolean;
-  calidad: number;         // score para elegir "mejor"
+  tarjeta4?: string;       // últimos 4 dígitos de la tarjeta
+  dhash?: string;          // huella visual de la foto (16 hex)
+  calidad: number;         // score para elegir "mejor"   // score para elegir "mejor"
   raw: any;                // registro original
 }
+// Distancia entre dos huellas visuales (nº de bits distintos, 0..64)
+function hamming(a: string, b: string): number {
+  if (!a || !b || a.length !== b.length) return 64;
+  let n = 0;
+  for (let i = 0; i < a.length; i++) {
+    let x = parseInt(a[i], 16) ^ parseInt(b[i], 16);
+    while (x) { n += x & 1; x >>= 1; }
+  }
+  return n;
+}
 
+// "08:26" / "8:26" / "08:26:00" → minutos desde medianoche (null si no hay hora)
+function minutosDeHora(h?: string): number | null {
+  const m = /(\d{1,2}):(\d{2})/.exec(String(h || ''));
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
 function calidadDe(d: Partial<DocEconomico>): number {
   let s = 0;
   if (d.cif) s += 1;
@@ -129,14 +146,16 @@ export function mapRegistroGasto(r: any): DocEconomico {
     categoria: r.categoria,
     obra_name: r.obra_name,
     archivos,
-    confianza_ocr: r.confianza_ocr,
+     confianza_ocr: r.confianza_ocr,
     tiene_hora: !!hora,
+    tarjeta4: String(r.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4),
+    dhash: (archivos.find((x: any) => x?.dhash)?.dhash) || '',
   };
   d.calidad = calidadDe(d);
   return d as DocEconomico;
 }
 
-export function mapFacturaAutonomo(r: any): DocEconomico {
+export function mapFacturaAutonomo
   const archivos = Array.isArray(r.archivos) ? r.archivos : (r.file_url ? [{ url: r.file_url }] : []);
   const d: Partial<DocEconomico> = {
     id: r.id,
@@ -277,7 +296,32 @@ export function compararPar(a: DocEconomico, b: DocEconomico): ScorePar {
       motivos.push('código validación fiscal idéntico');
     }
   }
+  // Nº de factura casi idéntico (un carácter mal leído por el OCR)
+  if (a.numero_factura && b.numero_factura && a.numero_factura !== b.numero_factura &&
+      Math.min(a.numero_factura.length, b.numero_factura.length) >= 8 &&
+      levenshtein(a.numero_factura, b.numero_factura) <= 1) {
+    score += 0.25;
+    maxPosible = Math.max(maxPosible, 1);
+    motivos.push('nº factura casi idéntico (posible error de lectura)');
+  }
 
+  // Misma FOTO (huella visual casi idéntica aunque esté recomprimida o recortada)
+  const distFoto = hamming(a.dhash || '', b.dhash || '');
+  const mismaFoto = !!(a.dhash && b.dhash) && distFoto <= 5;
+  if (mismaFoto) {
+    score += 0.5;
+    maxPosible = Math.max(maxPosible, 1);
+    motivos.push(`misma imagen (diferencia ${distFoto}/64)`);
+  }
+
+  // Misma tarjeta + mismo importe + misma fecha
+  if (a.tarjeta4 && b.tarjeta4 && a.tarjeta4 === b.tarjeta4 &&
+      a.importe != null && b.importe != null && Math.abs(a.importe - b.importe) < 0.01 &&
+      a.fecha && b.fecha && a.fecha === b.fecha) {
+    score += 0.1;
+    maxPosible += 0.1;
+    motivos.push(`misma tarjeta (…${a.tarjeta4})`);
+  }
   // Localidad
   if (a.localidad && b.localidad) {
     maxPosible += 0.05;
@@ -290,9 +334,17 @@ export function compararPar(a: DocEconomico, b: DocEconomico): ScorePar {
 
   // REGLA CLAVE: si importe + fecha + comercio coinciden pero ambos tienen
   // HORA distinta → son tramos sucesivos (peajes), NO duplicado.
+   // (solo si no hay identidad fuerte: mismo nº factura, mismo código fiscal o misma foto;
+  //  y la diferencia de hora es mayor de 2 minutos, para no fallar por lecturas OCR distintas)
+  const minA = minutosDeHora(a.hora);
+  const minB = minutosDeHora(b.hora);
+  const identidadFuerte =
+    mismaFoto ||
+    (!!a.numero_factura && a.numero_factura === b.numero_factura) ||
+    (!!a.codigo_fiscal && a.codigo_fiscal === b.codigo_fiscal);
   if (
-    a.tiene_hora && b.tiene_hora &&
-    a.hora && b.hora && a.hora !== b.hora &&
+    !identidadFuerte &&
+    minA != null && minB != null && Math.abs(minA - minB) > 2 &&
     a.fecha && b.fecha && a.fecha === b.fecha &&
     a.importe != null && b.importe != null && Math.abs(a.importe - b.importe) < 0.01
   ) {
@@ -302,7 +354,7 @@ export function compararPar(a: DocEconomico, b: DocEconomico): ScorePar {
   // Misma entidad + mismo operario + misma fecha + mismo importe → muy probable
   let severidad: ScorePar['severidad'] = 'bajo';
   let esDuplicado = false;
-  if (normalized >= 0.85 || (a.numero_factura && b.numero_factura && a.numero_factura === b.numero_factura)) {
+    if (normalized >= 0.85 || mismaFoto || (a.numero_factura && b.numero_factura && a.numero_factura === b.numero_factura)) {
     severidad = 'critico';
     esDuplicado = true;
   } else if (normalized >= 0.65) {

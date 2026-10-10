@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,8 @@ import { revisarParte } from '@/lib/ortografiaPartes';
 import RevisionOrtograficaDialog from '@/components/workorders/RevisionOrtograficaDialog';
 import NumeroParteBanner from '@/components/workorders/NumeroParteBanner';
 import { numeroParteVisible } from '@/lib/numeroParte';
+import { fechaES, fechaHoraES } from '@/lib/fechaES';
+import { descargarPartesPdf, nombrePdfParte } from '@/lib/partePdf';
 import { getEmpresaPrincipalPdf, drawEmpresaDatosPdf } from '@/lib/simantecEmpresaPdf';
 import { drawSimantecLogoPdf } from '@/lib/simantecLogoPdf';
 import {
@@ -62,6 +64,9 @@ const firmaStatusConfig = {
 export default function WorkOrderDetail() {
   const { id: orderId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Volver a la pantalla anterior (lista con sus filtros). Si se abrió el enlace directo, ir a la lista.
+  const volver = () => (location.key !== 'default' ? navigate(-1) : navigate('/work-orders'));
   const queryClient = useQueryClient();
   const { isAdmin, isGerencia, isClienteObra } = useUserRole();
   const canDelete = isAdmin || isGerencia;
@@ -108,11 +113,11 @@ export default function WorkOrderDetail() {
     mutationFn: () => base44.entities.WorkOrder.delete(orderId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workorders'] });
-      navigate('/work-orders');
+            volver();
     },
   });
 
-  const startEditing = () => {
+  const startEditing
     setForm({
       date: order.date || '',
       client_id: order.client_id || '',
@@ -139,87 +144,15 @@ export default function WorkOrderDetail() {
     setEditing(true);
   };
 
+  
   const downloadPDF = async () => {
-    const empresa = await getEmpresaPrincipalPdf();
-    const doc = new jsPDF();
-    const margin = 14;
-    const bottom = doc.internal.pageSize.getHeight() - 18;
-    let y = 12;
-    const numeroPdf = numeroParteVisible(order);
-    if (numeroPdf) {
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(30, 30, 30);
-      doc.text(`Parte ${numeroPdf}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-      y += 9;
+    try {
+      await descargarPartesPdf([order], nombrePdfParte(order));
+    } catch (err) {
+      console.error('[PDF] Error', err);
+      toast.error('No se pudo generar el PDF. Inténtalo de nuevo.');
     }
-    const ensure = (h) => { if (y + h > bottom) { doc.addPage(); y = 16; } };
-    const heading = (t) => { ensure(12); doc.setFontSize(10); doc.setTextColor(40, 40, 40); doc.text(t, margin, y); y += 5; };
-    const text = (t, indent = 0) => {
-      doc.setFontSize(9); doc.setTextColor(80, 80, 80);
-      doc.splitTextToSize(String(t), 182 - indent).forEach((l) => { ensure(5); doc.text(l, margin + indent, y); y += 5; });
-    };
-
-    const logoH = drawSimantecLogoPdf(doc, margin, y, 16);
-    drawEmpresaDatosPdf(doc, empresa, 196, 16);
-    y = y + logoH + 4;
-
-    doc.setFontSize(18); doc.setTextColor(40, 40, 40);
-    doc.text('Parte de Trabajo', margin, y); y += 8;
-    doc.setFontSize(11); doc.setTextColor(100, 100, 100);
-    doc.text(`${order.project || ''} — ${order.client_name || ''}`, margin, y); y += 6;
-    doc.setFontSize(9);
-    doc.text(`Fecha: ${order.date || '—'}  |  Estado: ${statusConfig[order.status]?.label || order.status}  |  Horas: ${order.total_hours || 0}h`, margin, y); y += 4;
-    if (order.hora_inicio || order.hora_fin) {
-      doc.text(`Hora inicio: ${order.hora_inicio || '—'}  |  Hora fin: ${order.hora_fin || '—'}`, margin, y); y += 4;
-    }
-    doc.text(`Firma: ${FIRMA_STATUS_LABELS[order.firma_status] || 'Sin firmar'}`, margin, y); y += 4;
-    doc.setDrawColor(220, 220, 220);
-    doc.line(margin, y, 196, y); y += 6;
-
-    if (order.description) { heading('Descripción:'); text(order.description); y += 2; }
-
-    if (order.workers?.length) {
-      heading('Operarios:');
-      order.workers.forEach((w) => text(`• ${w.name}${w.role ? ' (' + w.role + ')' : ''} — ${w.hours || 0}h`, 4));
-      y += 2;
-    }
-    if (order.materials?.length) {
-      heading('Materiales:');
-      order.materials.forEach((m) => text(`• ${m.name} — ${m.quantity || 0} ${m.unit || ''}`, 4));
-      y += 2;
-    }
-    if (order.vehiculo_matricula || order.desplazamiento_tipo || order.desplazamiento_valor || order.desplazamiento_modalidad === 'pactado') {
-      heading('Vehículo / Desplazamiento:');
-      if (order.vehiculo_matricula) text(`• Vehículo: ${order.vehiculo_matricula}`, 4);
-      if (order.desplazamiento_tipo) text(`• Tipo: ${DESPLAZAMIENTO_LABELS[order.desplazamiento_tipo] || order.desplazamiento_tipo}`, 4);
-      if (order.desplazamiento_modalidad === 'pactado') {
-        text(`• Importe pactado con el cliente: ${Number(order.desplazamiento_importe_eur || 0).toFixed(2)} €${order.desplazamiento_concepto ? ' — ' + order.desplazamiento_concepto : ''}`, 4);
-      } else if (order.desplazamiento_valor) {
-        text(`• Distancia: ${order.desplazamiento_valor} km${order.desplazamiento_importe_eur ? ' — ' + Number(order.desplazamiento_importe_eur).toFixed(2) + ' €' : ''}`, 4);
-      }
-      y += 2;
-    }
-    if (order.notes) { heading('Observaciones:'); text(order.notes); y += 2; }
-
-    // Firmas (con paginación)
-    ensure(52);
-    y += 28;
-    doc.setDrawColor(180, 180, 180);
-    doc.line(margin, y, 95, y);
-    doc.line(110, y, 196, y);
-    doc.setFontSize(8); doc.setTextColor(120, 120, 120);
-    doc.text('Firma Operario', margin, y + 4);
-    doc.text('Firma Cliente', 110, y + 4);
-    const metaOp = fmtFecha(order.firma_operario_fecha);
-    const metaCli = [order.firma_cliente_nombre, order.firma_cliente_nif, fmtFecha(order.firma_cliente_fecha)].filter(Boolean).join(' · ');
-    if (metaOp) doc.text(metaOp, margin, y + 8);
-    if (metaCli) doc.text(doc.splitTextToSize(metaCli, 85), 110, y + 8);
-    try { if (order.firma_operario) doc.addImage(order.firma_operario, 'PNG', margin, y - 26, 60, 24); } catch (e) { console.warn('[PDF] firma operario', e); }
-    try { if (order.firma_cliente) doc.addImage(order.firma_cliente, 'PNG', 110, y - 26, 60, 24); } catch (e) { console.warn('[PDF] firma cliente', e); }
-
-    doc.save(`parte-${(numeroParteVisible(order) || order.project || 'parte').replace(/[^\w-]+/g, '-')}-${order.date}.pdf`);
   };
-
   const handleSave = () => {
     // Cualquier error inesperado debe verse: antes fallaba sin mensaje
     guardarParte().catch((err) => {
@@ -424,6 +357,7 @@ export default function WorkOrderDetail() {
     <div className="max-w-3xl mx-auto">
       <NumeroParteBanner order={order} puedeAsignar={!isClienteObra} />
       <PageHeader
+        onBack={volver}
         title={order.project}
         subtitle={order.client_name || order.client || ''}
         backTo="/work-orders"
@@ -476,7 +410,7 @@ export default function WorkOrderDetail() {
           </Badge>
           <span className="flex items-center gap-1.5 text-muted-foreground">
             <Calendar className="w-4 h-4" />
-            {order.date ? format(parseISO(order.date), "d 'de' MMMM yyyy", { locale: es }) : '—'}
+            {fechaES(order.date) || '—'}
           </span>
           <span className="flex items-center gap-1.5 text-muted-foreground">
             <Clock className="w-4 h-4" />

@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Crop, RefreshCw, Check, X, Loader2 } from 'lucide-react';
 
 const MAX_SRC = 2000; // lado máximo de la imagen fuente de muestreo (memoria)
-const MAX_OUT = 1400; // lado máximo de salida (suficiente para OCR)
+const MAX_OUT = 3200; // lado máximo de salida: un ticket alargado necesita ancho suficiente para leerse
 
 function loadImage(file) {
   return new Promise((resolve, reject) => {

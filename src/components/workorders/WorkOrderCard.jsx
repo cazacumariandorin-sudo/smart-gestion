@@ -2,8 +2,9 @@ import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Users, Package } from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { fechaES } from '@/lib/fechaES';
+import { Checkbox } from '@/components/ui/checkbox';
+
 import { numeroParteVisible } from '@/lib/numeroParte';
 
 const statusConfig = {
@@ -12,15 +13,19 @@ const statusConfig = {
   completado: { label: 'Completado', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
 };
 
-export default function WorkOrderCard({ order }) {
+export default function WorkOrderCard({ order, seleccionable = false, seleccionado = false, onToggle }) {
   const status = statusConfig[order.status] || statusConfig.pendiente;
   const workerCount = order.workers?.length || 0;
   const materialCount = order.materials?.length || 0;
 
   return (
-    <Link to={`/work-orders/${order.id}`}>
-      <Card className="p-5 hover:shadow-md transition-all hover:border-primary/20 cursor-pointer group">
-        <div className="flex items-start justify-between mb-3">
+    <Link
+      to={`/work-orders/${order.id}`}
+      onClick={(e) => { if (seleccionable) { e.preventDefault(); onToggle?.(order.id); } }}
+    >
+      <div className="flex items-start justify-between mb-3">
+          {seleccionable && <Checkbox checked={seleccionado} className="mr-3 mt-1 shrink-0" onCheckedChange={() => onToggle?.(order.id)} />}
+          <div className="flex-1 min-w-0">
           <div className="flex-1 min-w-0">
             {numeroParteVisible(order) && (
               <p className="text-[10px] font-mono font-semibold text-primary/80 mb-0.5 truncate">{numeroParteVisible(order)}</p>
@@ -41,7 +46,7 @@ export default function WorkOrderCard({ order }) {
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
+            {fechaES(order.date) || '—'}
             {order.date ? format(new Date(order.date), 'd MMM yyyy', { locale: es }) : '—'}
           </span>
           <span className="flex items-center gap-1">
