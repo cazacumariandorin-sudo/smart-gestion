@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
+import { asignarCodigoCliente } from '@/lib/numeroParte';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Phone, Mail, MapPin, Pencil, Trash2, User, Save, Loader2, ChevronDown, ChevronUp, Building, CreditCard, Wrench, ScanSearch } from 'lucide-react';
 import { checkDuplicados } from '@/hooks/useDuplicadoCheck.js';
@@ -118,6 +119,7 @@ export default function Clients() {
 
   const asignarId = async (id) => {
     try { await base44.functions.invoke('generarIdUnico', { entidad: 'Client', record_id: id, campo_id: 'codigo_registro' }); } catch {}
+    await asignarCodigoCliente(id); // código único C001, C002… usado en el número de parte
     queryClient.invalidateQueries({ queryKey: ['clients'] });
   };
   const createMutation = useMutation({ mutationFn: d => base44.entities.Client.create(d), onSuccess: (rec) => { asignarId(rec.id); closeDialog(); } });
@@ -207,6 +209,9 @@ export default function Clients() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm truncate">{client.name}</h3>
                     {client.nif && <p className="text-xs font-mono text-muted-foreground">{client.nif}</p>}
+                    {client.codigo_cliente && (
+                      <p className="text-[11px] font-mono text-primary font-bold mt-0.5">{client.codigo_cliente}</p>
+                    )}
                     {client.client_id_code && (
                       <p className="text-[10px] font-mono text-primary/70 font-semibold mt-0.5">{client.client_id_code}</p>
                     )}

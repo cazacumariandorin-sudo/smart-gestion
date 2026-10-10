@@ -11,7 +11,7 @@ import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import DesplazamientoFields from '@/components/partes/DesplazamientoFields';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Save, Loader2, Trash2, Pencil, Calendar, Clock, Users, Package, Download, Car, Euro } from 'lucide-react';
+import { SpellCheck, Save, Loader2, Trash2, Pencil, Calendar, Clock, Users, Package, Download, Car, Euro } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHeader from '@/components/layout/PageHeader';
 import SignatureCanvas from '@/components/workorders/SignatureCanvas';
@@ -26,11 +26,15 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useUserRole } from '@/lib/useUserRole';
-import { drawSimantecLogoPdf } from '@/lib/simantecLogoPdf';
+import { revisarParte } from '@/lib/ortografiaPartes';
+import RevisionOrtograficaDialog from '@/components/workorders/RevisionOrtograficaDialog';
+import NumeroParteBanner from '@/components/workorders/NumeroParteBanner';
+import { numeroParteVisible } from '@/lib/numeroParte';
 import { getEmpresaPrincipalPdf, drawEmpresaDatosPdf } from '@/lib/simantecEmpresaPdf';
+import { drawSimantecLogoPdf } from '@/lib/simantecLogoPdf';
 import {
   limpiarParte, validarFilas, calcularFirmaStatus, mensajeErrorGuardado,
-  DESPLAZAMIENTO_LABELS, FIRMA_STATUS_LABELS,
+  DESPLAZAMIENTO_LABELS, FIRMA_STATUS_LABELS, validarDesplazamiento,
 } from '@/lib/workOrderUtils';
 
 const fmtFecha = (iso, pat = 'dd/MM/yyyy HH:mm') => {
@@ -46,8 +50,11 @@ const statusConfig = {
 const firmaStatusConfig = {
   sin_firmar: { label: 'Sin firmar', className: 'bg-slate-100 text-slate-600 border-slate-200' },
   pendiente_cliente: { label: 'Pendiente cliente', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-  pendiente_tecnico: { label: 'Pendiente tecnico', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  firmado_tecnico: { label: 'Firmado tecnico', className: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  pendiente_tecnico: { label: 'Pendiente técnico', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+  firmado_tecnico: { label: 'Firmado técnico', className: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  // Valores antiguos (registros anteriores al cambio de esquema)
+  pendiente_operario: { label: 'Pendiente técnico', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+  firmado_operario: { label: 'Firmado técnico', className: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
   firmado_ambos: { label: 'Firmado ✓', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
   rechazado: { label: 'Rechazado', className: 'bg-red-100 text-red-700 border-red-200' },
 };
@@ -56,9 +63,11 @@ export default function WorkOrderDetail() {
   const { id: orderId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin, isGerencia } = useUserRole();
+  const { isAdmin, isGerencia, isClienteObra } = useUserRole();
   const canDelete = isAdmin || isGerencia;
   const [editing, setEditing] = useState(false);
+  const [revisando, setRevisando] = useState(false);
+  const [revisionAbierta, setRevisionAbierta] = useState(false);
   const [form, setForm] = useState(null);
 
   const { data: order, isLoading } = useQuery({
@@ -124,6 +133,8 @@ export default function WorkOrderDetail() {
       desplazamiento_tipo: order.desplazamiento_tipo || '',
       desplazamiento_valor: order.desplazamiento_valor ?? '',
       desplazamiento_importe_eur: order.desplazamiento_importe_eur ?? '',
+      desplazamiento_modalidad: order.desplazamiento_modalidad || 'km',
+      desplazamiento_concepto: order.desplazamiento_concepto || '',
     });
     setEditing(true);
   };
@@ -134,6 +145,13 @@ export default function WorkOrderDetail() {
     const margin = 14;
     const bottom = doc.internal.pageSize.getHeight() - 18;
     let y = 12;
+    const numeroPdf = numeroParteVisible(order);
+    if (numeroPdf) {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(30, 30, 30);
+      doc.text(`Parte ${numeroPdf}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      y += 9;
+    }
     const ensure = (h) => { if (y + h > bottom) { doc.addPage(); y = 16; } };
     const heading = (t) => { ensure(12); doc.setFontSize(10); doc.setTextColor(40, 40, 40); doc.text(t, margin, y); y += 5; };
     const text = (t, indent = 0) => {
@@ -143,10 +161,10 @@ export default function WorkOrderDetail() {
 
     const logoH = drawSimantecLogoPdf(doc, margin, y, 16);
     drawEmpresaDatosPdf(doc, empresa, 196, 16);
-    y = 12 + logoH + 4;
+    y = y + logoH + 4;
 
     doc.setFontSize(18); doc.setTextColor(40, 40, 40);
-    doc.text(`Parte de Trabajo${order.order_number ? ' · ' + order.order_number : ''}`, margin, y); y += 8;
+    doc.text('Parte de Trabajo', margin, y); y += 8;
     doc.setFontSize(11); doc.setTextColor(100, 100, 100);
     doc.text(`${order.project || ''} — ${order.client_name || ''}`, margin, y); y += 6;
     doc.setFontSize(9);
@@ -170,11 +188,15 @@ export default function WorkOrderDetail() {
       order.materials.forEach((m) => text(`• ${m.name} — ${m.quantity || 0} ${m.unit || ''}`, 4));
       y += 2;
     }
-    if (order.vehiculo_matricula || order.desplazamiento_tipo || order.desplazamiento_valor) {
+    if (order.vehiculo_matricula || order.desplazamiento_tipo || order.desplazamiento_valor || order.desplazamiento_modalidad === 'pactado') {
       heading('Vehículo / Desplazamiento:');
       if (order.vehiculo_matricula) text(`• Vehículo: ${order.vehiculo_matricula}`, 4);
       if (order.desplazamiento_tipo) text(`• Tipo: ${DESPLAZAMIENTO_LABELS[order.desplazamiento_tipo] || order.desplazamiento_tipo}`, 4);
-      if (order.desplazamiento_valor) text(`• Distancia: ${order.desplazamiento_valor} km${order.desplazamiento_importe_eur ? ' — ' + Number(order.desplazamiento_importe_eur).toFixed(2) + ' €' : ''}`, 4);
+      if (order.desplazamiento_modalidad === 'pactado') {
+        text(`• Importe pactado con el cliente: ${Number(order.desplazamiento_importe_eur || 0).toFixed(2)} €${order.desplazamiento_concepto ? ' — ' + order.desplazamiento_concepto : ''}`, 4);
+      } else if (order.desplazamiento_valor) {
+        text(`• Distancia: ${order.desplazamiento_valor} km${order.desplazamiento_importe_eur ? ' — ' + Number(order.desplazamiento_importe_eur).toFixed(2) + ' €' : ''}`, 4);
+      }
       y += 2;
     }
     if (order.notes) { heading('Observaciones:'); text(order.notes); y += 2; }
@@ -195,16 +217,43 @@ export default function WorkOrderDetail() {
     try { if (order.firma_operario) doc.addImage(order.firma_operario, 'PNG', margin, y - 26, 60, 24); } catch (e) { console.warn('[PDF] firma operario', e); }
     try { if (order.firma_cliente) doc.addImage(order.firma_cliente, 'PNG', 110, y - 26, 60, 24); } catch (e) { console.warn('[PDF] firma cliente', e); }
 
-    doc.save(`parte-${(order.order_number || order.project || 'parte').replace(/[^\w-]+/g, '-')}-${order.date}.pdf`);
+    doc.save(`parte-${(numeroParteVisible(order) || order.project || 'parte').replace(/[^\w-]+/g, '-')}-${order.date}.pdf`);
   };
 
   const handleSave = () => {
-    if (updateMutation.isPending) return;
+    // Cualquier error inesperado debe verse: antes fallaba sin mensaje
+    guardarParte().catch((err) => {
+      console.error('[WorkOrder] Error preparando el guardado', err);
+      setRevisando(false);
+      toast.error(`No se pudo guardar el parte: ${err?.message || 'error inesperado'}`, { duration: 9000 });
+    });
+  };
+
+  const guardarParte = async () => {
+    if (updateMutation.isPending || revisando) return;
+    const errDesp = validarDesplazamiento(form);
+    if (errDesp) { toast.error(errDesp, { duration: 7000 }); return; }
     const datos = limpiarParte({ ...form }, { clear: true });
     if (!datos.date) { toast.error('Indica la fecha del parte'); return; }
     if (!datos.project) { toast.error('Selecciona o escribe la obra'); return; }
     const filas = validarFilas(datos.workers, datos.materials);
     if (!filas.ok) { toast.error(filas.error); return; }
+
+    // Revisión ortográfica ANTES de guardar (si la IA falla o tarda, se guarda igualmente)
+    let datosFinal = { ...datos, workers: filas.workers, materials: filas.materials };
+    setRevisando(true);
+    try {
+      const rev = await revisarParte(datosFinal, { timeoutMs: 12000 });
+      if (!rev.ok) {
+        toast.info('No se pudo revisar la ortografía (conexión lenta). El parte se guarda tal cual; puedes revisarlo después con «Revisión ortográfica».', { duration: 7000 });
+      } else if (rev.cambios.length) {
+        datosFinal = { ...datosFinal, ...rev.patch };
+        setForm(prev => ({ ...prev, ...rev.patch }));
+        toast.success(`Ortografía corregida en ${rev.cambios.length} campo(s)`);
+      }
+    } finally {
+      setRevisando(false);
+    }
 
     const ahora = new Date().toISOString();
     const extra = {};
@@ -212,9 +261,7 @@ export default function WorkOrderDetail() {
     if (datos.firma_cliente && datos.firma_cliente !== (order.firma_cliente || '')) extra.firma_cliente_fecha = ahora;
 
     updateMutation.mutate({
-      ...datos,
-      workers: filas.workers,
-      materials: filas.materials,
+      ...datosFinal,
       total_hours: filas.workers.reduce((sum, w) => sum + (Number(w.hours) || 0), 0),
       firma_status: calcularFirmaStatus(order.firma_status, datos.firma_operario, datos.firma_cliente),
       ...extra,
@@ -269,11 +316,18 @@ export default function WorkOrderDetail() {
   if (editing) {
     return (
       <div className="max-w-3xl mx-auto">
+        <NumeroParteBanner order={order} puedeAsignar={false} />
         <PageHeader
           title="Editar Parte"
           onBack={() => setEditing(false)}
         />
         <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+          {order.firma_status === 'firmado_ambos' && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-xs p-3">
+              Este parte ya está firmado por técnico y cliente. Puedes modificarlo, pero las firmas se conservan:
+              si cambias horas, materiales o importes, avisa al cliente.
+            </div>
+          )}
           <Card className="p-5 space-y-4">
             <h2 className="font-semibold text-sm">Información General</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -337,8 +391,11 @@ export default function WorkOrderDetail() {
               desplazamiento_tipo: form.desplazamiento_tipo,
               desplazamiento_valor: form.desplazamiento_valor,
               desplazamiento_importe_eur: form.desplazamiento_importe_eur,
+              desplazamiento_modalidad: form.desplazamiento_modalidad,
+              desplazamiento_concepto: form.desplazamiento_concepto,
             }}
             onChange={(patch) => setForm(prev => ({ ...prev, ...patch }))}
+            allowPactado
           />
           <Card className="p-5 space-y-3">
             <Label className="text-sm font-semibold">Observaciones</Label>
@@ -353,9 +410,9 @@ export default function WorkOrderDetail() {
           </Card>
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setEditing(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2 min-w-32">
-              {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Guardar
+            <Button onClick={handleSave} disabled={updateMutation.isPending || revisando} className="gap-2 min-w-32">
+              {(updateMutation.isPending || revisando) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {revisando ? 'Revisando ortografía…' : 'Guardar'}
             </Button>
           </div>
         </div>
@@ -365,15 +422,21 @@ export default function WorkOrderDetail() {
 
   return (
     <div className="max-w-3xl mx-auto">
+      <NumeroParteBanner order={order} puedeAsignar={!isClienteObra} />
       <PageHeader
         title={order.project}
-        subtitle={`${order.order_number ? order.order_number + ' · ' : ''}${order.client_name || order.client || ''}`}
+        subtitle={order.client_name || order.client || ''}
         backTo="/work-orders"
         actions={
           <>
             <Button variant="ghost" size="icon" onClick={downloadPDF} className="h-10 w-10 rounded-full">
               <Download className="w-4 h-4" />
             </Button>
+            {!isClienteObra && (
+              <Button variant="ghost" size="icon" onClick={() => setRevisionAbierta(true)} className="h-10 w-10 rounded-full" title="Revisión ortográfica">
+                <SpellCheck className="w-4 h-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={startEditing} className="h-10 w-10 rounded-full">
               <Pencil className="w-4 h-4" />
             </Button>
@@ -467,7 +530,7 @@ export default function WorkOrderDetail() {
         )}
       </Card>
 
-      {(order.vehiculo_matricula || order.desplazamiento_tipo || order.desplazamiento_valor > 0) && (
+      {(order.vehiculo_matricula || order.desplazamiento_tipo || order.desplazamiento_valor > 0 || order.desplazamiento_modalidad === 'pactado') && (
         <Card className="p-5 mb-4">
           <h3 className="font-semibold text-sm flex items-center gap-2 mb-3">
             <Car className="w-4 h-4 text-primary" /> Vehículo / Desplazamiento
@@ -475,7 +538,10 @@ export default function WorkOrderDetail() {
           <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
             {order.vehiculo_matricula && <span>Vehículo: <b className="text-foreground">{order.vehiculo_matricula}</b></span>}
             {order.desplazamiento_tipo && <span>{DESPLAZAMIENTO_LABELS[order.desplazamiento_tipo] || order.desplazamiento_tipo}</span>}
-            {order.desplazamiento_valor > 0 && <span>{order.desplazamiento_valor} km</span>}
+            {order.desplazamiento_valor > 0 && order.desplazamiento_modalidad !== 'pactado' && <span>{order.desplazamiento_valor} km</span>}
+            {order.desplazamiento_modalidad === 'pactado' && (
+              <span>Importe pactado{order.desplazamiento_concepto ? `: ${order.desplazamiento_concepto}` : ''}</span>
+            )}
             {order.desplazamiento_importe_eur > 0 && (
               <span className="flex items-center gap-1 text-primary font-medium"><Euro className="w-3.5 h-3.5" />{Number(order.desplazamiento_importe_eur).toFixed(2)} €</span>
             )}
@@ -524,6 +590,8 @@ export default function WorkOrderDetail() {
         />
       </Card>
       </div>
+
+      <RevisionOrtograficaDialog open={revisionAbierta} onOpenChange={setRevisionAbierta} orders={[order]} />
     </div>
   );
 }

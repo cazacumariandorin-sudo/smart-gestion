@@ -4,8 +4,10 @@
  * No bloquea el guardado: si está vacío, el parte se crea igual.
  *
  * Props:
- *   value: { vehiculo_id, vehiculo_matricula, desplazamiento_tipo, desplazamiento_valor, desplazamiento_importe_eur }
+ *   value: { vehiculo_id, vehiculo_matricula, desplazamiento_tipo, desplazamiento_valor, desplazamiento_importe_eur,
+ *            desplazamiento_modalidad, desplazamiento_concepto }
  *   onChange: (partial) => void
+ *   allowPactado: habilita la modalidad "Importe pactado con el cliente" (sin km). Solo partes de trabajo.
  */
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -25,7 +27,7 @@ const TIPOS = [
 // Tarifa de la empresa por km desplazado (€). Edítala si la política cambia.
 export const KM_RATE_EUR = 0.30;
 
-export default function DesplazamientoFields({ value = {}, onChange }) {
+export default function DesplazamientoFields({ value = {}, onChange, allowPactado = false }) {
   const { data: vehiculos = [] } = useQuery({
     queryKey: ['vehiculos-desplazamiento'],
     queryFn: () => base44.entities.Vehiculo.list('matricula', 200),
@@ -44,6 +46,17 @@ export default function DesplazamientoFields({ value = {}, onChange }) {
     const km = raw === '' ? '' : Number(raw);
     const importe = (km === '' || isNaN(km) || km <= 0) ? '' : Math.round(km * KM_RATE_EUR * 100) / 100;
     set({ desplazamiento_valor: km, desplazamiento_importe_eur: importe });
+  };
+
+  const pactado = allowPactado && value.desplazamiento_modalidad === 'pactado';
+
+  const handleModalidad = (m) => {
+    if (m === 'pactado') set({ desplazamiento_modalidad: 'pactado', desplazamiento_valor: '', desplazamiento_importe_eur: '' });
+    else set({ desplazamiento_modalidad: 'km', desplazamiento_concepto: '', desplazamiento_importe_eur: '' });
+  };
+
+  const handleImportePactado = (raw) => {
+    set({ desplazamiento_importe_eur: raw === '' ? '' : Number(raw) });
   };
 
   const importeEur = value.desplazamiento_importe_eur;
@@ -78,12 +91,13 @@ export default function DesplazamientoFields({ value = {}, onChange }) {
             </SelectContent>
           </Select>
         </div>
+        {!pactado && (
         <div className="space-y-1.5">
-          <Label className="text-xs">Valor desplazamiento (km)</Label>
+          <Label className="text-xs">Valor desplazamiento (km) <span className="text-muted-foreground font-normal">(opcional)</span></Label>
           <Input
             type="number"
             min="0"
-            step="0.1"
+            step="any"
             inputMode="decimal"
             placeholder="0"
             value={value.desplazamiento_valor ?? ''}
@@ -97,7 +111,60 @@ export default function DesplazamientoFields({ value = {}, onChange }) {
             </div>
           )}
         </div>
+        )}
       </div>
+
+      {allowPactado && value.desplazamiento_tipo && (
+        <div className="space-y-3 border-t pt-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Cálculo del desplazamiento</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleModalidad('km')}
+                className={`rounded-lg border px-3 py-2 text-xs font-medium ${!pactado ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted'}`}
+              >
+                Por kilómetros
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModalidad('pactado')}
+                className={`rounded-lg border px-3 py-2 text-xs font-medium ${pactado ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted'}`}
+              >
+                Importe pactado con cliente
+              </button>
+            </div>
+          </div>
+
+          {pactado && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Importe aprobado por el cliente (€) *</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={value.desplazamiento_importe_eur ?? ''}
+                  onChange={e => handleImportePactado(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Concepto / ref. presupuesto *</Label>
+                <Input
+                  placeholder="Ej.: Portugal – presupuesto 2026-014"
+                  value={value.desplazamiento_concepto || ''}
+                  onChange={e => set({ desplazamiento_concepto: e.target.value })}
+                />
+              </div>
+              <p className="sm:col-span-2 text-[11px] text-muted-foreground">
+                No hace falta indicar kilómetros: se factura el importe pactado.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }

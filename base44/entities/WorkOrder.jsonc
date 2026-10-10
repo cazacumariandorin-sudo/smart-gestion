@@ -128,8 +128,29 @@
       "description": "Importe econ\u00f3mico del desplazamiento en euros (opcional). Calculado autom\u00e1ticamente como km \u00d7 tarifa de la empresa al registrar el parte.",
       "type": "number"
     },
+    "desplazamiento_modalidad": {
+      "description": "C\u00f3mo se calcula el desplazamiento: 'km' (kil\u00f3metros \u00d7 tarifa) o 'pactado' (importe aprobado por el cliente seg\u00fan presupuesto, sin km). Opcional; vac\u00edo = km.",
+      "enum": [
+        "km",
+        "pactado"
+      ],
+      "type": "string"
+    },
+    "desplazamiento_concepto": {
+      "description": "Concepto o referencia del importe pactado con el cliente (n\u00ba de presupuesto o nombre representativo, p. ej. 'Portugal - furgoneta'). Solo en modalidad 'pactado'.",
+      "type": "string"
+    },
+    "ortografia_revisada_en": {
+      "description": "Fecha en que se aplic\u00f3 la revisi\u00f3n ortogr\u00e1fica masiva a este parte (evita volver a analizarlo).",
+      "format": "date-time",
+      "type": "string"
+    },
     "order_number": {
       "description": "N\u00famero de parte generado autom\u00e1ticamente",
+      "type": "string"
+    },
+    "numero_parte": {
+      "description": "N\u00famero \u00fanico del parte: DD-MM-AAAA-NNNN-Cxxx (fecha del parte, secuencial del a\u00f1o y c\u00f3digo de cliente). Se asigna al crear y no cambia.",
       "type": "string"
     },
     "project": {
