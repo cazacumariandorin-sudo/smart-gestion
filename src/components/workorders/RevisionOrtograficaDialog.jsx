@@ -10,7 +10,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { revisarParte, extraerTextos } from '@/lib/ortografiaPartes';
-import { numeroParteVisible } from '@/lib/numeroParte';
+import { fechaES } from '@/lib/fechaES';
 
 const CONCURRENCIA = 3;
 
@@ -149,7 +149,7 @@ export default function RevisionOrtograficaDialog({ open, onOpenChange, orders =
                   <label className="flex items-start gap-2 cursor-pointer">
                     <Checkbox checked={!!marcados[order.id]} onCheckedChange={(v) => setMarcados(m => ({ ...m, [order.id]: !!v }))} className="mt-0.5" />
                     <span className="text-sm font-medium">
-                      {numeroParteVisible(order) ? `${numeroParteVisible(order)} · ` : ''}{order.project} <span className="text-muted-foreground font-normal">· {order.date}</span>
+                      {numeroParteVisible(order) ? `${numeroParteVisible(order)} · ` : ''}{order.project} <span className="text-muted-foreground font-normal">· · {fechaES(order.date)}</span>
                     </span>
                   </label>
                   {cambios.map(c => (
