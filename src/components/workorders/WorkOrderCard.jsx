@@ -23,8 +23,9 @@ export default function WorkOrderCard({ order, seleccionable = false, selecciona
       to={`/work-orders/${order.id}`}
       onClick={(e) => { if (seleccionable) { e.preventDefault(); onToggle?.(order.id); } }}
     >
-      <Card className={`p-5 hover:shadow-md transition-all hover:border-primary/20 cursor-pointer group ${seleccionado ? 'ring-2 ring-primary border-primary' : ''}`}>
-        <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-3">
+          {seleccionable && <Checkbox checked={seleccionado} className="mr-3 mt-1 shrink-0" onCheckedChange={() => onToggle?.(order.id)} />}
+          <div className="flex-1 min-w-0">
           <div className="flex-1 min-w-0">
             {numeroParteVisible(order) && (
               <p className="text-[10px] font-mono font-semibold text-primary/80 mb-0.5 truncate">{numeroParteVisible(order)}</p>
@@ -45,7 +46,7 @@ export default function WorkOrderCard({ order, seleccionable = false, selecciona
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
+            {fechaES(order.date) || '—'}
             {order.date ? format(new Date(order.date), 'd MMM yyyy', { locale: es }) : '—'}
           </span>
           <span className="flex items-center gap-1">
