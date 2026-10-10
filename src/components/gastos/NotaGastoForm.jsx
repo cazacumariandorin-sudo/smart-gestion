@@ -52,6 +52,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [sugerencia, setSugerencia] = useState(null); // { categoria_sugerida, confianza, patron_id }
   const [precisaPrecision, setPrecisaPrecision] = useState(false);
   const [precisionMotivo, setPrecisionMotivo] = useState('');
+  const [sugTarjeta, setSugTarjeta] = useState(null); // { digitos_finales, origen_pago_sugerido, confirmado, veces_visto, hay_conflicto, operario_name }
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { isAdmin: isRoleAdmin, isGerencia, isAdministracion } = useUserRole();
