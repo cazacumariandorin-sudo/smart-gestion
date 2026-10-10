@@ -172,6 +172,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         numero_factura: datos.numero_factura || prev.numero_factura,
         localidad: datos.localidad || prev.localidad,
         forma_pago_documento: datos.forma_pago_documento || prev.forma_pago_documento,
+        tarjeta_ultimos_digitos: String(datos.tarjeta_ultimos_digitos || prev.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4),
         categoria: catValida || prev.categoria,
       }));
     }
