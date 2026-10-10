@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Users, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { numeroParteVisible } from '@/lib/numeroParte';
 
 const statusConfig = {
   pendiente: { label: 'Pendiente', className: 'bg-amber-100 text-amber-700 border-amber-200' },
@@ -21,6 +22,9 @@ export default function WorkOrderCard({ order }) {
       <Card className="p-5 hover:shadow-md transition-all hover:border-primary/20 cursor-pointer group">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
+            {numeroParteVisible(order) && (
+              <p className="text-[10px] font-mono font-semibold text-primary/80 mb-0.5 truncate">{numeroParteVisible(order)}</p>
+            )}
             <h3 className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
               {order.project}
             </h3>

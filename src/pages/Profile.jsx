@@ -138,6 +138,10 @@ export default function Profile() {
     onSuccess: () => {
       base44.auth.logout();
     },
+    onError: (err) => {
+      const msg = err?.response?.data?.error || err?.message || 'inténtalo de nuevo';
+      toast.error(`No se pudo eliminar la cuenta: ${msg}`, { duration: 9000 });
+    },
   });
 
   // Check if this user has a linked tecnico record

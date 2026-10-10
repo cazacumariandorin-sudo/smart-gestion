@@ -1,5 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { getTimeoutByNetwork, getTimeoutByRtt } from '@/hooks/useNetworkInfo';
+import { toast } from 'sonner';
+import { mensajeErrorGuardado } from '@/lib/workOrderUtils';
 
 /**
  * Instancia global de QueryClient con configuración optimizada para app con offline support
@@ -29,6 +31,13 @@ export const queryClientInstance = new QueryClient({
       
       // Reintentar después de 1 segundo (escalable)
       retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+
+      // Red de seguridad: toda mutación SIN onError propio muestra un aviso visible
+      // (antes 85 de 140 mutaciones fallaban en silencio). Si la mutación define su propio onError, este se ignora.
+      onError: (error) => {
+        console.error('[Mutación] Error no gestionado', error);
+        toast.error(mensajeErrorGuardado(error), { duration: 8000 });
+      },
     },
   },
 });

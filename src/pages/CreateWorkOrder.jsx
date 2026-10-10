@@ -19,8 +19,9 @@ import DesplazamientoFields from '@/components/partes/DesplazamientoFields';
 import PageHeader from '@/components/layout/PageHeader';
 import { subirImagen } from '@/lib/uploadPhoto';
 import { revisarParte } from '@/lib/ortografiaPartes';
+import { asignarNumeroParte } from '@/lib/numeroParte';
 import {
-  hoyLocal, limpiarParte, validarFilas, calcularFirmaStatus, mensajeErrorGuardado,
+  hoyLocal, limpiarParte, validarFilas, validarDesplazamiento, calcularFirmaStatus, mensajeErrorGuardado,
   leerBorrador, guardarBorrador, borrarBorrador, comprimirImagen,
 } from '@/lib/workOrderUtils';
 
@@ -44,6 +45,8 @@ const formVacio = () => ({
   desplazamiento_tipo: '',
   desplazamiento_valor: '',
   desplazamiento_importe_eur: '',
+  desplazamiento_modalidad: 'km',
+  desplazamiento_concepto: '',
 });
 
 export default function CreateWorkOrder() {
@@ -67,6 +70,7 @@ export default function CreateWorkOrder() {
   const [photos, setPhotos] = useState([]); // fotos ya subidas, pendientes de vincular al parte
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [revisando, setRevisando] = useState(false);
+
   // Borrador local: si falla la red o se cierra la pestaña no se pierde el trabajo
   useEffect(() => {
     const t = setTimeout(() => guardarBorrador(form), 500);
@@ -103,13 +107,17 @@ export default function CreateWorkOrder() {
           fotosFallidas++;
         }
       }
-      return { order, fotosFallidas };
+      // Número único del parte (si falla, el parte ya está guardado y se podrá asignar después)
+      let numero = '';
+      try { numero = await asignarNumeroParte(order.id); } catch (e) { console.error('[WorkOrder] No se pudo asignar el número', e); }
+      return { order, fotosFallidas, numero };
     },
-    onSuccess: ({ fotosFallidas }) => {
+    onSuccess: ({ fotosFallidas, numero }) => {
       borrarBorrador();
       queryClient.invalidateQueries({ queryKey: ['workorders'] });
       if (fotosFallidas) toast.warning(`Parte creado, pero ${fotosFallidas} foto(s) no se pudieron vincular. Añádelas desde el detalle del parte.`, { duration: 8000 });
-      else toast.success('✅ Parte creado correctamente');
+      else if (numero) toast.success(`✅ Parte ${numero} creado correctamente`, { duration: 6000 });
+      else toast.warning('Parte creado, pero el número no se pudo asignar ahora. Se asignará desde el detalle del parte.', { duration: 8000 });
       navigate('/work-orders');
     },
     onError: (err) => {
@@ -120,8 +128,19 @@ export default function CreateWorkOrder() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (mutation.isPending) return;
+    enviarParte().catch((err) => {
+      console.error('[WorkOrder] Error preparando el guardado', err);
+      setRevisando(false);
+      toast.error(`No se pudo guardar el parte: ${err?.message || 'error inesperado'}`, { duration: 9000 });
+    });
+  };
+
+  const enviarParte = async () => {
+    if (mutation.isPending || revisando) return;
     if (uploadingPhotos) { toast.warning('Espera a que terminen de subirse las fotos'); return; }
+
+    const errDesp = validarDesplazamiento(form);
+    if (errDesp) { toast.error(errDesp, { duration: 7000 }); return; }
 
     const datos = limpiarParte(form);
     if (!datos.date) { toast.error('Indica la fecha del parte'); return; }
@@ -131,11 +150,25 @@ export default function CreateWorkOrder() {
     const filas = validarFilas(datos.workers, datos.materials);
     if (!filas.ok) { toast.error(filas.error); return; }
 
+    // Revisión ortográfica ANTES de guardar (si la IA falla o tarda, se guarda igualmente)
+    let datosFinal = { ...datos, workers: filas.workers, materials: filas.materials };
+    setRevisando(true);
+    try {
+      const rev = await revisarParte(datosFinal, { timeoutMs: 12000 });
+      if (!rev.ok) {
+        toast.info('No se pudo revisar la ortografía (conexión lenta). El parte se guarda tal cual; puedes revisarlo después con «Revisión ortográfica».', { duration: 7000 });
+      } else if (rev.cambios.length) {
+        datosFinal = { ...datosFinal, ...rev.patch };
+        setForm(prev => ({ ...prev, ...rev.patch }));
+        toast.success(`Ortografía corregida en ${rev.cambios.length} campo(s)`);
+      }
+    } finally {
+      setRevisando(false);
+    }
+
     const ahora = new Date().toISOString();
     mutation.mutate({
-      ...datos,
-      workers: filas.workers,
-      materials: filas.materials,
+      ...datosFinal,
       total_hours: filas.workers.reduce((sum, w) => sum + (Number(w.hours) || 0), 0),
       firma_status: calcularFirmaStatus('sin_firmar', datos.firma_operario, datos.firma_cliente),
       ...(datos.firma_operario ? { firma_operario_fecha: ahora } : {}),
@@ -283,8 +316,11 @@ export default function CreateWorkOrder() {
             desplazamiento_tipo: form.desplazamiento_tipo,
             desplazamiento_valor: form.desplazamiento_valor,
             desplazamiento_importe_eur: form.desplazamiento_importe_eur,
+            desplazamiento_modalidad: form.desplazamiento_modalidad,
+            desplazamiento_concepto: form.desplazamiento_concepto,
           }}
           onChange={(patch) => setForm(prev => ({ ...prev, ...patch }))}
+          allowPactado
         />
 
         {/* Fotos */}
@@ -341,9 +377,9 @@ export default function CreateWorkOrder() {
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancelar</Button>
-          <Button type="submit" disabled={mutation.isPending || uploadingPhotos} className="gap-2 min-w-32">
-            {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {mutation.isPending ? 'Guardando…' : 'Guardar Parte'}
+          <Button type="submit" disabled={mutation.isPending || uploadingPhotos || revisando} className="gap-2 min-w-32">
+            {(mutation.isPending || revisando) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {revisando ? 'Revisando ortografía…' : mutation.isPending ? 'Guardando…' : 'Guardar Parte'}
           </Button>
         </div>
       </form>

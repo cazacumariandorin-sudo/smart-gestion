@@ -6,6 +6,7 @@ import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Clock, Package, ClipboardList, Users, Car } from 'lucide-react';
 import { FIRMA_STATUS_LABELS } from '@/lib/workOrderUtils';
+import { numeroParteVisible } from '@/lib/numeroParte';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -230,10 +231,12 @@ export default function MonthlyReport() {
                           </span>
                           <p className="text-[10px] text-muted-foreground truncate">
                             {[
-                              order.order_number,
+                              numeroParteVisible(order),
                               (order.hora_inicio || order.hora_fin) ? `${order.hora_inicio || '—'}→${order.hora_fin || '—'}` : '',
                               order.vehiculo_matricula,
-                              order.desplazamiento_valor > 0 ? `${order.desplazamiento_valor} km` : '',
+                              order.desplazamiento_modalidad === 'pactado'
+                                ? `Pactado ${Number(order.desplazamiento_importe_eur || 0).toFixed(2)} €${order.desplazamiento_concepto ? ' (' + order.desplazamiento_concepto + ')' : ''}`
+                                : (order.desplazamiento_valor > 0 ? `${order.desplazamiento_valor} km` : ''),
                               FIRMA_STATUS_LABELS[order.firma_status] || 'Sin firmar',
                             ].filter(Boolean).join(' · ')}
                           </p>
