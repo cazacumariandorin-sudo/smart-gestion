@@ -338,7 +338,7 @@ export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
     if (!okPaginas.length) { onDone({ archivos: [], preview: null, ocr_raw: '', ocr_ok: false, datos: null }); return; }
     const datosFusionados = fusionarDatos(okPaginas);
     const { precisa, motivo } = evaluarPrecision(datosFusionados);
-    const archivos = okPaginas.map(p => ({ url: p.file_url, nombre: p.file.name, tipo: p.file.type, storage: 'cdn' }));
+    const archivos = okPaginas.map(p => ({ url: p.file_url, nombre: p.file.name, tipo: p.file.type, storage: 'cdn', dhash: p.dhash || '' }));
     onDone({
       archivos,
       preview: okPaginas[0].preview,
