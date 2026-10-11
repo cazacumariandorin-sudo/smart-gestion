@@ -113,6 +113,21 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
           })?.catch?.(() => {});
         } catch {}
       }
+      // Aprendizaje de patrón de tarjeta (fire-and-forget): anota que estos 4 últimos dígitos se han visto
+      // con este origen de pago. Si el usuario no es privilegiado, el servidor solo lo asocia a su propio Operario.
+      if (form.tarjeta_ultimos_digitos && /^\d{4}$/.test(form.tarjeta_ultimos_digitos)) {
+        try {
+          base44.functions?.invoke?.('gestionPatronTarjeta', {
+            action: 'registrar',
+            digitos: form.tarjeta_ultimos_digitos,
+            origen_pago: form.origen_pago,
+            operario_id: operarioEfectivo?.id || null,
+            operario_name: operarioEfectivo?.name || operarioEfectivo?.full_name || null,
+            // Confirma el patrón solo si el usuario aceptó la sugerencia sin cambiarla.
+            confirmar: !!sugTarjeta && sugTarjeta.origen_pago_sugerido === form.origen_pago,
+          })?.catch?.(() => {});
+        } catch {}
+      }
       onCreated?.({ operario_id: operarioEfectivo?.id });
       onClose();
     },
