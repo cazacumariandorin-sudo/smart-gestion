@@ -46,6 +46,7 @@ export default async function(req: Request): Promise<Response> {
 
     const coincidencias = [];
     for (const r of porId.values()) {
+      if (r.estado === 'rechazada') continue; // un gasto anulado no cuenta como duplicado
       const par = compararPar(cand, mapRegistroGasto(r));
       if (!par.es_duplicado) continue;
       const propio = r.operario_email === user.email;

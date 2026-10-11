@@ -45,6 +45,7 @@ export default async function(req: Request): Promise<Response> {
       if (operario_id) f.operario_id = operario_id;
       if (categoria) f.categoria = categoria;
       if (solo_no_consolidados) f.duplicado_confirmado = { $in: [null, false] };
+      f.estado = { $ne: 'rechazada' }; // los gastos rechazados/anulados no se comparan (generaban duplicados falsos)
       const regs = await base44.asServiceRole.entities.RegistroGasto.filter(f, '-fecha_documento', MAX_POR_ENTIDAD);
       for (const r of regs || []) docs.push(mapRegistroGasto(r));
     }

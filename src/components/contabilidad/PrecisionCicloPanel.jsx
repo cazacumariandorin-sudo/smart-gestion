@@ -111,10 +111,11 @@ export default function PrecisionCicloPanel({ rango: rangoProp }) {
       (data.candidatos || []).forEach(c => { if (c.estado === 'discrepancia') sel[c.id] = true; });
       setSeleccion(sel);
       setResumen({ discrepancias: data.discrepancias, confirmados: data.confirmados, total: data.total_candidatos, has_more: data.has_more });
+      if (data.aviso) toast.warning(data.aviso, { duration: 12000 });
       if (!data.candidatos?.length) toast.info(data.mensaje || 'Sin candidatos');
       else toast.success(`${data.discrepancias} con propuestas, ${data.confirmados} confirmados`);
     } catch (e) {
-      toast.error(`Error: ${e?.message || 'No se pudo analizar'}`);
+      toast.error(`Error: ${e?.response?.data?.error || e?.message || 'No se pudo analizar'}${e?.response?.data?.detalle ? ' — ' + e.response.data.detalle : ''}`, { duration: 12000 });
     } finally {
       setAnalizando(false);
     }
@@ -159,7 +160,7 @@ export default function PrecisionCicloPanel({ rango: rangoProp }) {
       if (verif.ok === false) toast.error(`Se guardó, pero ${verif.fallos.length} campo(s) no coinciden al releerlos. Revisa el aviso.`, { duration: 9000 });
       else toast.success(`${updates.length} registro(s) actualizados${verif.ok ? ' y verificados' : ''}`);
     } catch (e) {
-      toast.error(`Error al aplicar: ${e?.message || 'fallo'}`);
+      toast.error(`Error al aplicar: ${e?.response?.data?.error || e?.message || 'fallo'}`, { duration: 9000 });
     } finally {
       setAplicando(false);
     }
