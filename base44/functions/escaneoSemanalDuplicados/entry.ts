@@ -21,7 +21,9 @@ export default async function(req: Request): Promise<Response> {
 
     // Gastos técnicos
     const gastos = await srv.entities.RegistroGasto.filter(
-      { duplicado_confirmado: { $in: [null, false] } },
+      // Los gastos 'rechazada' (incluidos los anulados por una reconstrucción multi-ticket) NO se comparan:
+      // antes un original anulado y sus registros reconstruidos salían como duplicados «críticos» cada semana.
+      { duplicado_confirmado: { $in: [null, false] }, estado: { $ne: 'rechazada' } },
       '-fecha_documento',
       MAX_POR_ENTIDAD,
     );
