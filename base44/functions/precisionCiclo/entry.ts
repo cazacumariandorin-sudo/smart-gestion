@@ -34,6 +34,22 @@ const PROMPT = `Analiza este ticket o factura y extrae TODOS los campos posibles
 No inventes datos; si un campo no está en el documento, devuelve cadena vacía.`;
 
 const CAMPOS_COMPARAR = ['numero_factura', 'nif_comercio', 'localidad', 'forma_pago_documento', 'codigo_validacion_fiscal', 'hora_documento', 'importe', 'fecha_documento'];
+// Normaliza un valor según el campo: así una diferencia de FORMATO (hora 08:26 / 08:26:00,
+// NIF con guion, mayúsculas, acentos) ya no se toma por una discrepancia real.
+function normalizarCampo(campo, v) {
+  const s = v == null ? '' : String(v).trim();
+  if (!s) return '';
+  switch (campo) {
+    case 'nif_comercio': return s.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    case 'numero_factura':
+    case 'codigo_validacion_fiscal': return s.toUpperCase().replace(/[\s\-_.]/g, '');
+    case 'hora_documento': { const m = /(\d{1,2}):(\d{2})/.exec(s); return m ? `${m[1].padStart(2, '0')}:${m[2]}` : s; }
+    case 'localidad':
+    case 'forma_pago_documento': return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ');
+    case 'importe': return Number.isFinite(Number(s)) ? Number(s).toFixed(2) : s;
+    default: return s;
+  }
+}
 const LIMITE = 20;
 
 export default async function(req) {
@@ -104,19 +120,20 @@ export default async function(req) {
       }
 
       // 3. Comparar campos: propuesta con valor que difiere o rellena un vacío.
-      const diffs = [];
+           const diffs = [];
       for (const campo of CAMPOS_COMPARAR) {
         const actual = c[campo] == null ? '' : String(c[campo]);
-        let prop = datos[campo];
-        if (prop == null) prop = '';
-        if (campo === 'importe') prop = prop === '' ? '' : String(Number(prop).toFixed(2));
-        if (campo === 'importe' && actual !== '') prop = Number(prop).toFixed(2) === Number(actual).toFixed(2) ? '' : prop;
-        prop = String(prop);
-        if (prop && prop !== actual) {
-          diffs.push({ campo, actual: actual || '(vacío)', propuesto: prop });
-        }
+        const prop = datos[campo] == null ? '' : String(datos[campo]);
+        if (!prop) continue;
+        if (campo === 'importe' && !Number.isFinite(Number(prop))) continue;
+        if (normalizarCampo(campo, prop) === normalizarCampo(campo, actual)) continue; // mismo valor
+        diffs.push({
+          campo,
+          actual: actual || '(vacío)',
+          // hora e importe se proponen ya normalizados (HH:MM / 2 decimales)
+          propuesto: (campo === 'hora_documento' || campo === 'importe') ? normalizarCampo(campo, prop) : prop,
+        });
       }
-      const estado = diffs.length ? 'discrepancia' : 'confirmado';
       resultados.push({
         id: c.id, numero_nota: c.numero_nota, nombre_comercio: c.nombre_comercio,
         fecha_documento: c.fecha_documento, importe: c.importe, categoria: c.categoria,
@@ -124,20 +141,24 @@ export default async function(req) {
         estado, diffs, datos_propuestos: datos, file_url: url,
       });
     }
-
-    // 4. Marca TODOS los candidatos analizados (confirmados, con propuestas o con
-    //    error) como escaneados, para que no vuelvan a salir en el próximo lote
-    //    aunque sus campos sigan vacíos (el documento no tiene esos datos). Los
-    //    que el usuario aplique desde el frontend sobreescriben este campo igual.
-    const idsEscaneados = resultados.filter(r => r.estado !== 'error').map(r => r.id);
-    if (idsEscaneados.length) {
+    // 4. Marca TODOS los candidatos analizados para que no vuelvan a salir en el próximo lote:
+    //    - confirmados: además se limpia precisa_precision (antes quedaban "pendientes" para siempre
+    //      en el contador y en el semáforo de la página de gastos)
+    //    - con error: se marcan como 'error' (antes reaparecían en cada análisis ocupando el lote)
+    //    - con propuestas: se limpia precisa_precision cuando el usuario las aplica en el frontend
+    if (resultados.length) {
       const now = new Date().toISOString();
       await base44.asServiceRole.entities.RegistroGasto.bulkUpdate(
-        idsEscaneados.map(id => ({ id, precision_fecha: now, precision_revisado_por: user.email }))
+        resultados.map(r => ({
+          id: r.id,
+          precision_fecha: now,
+          precision_revisado_por: user.email,
+          ...(r.estado === 'confirmado' ? { precisa_precision: false } : {}),
+          ...(r.estado === 'error' ? { precision_modelo_usado: 'error' } : {}),
+        }))
       );
     }
-
-    const discrepancias = resultados.filter(r => r.estado === 'discrepancia').length;
+   
     const confirmados = resultados.filter(r => r.estado === 'confirmado').length;
     return Response.json({
       success: true,

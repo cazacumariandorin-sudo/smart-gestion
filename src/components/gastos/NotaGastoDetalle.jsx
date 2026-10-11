@@ -81,7 +81,14 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
   const handleGuardar = async () => {
     setLoading(true);
     try {
-      const datos = { ...form };
+            // Solo se envían los campos que el usuario ha CAMBIADO: un formulario abierto con datos
+      // antiguos ya no pisa valores corregidos por otro proceso (p. ej. la herramienta de Precisión).
+      const datos = {};
+      Object.entries(form).forEach(([k, v]) => {
+        const antes = nota[k] == null ? '' : String(nota[k]);
+        if (String(v == null ? '' : v) !== antes) datos[k] = v;
+      });
+      if (!Object.keys(datos).length) { toast.info('No hay cambios que guardar'); setEditando(false); return; }
       if (isAdmin && datos.numero_secuencia !== undefined) {
         const parts = nota.numero_nota?.split('-') || [];
         if (parts.length === 4) {
@@ -145,6 +152,9 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
       operario_name: nota.operario_name || '',
       localidad: nota.localidad || '',
       forma_pago_documento: nota.forma_pago_documento || '',
+            numero_factura: nota.numero_factura || '',
+      codigo_validacion_fiscal: nota.codigo_validacion_fiscal || '',
+      hora_documento: nota.hora_documento || '',
       origen_pago: nota.origen_pago || 'medios_propios',
     });
     setImportePago(String(nota.importe || ''));
@@ -251,6 +261,20 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                   <Input value={form.forma_pago_documento} onChange={e => setForm(f => ({ ...f, forma_pago_documento: e.target.value }))} />
                 </div>
               </div>
+                            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Nº factura / ticket</Label>
+                  <Input value={form.numero_factura} onChange={e => setForm(f => ({ ...f, numero_factura: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Hora (HH:MM)</Label>
+                  <Input value={form.hora_documento} placeholder="08:26" onChange={e => setForm(f => ({ ...f, hora_documento: e.target.value }))} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Código de validación fiscal (QR)</Label>
+                <Input value={form.codigo_validacion_fiscal} onChange={e => setForm(f => ({ ...f, codigo_validacion_fiscal: e.target.value }))} />
+              </div>
               <div className="space-y-1">
                 <Label className="text-xs">Fecha documento</Label>
                 <Input type="date" value={form.fecha_documento} onChange={e => setForm(f => ({ ...f, fecha_documento: e.target.value }))} />
@@ -275,6 +299,10 @@ export default function NotaGastoDetalle({ nota, isAdmin, open, onClose, operari
                 <div><span className="text-muted-foreground text-xs">Obra</span><p className="font-medium">{nota.obra_name || '—'}</p></div>
                 <div><span className="text-muted-foreground text-xs">Localidad</span><p className="font-medium">{nota.localidad || '—'}</p></div>
                 <div><span className="text-muted-foreground text-xs">Forma de pago</span><p className="font-medium">{nota.forma_pago_documento || '—'}</p></div>
+                <div><span className="text-muted-foreground text-xs">Nº factura / ticket</span><p className="font-medium break-all">{nota.numero_factura || '—'}</p></div>
+                <div><span className="text-muted-foreground text-xs">Hora</span><p className="font-medium">{nota.hora_documento || '—'}</p></div>
+                <div className="col-span-2"><span className="text-muted-foreground text-xs">Código validación fiscal</span><p className="font-medium break-all">{nota.codigo_validacion_fiscal || '—'}</p></div>
+                {nota.tarjeta_ultimos_digitos && <div><span className="text-muted-foreground text-xs">Tarjeta</span><p className="font-medium">…{nota.tarjeta_ultimos_digitos}</p></div>}
                 <div><span className="text-muted-foreground text-xs">Origen del pago</span><p className="font-medium">{nota.origen_pago === 'medio_empresa' ? 'Medio de empresa (no reembolsable)' : nota.origen_pago === 'credito_proveedor' ? 'Crédito proveedor' : 'Medios propios (reembolsable)'}</p></div>
               </div>
               {nota.concepto && <div><span className="text-muted-foreground text-xs">Concepto</span><p>{nota.concepto}</p></div>}

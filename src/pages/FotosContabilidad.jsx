@@ -94,7 +94,7 @@ export default function FotosContabilidad() {
 
   return (
     <div className="pb-6">
-      <PageHeader title="Fotos Contabilidad" subtitle="Facturas / tickets / albaranes organizados por ciclo mensual (26→25)" />
+      <PageHeader title="Fotos justificantes" subtitle="Facturas / tickets / albaranes organizados por ciclo mensual (26→25)" />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
         <div className="flex flex-wrap gap-2 items-center">

@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
+import { calcularDHash } from '@/lib/duplicadoGasto';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Camera, Upload, SkipForward, Loader2, CheckCircle2, AlertCircle, Plus, Trash2, FileText, Layers, RefreshCw, SplitSquareHorizontal, AlertTriangle, Edit3 } from 'lucide-react';
 import { extraerDatosGastoMulti, procesarResultadoMulti, evaluarPrecision } from '@/lib/ocrGastos';
+import { subirArchivo } from '@/lib/subirArchivo';
 import DocumentEdgeCrop from '@/components/gastos/DocumentEdgeCrop';
 
 async function comprimirImagen(file) {
@@ -15,7 +17,7 @@ async function comprimirImagen(file) {
       const img = new Image();
       img.onload = () => {
         try {
-          const MAX = 1800;
+          const MAX = 3200; // lado máximo: un ticket alargado necesita ancho suficiente para leerse
           const scale = Math.min(1, MAX / Math.max(img.width, img.height));
           const canvas = document.createElement('canvas');
           canvas.width = Math.round(img.width * scale);
@@ -230,9 +232,9 @@ export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
         const ext = (mime.split('/')[1] || 'jpeg').split('+')[0];
         subidaFile = new File([u8], file.name.replace(/\.(jpe?g|png|gif|webp|pdf)$/i, '') + '_comp.' + ext, { type: mime });
       }
-
-      setPaginas(prev => prev.map((p, i) => i === idx ? { ...p, estado: 'ocr' } : p));
-      const subida = await base44.integrations.Core.UploadFile({ file: subidaFile });
+      const dhash = esImagen ? await calcularDHash(subidaFile) : '';
+      setPaginas(prev => prev.map((p, i) => i === idx ? { ...p, estado: 'ocr', dhash } : p));
+      const subida = await subirArchivo(subidaFile);
       const file_url = subida?.file_url;
       if (!file_url) throw new Error('No se pudo subir el archivo');
 
@@ -337,7 +339,7 @@ export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
     if (!okPaginas.length) { onDone({ archivos: [], preview: null, ocr_raw: '', ocr_ok: false, datos: null }); return; }
     const datosFusionados = fusionarDatos(okPaginas);
     const { precisa, motivo } = evaluarPrecision(datosFusionados);
-    const archivos = okPaginas.map(p => ({ url: p.file_url, nombre: p.file.name, tipo: p.file.type, storage: 'cdn' }));
+    const archivos = okPaginas.map(p => ({ url: p.file_url, nombre: p.file.name, tipo: p.file.type, storage: 'cdn', dhash: p.dhash || '' }));
     onDone({
       archivos,
       preview: okPaginas[0].preview,

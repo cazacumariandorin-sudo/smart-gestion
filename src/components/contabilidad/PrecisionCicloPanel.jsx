@@ -11,6 +11,36 @@ import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Loader2, SearchCheck, AlertTriangle, CheckCircle2, RefreshCw, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import ReconstruirMultiTicketTool from '@/components/contabilidad/ReconstruirMultiTicketTool';
+// Normaliza para comparar lo esperado con lo guardado (ignora formato)
+const normVerif = (campo, v) => {
+  const s = v == null ? '' : String(v).trim();
+  if (campo === 'importe') return Number.isFinite(Number(s)) && s !== '' ? Number(s).toFixed(2) : s;
+  return s.toUpperCase().replace(/[\s\-_.:]/g, '');
+};
+
+// Vuelve a leer los registros y comprueba campo a campo que lo aplicado quedó guardado
+async function verificarGuardado(updates) {
+  const omitir = ['id', 'precision_revisado_por', 'precision_fecha', 'precision_modelo_usado'];
+  try {
+    const guardados = await base44.entities.RegistroGasto.filter({ id: { $in: updates.map((u) => u.id) } });
+    const porId = new Map(guardados.map((r) => [r.id, r]));
+    const fallos = [];
+    for (const u of updates) {
+      const r = porId.get(u.id);
+      if (!r) { fallos.push({ id: u.id, campo: '(registro no encontrado)' }); continue; }
+      for (const [campo, esperado] of Object.entries(u)) {
+        if (omitir.includes(campo)) continue;
+        if (normVerif(campo, r[campo]) !== normVerif(campo, esperado)) {
+          fallos.push({ id: u.id, nota: r.numero_nota, campo, esperado, guardado: r[campo] ?? '' });
+        }
+      }
+    }
+    return { ok: fallos.length === 0, total: updates.length, fallos };
+  } catch (error) {
+    console.error('[Precisión] No se pudo verificar', error);
+    return { ok: null, total: updates.length, fallos: [] };
+  }
+}
 
 const MESES = [
   ['1', 'Enero'], ['2', 'Febrero'], ['3', 'Marzo'], ['4', 'Abril'], ['5', 'Mayo'], ['6', 'Junio'],
@@ -53,6 +83,7 @@ export default function PrecisionCicloPanel({ rango: rangoProp }) {
   const [candidatos, setCandidatos] = useState([]);
   const [seleccion, setSeleccion] = useState({}); // { [id]: true }
   const [aplicando, setAplicando] = useState(false);
+  const [verificacion, setVerificacion] = useState(null); // resultado de comprobar lo guardado
   const [resumen, setResumen] = useState(null);
 
   useEffect(() => {
@@ -104,7 +135,7 @@ export default function PrecisionCicloPanel({ rango: rangoProp }) {
           // importe y fecha_documento como tipos nativos
           if (diff.campo === 'importe') fields.importe = Number(d.importe);
           else if (diff.campo === 'fecha_documento') fields.fecha_documento = d.fecha_documento;
-          else fields[diff.campo] = d[diff.campo];
+                    else fields[diff.campo] = diff.propuesto; // el valor ya normalizado que se mostró al usuario
         });
         fields.precisa_precision = false;
         fields.precision_revisado_por = 'precisión_ciclo';
@@ -113,13 +144,20 @@ export default function PrecisionCicloPanel({ rango: rangoProp }) {
         return { id: c.id, ...fields };
       });
       await base44.entities.RegistroGasto.bulkUpdate(updates);
+      // Verificación: se vuelven a leer los registros y se comprueba que los valores quedaron guardados
+      const verif = await verificarGuardado(updates);
+      setVerificacion(verif);
       // Marcar en la UI como aplicados
       const appliedIds = new Set(seleccionados.map(c => c.id));
       setCandidatos(cs => cs.map(c => appliedIds.has(c.id) ? { ...c, estado: 'aplicado' } : c));
       setSeleccion({});
-      qc.invalidateQueries({ queryKey: ['conciliacion-gastos'] });
-      qc.invalidateQueries({ queryKey: ['notas-gastos'] });
-      toast.success(`${updates.length} registro(s) actualizados`);
+            // Refrescar TODAS las listas de gastos (la clave real es 'notas_gasto', con guion bajo:
+      // antes se invalidaban claves que no existían y el formulario seguía mostrando datos antiguos)
+      qc.invalidateQueries({
+        predicate: (q) => /gasto|notas|conciliacion|fotos/i.test(String(q.queryKey?.[0] ?? '')),
+      });
+      if (verif.ok === false) toast.error(`Se guardó, pero ${verif.fallos.length} campo(s) no coinciden al releerlos. Revisa el aviso.`, { duration: 9000 });
+      else toast.success(`${updates.length} registro(s) actualizados${verif.ok ? ' y verificados' : ''}`);
     } catch (e) {
       toast.error(`Error al aplicar: ${e?.message || 'fallo'}`);
     } finally {
@@ -134,6 +172,22 @@ export default function PrecisionCicloPanel({ rango: rangoProp }) {
   return (
     <div className="space-y-4">
       <ReconstruirMultiTicketTool />
+            {verificacion && (
+        <Card className={`p-3 text-xs ${verificacion.ok === false ? 'border-red-300 bg-red-50 text-red-800' : 'border-green-300 bg-green-50 text-green-800'}`}>
+          {verificacion.ok === true && <>✔ Verificado en base de datos: {verificacion.total} registro(s) con los valores guardados.</>}
+          {verificacion.ok === null && <>No se pudo releer para verificar. Abre un registro y comprueba los campos.</>}
+          {verificacion.ok === false && (
+            <>
+              ✘ Hay {verificacion.fallos.length} campo(s) que no coinciden tras guardar:
+              <ul className="mt-1 list-disc pl-4">
+                {verificacion.fallos.slice(0, 8).map((f, i) => (
+                  <li key={i}>{f.nota || f.id}: {f.campo} — esperado «{String(f.esperado ?? '')}», guardado «{String(f.guardado ?? '')}»</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Card>
+      )}
       <Card className="p-4 space-y-3">
         <div className="flex items-center gap-2 text-sm">
           <SearchCheck className="w-4 h-4 text-primary" />

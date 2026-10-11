@@ -8,17 +8,22 @@ export const DESPLAZAMIENTO_LABELS = {
   compras: 'Compra de materiales',
   otro: 'Otro',
 };
+
 export const DESPLAZAMIENTO_MODALIDAD_LABELS = {
   km: 'Por kilómetros',
   pactado: 'Importe pactado con el cliente',
 };
+
 export const FIRMA_STATUS_LABELS = {
   sin_firmar: 'Sin firmar',
   pendiente_cliente: 'Pendiente cliente',
-  pendiente_tecnico: 'Pendiente tecnico',
-  firmado_tecnico: 'Firmado tecnico',
+  pendiente_tecnico: 'Pendiente técnico',
+  firmado_tecnico: 'Firmado técnico',
   firmado_ambos: 'Firmado ✓',
   rechazado: 'Rechazado',
+  // Valores antiguos (partes creados antes del cambio de esquema): solo para mostrarlos
+  pendiente_operario: 'Pendiente técnico',
+  firmado_operario: 'Firmado técnico',
 };
 
 /** Fecha local YYYY-MM-DD (toISOString() devuelve UTC y a primera hora da el día anterior). */
@@ -47,14 +52,16 @@ export function limpiarParte(data, opts = {}) {
   const out = { ...data };
   if (out.project === '__manual__') out.project = '';
   out.project = (out.project || '').trim();
-  // Modalidad del desplazamiento: 'pactado' no usa km
+
+  // Modalidad del desplazamiento: 'pactado' no usa km (el importe lo fija el cliente/presupuesto)
   if (!Object.keys(DESPLAZAMIENTO_MODALIDAD_LABELS).includes(out.desplazamiento_modalidad)) {
     if (opts.clear) out.desplazamiento_modalidad = 'km'; else delete out.desplazamiento_modalidad;
   }
   const pactado = out.desplazamiento_modalidad === 'pactado';
   out.desplazamiento_concepto = pactado ? (out.desplazamiento_concepto || '').trim() : '';
   if (!out.desplazamiento_concepto && !opts.clear) delete out.desplazamiento_concepto;
-  if (pactado) out.desplazamiento_valor = '';
+  if (pactado) out.desplazamiento_valor = ''; // sin km en importe pactado
+
   ['desplazamiento_valor', 'desplazamiento_importe_eur'].forEach((k) => {
     const v = out[k];
     const vacio = v === '' || v === null || v === undefined || Number.isNaN(Number(v));
@@ -69,6 +76,12 @@ export function limpiarParte(data, opts = {}) {
   });
   return out;
 }
+
+/**
+ * Valida el bloque Vehículo/Desplazamiento (datos SIN limpiar, tal como están en el formulario).
+ * Los km NUNCA son obligatorios. Solo en modalidad 'pactado' se exige importe y concepto.
+ * Devuelve null si es válido o el mensaje de error.
+ */
 export function validarDesplazamiento(d = {}) {
   if (d.desplazamiento_modalidad !== 'pactado') return null;
   const importe = Number(d.desplazamiento_importe_eur);
@@ -76,6 +89,7 @@ export function validarDesplazamiento(d = {}) {
   if (!(d.desplazamiento_concepto || '').trim()) return 'Indica el concepto del importe pactado (nº de presupuesto o nombre representativo).';
   return null;
 }
+
 /** Valida y limpia filas de operarios/materiales. Devuelve { ok, error, workers, materials }. */
 export function validarFilas(workers = [], materials = []) {
   for (const w of workers) {
@@ -96,13 +110,13 @@ export function mensajeErrorGuardado(err) {
   const status = err?.response?.status ?? err?.status;
   const msg = err?.response?.data?.message || err?.response?.data?.detail || err?.message || '';
   if (status === 401) return 'Tu sesión ha caducado. Vuelve a iniciar sesión (los datos del formulario se conservan).';
-  if (status === 403) return 'Tu rol no tiene permiso para guardar este parte. Avisa a administración.';
+  if (status === 403) return 'Tu rol no tiene permiso para realizar esta acción. Avisa a administración.';
   if (status === 408 || err?.code === 'ECONNABORTED' || /timeout|network|failed to fetch|abort/i.test(msg) ||
       (typeof navigator !== 'undefined' && navigator.onLine === false)) {
     return 'Sin conexión o conexión muy lenta. Tus datos siguen en el formulario; inténtalo de nuevo en unos segundos.';
   }
   if (status === 400 || status === 422) return `Datos no válidos: ${msg || 'revisa los campos'}`;
-  return `Error al guardar el parte: ${msg || 'inténtalo de nuevo'}`;
+  return `Error al guardar: ${msg || 'inténtalo de nuevo'}`;
 }
 
 /* ───────── Borrador local (no perder 5 min de trabajo si falla la red) ───────── */

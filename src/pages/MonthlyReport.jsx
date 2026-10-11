@@ -6,6 +6,8 @@ import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Clock, Package, ClipboardList, Users, Car } from 'lucide-react';
 import { FIRMA_STATUS_LABELS } from '@/lib/workOrderUtils';
+import { numeroParteVisible } from '@/lib/numeroParte';
+import { fechaES } from '@/lib/fechaES';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -230,7 +232,7 @@ export default function MonthlyReport() {
                           </span>
                           <p className="text-[10px] text-muted-foreground truncate">
                             {[
-                              order.order_number,
+                              numeroParteVisible(order),
                               (order.hora_inicio || order.hora_fin) ? `${order.hora_inicio || '—'}→${order.hora_fin || '—'}` : '',
                               order.vehiculo_matricula,
                               order.desplazamiento_modalidad === 'pactado'

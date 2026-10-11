@@ -1,5 +1,5 @@
 {
-  "name": "Abrir Ciclo Gastos (d\u00eda 26)",
+  "name": "Abrir Ciclo Gastos (d\u00eda 1)",
   "description": "Abre el ciclo mensual de gastos el d\u00eda 1 (00:10 UTC, tras el cierre del mes anterior). Abre el ciclo del mes actual (calendario natural). Idempotente.",
   "trigger": {
     "condition": null,

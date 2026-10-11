@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
+import { verificarDuplicado } from '@/lib/duplicadoGasto';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useAuth } from '@/lib/AuthContext';
@@ -22,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { calcularCicloMes } from '@/lib/adelantosConciliacion';
 
 const CATEGORIAS = ['combustible', 'comida', 'material', 'peaje', 'parking', 'otros'];
-const defaultForm = { origen_pago: 'medios_propios', categoria: '', concepto: '', importe: '', nif_comercio: '', nombre_comercio: '', fecha_documento: '', codigo_validacion_fiscal: '', numero_factura: '', localidad: '', forma_pago_documento: '', obra_id: '', obra_name: '', obra_tipo: '', notas: '', justificacion_tardia: '' };
+const defaultForm = { origen_pago: 'medios_propios', categoria: '', concepto: '', importe: '', nif_comercio: '', nombre_comercio: '', fecha_documento: '', codigo_validacion_fiscal: '', numero_factura: '', localidad: '', forma_pago_documento: '', tarjeta_ultimos_digitos: '', obra_id: '', obra_name: '', obra_tipo: '', notas: '', justificacion_tardia: '' };
 
 async function generarNumeroNota() {
   const year = new Date().getFullYear();
@@ -52,6 +53,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [sugerencia, setSugerencia] = useState(null); // { categoria_sugerida, confianza, patron_id }
   const [precisaPrecision, setPrecisaPrecision] = useState(false);
   const [precisionMotivo, setPrecisionMotivo] = useState('');
+  const [sugTarjeta, setSugTarjeta] = useState(null); // { digitos_finales, origen_pago_sugerido, confirmado, veces_visto, hay_conflicto, operario_name }
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { isAdmin: isRoleAdmin, isGerencia, isAdministracion } = useUserRole();
@@ -108,6 +110,21 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
             nif_comercio: form.nif_comercio || '',
             categoria_confirmada: form.categoria,
             categoria_sugerida: sugerencia?.categoria_sugerida || null,
+          })?.catch?.(() => {});
+        } catch {}
+      }
+      // Aprendizaje de patrón de tarjeta (fire-and-forget): anota que estos 4 últimos dígitos se han visto
+      // con este origen de pago. Si el usuario no es privilegiado, el servidor solo lo asocia a su propio Operario.
+      if (form.tarjeta_ultimos_digitos && /^\d{4}$/.test(form.tarjeta_ultimos_digitos)) {
+        try {
+          base44.functions?.invoke?.('gestionPatronTarjeta', {
+            action: 'registrar',
+            digitos: form.tarjeta_ultimos_digitos,
+            origen_pago: form.origen_pago,
+            operario_id: operarioEfectivo?.id || null,
+            operario_name: operarioEfectivo?.name || operarioEfectivo?.full_name || null,
+            // Confirma el patrón solo si el usuario aceptó la sugerencia sin cambiarla.
+            confirmar: !!sugTarjeta && sugTarjeta.origen_pago_sugerido === form.origen_pago,
           })?.catch?.(() => {});
         } catch {}
       }
@@ -171,6 +188,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         numero_factura: datos.numero_factura || prev.numero_factura,
         localidad: datos.localidad || prev.localidad,
         forma_pago_documento: datos.forma_pago_documento || prev.forma_pago_documento,
+        tarjeta_ultimos_digitos: String(datos.tarjeta_ultimos_digitos || prev.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4),
         categoria: catValida || prev.categoria,
       }));
     }
@@ -249,13 +267,33 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     return notasExistentes.find(n => n.fecha_documento === form.fecha_documento && n.nombre_comercio?.toLowerCase() === form.nombre_comercio?.toLowerCase() && Math.abs((n.importe || 0) - parseFloat(form.importe || 0)) < 0.01 && n.estado !== 'rechazada') || null;
   };
 
+    // Cruce con TODOS los registros (también de otros técnicos) en el servidor
+  const cruzarConRegistros = async () => {
+    const coincidencias = await verificarDuplicado({
+      fecha_documento: form.fecha_documento,
+      hora_documento: form.hora_documento,
+      importe: parseFloat(form.importe),
+      nif_comercio: form.nif_comercio,
+      nombre_comercio: form.nombre_comercio,
+      localidad: form.localidad,
+      numero_factura: form.numero_factura,
+      codigo_validacion_fiscal: form.codigo_validacion_fiscal,
+      tarjeta_ultimos_digitos: form.tarjeta_ultimos_digitos,
+      archivos: archivos.map((a) => ({ dhash: a?.dhash || '' })),
+    });
+    const m = coincidencias.find((c) => c.severidad === 'critico' || c.severidad === 'alto');
+    if (!m) return null;
+    return { ...m, numero_nota: m.numero_nota || 'otro registro', esDuplicadoFiscal: m.motivos.some((x) => x.includes('código validación')) };
+  };
+
   const doGuardar = async (extraFields = {}) => {
-    const dup = checkDuplicado();
+    let dup = checkDuplicado();
+    if (!dup && !posibleDup) dup = await cruzarConRegistros();
     if (dup && !posibleDup) { setPosibleDup(dup); setShowDupAlert(true); return; }
     const { numero_nota, numero_secuencia } = await generarNumeroNota();
     const hoy = format(new Date(), 'yyyy-MM-dd');
     const cicloFields = resolverCicloParaGuardar();
-    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: cicloFields.es_gasto_tardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id: form.obra_id || null, obra_name: form.obra_name || null, obra_tipo: form.obra_tipo || null, operario_email: operarioEfectivo.user_email || user?.email || '', ciclo_mes: cicloFields.ciclo_mes, estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: cicloFields.es_gasto_tardio, justificacion_tardia: cicloFields.justificacion_tardia, es_posible_duplicado: !!dup, duplicado_confirmado: !!posibleDup, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo, ...extraFields });
+    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: cicloFields.es_gasto_tardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id: form.obra_id || null, obra_name: form.obra_name || null, obra_tipo: form.obra_tipo || null, operario_email: operarioEfectivo.user_email || user?.email || '', ciclo_mes: cicloFields.ciclo_mes, estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: cicloFields.es_gasto_tardio, justificacion_tardia: cicloFields.justificacion_tardia, es_posible_duplicado: !!dup, duplicado_confirmado: !!posibleDup, tarjeta_ultimos_digitos: /^\d{4}$/.test(form.tarjeta_ultimos_digitos || '') ? form.tarjeta_ultimos_digitos : null, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo, ...extraFields });
   };
 
   const handleSubmit = () => {
@@ -270,7 +308,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     setForm(f => ({ ...f, obra_id, obra_name, obra_tipo })); setShowObraModal(false); setPendingSave(false);
     if (!operarioEfectivo?.id) { toast.error('No hay operario vinculado'); return; }
     const dup = checkDuplicado(); const { numero_nota, numero_secuencia } = await generarNumeroNota(); const hoy = format(new Date(), 'yyyy-MM-dd'); const cicloFields = resolverCicloParaGuardar();
-    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: cicloFields.es_gasto_tardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id, obra_name, obra_tipo, operario_email: operarioEfectivo.user_email || user?.email || '', ciclo_mes: cicloFields.ciclo_mes, estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: cicloFields.es_gasto_tardio, justificacion_tardia: cicloFields.justificacion_tardia, es_posible_duplicado: !!dup, duplicado_confirmado: false, aviso_obra_mostrado: true, sin_obra: false, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo });
+    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: cicloFields.es_gasto_tardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id, obra_name, obra_tipo, operario_email: operarioEfectivo.user_email || user?.email || '', ciclo_mes: cicloFields.ciclo_mes, estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: cicloFields.es_gasto_tardio, justificacion_tardia: cicloFields.justificacion_tardia, es_posible_duplicado: !!dup, duplicado_confirmado: false, tarjeta_ultimos_digitos: /^\d{4}$/.test(form.tarjeta_ultimos_digitos || '') ? form.tarjeta_ultimos_digitos : null, aviso_obra_mostrado: true, sin_obra: false, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo });
   };
 
   const handleContinuarSinObra = () => { setShowObraModal(false); setPendingSave(false); doGuardar({ sin_obra: true, sin_obra_timestamp: new Date().toISOString(), aviso_obra_mostrado: true }); };
@@ -441,7 +479,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-500" />{posibleDup?.esDuplicadoFiscal ? 'Duplicado exacto (QR)' : 'Posible duplicado'}</AlertDialogTitle>
-            <AlertDialogDescription>{posibleDup?.esDuplicadoFiscal ? <>Mismo código QR que <strong>{posibleDup?.numero_nota}</strong>. ¿Seguro que no es duplicado?</> : <>Ya existe <strong>{posibleDup?.numero_nota}</strong> con mismo día, comercio e importe. ¿Es un gasto diferente?</>}</AlertDialogDescription>
+            <AlertDialogDescription>{posibleDup?.esDuplicadoFiscal ? <>Mismo código QR que <strong>{posibleDup?.numero_nota}</strong>. ¿Seguro que no es duplicado?</> : posibleDup?.motivos?.length ? <>Parecido a <strong>{posibleDup?.numero_nota}</strong> ({posibleDup?.registrado_por}): {posibleDup.motivos.join(', ')}. ¿Es un gasto diferente?</> : <>Ya existe <strong>{posibleDup?.numero_nota}</strong> con mismo día, comercio e importe. ¿Es un gasto diferente?</>}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => { setPosibleDup(null); setShowDupAlert(false); }}>Cancelar</AlertDialogCancel>
