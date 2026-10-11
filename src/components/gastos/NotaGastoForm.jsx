@@ -374,6 +374,23 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
                       Este gasto NO genera reembolso al técnico. Se registra solo para seguimiento contable. El operario es opcional.
                     </p>
                   )}
+                  {sugTarjeta && (
+                    <div className="mt-1.5 p-2 rounded-md bg-white/70 dark:bg-black/20 border border-cyan-300 text-[11px] space-y-1">
+                      <p>
+                        💳 Tarjeta terminada en <b>{sugTarjeta.digitos_finales}</b>{' '}
+                        {sugTarjeta.hay_conflicto
+                          ? 'visto con clasificaciones distintas: revisa antes de aplicar.'
+                          : `${sugTarjeta.confirmado ? 'confirmada' : `vista ${sugTarjeta.veces_visto || 1} vez/veces`} como ${sugTarjeta.origen_pago_sugerido === 'medio_empresa' ? 'medio de empresa' : `medio propio${sugTarjeta.operario_name ? ` de ${sugTarjeta.operario_name}` : ''}`}.`}
+                      </p>
+                      {form.origen_pago !== sugTarjeta.origen_pago_sugerido ? (
+                        <Button type="button" size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => setField('origen_pago', sugTarjeta.origen_pago_sugerido)}>
+                          Aplicar sugerencia ({sugTarjeta.origen_pago_sugerido === 'medio_empresa' ? 'medio de empresa' : 'medios propios'})
+                        </Button>
+                      ) : (
+                        <p className="text-emerald-700">✓ Coincide con el origen seleccionado.</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {(captureData?.archivos?.length || captureData?.preview) ? (
