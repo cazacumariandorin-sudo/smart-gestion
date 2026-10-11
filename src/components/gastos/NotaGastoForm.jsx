@@ -191,6 +191,16 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         tarjeta_ultimos_digitos: String(datos.tarjeta_ultimos_digitos || prev.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4),
         categoria: catValida || prev.categoria,
       }));
+      // Sugerencia de origen de pago por tarjeta conocida (solo roles privilegiados; nunca se aplica sola,
+      // se muestra como aviso editable junto al selector de origen del pago).
+      const digitosSug = String(datos.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4);
+      if (puedeCorporativo && /^\d{4}$/.test(digitosSug)) {
+        Promise.resolve(base44.functions.invoke('gestionPatronTarjeta', { action: 'sugerir', digitos: digitosSug }))
+          .then(res => setSugTarjeta((res?.data || res)?.sugerencia || null))
+          .catch(() => setSugTarjeta(null));
+      } else {
+        setSugTarjeta(null);
+      }
     }
   };
 
