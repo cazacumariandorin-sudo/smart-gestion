@@ -50,7 +50,10 @@ function normalizarCampo(campo, v) {
     default: return s;
   }
 }
+
 const LIMITE = 20;
+const CONCURRENCIA = 3;          // lecturas OCR en paralelo
+const PRESUPUESTO_MS = 45000;    // tiempo máximo de la ejecución: pasado este tiempo se devuelven resultados parciales
 
 export default async function(req) {
   try {
@@ -92,11 +95,19 @@ export default async function(req) {
       return Response.json({ success: true, candidatos: [], total_candidatos: 0, procesados: 0, mensaje: 'No hay candidatos de precisión en el periodo (todos los documentos tienen los campos clave completos).' });
     }
 
-    // 2. Re-ejecutar OCR sobre el archivo guardado, secuencial para no saturar.
+    // 2. Re-ejecutar OCR (3 en paralelo) con PRESUPUESTO DE TIEMPO: si se agota, se devuelven los
+    //    resultados parciales y el resto queda SIN marcar para el siguiente lote. Antes, un lote lento
+    //    superaba el tiempo máximo de la función y terminaba en error 500 sin ningún resultado.
+    const esTransitorio = (msg) => /credit|crédit|quota|rate.?limit|too many|timeout|timed out|etimedout|econn|network|fetch failed|unavailable|overloaded|\b5\d\d\b/i.test(msg || '');
+    const sinCreditos = (msg) => /credit|crédit|quota/i.test(msg || '');
+    const t0 = Date.now();
     const resultados = [];
-    for (const c of candidatos) {
+    const sinProcesar = [];
+    let cortar = false;
+
+    const analizarUno = async (c) => {
       const url = c.archivos?.[0]?.url;
-      if (!url) continue;
+      if (!url) return null;
       let datos = null, error = null;
       try {
         const res = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -105,22 +116,23 @@ export default async function(req) {
           response_json_schema: SCHEMA,
         });
         datos = res && typeof res === 'object' ? res : (res?.output || null);
+        if (!datos) error = 'Respuesta vacía del OCR';
       } catch (e) {
         error = e?.message || 'Error InvokeLLM';
       }
 
       if (!datos) {
-        resultados.push({
+        if (sinCreditos(error)) cortar = true; // sin créditos: no se insiste con el resto del lote
+        return {
           id: c.id, numero_nota: c.numero_nota, nombre_comercio: c.nombre_comercio,
           fecha_documento: c.fecha_documento, importe: c.importe,
           operario_id: c.operario_id, operario_name: c.operario_name,
-          estado: 'error', error, diffs: [], datos_propuestos: null,
-        });
-        continue;
+          estado: 'error', error, transitorio: esTransitorio(error), diffs: [], datos_propuestos: null,
+        };
       }
 
       // 3. Comparar campos: propuesta con valor que difiere o rellena un vacío.
-           const diffs = [];
+      const diffs = [];
       for (const campo of CAMPOS_COMPARAR) {
         const actual = c[campo] == null ? '' : String(c[campo]);
         const prop = datos[campo] == null ? '' : String(datos[campo]);
@@ -134,32 +146,61 @@ export default async function(req) {
           propuesto: (campo === 'hora_documento' || campo === 'importe') ? normalizarCampo(campo, prop) : prop,
         });
       }
-      resultados.push({
+      return {
         id: c.id, numero_nota: c.numero_nota, nombre_comercio: c.nombre_comercio,
         fecha_documento: c.fecha_documento, importe: c.importe, categoria: c.categoria,
         operario_id: c.operario_id, operario_name: c.operario_name,
-        estado, diffs, datos_propuestos: datos, file_url: url,
-      });
-    }
-    // 4. Marca TODOS los candidatos analizados para que no vuelvan a salir en el próximo lote:
-    //    - confirmados: además se limpia precisa_precision (antes quedaban "pendientes" para siempre
-    //      en el contador y en el semáforo de la página de gastos)
-    //    - con error: se marcan como 'error' (antes reaparecían en cada análisis ocupando el lote)
-    //    - con propuestas: se limpia precisa_precision cuando el usuario las aplica en el frontend
-    if (resultados.length) {
+        estado: diffs.length ? 'discrepancia' : 'confirmado', diffs, datos_propuestos: datos, file_url: url,
+      };
+    };
+
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < candidatos.length) {
+        const c = candidatos[cursor++];
+        if (cortar || Date.now() - t0 > PRESUPUESTO_MS) { sinProcesar.push(c.id); continue; }
+        const r = await analizarUno(c);
+        if (r) resultados.push(r);
+      }
+    };
+    await Promise.all(Array.from({ length: CONCURRENCIA }, worker));
+
+    // 4. Marca los analizados para que no vuelvan a salir en el próximo lote:
+    //    - confirmados: además se limpia precisa_precision (antes quedaban "pendientes" para siempre)
+    //    - con error PERMANENTE (archivo ilegible): se marcan como 'error' para que no ocupen el lote
+    //    - con error TRANSITORIO (sin créditos, red, tiempo): NO se marcan: volverán a analizarse
+    //    - con propuestas: precisa_precision se limpia cuando el usuario las aplica en el frontend
+    //    Si el marcado falla NO se devuelve error 500: se avisa y se entregan los resultados.
+    const marcables = resultados.filter((r) => !(r.estado === 'error' && r.transitorio));
+    let aviso = '';
+    if (marcables.length) {
       const now = new Date().toISOString();
-      await base44.asServiceRole.entities.RegistroGasto.bulkUpdate(
-        resultados.map(r => ({
-          id: r.id,
-          precision_fecha: now,
-          precision_revisado_por: user.email,
-          ...(r.estado === 'confirmado' ? { precisa_precision: false } : {}),
-          ...(r.estado === 'error' ? { precision_modelo_usado: 'error' } : {}),
-        }))
-      );
+      const updates = marcables.map((r) => ({
+        id: r.id,
+        precision_fecha: now,
+        precision_revisado_por: user.email,
+        ...(r.estado === 'confirmado' ? { precisa_precision: false } : {}),
+        ...(r.estado === 'error' ? { precision_modelo_usado: 'error' } : {}),
+      }));
+      try {
+        await base44.asServiceRole.entities.RegistroGasto.bulkUpdate(updates);
+      } catch (e1) {
+        console.error('[precisionCiclo] bulkUpdate falló; se reintenta uno a uno', e1);
+        let fallos = 0;
+        for (const u of updates) {
+          const { id, ...resto } = u;
+          try { await base44.asServiceRole.entities.RegistroGasto.update(id, resto); }
+          catch (e2) { fallos++; console.error('[precisionCiclo] update falló', id, e2); }
+        }
+        if (fallos) aviso = `No se pudieron marcar ${fallos} registro(s) como revisados; volverán a aparecer en el próximo análisis.`;
+      }
     }
-   
-    const confirmados = resultados.filter(r => r.estado === 'confirmado').length;
+    const transitorios = resultados.filter((r) => r.estado === 'error' && r.transitorio).length;
+    if (cortar) aviso = (aviso ? aviso + ' ' : '') + 'El servicio de IA no tiene créditos disponibles: se ha detenido el análisis.';
+    else if (transitorios) aviso = (aviso ? aviso + ' ' : '') + `${transitorios} documento(s) fallaron por un error temporal; se reintentarán en el próximo análisis.`;
+
+    const discrepancias = resultados.filter((r) => r.estado === 'discrepancia').length;
+    const confirmados = resultados.filter((r) => r.estado === 'confirmado').length;
     return Response.json({
       success: true,
       candidatos: resultados,
@@ -167,10 +208,17 @@ export default async function(req) {
       procesados: resultados.length,
       discrepancias,
       confirmados,
+      sin_procesar: sinProcesar.length,
+      aviso,
       limite: LIMITE,
-      has_more: candidatos.length === LIMITE,
+      has_more: candidatos.length === LIMITE || sinProcesar.length > 0,
     });
   } catch (error) {
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+    console.error('[precisionCiclo]', error);
+    return Response.json({
+      success: false,
+      error: error.message,
+      detalle: String(error.stack || '').split('\n').slice(0, 3).join(' | '),
+    }, { status: 500 });
   }
 }
