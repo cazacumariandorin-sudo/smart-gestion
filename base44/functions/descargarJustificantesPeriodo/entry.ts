@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import JSZip from 'npm:jszip@3.10.1';
 import * as XLSX from 'npm:xlsx@0.18.5';
 import { subirArchivoDrive, guessExt, sanitizeName, dedupName } from '../../shared/zipDriveHelpers.ts';
+import { clasificarTipoDocumento } from '../../shared/clasificacionDocumentos.ts';
 
 // Descarga en bloque de justificantes para la gestoría externa.
 // Recopila los archivos de RegistroGasto (estados aprobados/pagados) y
@@ -10,8 +11,10 @@ import { subirArchivoDrive, guessExt, sanitizeName, dedupName } from '../../shar
 // facturas/, tickets/, fotos/ y un Excel índice con hoja "Fotos" que vincula
 // cada justificante a su registro.
 //
-// Filtros nuevos:
-//   tipo_archivo: todos | factura (numero_factura no vacío) | ticket (sin nº)
+// Filtros:
+//   tipo_archivo: todos | factura | factura_simplificada | ticket | albaran | tasa_multa
+//                 (según el campo tipo_documento real; si un registro antiguo no lo tiene
+//                 guardado, se calcula aquí mismo con clasificarTipoDocumento)
 //   categoria: material | combustible | peaje | parking | comida | otros
 //
 // Acceso: contabilidad, administracion, gerencia, admin, propietario.
