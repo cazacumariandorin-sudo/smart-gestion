@@ -72,12 +72,10 @@ export default async function(req) {
       if (categoria) f.categoria = categoria;
       gastos = await base44.asServiceRole.entities.RegistroGasto.filter(f, '-fecha_documento', 500);
       // Filtro tipo_archivo: factura = numero_factura no vacío; ticket = vacío
-      if (tipo_archivo === 'factura') {
-        gastos = gastos.filter(g => g.numero_factura && String(g.numero_factura).trim() !== '');
-      } else if (tipo_archivo === 'ticket') {
-        gastos = gastos.filter(g => !g.numero_factura || String(g.numero_factura).trim() === '');
+     
+    }      if (tipo_archivo !== 'todos') {
+        gastos = gastos.filter(g => (g.tipo_documento || clasificarTipoDocumento(g).tipo_documento) === tipo_archivo);
       }
-    }
     if (quiereDoc) {
       const f = { estado: 'procesado', fecha_documento: { $gte: inicio, $lte: fin }, ...noDescargados };
       if (operario_id) f.operario_id = operario_id;
@@ -91,15 +89,14 @@ export default async function(req) {
     const fotosItems = []; // un item por cada archivo de RegistroGasto.archivos (para hoja Fotos)
     for (const g of gastos) {
       const archivos = Array.isArray(g.archivos) ? g.archivos : [];
-      const esFactura = g.numero_factura && String(g.numero_factura).trim() !== '';
-      const tipoSub = esFactura ? 'factura' : 'ticket';
+      const tipoDoc = g.tipo_documento || clasificarTipoDocumento(g).tipo_documento;
       const archivo = archivos[0] || null;
       items.push({
         tipo: 'gasto',
         id: g.id,
         operario_id: g.operario_id || '_sin_operario',
         operario_name: g.operario_name || 'Sin operario',
-        tipo_sub: tipoSub,
+        tipo_documento: tipoDoc,
         archivo_url: archivo?.url || null,
         archivo_nombre: archivo?.nombre || null,
         data: g,
@@ -129,7 +126,7 @@ export default async function(req) {
         id: d.id,
         operario_id: d.operario_id || '_sin_operario',
         operario_name: 'Material',
-        tipo_sub: tipoDocSub,
+        tipo_documento: tipoDocSub,
         archivo_url: url,
         archivo_nombre: null,
         data: d,
@@ -146,8 +143,12 @@ export default async function(req) {
     const troceado = !operario_id && (conArchivo.length + fotosConArchivo.length) > LIMITE_POR_ZIP;
 
     // Función para construir la ruta dentro del ZIP de un item principal (factura/ticket)
+       const CARPETA_POR_TIPO = {
+      factura: 'facturas', factura_simplificada: 'facturas_simplificadas', ticket: 'tickets',
+      albaran: 'albaranes', tasa_multa: 'tasas_multas', otro: 'otros',
+    };
     function rutaPrincipal(it, idx, grupoLabel) {
-      const sub = it.tipo_sub === 'factura' ? 'facturas' : 'tickets';
+      const sub = CARPETA_POR_TIPO[it.tipo_documento] || (it.tipo_documento === 'factura' ? 'facturas' : 'tickets');
       const ext = guessExt(it.archivo_url, it.archivo_nombre);
       let base = sanitizeName(it.archivo_nombre) || `${it.tipo}_${it.id}`;
       base = base.replace(/\.[a-z0-9]+$/i, '');
@@ -275,7 +276,7 @@ export default async function(req) {
       const g = it.data;
       const fila = {};
       COLUMNAS_GASTO.forEach(c => {
-        if (c === 'tipo_documento') fila[c] = it.tipo_sub === 'factura' ? 'factura' : 'ticket';
+        if (c === 'tipo_documento') fila[c] = it.tipo_documento || '';
         else if (c === 'categoria_filtro') fila[c] = categoria || '';
         else if (c === 'zip_grupo') fila[c] = it._zip_nombre ? (troceado ? sanitizeName(it.operario_name) : 'TODOS') : '';
         else if (c === 'archivo_nombre') fila[c] = it._zip_nombre || '';
