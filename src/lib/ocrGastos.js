@@ -27,10 +27,15 @@ export const GASTO_OCR_SCHEMA = {
     hora_documento: { type: 'string', description: 'Hora impresa en el justificante en formato HH:MM (24h). Clave para distinguir documentos del mismo día/comercio/importe emitidos a distinta hora (ej: peajes de tramos sucesivos).' },
     codigo_validacion_fiscal: { type: 'string', description: 'Código QR o de barras (identificador único de transacción) si aparece' },
     concepto: { type: 'string', description: 'Descripción breve del concepto del gasto' },
-    confianza: { type: 'number', description: 'Confianza global de la extracción 0-1 (1 = muy seguro)' },
+       confianza: { type: 'number', description: 'Confianza global de la extracción 0-1 (1 = muy seguro)' },
+    tarjeta_ultimos_digitos: { type: 'string', description: 'Últimos 4 dígitos si se ve una tarjeta enmascarada en un justificante de pago (p. ej. grapado al ticket)' },
+    comprador_nif: { type: 'string', description: 'NIF del destinatario/comprador si consta (señal de factura completa, no simplificada)' },
+    desglose_iva: { type: 'boolean', description: 'true si la base imponible y la cuota de IVA aparecen desglosadas por separado' },
+    datos_emisor_lateral: { type: 'boolean', description: 'true si los datos del emisor (NIF, registro mercantil) están impresos en el lateral del documento, no en la cabecera' },
+    registro_mercantil: { type: 'string', description: 'Tomo/folio/hoja del Registro Mercantil del emisor si aparece' },
+    documento_grapado_detectado: { type: 'boolean', description: 'true si hay un justificante de pago grapado/superpuesto al ticket en la misma foto' },
   },
 };
-
 const PROMPT_OCR = `Analiza este ticket o factura de gasto y extrae los datos estructurados.
 Instrucciones:
 - fecha_documento en formato YYYY-MM-DD. Si solo aparece dd/mm, usa el año actual.
@@ -43,6 +48,10 @@ Instrucciones:
 - hora_documento: hora impresa en el justificante en formato HH:MM (24h). Si el documento no trae hora, devuelve cadena vacía. Es CRÍTICO para distinguir peajes del mismo día, mismo importe y mismo comercio pero a hora distinta (tramos sucesivos de autopista).
 - codigo_validacion_fiscal: código QR/hash si aparece.
 - confianza: tu estimación de seguridad global (0-1). Si el documento está borroso, mal iluminado o incompleto, baja la confianza.
+- tarjeta_ultimos_digitos: si ves una tarjeta enmascarada (ej. "**** 4417") en un justificante de pago grapado al ticket, los últimos 4 dígitos. No hace falta pedir una segunda foto: si el justificante de pago está grapado y visible en esta misma imagen, extrae también su forma de pago y tarjeta.
+- comprador_nif: NIF del destinatario/comprador si aparece impreso (indica una factura completa, no una simplificada).
+- desglose_iva: true si la base imponible y la cuota de IVA aparecen desglosadas por separado.
+- datos_emisor_lateral / registro_mercantil: el NIF del emisor y su inscripción registral (tomo/folio/hoja) a veces van impresos en VERTICAL en el LATERAL del documento, no en la cabecera — revisa también ahí, sobre todo si un justificante grapado tapa la cabecera.
 Si un campo no es legible, devuelve cadena vacía o null. No inventes datos.`;
 
 /**
