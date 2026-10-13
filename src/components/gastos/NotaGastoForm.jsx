@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { verificarDuplicado } from '@/lib/duplicadoGasto';
+import { clasificarTipoDocumento, generaAsientoContable } from '@/lib/clasificacionDocumentos';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useAuth } from '@/lib/AuthContext';
@@ -93,6 +94,33 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       setField('categoria', sugerencia.categoria_sugerida);
     }
   }, [sugerencia]);
+    // Pista de comercio cuando el OCR no pudo leer el nombre/NIF (p. ej. un justificante de
+  // pago grapado los tapa), pero el texto reconocido tiene fragmentos que coinciden con un
+  // comercio ya usado por este operario. NUNCA se aplica sola: se muestra como propuesta.
+  const [pistaComercio, setPistaComercio] = useState(null);
+  useEffect(() => {
+    const nombreCorto = (form.nombre_comercio || '').trim().length < 3;
+    if (!operarioEfectivo?.id || !nombreCorto || !ocrRaw || ocrRaw.trim().length < 6) { setPistaComercio(null); return; }
+    let vivo = true;
+    (async () => {
+      try {
+        const patrones = await base44.entities.PatronGasto.filter({ operario_id: operarioEfectivo.id, activo: true }, '-veces_confirmado', 100);
+        if (!vivo) return;
+        const candidatos = (patrones || []).map((p) => ({
+          nombre_comercio_normalizado: p.nombre_comercio_normalizado, nombre_comercio_display: p.nombre_comercio || p.nombre_comercio_normalizado,
+          nif_comercio: p.nif_comercio || '', categoria_sugerida: p.categoria_sugerida, veces_confirmado: p.veces_confirmado || p.veces_visto || 1,
+        }));
+        setPistaComercio(sugerirComercioPorPistas({ ocr_raw: ocrRaw, nif_parcial: form.nif_comercio }, candidatos));
+      } catch { if (vivo) setPistaComercio(null); }
+    })();
+    return () => { vivo = false; };
+  }, [ocrRaw, form.nombre_comercio, form.nif_comercio, operarioEfectivo?.id]);
+
+  const aplicarPistaComercio = () => {
+    if (!pistaComercio) return;
+    setForm((f) => ({ ...f, nombre_comercio: pistaComercio.nombre_comercio, nif_comercio: pistaComercio.nif_comercio || f.nif_comercio, categoria: f.categoria || pistaComercio.categoria || f.categoria }));
+    setPistaComercio(null);
+  };
 
   const createMutation = useOptimisticMutation(
     (payload) => base44.entities.RegistroGasto.create(payload),
@@ -188,9 +216,12 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         numero_factura: datos.numero_factura || prev.numero_factura,
         localidad: datos.localidad || prev.localidad,
         forma_pago_documento: datos.forma_pago_documento || prev.forma_pago_documento,
-        tarjeta_ultimos_digitos: String(datos.tarjeta_ultimos_digitos || prev.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4),
+               tarjeta_ultimos_digitos: String(datos.tarjeta_ultimos_digitos || prev.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4),
+        comprador_nif: datos.comprador_nif || prev.comprador_nif,
+        desglose_iva: datos.desglose_iva != null ? !!datos.desglose_iva : prev.desglose_iva,
         categoria: catValida || prev.categoria,
       }));
+      }
       // Sugerencia de origen de pago por tarjeta conocida (solo roles privilegiados; nunca se aplica sola,
       // se muestra como aviso editable junto al selector de origen del pago).
       const digitosSug = String(datos.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4);
@@ -246,14 +277,18 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
           obra_name: form.obra_name || null,
           obra_tipo: form.obra_tipo || null,
           ia_no_disponible: false,
-          precisa_precision: !!r.precisa_precision,
-          precision_motivo: r.precision_motivo || '',
-          notas: `Ticket ${(r._idx_en_foto ?? 0) + 1} de ${r._total_en_foto ?? registros.length} en la misma fotografía`,
-        });
+         
         creados++;
       } catch (e) {
         console.error('Error creando registro multi-ticket:', e);
-      }
+      }          precisa_precision: !!r.precisa_precision,
+          precision_motivo: r.precision_motivo || '',
+          notas: `Ticket ${(r._idx_en_foto ?? 0) + 1} de ${r._total_en_foto ?? registros.length} en la misma fotografía`,
+          ...(() => {
+            const cl = clasificarTipoDocumento({ ...datos, ocr_raw: r.ocr_raw, categoria: catValida });
+            return { tipo_documento: cl.tipo_documento, tipo_documento_confianza: cl.confianza, genera_asiento_contable: generaAsientoContable(cl.tipo_documento) };
+          })(),
+        });
     }
     toast.success(
       creados === registros.length
@@ -296,6 +331,16 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     return { ...m, numero_nota: m.numero_nota || 'otro registro', esDuplicadoFiscal: m.motivos.some((x) => x.includes('código validación')) };
   };
 
+  // Clasifica el documento con los datos actuales del formulario (factura / factura
+  // simplificada / ticket / albarán / tasa_multa) según el RD 1619/2012 y el art.15c LIS.
+  const clasificacionActual = () => {
+    const cl = clasificarTipoDocumento({
+      nombre_comercio: form.nombre_comercio, nif_comercio: form.nif_comercio, importe: parseFloat(form.importe),
+      categoria: form.categoria, numero_factura: form.numero_factura, codigo_validacion_fiscal: form.codigo_validacion_fiscal,
+      ocr_raw: ocrRaw, comprador_nif: form.comprador_nif, desglose_iva: form.desglose_iva,
+    });
+    return { tipo_documento: cl.tipo_documento, tipo_documento_confianza: cl.confianza, genera_asiento_contable: generaAsientoContable(cl.tipo_documento) };
+  };
   const doGuardar = async (extraFields = {}) => {
     let dup = checkDuplicado();
     if (!dup && !posibleDup) dup = await cruzarConRegistros();
