@@ -36,11 +36,18 @@ export const GASTO_OCR_SCHEMA_MULTI = {
           },
           numero_factura: { type: 'string' },
           codigo_validacion_fiscal: { type: 'string' },
+                   codigo_validacion_fiscal: { type: 'string' },
           localidad: { type: 'string' },
           forma_pago_documento: { type: 'string' },
+          tarjeta_ultimos_digitos: { type: 'string' },
           concepto: { type: 'string' },
           confianza: { type: 'number' },
           ocr_raw: { type: 'string' },
+          comprador_nif: { type: 'string', description: 'NIF del destinatario/comprador si consta (señal de factura completa, no simplificada)' },
+          desglose_iva: { type: 'boolean', description: 'true si se ve el IVA desglosado por separado de la base imponible' },
+          datos_emisor_lateral: { type: 'boolean', description: 'true si los datos del emisor (NIF, registro mercantil) están impresos en el LATERAL del documento, no en la cabecera' },
+          registro_mercantil: { type: 'string', description: 'Tomo/folio/hoja del Registro Mercantil del emisor, si aparece (suele ir en letra pequeña, vertical, en el lateral)' },
+          documento_grapado_detectado: { type: 'boolean', description: 'true si en la MISMA foto se ve un justificante de pago (resguardo de tarjeta) grapado o superpuesto al ticket/factura' },
         },
       },
     },
@@ -87,6 +94,26 @@ Antes de extraer datos, determina qué contiene la imagen:
 ■ TIPO E — Imagen inválida (blanco, negro, sin texto)
   → n_documentos=0, tipo_caso="imagen_invalida". documentos=[].
 
+PASO 1.5 — DOCUMENTOS GRAPADOS: TICKET + JUSTIFICANTE DE PAGO
+Es muy habitual en España que el comercio grape el RESGUARDO DE LA TARJETA (el papel que
+confirma el pago) encima o detrás del ticket/factura/albarán. Si en la misma foto ves DOS
+papeles superpuestos o grapados donde uno es claramente un justificante de pago (solo
+muestra "OPERACION AUTORIZADA", el importe, y una tarjeta enmascarada tipo "**** 4417") y
+el otro es el documento de compra: TRÁTALO COMO UN ÚNICO DOCUMENTO, no como multi_ticket.
+→ documento_grapado_detectado=true. Extrae forma_pago_documento y tarjeta_ultimos_digitos
+  del resguardo de pago, y el resto de los campos del ticket/factura/albarán.
+No hace falta pedir una segunda foto solo del resguardo: si ambos papeles están visibles en
+esta imagen, ya tienes todo.
+
+PASO 1.6 — DATOS DEL EMISOR EN EL LATERAL
+En facturas, albaranes y tickets de formato preimpreso es habitual que el NIF/CIF del
+emisor y su inscripción en el Registro Mercantil (tomo, folio, hoja) vayan impresos en
+VERTICAL, en el LATERAL del documento (margen izquierdo o derecho), en letra pequeña —
+no en la cabecera donde suele ir el nombre comercial. Revisa también esa zona antes de
+dejar nif_comercio vacío. Si encuentras ese dato ahí: datos_emisor_lateral=true, y copia
+la referencia registral en registro_mercantil si aparece.
+Esto es frecuente cuando el justificante de pago grapado (paso 1.5) tapa la cabecera del
+documento: el lateral puede seguir visible y es la pista para identificar el comercio.
 PASO 2 — EXTRACCIÓN DE DATOS (por cada documento)
 
 Para CADA documento detectado, extrae:
@@ -106,6 +133,12 @@ Para CADA documento detectado, extrae:
 • codigo_validacion_fiscal: Código QR/CSV de validación fiscal. Vacío si no aparece.
 • localidad: Solo el nombre de la población del emisor. Vacío si no aparece.
 • forma_pago_documento: "EFECTIVO", "TARJETA", etc. Tal cual aparece. Vacío si no.
+- tarjeta_ultimos_digitos: SOLO si ves una tarjeta enmascarada (ej. "**** 4417"); los últimos 4 dígitos. Vacío si no.
+- comprador_nif: NIF del destinatario/comprador si aparece impreso (señal de FACTURA completa).
+- desglose_iva: true si la base imponible y la cuota de IVA aparecen desglosadas por separado.
+- datos_emisor_lateral: true si el NIF o la inscripción registral del emisor estaban en el lateral del documento (ver paso 1.6).
+- registro_mercantil: tomo/folio/hoja del Registro Mercantil si aparece.
+- documento_grapado_detectado: true si había un justificante de pago grapado (ver paso 1.5).
 • concepto: Descripción breve del gasto (máx 60 chars).
 • confianza: Seguridad global de esta extracción (0-1).
 • ocr_raw: Transcripción COMPLETA del texto de ESTE documento (solo sus líneas).

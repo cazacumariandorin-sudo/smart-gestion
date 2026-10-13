@@ -5,6 +5,8 @@ import PageHeader from '@/components/layout/PageHeader';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import FotoGastoCard from '@/components/gastos/FotoGastoCard';
 import { Receipt, Camera } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { TIPO_DOCUMENTO_LABELS } from '@/lib/clasificacionDocumentos';
 import DescargarFotosCicloButton from '@/components/gastos/DescargarFotosCicloButton';
 
 const CATEGORIAS = ['material', 'combustible', 'peaje', 'parking', 'comida', 'otros'];
@@ -21,6 +23,9 @@ export default function FotosContabilidad() {
   const [filtroCiclo, setFiltroCiclo] = useState('todos');
   const [filtroOperario, setFiltroOperario] = useState('todos');
   const [filtroCategoria, setFiltroCategoria] = useState('todos');
+    const [filtroTipoDoc, setFiltroTipoDoc] = useState('todos');
+  const [importeMin, setImporteMin] = useState('');
+  const [importeMax, setImporteMax] = useState('');
 
   const { data: gastos = [], isLoading } = useQuery({
     queryKey: ['fotos_contabilidad'],
@@ -41,6 +46,7 @@ export default function FotosContabilidad() {
           numero_nota: g.numero_nota,
           fecha_documento: g.fecha_documento,
           importe: g.importe,
+          tipo_documento: g.tipo_documento || '',
           categoria: g.categoria,
           nombre_comercio: g.nombre_comercio,
           numero_factura: g.numero_factura,
@@ -70,6 +76,10 @@ export default function FotosContabilidad() {
       (filtroCiclo === 'todos' || f.ciclo === filtroCiclo) &&
       (filtroOperario === 'todos' || f.operario_id === filtroOperario) &&
       (filtroCategoria === 'todos' || f.categoria === filtroCategoria)
+         &&
+      (filtroTipoDoc === 'todos' || f.tipo_documento === filtroTipoDoc) &&
+      (importeMin === '' || (Number(f.importe) || 0) >= Number(importeMin)) &&
+      (importeMax === '' || (Number(f.importe) || 0) <= Number(importeMax))                
     );
   }, [fotos, filtroCiclo, filtroOperario, filtroCategoria]);
 
@@ -109,6 +119,15 @@ export default function FotosContabilidad() {
           <MobileSelect value={filtroCategoria} onValueChange={setFiltroCategoria} placeholder="Categoría" triggerClassName="w-36 shrink-0">
             <MobileSelectItem value="todos">Todas</MobileSelectItem>
             {CATEGORIAS.map(c => <MobileSelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</MobileSelectItem>)}
+           <MobileSelect value={filtroTipoDoc} onValueChange={setFiltroTipoDoc} placeholder="Tipo de documento" triggerClassName="w-44 shrink-0">
+            <MobileSelectItem value="todos">Todos los tipos</MobileSelectItem>
+            {Object.entries(TIPO_DOCUMENTO_LABELS).map(([v, l]) => <MobileSelectItem key={v} value={v}>{l}</MobileSelectItem>)}
+          </MobileSelect>
+          <div className="flex items-center gap-1 shrink-0">
+            <Input type="number" inputMode="decimal" placeholder="Importe mín." value={importeMin} onChange={e => setImporteMin(e.target.value)} className="w-24" />
+            <span className="text-xs text-muted-foreground">–</span>
+            <Input type="number" inputMode="decimal" placeholder="Importe máx." value={importeMax} onChange={e => setImporteMax(e.target.value)} className="w-24" />
+          </div>
           </MobileSelect>
 
           <div className="flex items-center gap-3 ml-auto px-1">
