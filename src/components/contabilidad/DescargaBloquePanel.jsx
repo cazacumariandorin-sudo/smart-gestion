@@ -104,11 +104,14 @@ export default function DescargaBloquePanel({ rango }) {
             </MobileSelect>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Tipo de archivo (factura/ticket)</Label>
+              <Label className="text-xs">Tipo de documento</Label>
             <MobileSelect value={tipoArchivo} onValueChange={setTipoArchivo} placeholder="Todos">
               <MobileSelectItem value="todos">Todos</MobileSelectItem>
-              <MobileSelectItem value="factura">Solo facturas (con nº factura)</MobileSelectItem>
-              <MobileSelectItem value="ticket">Solo tickets (sin nº factura)</MobileSelectItem>
+              <MobileSelectItem value="factura">Solo facturas completas</MobileSelectItem>
+              <MobileSelectItem value="factura_simplificada">Solo facturas simplificadas</MobileSelectItem>
+              <MobileSelectItem value="ticket">Solo tickets (sin validez fiscal)</MobileSelectItem>
+              <MobileSelectItem value="albaran">Solo albaranes</MobileSelectItem>
+              <MobileSelectItem value="tasa_multa">Solo tasas / multas</MobileSelectItem>
             </MobileSelect>
           </div>
           <div className="space-y-1.5">
