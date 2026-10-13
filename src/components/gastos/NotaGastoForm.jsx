@@ -222,7 +222,6 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         desglose_iva: datos.desglose_iva != null ? !!datos.desglose_iva : prev.desglose_iva,
         categoria: catValida || prev.categoria,
       }));
-      }
       // Sugerencia de origen de pago por tarjeta conocida (solo roles privilegiados; nunca se aplica sola,
       // se muestra como aviso editable junto al selector de origen del pago).
       const digitosSug = String(datos.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4);
@@ -278,11 +277,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
           obra_name: form.obra_name || null,
           obra_tipo: form.obra_tipo || null,
           ia_no_disponible: false,
-         
-        creados++;
-      } catch (e) {
-        console.error('Error creando registro multi-ticket:', e);
-      }          precisa_precision: !!r.precisa_precision,
+          precisa_precision: !!r.precisa_precision,
           precision_motivo: r.precision_motivo || '',
           notas: `Ticket ${(r._idx_en_foto ?? 0) + 1} de ${r._total_en_foto ?? registros.length} en la misma fotografía`,
           ...(() => {
@@ -290,6 +285,10 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
             return { tipo_documento: cl.tipo_documento, tipo_documento_confianza: cl.confianza, genera_asiento_contable: generaAsientoContable(cl.tipo_documento) };
           })(),
         });
+        creados++;
+      } catch (e) {
+        console.error('Error creando registro multi-ticket:', e);
+      }
     }
     toast.success(
       creados === registros.length

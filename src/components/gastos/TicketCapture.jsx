@@ -214,7 +214,6 @@ export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
     }
        procesarPagina(auto.file, null, f);
   };
-  };
 
   // Procesa una página: sube + OCR multi-ticket. Si existingIdx, actualiza in situ (reintento).
    const procesarPagina = async (file, existingIdx = null, originalSinRecortar = null) => {
@@ -402,16 +401,17 @@ export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
     <div className="space-y-4 py-2">
       {multiTicketPendiente && (
         <MultiTicketDialog
-      {detectando && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Encuadrando el documento…
-        </div>
-      )}
           registros={multiTicketPendiente.registros}
           filePreview={multiTicketPendiente.preview}
           onConfirmar={confirmarMultiTicket}
           onCancelar={cancelarMultiTicket}
         />
+      )}
+
+      {detectando && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Encuadrando el documento…
+        </div>
       )}
 
       {paginas.length === 0 ? (
