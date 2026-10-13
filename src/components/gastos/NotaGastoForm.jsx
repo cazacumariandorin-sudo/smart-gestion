@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { verificarDuplicado } from '@/lib/duplicadoGasto';
 import { clasificarTipoDocumento, generaAsientoContable } from '@/lib/clasificacionDocumentos';
+import { sugerirComercioPorPistas } from '@/lib/sugerenciaComercio';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useAuth } from '@/lib/AuthContext';
@@ -514,7 +515,16 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
                 <div className="space-y-1.5"><Label className="text-xs">Importe (€) *</Label><Input type="number" step="0.01" placeholder="0.00" value={form.importe} onChange={e => setField('importe', e.target.value)} /></div>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5"><Label className="text-xs">Comercio / Proveedor</Label><div className="flex gap-1"><Input placeholder="Nombre" value={form.nombre_comercio} onChange={e => setField('nombre_comercio', e.target.value)} /><VoiceInputButton onResult={t => setField('nombre_comercio', t)} /></div></div>
+                                <div className="space-y-1.5">
+                  <Label className="text-xs">Comercio / Proveedor</Label>
+                  <div className="flex gap-1"><Input placeholder="Nombre" value={form.nombre_comercio} onChange={e => setField('nombre_comercio', e.target.value)} /><VoiceInputButton onResult={t => setField('nombre_comercio', t)} /></div>
+                  {pistaComercio && (
+                    <div className="flex items-center gap-2 text-[11px] bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-md px-2 py-1.5">
+                      <span className="flex-1">¿Es <b>{pistaComercio.nombre_comercio}</b>? {pistaComercio.motivo} ({Math.round(pistaComercio.confianza * 100)}%).</span>
+                      <button type="button" onClick={aplicarPistaComercio} className="font-semibold underline shrink-0">Usar</button>
+                    </div>
+                  )}
+                </div>
                 <div className="space-y-1.5"><Label className="text-xs">NIF / CIF</Label><Input placeholder="B12345678" value={form.nif_comercio} onChange={e => setField('nif_comercio', e.target.value)} /></div>
                 <div className="space-y-1.5"><Label className="text-xs">Nº Factura / Albarán</Label><Input placeholder="FAC-2026-001" value={form.numero_factura} onChange={e => setField('numero_factura', e.target.value)} /></div>
               </div>
