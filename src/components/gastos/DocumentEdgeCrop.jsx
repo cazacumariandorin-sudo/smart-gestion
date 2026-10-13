@@ -17,7 +17,7 @@ import { Crop, RefreshCw, Check, X, Loader2 } from 'lucide-react';
 const MAX_SRC = 2000; // lado máximo de la imagen fuente de muestreo (memoria)
 const MAX_OUT = 3200; // lado máximo de salida: un ticket alargado necesita ancho suficiente para leerse
 
-function loadImage(file) {
+export function loadImage(file) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => { URL.revokeObjectURL(img.src); resolve(img); };
@@ -26,7 +26,7 @@ function loadImage(file) {
   });
 }
 
-function detectQuad(img) {
+export function detectQuad(img) {
   const scale = Math.min(1, 256 / Math.max(img.width, img.height));
   const sw = Math.max(1, Math.round(img.width * scale));
   const sh = Math.max(1, Math.round(img.height * scale));
@@ -124,6 +124,80 @@ function solveHomography(dst, src) {
 
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
+async function recortarConEsquinas(file, img, corners) {
+  const sScale = Math.min(1, MAX_SRC / Math.max(img.width, img.height));
+  const sw = Math.max(1, Math.round(img.width * sScale));
+  const sh = Math.max(1, Math.round(img.height * sScale));
+  const srcCanvas = document.createElement('canvas');
+  srcCanvas.width = sw; srcCanvas.height = sh;
+  const sctx = srcCanvas.getContext('2d');
+  sctx.drawImage(img, 0, 0, sw, sh);
+  const srcData = sctx.getImageData(0, 0, sw, sh);
+  const sCorners = corners.map((c) => ({ x: c.x * sScale, y: c.y * sScale }));
+
+  const w = (dist(sCorners[0], sCorners[1]) + dist(sCorners[3], sCorners[2])) / 2;
+  const h = (dist(sCorners[0], sCorners[3]) + dist(sCorners[1], sCorners[2])) / 2;
+  const outScale = Math.min(1, MAX_OUT / Math.max(w, h));
+  const outW = Math.max(1, Math.round(w * outScale));
+  const outH = Math.max(1, Math.round(h * outScale));
+
+  const dst = [{ x: 0, y: 0 }, { x: outW, y: 0 }, { x: outW, y: outH }, { x: 0, y: outH }];
+  const H = solveHomography(dst, sCorners);
+  const [a, b, c, d, ee, f, g, hh] = H;
+  const sd = srcData.data;
+  const out = new Uint8ClampedArray(outW * outH * 4);
+
+  for (let y = 0; y < outH; y++) {
+    for (let x = 0; x < outW; x++) {
+      const wd = g * x + hh * y + 1;
+      const sxf = (a * x + b * y + c) / wd;
+      const syf = (d * x + ee * y + f) / wd;
+      const oi = (y * outW + x) * 4;
+      const xi = Math.floor(sxf), yi = Math.floor(syf);
+      if (xi < 0 || yi < 0 || xi + 1 >= sw || yi + 1 >= sh) {
+        out[oi] = 255; out[oi + 1] = 255; out[oi + 2] = 255; out[oi + 3] = 255;
+        continue;
+      }
+      const ddx = sxf - xi, ddy = syf - yi;
+      const i00 = (yi * sw + xi) * 4, i10 = (yi * sw + xi + 1) * 4;
+      const i01 = ((yi + 1) * sw + xi) * 4, i11 = ((yi + 1) * sw + xi + 1) * 4;
+      for (let ch = 0; ch < 3; ch++) {
+        const top = sd[i00 + ch] * (1 - ddx) + sd[i10 + ch] * ddx;
+        const bot = sd[i01 + ch] * (1 - ddx) + sd[i11 + ch] * ddx;
+        out[oi + ch] = top * (1 - ddy) + bot * ddy;
+      }
+      out[oi + 3] = 255;
+    }
+  }
+
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width = outW; outCanvas.height = outH;
+  outCanvas.getContext('2d').putImageData(new ImageData(out, outW, outH), 0, 0);
+
+  const blob = await new Promise((res) => outCanvas.toBlob(res, 'image/jpeg', 0.85));
+  const name = file.name.replace(/\.(jpe?g|png|gif|webp)$/i, '') + '_recortado.jpg';
+  return new File([blob], name, { type: 'image/jpeg' });
+}
+
+/**
+ * Pipeline completo sin interfaz: detecta las 4 esquinas y recorta en un solo paso.
+ * Lo usa el captador para aplicar el recorte EN SILENCIO cuando la detección es fiable
+ * (ver decisionRecorte.debeAjustarManualmente); si no, se muestra el editor manual de abajo.
+ * Devuelve { file, autoOk, corners, natural } — null si la imagen no se pudo leer.
+ */
+export async function autoCropFile(file) {
+  try {
+    const img = await loadImage(file);
+    const natural = { w: img.width, h: img.height };
+    const d = detectQuad(img);
+    const croppedFile = await recortarConEsquinas(file, img, d.corners);
+    return { file: croppedFile, autoOk: d.autoOk, corners: d.corners, natural };
+  } catch (e) {
+    console.warn('autoCropFile falló', e);
+    return null;
+  }
+}
+
 export default function DocumentEdgeCrop({ file, onConfirm, onSkip, onCancel }) {
   const [natural, setNatural] = useState(null);
   const [corners, setCorners] = useState(null);
@@ -184,58 +258,7 @@ export default function DocumentEdgeCrop({ file, onConfirm, onSkip, onCancel }) 
     setApplying(true);
     try {
       const img = await loadImage(file);
-      const sScale = Math.min(1, MAX_SRC / Math.max(img.width, img.height));
-      const sw = Math.max(1, Math.round(img.width * sScale));
-      const sh = Math.max(1, Math.round(img.height * sScale));
-      const srcCanvas = document.createElement('canvas');
-      srcCanvas.width = sw; srcCanvas.height = sh;
-      const sctx = srcCanvas.getContext('2d');
-      sctx.drawImage(img, 0, 0, sw, sh);
-      const srcData = sctx.getImageData(0, 0, sw, sh);
-      const sCorners = corners.map((c) => ({ x: c.x * sScale, y: c.y * sScale }));
-
-      const w = (dist(sCorners[0], sCorners[1]) + dist(sCorners[3], sCorners[2])) / 2;
-      const h = (dist(sCorners[0], sCorners[3]) + dist(sCorners[1], sCorners[2])) / 2;
-      const outScale = Math.min(1, MAX_OUT / Math.max(w, h));
-      const outW = Math.max(1, Math.round(w * outScale));
-      const outH = Math.max(1, Math.round(h * outScale));
-
-      const dst = [{ x: 0, y: 0 }, { x: outW, y: 0 }, { x: outW, y: outH }, { x: 0, y: outH }];
-      const H = solveHomography(dst, sCorners);
-      const [a, b, c, d, ee, f, g, hh] = H;
-      const sd = srcData.data;
-      const out = new Uint8ClampedArray(outW * outH * 4);
-
-      for (let y = 0; y < outH; y++) {
-        for (let x = 0; x < outW; x++) {
-          const wd = g * x + hh * y + 1;
-          const sxf = (a * x + b * y + c) / wd;
-          const syf = (d * x + ee * y + f) / wd;
-          const oi = (y * outW + x) * 4;
-          const xi = Math.floor(sxf), yi = Math.floor(syf);
-          if (xi < 0 || yi < 0 || xi + 1 >= sw || yi + 1 >= sh) {
-            out[oi] = 255; out[oi + 1] = 255; out[oi + 2] = 255; out[oi + 3] = 255;
-            continue;
-          }
-          const ddx = sxf - xi, ddy = syf - yi;
-          const i00 = (yi * sw + xi) * 4, i10 = (yi * sw + xi + 1) * 4;
-          const i01 = ((yi + 1) * sw + xi) * 4, i11 = ((yi + 1) * sw + xi + 1) * 4;
-          for (let ch = 0; ch < 3; ch++) {
-            const top = sd[i00 + ch] * (1 - ddx) + sd[i10 + ch] * ddx;
-            const bot = sd[i01 + ch] * (1 - ddx) + sd[i11 + ch] * ddx;
-            out[oi + ch] = top * (1 - ddy) + bot * ddy;
-          }
-          out[oi + 3] = 255;
-        }
-      }
-
-      const outCanvas = document.createElement('canvas');
-      outCanvas.width = outW; outCanvas.height = outH;
-      outCanvas.getContext('2d').putImageData(new ImageData(out, outW, outH), 0, 0);
-
-      const blob = await new Promise((res) => outCanvas.toBlob(res, 'image/jpeg', 0.85));
-      const name = file.name.replace(/\.(jpe?g|png|gif|webp)$/i, '') + '_recortado.jpg';
-      const outFile = new File([blob], name, { type: 'image/jpeg' });
+      const outFile = await recortarConEsquinas(file, img, corners);
       onConfirm?.(outFile);
     } catch (e) {
       console.warn('Edge crop falló, usando original', e);
