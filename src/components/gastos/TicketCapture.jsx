@@ -196,8 +196,7 @@ function MultiTicketDialog({ registros, filePreview, onConfirmar, onCancelar }) 
 export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
   const [paginas, setPaginas] = useState([]);
   const [pendienteEditar, setPendienteEditar] = useState(null);
-  const [archivoOriginalParaAjuste, setArchivoOriginalParaAjuste] = useState(null); // para "Ajustar bordes" tras el recorte automático
-  const [detectando, setDetectando] = useState(false);
+   const [detectando, setDetectando] = useState(false); // detectando bordes de la última foto capturada
   const [multiTicketPendiente, setMultiTicketPendiente] = useState(null);
 
   // Recorte de bordes: se aplica EN SILENCIO cuando la detección es fiable (criterio en
@@ -213,8 +212,7 @@ export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
       setPendienteEditar(f);
       return;
     }
-    setArchivoOriginalParaAjuste(f);
-    procesarPagina(auto.file);
+       procesarPagina(auto.file, null, f);
   };
   };
 
@@ -304,6 +302,8 @@ export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
     if (!pag?.file) return;
     procesarPagina(pag.file, idx);
   };
+  const [ajustandoIdx, setAjustandoIdx] = useState(null); // índice de página cuyo recorte se está corrigiendo a mano
+  const ajustarBordes = (idx) => setAjustandoIdx(idx);
 
   const confirmarMultiTicket = useCallback((registrosConfirmados) => {
     if (!multiTicketPendiente) return;
@@ -369,10 +369,23 @@ export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
   const todasOk = paginas.length > 0 && paginas.every(p => p.estado === 'ok' || p.estado === 'ok_multi');
   const algunaProcesando = paginas.some(p => p.estado === 'subiendo' || p.estado === 'ocr' || p.estado === 'multi');
 
-  if (pendienteEditar) {
+  if (ajustandoIdx != null && paginas[ajustandoIdx]) {
+    const pag = paginas[ajustandoIdx];
     return (
       <div className="space-y-4 py-2">
         <DocumentEdgeCrop
+          file={pag.original}
+          onConfirm={(f) => { setAjustandoIdx(null); procesarPagina(f, ajustandoIdx, pag.original); }}
+          onSkip={() => setAjustandoIdx(null)}
+          onCancel={() => setAjustandoIdx(null)}
+        />
+      </div>
+    );
+  }
+  if (pendienteEditar) {
+    return (
+      <div className="space-y-4 py-2">
+         <DocumentEdgeCrop
           file={pendienteEditar}
           onConfirm={(f) => { setPendienteEditar(null); procesarPagina(f); }}
           onSkip={() => { const orig = pendienteEditar; setPendienteEditar(null); procesarPagina(orig); }}
@@ -389,6 +402,11 @@ export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
     <div className="space-y-4 py-2">
       {multiTicketPendiente && (
         <MultiTicketDialog
+      {detectando && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Encuadrando el documento…
+        </div>
+      )}
           registros={multiTicketPendiente.registros}
           filePreview={multiTicketPendiente.preview}
           onConfirmar={confirmarMultiTicket}
@@ -450,6 +468,11 @@ export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
                   </Button>
                 )}
                 <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 hover:text-destructive" onClick={() => eliminarPagina(idx)} title="Quitar página">
+                   {p.original && p.estado !== 'subiendo' && p.estado !== 'ocr' && (
+                  <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => ajustarBordes(idx)} title="Ajustar bordes">
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>
