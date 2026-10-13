@@ -133,6 +133,12 @@ Para CADA documento detectado, extrae:
 • codigo_validacion_fiscal: Código QR/CSV de validación fiscal. Vacío si no aparece.
 • localidad: Solo el nombre de la población del emisor. Vacío si no aparece.
 • forma_pago_documento: "EFECTIVO", "TARJETA", etc. Tal cual aparece. Vacío si no.
+- tarjeta_ultimos_digitos: SOLO si ves una tarjeta enmascarada (ej. "**** 4417"); los últimos 4 dígitos. Vacío si no.
+- comprador_nif: NIF del destinatario/comprador si aparece impreso (señal de FACTURA completa).
+- desglose_iva: true si la base imponible y la cuota de IVA aparecen desglosadas por separado.
+- datos_emisor_lateral: true si el NIF o la inscripción registral del emisor estaban en el lateral del documento (ver paso 1.6).
+- registro_mercantil: tomo/folio/hoja del Registro Mercantil si aparece.
+- documento_grapado_detectado: true si había un justificante de pago grapado (ver paso 1.5).
 • concepto: Descripción breve del gasto (máx 60 chars).
 • confianza: Seguridad global de esta extracción (0-1).
 • ocr_raw: Transcripción COMPLETA del texto de ESTE documento (solo sus líneas).
