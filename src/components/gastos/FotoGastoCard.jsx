@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ImageLightbox from '@/components/ui/ImageLightbox';
+import PdfThumbnail from '@/components/ui/PdfThumbnail';
 import MejorarFotoButton from '@/components/gastos/MejorarFotoButton';
 
 const CAT_COLORS = {
@@ -25,7 +26,9 @@ function esPdf(archivo) {
 
 export default function FotoGastoCard({ foto }) {
   const [verImagen, setVerImagen] = useState(false);
+  const [pdfThumbError, setPdfThumbError] = useState(false);
   const esImg = esImagen(foto.archivo);
+  const esPdfArchivo = esPdf(foto.archivo);
 
   const abrirUrl = () => {
     if (!foto.archivo?.url) return;
@@ -51,12 +54,16 @@ export default function FotoGastoCard({ foto }) {
             loading="lazy"
           />
         ) : esPdf(foto.archivo) ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center px-2">
-              <div className="text-3xl">📄</div>
-              <p className="text-[10px] font-mono mt-1 truncate max-w-full">{foto.archivo?.nombre || 'PDF'}</p>
+          pdfThumbError ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center px-2">
+                <div className="text-3xl">📄</div>
+                <p className="text-[10px] font-mono mt-1 truncate max-w-full">{foto.archivo?.nombre || 'PDF'}</p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <PdfThumbnail url={foto.archivo.url} onError={() => setPdfThumbError(true)} />
+          )
         ) : (
           <div className="flex items-center justify-center h-full">
             <Receipt className="w-8 h-8 text-muted-foreground" />
