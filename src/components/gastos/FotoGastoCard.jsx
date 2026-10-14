@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Receipt, Loader2 } from 'lucide-react';
 import { renderPdfPrimeraPagina } from '@/lib/pdfPreview';
+import { renderPdfPrimeraPagina } from '@/lib/pdfPreview';
 import { cn } from '@/lib/utils';
 import ImageLightbox from '@/components/ui/ImageLightbox';
 import MejorarFotoButton from '@/components/gastos/MejorarFotoButton';
