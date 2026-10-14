@@ -5,6 +5,10 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   logLevel: 'error', // Suppress warnings, only show errors
+  // pdfjs-dist (vista previa de PDF) usa 'top-level await' internamente; todos los móviles
+  // reales de los técnicos lo soportan desde hace años, pero el objetivo de compilación por
+  // defecto de Vite es más antiguo y la build fallaba sin esto. No afecta a ninguna otra parte.
+  esbuild: { supported: { 'top-level-await': true } },
   plugins: [
     base44({
       // Support for legacy code that imports the base44 SDK with @/integrations, @/entities, etc.
