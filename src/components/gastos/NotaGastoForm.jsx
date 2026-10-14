@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { verificarDuplicado } from '@/lib/duplicadoGasto';
 import { clasificarTipoDocumento, generaAsientoContable } from '@/lib/clasificacionDocumentos';
@@ -55,18 +55,39 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
   const [sugerencia, setSugerencia] = useState(null); // { categoria_sugerida, confianza, patron_id }
   const [precisaPrecision, setPrecisaPrecision] = useState(false);
   const [precisionMotivo, setPrecisionMotivo] = useState('');
-  const [sugTarjeta, setSugTarjeta] = useState(null); // { digitos_finales, origen_pago_sugerido, confirmado, veces_visto, hay_conflicto, operario_name }
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { isAdmin: isRoleAdmin, isGerencia, isAdministracion } = useUserRole();
   const puedeCorporativo = isRoleAdmin || isGerencia || isAdministracion;
+  const origenPagoTocado = useRef(false);
+  // Clasificación SILENCIOSA por patrón de tarjeta: norma interna, no se le pregunta al
+  // técnico. Solo se aplica cuando el patrón ya está confirmado como fiable y no hay
+  // conflicto (la misma tarjeta vista alguna vez como empresa y otra como propia).
+  const [clasificacionTarjeta, setClasificacionTarjeta] = useState(null); // texto informativo, o null
+  useEffect(() => {
+    const digitos = (form.tarjeta_ultimos_digitos || '').trim();
+    if (!puedeCorporativo || origenPagoTocado.current || digitos.length !== 4) { setClasificacionTarjeta(null); return; }
+    let vivo = true;
+    base44.functions.invoke('gestionPatronTarjeta', { action: 'sugerir', digitos })
+      .then((res) => {
+        if (!vivo) return;
+        const s = res?.data?.sugerencia;
+        if (!s || !s.confirmado || s.hay_conflicto) { setClasificacionTarjeta(null); return; }
+        setField('origen_pago', s.origen_pago_sugerido);
+        setClasificacionTarjeta(
+          `Origen clasificado automáticamente como «${s.origen_pago_sugerido === 'medio_empresa' ? 'medio de empresa' : 'medios propios'}» por la tarjeta …${digitos} (norma interna, vista ${s.veces_visto} veces).`
+        );
+      })
+      .catch(() => { if (vivo) setClasificacionTarjeta(null); });
+    return () => { vivo = false; };
+  }, [form.tarjeta_ultimos_digitos, puedeCorporativo]);
 
   // Resuelve el operario efectivo delante de cualquier hook que lo consuma
   // (evita TDZ: el array de dependencias del useEffect de sugerencia lo lee en render).
   const operarioEfectivo = (isAdmin && operarioSeleccionado) ? (operarios.find(op => op.id === operarioSeleccionado) || operario) : operario;
 
   useEffect(() => {
-    if (open) { setPaso('captura'); setForm(defaultForm); setArchivos([]); setOcrRaw(''); setCaptureData(null); setIaNoDispo(false); setPosibleDup(null); setOperarioSeleccionado(null); setShowObraModal(false); setPendingSave(false); setSugerencia(null); setPrecisaPrecision(false); setPrecisionMotivo(''); }
+    if (open) { setPaso('captura'); setForm(defaultForm); setArchivos([]); setOcrRaw(''); setCaptureData(null); setIaNoDispo(false); setPosibleDup(null); setOperarioSeleccionado(null); setShowObraModal(false); setPendingSave(false); setSugerencia(null); setPrecisaPrecision(false); setPrecisionMotivo(''); origenPagoTocado.current = false; setClasificacionTarjeta(null); }
   }, [open]);
 
   // Lookup de patrón de gasto (comercio → categoría) cuando el operario escribe el comercio.
@@ -95,7 +116,8 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
       setField('categoria', sugerencia.categoria_sugerida);
     }
   }, [sugerencia]);
-    // Pista de comercio cuando el OCR no pudo leer el nombre/NIF (p. ej. un justificante de
+
+  // Pista de comercio cuando el OCR no pudo leer el nombre/NIF (p. ej. un justificante de
   // pago grapado los tapa), pero el texto reconocido tiene fragmentos que coinciden con un
   // comercio ya usado por este operario. NUNCA se aplica sola: se muestra como propuesta.
   const [pistaComercio, setPistaComercio] = useState(null);
@@ -142,18 +164,21 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
           })?.catch?.(() => {});
         } catch {}
       }
-      // Aprendizaje de patrón de tarjeta (fire-and-forget): anota que estos 4 últimos dígitos se han visto
-      // con este origen de pago. Si el usuario no es privilegiado, el servidor solo lo asocia a su propio Operario.
-      if (form.tarjeta_ultimos_digitos && /^\d{4}$/.test(form.tarjeta_ultimos_digitos)) {
+      // Aprendizaje del patrón de tarjeta (fire-and-forget). 'credito_proveedor' no lleva
+      // tarjeta propia, lo ignora la propia función. Nunca bloquea ni avisa: es una norma
+      // interna de clasificación, no algo que el técnico deba confirmar.
+      if ((form.tarjeta_ultimos_digitos || '').trim().length === 4) {
         try {
           base44.functions?.invoke?.('gestionPatronTarjeta', {
             action: 'registrar',
             digitos: form.tarjeta_ultimos_digitos,
             origen_pago: form.origen_pago,
-            operario_id: operarioEfectivo?.id || null,
-            operario_name: operarioEfectivo?.name || operarioEfectivo?.full_name || null,
-            // Confirma el patrón solo si el usuario aceptó la sugerencia sin cambiarla.
-            confirmar: !!sugTarjeta && sugTarjeta.origen_pago_sugerido === form.origen_pago,
+            operario_id: operarioEfectivo?.id,
+            operario_name: operarioEfectivo?.name || operarioEfectivo?.full_name || '',
+            // Solo se confirma como regla fiable cuando una persona con permiso ELIGIÓ el
+            // origen a mano para esta tarjeta; si se aplicó solo por la norma interna, no
+            // se confirma de nuevo (evita que el sistema se autoconfirme a sí mismo).
+            confirmar: origenPagoTocado.current,
           })?.catch?.(() => {});
         } catch {}
       }
@@ -217,21 +242,11 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
         numero_factura: datos.numero_factura || prev.numero_factura,
         localidad: datos.localidad || prev.localidad,
         forma_pago_documento: datos.forma_pago_documento || prev.forma_pago_documento,
-               tarjeta_ultimos_digitos: String(datos.tarjeta_ultimos_digitos || prev.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4),
+        tarjeta_ultimos_digitos: String(datos.tarjeta_ultimos_digitos || prev.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4),
         comprador_nif: datos.comprador_nif || prev.comprador_nif,
         desglose_iva: datos.desglose_iva != null ? !!datos.desglose_iva : prev.desglose_iva,
         categoria: catValida || prev.categoria,
       }));
-      // Sugerencia de origen de pago por tarjeta conocida (solo roles privilegiados; nunca se aplica sola,
-      // se muestra como aviso editable junto al selector de origen del pago).
-      const digitosSug = String(datos.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4);
-      if (puedeCorporativo && /^\d{4}$/.test(digitosSug)) {
-        Promise.resolve(base44.functions.invoke('gestionPatronTarjeta', { action: 'sugerir', digitos: digitosSug }))
-          .then(res => setSugTarjeta((res?.data || res)?.sugerencia || null))
-          .catch(() => setSugTarjeta(null));
-      } else {
-        setSugTarjeta(null);
-      }
     }
   };
 
@@ -273,6 +288,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
           numero_factura: datos.numero_factura || null,
           localidad: datos.localidad || null,
           forma_pago_documento: datos.forma_pago_documento || null,
+          tarjeta_ultimos_digitos: String(datos.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4) || null,
           obra_id: form.obra_id || null,
           obra_name: form.obra_name || null,
           obra_tipo: form.obra_tipo || null,
@@ -286,6 +302,14 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
           })(),
         });
         creados++;
+        const digitosTicket = String(datos.tarjeta_ultimos_digitos || '').replace(/\D/g, '').slice(-4);
+        if (digitosTicket.length === 4) {
+          base44.functions?.invoke?.('gestionPatronTarjeta', {
+            action: 'registrar', digitos: digitosTicket, origen_pago: form.origen_pago,
+            operario_id: operarioEfectivo?.id, operario_name: operarioEfectivo?.name || operarioEfectivo?.full_name || '',
+            confirmar: origenPagoTocado.current,
+          })?.catch?.(() => {});
+        }
       } catch (e) {
         console.error('Error creando registro multi-ticket:', e);
       }
@@ -312,7 +336,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     return notasExistentes.find(n => n.fecha_documento === form.fecha_documento && n.nombre_comercio?.toLowerCase() === form.nombre_comercio?.toLowerCase() && Math.abs((n.importe || 0) - parseFloat(form.importe || 0)) < 0.01 && n.estado !== 'rechazada') || null;
   };
 
-    // Cruce con TODOS los registros (también de otros técnicos) en el servidor
+  // Cruce con TODOS los registros (también de otros técnicos) en el servidor
   const cruzarConRegistros = async () => {
     const coincidencias = await verificarDuplicado({
       fecha_documento: form.fecha_documento,
@@ -341,6 +365,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     });
     return { tipo_documento: cl.tipo_documento, tipo_documento_confianza: cl.confianza, genera_asiento_contable: generaAsientoContable(cl.tipo_documento) };
   };
+
   const doGuardar = async (extraFields = {}) => {
     let dup = checkDuplicado();
     if (!dup && !posibleDup) dup = await cruzarConRegistros();
@@ -348,7 +373,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     const { numero_nota, numero_secuencia } = await generarNumeroNota();
     const hoy = format(new Date(), 'yyyy-MM-dd');
     const cicloFields = resolverCicloParaGuardar();
-    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: cicloFields.es_gasto_tardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id: form.obra_id || null, obra_name: form.obra_name || null, obra_tipo: form.obra_tipo || null, operario_email: operarioEfectivo.user_email || user?.email || '', ciclo_mes: cicloFields.ciclo_mes, estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: cicloFields.es_gasto_tardio, justificacion_tardia: cicloFields.justificacion_tardia, es_posible_duplicado: !!dup, duplicado_confirmado: !!posibleDup, tarjeta_ultimos_digitos: /^\d{4}$/.test(form.tarjeta_ultimos_digitos || '') ? form.tarjeta_ultimos_digitos : null, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo, ...extraFields });
+    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: cicloFields.es_gasto_tardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id: form.obra_id || null, obra_name: form.obra_name || null, obra_tipo: form.obra_tipo || null, operario_email: operarioEfectivo.user_email || user?.email || '', ciclo_mes: cicloFields.ciclo_mes, estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: cicloFields.es_gasto_tardio, justificacion_tardia: cicloFields.justificacion_tardia, es_posible_duplicado: !!dup, duplicado_confirmado: !!posibleDup, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo, ...clasificacionActual(), ...extraFields });
   };
 
   const handleSubmit = () => {
@@ -363,7 +388,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
     setForm(f => ({ ...f, obra_id, obra_name, obra_tipo })); setShowObraModal(false); setPendingSave(false);
     if (!operarioEfectivo?.id) { toast.error('No hay operario vinculado'); return; }
     const dup = checkDuplicado(); const { numero_nota, numero_secuencia } = await generarNumeroNota(); const hoy = format(new Date(), 'yyyy-MM-dd'); const cicloFields = resolverCicloParaGuardar();
-    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: cicloFields.es_gasto_tardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id, obra_name, obra_tipo, operario_email: operarioEfectivo.user_email || user?.email || '', ciclo_mes: cicloFields.ciclo_mes, estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: cicloFields.es_gasto_tardio, justificacion_tardia: cicloFields.justificacion_tardia, es_posible_duplicado: !!dup, duplicado_confirmado: false, tarjeta_ultimos_digitos: /^\d{4}$/.test(form.tarjeta_ultimos_digitos || '') ? form.tarjeta_ultimos_digitos : null, aviso_obra_mostrado: true, sin_obra: false, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo });
+    createMutation.mutate({ numero_nota, numero_secuencia, origen_pago: form.origen_pago, operario_id: operarioEfectivo.id, operario_name: operarioEfectivo.name || operarioEfectivo.full_name, categoria: form.categoria, concepto: cicloFields.es_gasto_tardio ? `Nota pendiente: ${form.concepto || 'Gasto anterior'}` : form.concepto, importe: parseFloat(form.importe), nif_comercio: form.nif_comercio, nombre_comercio: form.nombre_comercio, fecha_documento: form.fecha_documento || hoy, fecha_creacion_real: hoy, obra_id, obra_name, obra_tipo, operario_email: operarioEfectivo.user_email || user?.email || '', ciclo_mes: cicloFields.ciclo_mes, estado: (form.origen_pago === 'medio_empresa' || form.origen_pago === 'credito_proveedor') ? 'registrado' : 'borrador', archivos, ocr_raw: ocrRaw, ocr_status: ocrRaw ? 'procesado' : 'sin_ocr', codigo_validacion_fiscal: form.codigo_validacion_fiscal || null, numero_factura: form.numero_factura || null, localidad: form.localidad || null, forma_pago_documento: form.forma_pago_documento || null, es_gasto_tardio: cicloFields.es_gasto_tardio, justificacion_tardia: cicloFields.justificacion_tardia, es_posible_duplicado: !!dup, duplicado_confirmado: false, aviso_obra_mostrado: true, sin_obra: false, ia_no_disponible: iaNoDispo, precisa_precision: precisaPrecision, precision_motivo: precisionMotivo, ...clasificacionActual() });
   };
 
   const handleContinuarSinObra = () => { setShowObraModal(false); setPendingSave(false); doGuardar({ sin_obra: true, sin_obra_timestamp: new Date().toISOString(), aviso_obra_mostrado: true }); };
@@ -409,32 +434,18 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
               {puedeCorporativo && (
                 <div className="space-y-1.5 p-3 bg-cyan-50 dark:bg-cyan-950/30 rounded-lg border border-cyan-200 dark:border-cyan-800">
                   <Label className="text-xs flex items-center gap-1.5 text-cyan-700 dark:text-cyan-300">Origen del pago</Label>
-                  <MobileSelect value={form.origen_pago} onValueChange={v => setField('origen_pago', v)} placeholder="Origen del pago">
+                  <MobileSelect value={form.origen_pago} onValueChange={v => { origenPagoTocado.current = true; setClasificacionTarjeta(null); setField('origen_pago', v); }} placeholder="Origen del pago">
                     <MobileSelectItem value="medios_propios">Medios propios (reembolsable)</MobileSelectItem>
                     <MobileSelectItem value="medio_empresa">Medio de empresa (no reembolsable)</MobileSelectItem>
                     <MobileSelectItem value="credito_proveedor">Crédito proveedor (factura a crédito)</MobileSelectItem>
                   </MobileSelect>
+                  {clasificacionTarjeta && (
+                    <p className="text-[10px] text-cyan-700 dark:text-cyan-300">{clasificacionTarjeta}</p>
+                  )}
                   {form.origen_pago !== 'medios_propios' && (
                     <p className="text-[10px] text-cyan-700 dark:text-cyan-300">
                       Este gasto NO genera reembolso al técnico. Se registra solo para seguimiento contable. El operario es opcional.
                     </p>
-                  )}
-                  {sugTarjeta && (
-                    <div className="mt-1.5 p-2 rounded-md bg-white/70 dark:bg-black/20 border border-cyan-300 text-[11px] space-y-1">
-                      <p>
-                        💳 Tarjeta terminada en <b>{sugTarjeta.digitos_finales}</b>{' '}
-                        {sugTarjeta.hay_conflicto
-                          ? 'visto con clasificaciones distintas: revisa antes de aplicar.'
-                          : `${sugTarjeta.confirmado ? 'confirmada' : `vista ${sugTarjeta.veces_visto || 1} vez/veces`} como ${sugTarjeta.origen_pago_sugerido === 'medio_empresa' ? 'medio de empresa' : `medio propio${sugTarjeta.operario_name ? ` de ${sugTarjeta.operario_name}` : ''}`}.`}
-                      </p>
-                      {form.origen_pago !== sugTarjeta.origen_pago_sugerido ? (
-                        <Button type="button" size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => setField('origen_pago', sugTarjeta.origen_pago_sugerido)}>
-                          Aplicar sugerencia ({sugTarjeta.origen_pago_sugerido === 'medio_empresa' ? 'medio de empresa' : 'medios propios'})
-                        </Button>
-                      ) : (
-                        <p className="text-emerald-700">✓ Coincide con el origen seleccionado.</p>
-                      )}
-                    </div>
                   )}
                 </div>
               )}
@@ -514,7 +525,7 @@ export default function NotaGastoForm({ open, onClose, onCreated, operario, isAd
                 <div className="space-y-1.5"><Label className="text-xs">Importe (€) *</Label><Input type="number" step="0.01" placeholder="0.00" value={form.importe} onChange={e => setField('importe', e.target.value)} /></div>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                                <div className="space-y-1.5">
+                <div className="space-y-1.5">
                   <Label className="text-xs">Comercio / Proveedor</Label>
                   <div className="flex gap-1"><Input placeholder="Nombre" value={form.nombre_comercio} onChange={e => setField('nombre_comercio', e.target.value)} /><VoiceInputButton onResult={t => setField('nombre_comercio', t)} /></div>
                   {pistaComercio && (
