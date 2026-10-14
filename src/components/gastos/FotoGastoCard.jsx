@@ -28,7 +28,6 @@ export default function FotoGastoCard({ foto }) {
   const [verImagen, setVerImagen] = useState(false);
   const [pdfThumbError, setPdfThumbError] = useState(false);
   const esImg = esImagen(foto.archivo);
-  const esPdfArchivo = esPdf(foto.archivo);
 
   const abrirUrl = () => {
     if (!foto.archivo?.url) return;
