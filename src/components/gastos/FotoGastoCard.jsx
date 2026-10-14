@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Receipt } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Receipt, Loader2 } from 'lucide-react';
+import { renderPdfPrimeraPagina } from '@/lib/pdfPreview';
 import { cn } from '@/lib/utils';
 import ImageLightbox from '@/components/ui/ImageLightbox';
-import PdfThumbnail from '@/components/ui/PdfThumbnail';
 import MejorarFotoButton from '@/components/gastos/MejorarFotoButton';
 
 const CAT_COLORS = {
@@ -24,9 +24,39 @@ function esPdf(archivo) {
   return tipo === 'application/pdf' || /\.pdf$/i.test(archivo?.nombre || archivo?.url || '');
 }
 
+/**
+ * Miniatura de la primera página de un PDF. Si no se puede renderizar (archivo roto,
+ * protegido, sin conexión…) cae al icono genérico de siempre: nunca deja la tarjeta vacía.
+ */
+function PdfThumbnail({ archivo }) {
+  const [estado, setEstado] = useState('cargando'); // cargando | ok | error
+  const [dataUrl, setDataUrl] = useState(null);
+
+  useEffect(() => {
+    let vivo = true;
+    setEstado('cargando');
+    renderPdfPrimeraPagina(archivo?.url, 400).then((d) => {
+      if (!vivo) return;
+      if (d) { setDataUrl(d); setEstado('ok'); } else { setEstado('error'); }
+    });
+    return () => { vivo = false; };
+  }, [archivo?.url]);
+
+  if (estado === 'ok' && dataUrl) {
+    return <img src={dataUrl} alt={archivo?.nombre || 'PDF'} className="w-full h-full object-cover" loading="lazy" />;
+  }
+  return (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center px-2">
+        {estado === 'cargando' ? <Loader2 className="w-6 h-6 mx-auto animate-spin text-muted-foreground" /> : <div className="text-3xl">📄</div>}
+        <p className="text-[10px] font-mono mt-1 truncate max-w-full">{archivo?.nombre || 'PDF'}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function FotoGastoCard({ foto }) {
   const [verImagen, setVerImagen] = useState(false);
-  const [pdfThumbError, setPdfThumbError] = useState(false);
   const esImg = esImagen(foto.archivo);
 
   const abrirUrl = () => {
@@ -53,16 +83,7 @@ export default function FotoGastoCard({ foto }) {
             loading="lazy"
           />
         ) : esPdf(foto.archivo) ? (
-          pdfThumbError ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center px-2">
-                <div className="text-3xl">📄</div>
-                <p className="text-[10px] font-mono mt-1 truncate max-w-full">{foto.archivo?.nombre || 'PDF'}</p>
-              </div>
-            </div>
-          ) : (
-            <PdfThumbnail url={foto.archivo.url} onError={() => setPdfThumbError(true)} />
-          )
+          <PdfThumbnail archivo={foto.archivo} />
         ) : (
           <div className="flex items-center justify-center h-full">
             <Receipt className="w-8 h-8 text-muted-foreground" />
