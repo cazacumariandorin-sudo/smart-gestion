@@ -1,0 +1,215 @@
+{
+  "description": "Libro INTERNO de IVA (control del modelo 303). Una fila por factura y tipo de IVA: si una factura lleva varios tipos, se registran varias filas con el mismo n\u00famero. Las facturas de aut\u00f3nomos NO se copian aqu\u00ed: el c\u00e1lculo las lee directamente de FacturaAutonomo. Las rectificativas se registran con importes negativos.",
+  "name": "FacturaIVA",
+  "properties": {
+    "base_imponible": {
+      "description": "Base imponible de esta fila (negativa en rectificativas)",
+      "type": "number"
+    },
+    "cuota_iva": {
+      "description": "Cuota de IVA de esta fila",
+      "type": "number"
+    },
+    "deducible_pct": {
+      "default": 100,
+      "description": "% de la cuota que es deducible (solo recibidas)",
+      "type": "number"
+    },
+    "estado": {
+      "default": "borrador",
+      "description": "Estado de revisi\u00f3n",
+      "enum": [
+        "borrador",
+        "revisada",
+        "anulada"
+      ],
+      "type": "string"
+    },
+    "fecha_factura": {
+      "description": "Fecha de expedici\u00f3n/devengo (AAAA-MM-DD). Determina el trimestre del 303",
+      "type": "string"
+    },
+    "inversion_sujeto_pasivo": {
+      "default": false,
+      "description": "Operaci\u00f3n con inversi\u00f3n del sujeto pasivo (ej. subcontrata de ejecuci\u00f3n de obra)",
+      "type": "boolean"
+    },
+    "nif_contraparte": {
+      "description": "NIF/CIF del cliente (emitida) o proveedor (recibida)",
+      "type": "string"
+    },
+    "nombre_contraparte": {
+      "description": "Nombre del cliente o proveedor",
+      "type": "string"
+    },
+    "notas": {
+      "description": "Observaciones",
+      "type": "string"
+    },
+    "numero_factura": {
+      "description": "N\u00famero de factura",
+      "type": "string"
+    },
+    "obra_id": {
+      "description": "ID de la obra (centro de coste), opcional",
+      "type": "string"
+    },
+    "obra_nombre": {
+      "description": "Nombre de la obra, opcional",
+      "type": "string"
+    },
+    "origen": {
+      "default": "manual",
+      "description": "C\u00f3mo entr\u00f3 el registro",
+      "enum": [
+        "manual",
+        "csv"
+      ],
+      "type": "string"
+    },
+    "tipo": {
+      "description": "recibida = soportado (compras); emitida = repercutido (ventas)",
+      "enum": [
+        "recibida",
+        "emitida"
+      ],
+      "type": "string"
+    },
+    "tipo_iva": {
+      "description": "Tipo de IVA en % (0, 4, 10, 21)",
+      "type": "number"
+    },
+    "tipo_justificante": {
+      "default": "completa",
+      "description": "Factura completa, simplificada u otro justificante (solo recibidas)",
+      "enum": [
+        "completa",
+        "simplificada",
+        "otro"
+      ],
+      "type": "string"
+    },
+    "total_factura": {
+      "description": "Total de esta fila (base + cuota)",
+      "type": "number"
+    }
+  },
+  "required": [
+    "tipo",
+    "fecha_factura"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
+          }
+        }
+      ]
+    }
+  },
+  "type": "object"
+}

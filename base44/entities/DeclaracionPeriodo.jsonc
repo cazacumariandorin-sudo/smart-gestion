@@ -1,0 +1,187 @@
+{
+  "description": "Control INTERNO de modelos fiscales (111 y 303) por periodo: importe calculado por la app frente al importe presentado por la gestor\u00eda. Es una estimaci\u00f3n de control, NUNCA se usa para presentar ante Hacienda.",
+  "name": "DeclaracionPeriodo",
+  "properties": {
+    "anio": {
+      "description": "A\u00f1o del periodo",
+      "type": "number"
+    },
+    "calculado_por": {
+      "description": "Email de quien lanz\u00f3 el c\u00e1lculo",
+      "type": "string"
+    },
+    "detalle_json": {
+      "description": "Foto JSON del c\u00e1lculo (casillas y totales) en el momento del c\u00e1lculo",
+      "type": "string"
+    },
+    "diferencia": {
+      "description": "importe_presentado - importe_calculado",
+      "type": "number"
+    },
+    "estado": {
+      "default": "borrador",
+      "description": "Estado del control del periodo",
+      "enum": [
+        "borrador",
+        "revisado",
+        "conciliado",
+        "con_diferencias"
+      ],
+      "type": "string"
+    },
+    "fecha_calculo": {
+      "description": "Fecha ISO del \u00faltimo c\u00e1lculo",
+      "type": "string"
+    },
+    "fecha_presentacion": {
+      "description": "Fecha en que la gestor\u00eda present\u00f3 el modelo",
+      "type": "string"
+    },
+    "importe_calculado": {
+      "description": "Resultado calculado por la app (a ingresar o a compensar)",
+      "type": "number"
+    },
+    "importe_presentado": {
+      "description": "Importe realmente presentado por la gestor\u00eda",
+      "type": "number"
+    },
+    "modelo": {
+      "description": "Modelo fiscal controlado",
+      "enum": [
+        "111",
+        "303"
+      ],
+      "type": "string"
+    },
+    "notas": {
+      "description": "Motivo de diferencias, criterios aplicados, comentarios de la gestor\u00eda",
+      "type": "string"
+    },
+    "periodo": {
+      "description": "Periodo en formato AAAA-TN, ej: 2026-T3",
+      "type": "string"
+    },
+    "trimestre": {
+      "description": "Trimestre 1-4",
+      "type": "number"
+    }
+  },
+  "required": [
+    "modelo",
+    "periodo"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "contabilidad"
+          }
+        }
+      ]
+    }
+  },
+  "type": "object"
+}
