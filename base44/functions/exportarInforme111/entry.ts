@@ -13,6 +13,21 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
  * Response: { ok, trimestre, autonomos[], trabajadores_resumen, totales, modelo111_preview, informe_texto }
  */
 
+// Lista TODOS los registros de una entidad paginando (evita el corte silencioso
+// de list(sort, N)). Límite de seguridad: 20 páginas x 500 = 10.000 registros.
+async function listarTodos(entidad, orden) {
+  const PAGINA = 500;
+  const MAX_PAGINAS = 20;
+  const todos = [];
+  for (let p = 0; p < MAX_PAGINAS; p++) {
+    const lote = await entidad.list(orden, PAGINA, p * PAGINA).catch(() => []);
+    if (!Array.isArray(lote) || lote.length === 0) break;
+    todos.push(...lote);
+    if (lote.length < PAGINA) break;
+  }
+  return todos;
+}
+
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -36,9 +51,10 @@ export default async function(req) {
     const fechaFin = `${anioNum}-${String(mesFin).padStart(2, '0')}-31`;
 
     // ── AUTÓNOMOS: todas las facturas del trimestre con retención ──────────
-    const todasFacturas = await base44.asServiceRole.entities.FacturaAutonomo
-      .list('fecha_factura', 200)
-      .catch(() => []);
+    const todasFacturas = await listarTodos(
+      base44.asServiceRole.entities.FacturaAutonomo,
+      'fecha_factura',
+    );
 
     const facturasTrims = (todasFacturas || []).filter((f) => {
       if (f.estado === 'anulada') return false;
@@ -94,9 +110,10 @@ export default async function(req) {
       // Nóminas del trimestre. Ambos tipos (nomina_individual y resumen_costes)
       // son registros por trabajador con operario_id y retencion_irpf propios;
       // no hay duplicación (1 registro por trabajador/mes). Se incluyen ambos.
-      const todasNominas = await base44.asServiceRole.entities.Nomina
-        .list('-anio', 500)
-        .catch(() => []);
+      const todasNominas = await listarTodos(
+        base44.asServiceRole.entities.Nomina,
+        '-anio',
+      );
 
       const nominasTrims = (todasNominas || []).filter((n) => {
         const mes = n.mes || 0;
@@ -130,9 +147,9 @@ export default async function(req) {
       casilla_01_perceptores_trabajo: trabajadoresResumen?.num_trabajadores || 0,
       casilla_02_base_trabajo: Math.round((trabajadoresResumen?.total_devengado || 0) * 100) / 100,
       casilla_03_retencion_trabajo: Math.round(totalRetencionTrabajadores * 100) / 100,
-      casilla_04_perceptores_profesional: autonomos.length,
-      casilla_05_base_profesional: Math.round(totalBaseAutonomos * 100) / 100,
-      casilla_06_retencion_profesional: Math.round(totalRetencionAutonomos * 100) / 100,
+      casilla_07_perceptores_profesional: autonomos.length,
+      casilla_08_base_profesional: Math.round(totalBaseAutonomos * 100) / 100,
+      casilla_09_retencion_profesional: Math.round(totalRetencionAutonomos * 100) / 100,
       casilla_28_total_ingresar: Math.round(totalRetencionConsolidado * 100) / 100,
     };
 
@@ -174,9 +191,9 @@ export default async function(req) {
     lineas.push(`  [01] Nº perceptores trabajo: ${modelo111Preview.casilla_01_perceptores_trabajo}`);
     lineas.push(`  [02] Base íntegra trabajo: ${modelo111Preview.casilla_02_base_trabajo.toFixed(2)} €`);
     lineas.push(`  [03] Retenciones trabajo: ${modelo111Preview.casilla_03_retencion_trabajo.toFixed(2)} €`);
-    lineas.push(`  [04] Nº perceptores profesional: ${modelo111Preview.casilla_04_perceptores_profesional}`);
-    lineas.push(`  [05] Base íntegra profesional: ${modelo111Preview.casilla_05_base_profesional.toFixed(2)} €`);
-    lineas.push(`  [06] Retenciones profesional: ${modelo111Preview.casilla_06_retencion_profesional.toFixed(2)} €`);
+    lineas.push(`  [07] Nº perceptores profesional: ${modelo111Preview.casilla_07_perceptores_profesional}`);
+    lineas.push(`  [08] Base íntegra profesional: ${modelo111Preview.casilla_08_base_profesional.toFixed(2)} €`);
+    lineas.push(`  [09] Retenciones profesional: ${modelo111Preview.casilla_09_retencion_profesional.toFixed(2)} €`);
     lineas.push(`  [28] TOTAL A INGRESAR: ${modelo111Preview.casilla_28_total_ingresar.toFixed(2)} €`);
 
     const facturasConRevision = facturasTrims.filter((f) => f.precisa_revision);
