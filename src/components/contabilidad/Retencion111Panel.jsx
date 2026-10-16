@@ -182,8 +182,27 @@ export default function Retencion111Panel() {
   const { data: facturas = [], isLoading: loadingFacturas } = useQuery({
     queryKey: ['facturas-autonomo', trimestre],
     queryFn: async () => {
-      const todas = await base44.entities.FacturaAutonomo.list('fecha_factura', 200);
-      return (todas || []).filter(f => !trimestre || f.trimestre === trimestre);
+      // Paginado: list(sort, 200) cortaba en silencio las facturas más recientes.
+      const PAGINA = 500;
+      const todas = [];
+      for (let p = 0; p < 20; p++) {
+        const lote = await base44.entities.FacturaAutonomo.list('fecha_factura', PAGINA, p * PAGINA);
+        if (!Array.isArray(lote) || lote.length === 0) break;
+        todas.push(...lote);
+        if (lote.length < PAGINA) break;
+      }
+      // Misma regla de periodo que exportarInforme111: campo trimestre o, si no
+      // coincide, rango de fechas de la factura.
+      let inicio = '', fin = '';
+      if (trimestre) {
+        const [a, q] = trimestre.split('-T');
+        const m0 = (parseInt(q || '1') - 1) * 3 + 1;
+        inicio = `${a}-${String(m0).padStart(2, '0')}-01`;
+        fin = `${a}-${String(m0 + 2).padStart(2, '0')}-31`;
+      }
+      return todas.filter(f => !trimestre
+        || f.trimestre === trimestre
+        || ((f.fecha_factura || '') >= inicio && (f.fecha_factura || '') <= fin));
     },
     staleTime: 30000,
   });
@@ -572,9 +591,9 @@ export default function Retencion111Panel() {
                             <span className="font-semibold text-sm text-orange-800">Actividades profesionales (autónomos)</span>
                           </div>
                           {[
-                            ['[04] Perceptores', informe.modelo111_preview.casilla_04_perceptores_profesional],
-                            ['[05] Base íntegra', fmt(informe.modelo111_preview.casilla_05_base_profesional)],
-                            ['[06] Retenciones', fmt(informe.modelo111_preview.casilla_06_retencion_profesional)],
+                            ['[07] Perceptores', informe.modelo111_preview.casilla_07_perceptores_profesional],
+                            ['[08] Base íntegra', fmt(informe.modelo111_preview.casilla_08_base_profesional)],
+                            ['[09] Retenciones', fmt(informe.modelo111_preview.casilla_09_retencion_profesional)],
                           ].map(([label, val]) => (
                             <div key={label} className="flex justify-between text-sm py-1 border-b border-orange-200 last:border-0">
                               <span className="text-orange-700">{label}</span>
