@@ -15,10 +15,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 
 // Lista TODOS los registros de una entidad paginando (evita el corte silencioso
 // de list(sort, N)). Límite de seguridad: 20 páginas x 500 = 10.000 registros.
-async function listarTodos(entidad, orden) {
+async function listarTodos(entidad: any, orden: string): Promise<any[]> {
   const PAGINA = 500;
   const MAX_PAGINAS = 20;
-  const todos = [];
+  const todos: any[] = [];
   for (let p = 0; p < MAX_PAGINAS; p++) {
     const lote = await entidad.list(orden, PAGINA, p * PAGINA).catch(() => []);
     if (!Array.isArray(lote) || lote.length === 0) break;
