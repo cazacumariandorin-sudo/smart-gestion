@@ -181,7 +181,7 @@ export default async function(req) {
 
     // Buscar historial de este NIF en otras facturas (las más recientes primero).
     // Antes se hacía list('fecha_factura', 50): solo las 50 más antiguas de TODAS las
-    // facturas, así que el historial de facturas recientes sala incompleto.
+    // facturas, así que el historial de facturas recientes salía incompleto.
     const nifExtraido = datos?.nif_autonomo || '';
     let historialAutonomo = [];
     let posibleDuplicado = null;
