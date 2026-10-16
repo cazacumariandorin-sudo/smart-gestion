@@ -179,13 +179,24 @@ export default async function(req) {
       subido_por_nombre: user.full_name || user.email,
     });
 
-    // Buscar historial de este NIF en otras facturas
+    // Buscar historial de este NIF en otras facturas (las más recientes primero).
+    // Antes se hacía list('fecha_factura', 50): solo las 50 más antiguas de TODAS las
+    // facturas, así que el historial de facturas recientes sala incompleto.
     const nifExtraido = datos?.nif_autonomo || '';
     let historialAutonomo = [];
+    let posibleDuplicado = null;
     if (nifExtraido) {
-      const todas = await base44.asServiceRole.entities.FacturaAutonomo.list('fecha_factura', 50).catch(() => []);
-      historialAutonomo = (todas || [])
-        .filter((f) => f.id !== nueva.id && f.nif_autonomo === nifExtraido)
+      const delNif = await base44.asServiceRole.entities.FacturaAutonomo
+        .filter({ nif_autonomo: nifExtraido }, '-fecha_factura', 200)
+        .catch(() => []);
+      const otras = (delNif || []).filter((f) => f.id !== nueva.id);
+      const numeroNuevo = String(datos?.numero_factura || '').trim().toLowerCase();
+      if (numeroNuevo) {
+        posibleDuplicado = otras.find(
+          (f) => f.estado !== 'anulada' && String(f.numero_factura || '').trim().toLowerCase() === numeroNuevo,
+        ) || null;
+      }
+      historialAutonomo = otras
         .map((f) => ({
           id: f.id,
           numero_factura: f.numero_factura,
@@ -198,15 +209,31 @@ export default async function(req) {
         .slice(0, 10);
     }
 
+    // Mismo NIF + mismo número de factura = posible duplicado: se marca para revisión
+    // (el informe 111 ya avisa de las facturas con precisa_revision).
+    const advertenciasExtra = [];
+    if (posibleDuplicado) {
+      const motivoDup = `Posible duplicado: ya existe la factura ${posibleDuplicado.numero_factura} de este NIF (${posibleDuplicado.fecha_factura || 'sin fecha'}).`;
+      advertenciasExtra.push(motivoDup);
+      await base44.asServiceRole.entities.FacturaAutonomo
+        .update(nueva.id, {
+          precisa_revision: true,
+          revision_motivo: [revisionMotivo, motivoDup].filter(Boolean).join(' | '),
+        })
+        .catch((e) => console.error('No se pudo marcar duplicado:', e?.message));
+    }
+
     return Response.json({
       ok: true,
       factura: nueva,
-      precisa_revision: precisaRevision,
-      revision_motivo: revisionMotivo,
+      precisa_revision: precisaRevision || !!posibleDuplicado,
+      revision_motivo: posibleDuplicado
+        ? [revisionMotivo, advertenciasExtra[0]].filter(Boolean).join(' | ')
+        : revisionMotivo,
       confianza,
       trimestre,
       historial_autonomo: historialAutonomo,
-      advertencias: datos?.advertencias || [],
+      advertencias: [...(datos?.advertencias || []), ...advertenciasExtra],
     });
   } catch (e) {
     console.error('procesarFacturaAutonomo error:', e);
