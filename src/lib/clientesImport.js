@@ -41,7 +41,11 @@ export function nifValido(raw) {
 
 export const esPersonaFisica = (nif) => /^\d{8}[A-Z]$/.test(limpiaNif(nif)) || /^[XYZ]\d{7}[A-Z]$/.test(limpiaNif(nif));
 /** NIF de relleno: B00010000, B12345678, muchos ceros, etc. */
-export const esNifRelleno = (nif) => { const s = limpiaNif(nif); return /0{5,}/.test(s.slice(1)) || /123456/.test(s) || /^(.)\1{7,}/.test(s.slice(1)); };
+export const esNifRelleno = (nif) => {
+  const s = limpiaNif(nif);
+  const ceros = (s.replace(/\D/g, '').match(/0/g) || []).length;
+  return (s.length === 9 && ceros >= 6) || /123456/.test(s) || /^(.)\1{7,}/.test(s.slice(1));
+};
 
 const FORMAS = /\b(S\s?L\s?U|S\s?L|S\s?A\s?U|S\s?A|C\s?B|S\s?COOP|SDAD|COOP|MAD)\b/g;
 /** Nombre normalizado con palabras ORDENADAS: "García Saavedra Juan" == "Juan García Saavedra". */
@@ -163,6 +167,8 @@ export function analizarClientes(texto, clientesApp = [], opciones = {}) {
         if (f.accion === 'crear') { f.accion = f.cambios.length ? 'actualizar' : 'sin_cambios'; }
         return f;
       }
+      // Sin coincidencia por NIF y NIF no válido: no se crea hasta corregirlo
+      if (f.accion === 'crear' && !nifValido(csv.nif)) revisar('NIF no válido: corregirlo antes de crear el cliente');
     }
     // Sin coincidencia por NIF: nunca se crea si hay un cliente con nombre igual o muy parecido
     const mismos = (porClaveNombre.get(claveNombre(csv.name)) || []);
