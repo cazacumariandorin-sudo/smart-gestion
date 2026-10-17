@@ -155,7 +155,7 @@ export function mapRegistroGasto(r: any): DocEconomico {
   return d as DocEconomico;
 }
 
-export function mapFacturaAutonomo
+export function mapFacturaAutonomo(r: any): DocEconomico {
   const archivos = Array.isArray(r.archivos) ? r.archivos : (r.file_url ? [{ url: r.file_url }] : []);
   const d: Partial<DocEconomico> = {
     id: r.id,
