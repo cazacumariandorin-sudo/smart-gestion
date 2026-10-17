@@ -113,6 +113,8 @@ function filaLibro(o) {
     tipo_justificante: o.justificante || 'completa',
     estado: 'borrador',
     origen: 'csv',
+    ...(o.estadoCobro ? { estado_cobro: o.estadoCobro } : {}),
+    ...(o.vencimiento ? { fecha_vencimiento: o.vencimiento } : {}),
   };
 }
 
@@ -167,6 +169,8 @@ function analizarExport(rows, opciones) {
       if (/ANULAD|BORRADOR/.test(estado)) { omite(`factura(s) ${estado.toLowerCase()}`); continue; }
       const fecha = parseFecha(lee(reg, 'FECHA'));
       if (!fecha) { errores.push(`Factura ${numero}: fecha inválida.`); continue; }
+      const estadoCobro = /PAGAD|COBRAD/.test(estado) ? 'pagado' : /PENDIENT/.test(estado) ? 'pendiente' : '';
+      const vencimiento = parseFecha(lee(reg, 'FECHA VENCIMIENTO'));
       cols = reg.cols;
       const nifs = idxAll('NIF');
       const noms = idxAll('NOMBRE O RAZON SOCIAL');
@@ -203,7 +207,7 @@ function analizarExport(rows, opciones) {
         continue;
       }
       for (const [tipoIva, g] of grupos) {
-        filas.push(filaLibro({ tipo: sec, fecha, numero, nif, nombre, base: g.base, cuota: g.cuota, tipoIva, deducible: pct }));
+        filas.push(filaLibro({ tipo: sec, fecha, numero, nif, nombre, base: g.base, cuota: g.cuota, tipoIva, deducible: pct, estadoCobro, vencimiento }));
       }
     }
   }
@@ -223,6 +227,8 @@ const SINONIMOS = {
   isp: ['INVERSION_SUJETO_PASIVO', 'ISP'],
   deducible: ['DEDUCIBLE_PCT', 'DEDUCIBLE'],
   just: ['TIPO_JUSTIFICANTE', 'JUSTIFICANTE'],
+  cobro: ['ESTADO_COBRO', 'ESTADO_PAGO', 'COBRO'],
+  venc: ['FECHA_VENCIMIENTO', 'VENCIMIENTO'],
 };
 
 function analizarGenerico(rows) {
@@ -248,6 +254,8 @@ function analizarGenerico(rows) {
       isp: /^(1|S|SI|TRUE|X)$/.test(norm(g('isp'))),
       deducible: parseNum(g('deducible')) ?? 100,
       justificante: ['completa', 'simplificada', 'otro'].includes(justif) ? justif : 'completa',
+      estadoCobro: /^(PAGAD|COBRAD)/.test(norm(g('cobro'))) ? 'pagado' : /^PENDIENT/.test(norm(g('cobro'))) ? 'pendiente' : '',
+      vencimiento: parseFecha(g('venc')),
     }));
   });
   return { filas, errores, omitidas: {} };
