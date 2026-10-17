@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { decodificar, analizarImportacion, parseNum, parseFecha } from '@/lib/ivaImport';
 import { Calculator, Plus, Upload, Trash2, Save, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 
 const fmt = (n) => (n ?? 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
@@ -45,65 +46,6 @@ function rangoTrimestre(tri) {
   };
 }
 
-// ── CSV ─────────────────────────────────────────────────────────────────
-function parseNum(v) {
-  if (v == null || String(v).trim() === '') return null;
-  let s = String(v).trim().replace(/\s/g, '').replace('€', '');
-  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
-  const n = parseFloat(s);
-  return Number.isNaN(n) ? null : n;
-}
-function parseFecha(v) {
-  const s = String(v || '').trim();
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  const m = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-  return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : '';
-}
-function splitCsvLine(line, sep) {
-  const out = [];
-  let cur = '';
-  let q = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (c === '"') { if (q && line[i + 1] === '"') { cur += '"'; i++; } else q = !q; }
-    else if (c === sep && !q) { out.push(cur); cur = ''; }
-    else cur += c;
-  }
-  out.push(cur);
-  return out.map((x) => x.trim());
-}
-function parseCsv(texto) {
-  const lineas = texto.replace(/^\uFEFF/, '').split(/\r?\n/).filter((l) => l.trim());
-  if (lineas.length < 2) return { filas: [], errores: ['El CSV necesita cabecera y al menos una fila.'] };
-  const sep = lineas[0].includes(';') ? ';' : ',';
-  const cab = splitCsvLine(lineas[0], sep).map((h) => h.toLowerCase());
-  const idx = (n) => cab.indexOf(n);
-  const errores = [];
-  const filas = [];
-  lineas.slice(1).forEach((l, i) => {
-    const c = splitCsvLine(l, sep);
-    const get = (n) => (idx(n) >= 0 ? c[idx(n)] : '');
-    const tipo = String(get('tipo')).toLowerCase().startsWith('e') ? 'emitida' : 'recibida';
-    const fecha = parseFecha(get('fecha_factura'));
-    const base = parseNum(get('base_imponible'));
-    if (!fecha || base == null) { errores.push(`Fila ${i + 2}: fecha o base inválida.`); return; }
-    const tipoIva = parseNum(get('tipo_iva')) ?? 21;
-    const cuota = parseNum(get('cuota_iva')) ?? r2((base * tipoIva) / 100);
-    const total = parseNum(get('total_factura')) ?? r2(base + cuota);
-    filas.push({
-      tipo, fecha_factura: fecha, numero_factura: get('numero_factura'),
-      nif_contraparte: get('nif_contraparte').toUpperCase(), nombre_contraparte: get('nombre_contraparte'),
-      base_imponible: base, tipo_iva: tipoIva, cuota_iva: cuota, total_factura: total,
-      inversion_sujeto_pasivo: /^(1|s|si|sí|true|x)$/i.test(get('inversion_sujeto_pasivo')),
-      deducible_pct: parseNum(get('deducible_pct')) ?? 100,
-      tipo_justificante: ['completa', 'simplificada', 'otro'].includes(get('tipo_justificante').toLowerCase())
-        ? get('tipo_justificante').toLowerCase() : 'completa',
-      estado: 'borrador', origen: 'csv',
-    });
-  });
-  return { filas, errores };
-}
-
 const FORM_VACIO = {
   tipo: 'recibida', fecha_factura: '', numero_factura: '', nif_contraparte: '', nombre_contraparte: '',
   base_imponible: '', tipo_iva: '21', inversion_sujeto_pasivo: false, deducible_pct: '100', tipo_justificante: 'completa',
@@ -122,6 +64,9 @@ export default function IVA303Panel() {
   const [form, setForm] = useState(null);
   const [csvAbierto, setCsvAbierto] = useState(false);
   const [csvTexto, setCsvTexto] = useState('');
+  const [preview, setPreview] = useState(null);
+  const [incluirRec, setIncluirRec] = useState(false);
+  const [importando, setImportando] = useState(false);
   const [presentado, setPresentado] = useState('');
   const [notas, setNotas] = useState('');
 
@@ -193,18 +138,70 @@ export default function IVA303Panel() {
     }
   };
 
-  const importarCsv = async () => {
-    const { filas, errores } = parseCsv(csvTexto);
-    if (errores.length) toast.warning(`${errores.length} fila(s) omitida(s). ${errores[0]}`);
-    if (!filas.length) return;
+  // Libro completo (todas las fechas) para detectar duplicados al importar
+  const cargarLibroCompleto = async () => {
+    const todas = [];
+    for (let p = 0; p < 20; p++) {
+      const lote = await base44.entities.FacturaIVA.list('fecha_factura', 500, p * 500);
+      if (!Array.isArray(lote) || lote.length === 0) break;
+      todas.push(...lote);
+      if (lote.length < 500) break;
+    }
+    return todas;
+  };
+
+  const prepararImportacion = async (texto, nombre, recibidas = incluirRec) => {
     try {
-      for (let i = 0; i < filas.length; i += 50) await base44.entities.FacturaIVA.bulkCreate(filas.slice(i, i + 50));
-      toast.success(`${filas.length} factura(s) importadas en borrador`);
+      const existentes = await cargarLibroCompleto();
+      const p = analizarImportacion(texto, { incluirRecibidas: recibidas }, existentes);
+      setPreview({ ...p, texto, nombre });
+    } catch (e) {
+      toast.error(e.message || 'No se pudo leer el archivo');
+    }
+  };
+
+  const onArchivo = async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    try {
+      await prepararImportacion(decodificar(await f.arrayBuffer()), f.name);
+    } catch (err) {
+      toast.error(err.message || 'No se pudo leer el archivo');
+    }
+  };
+
+  const cambiarRecibidas = (v) => {
+    setIncluirRec(v);
+    if (preview) prepararImportacion(preview.texto, preview.nombre, v);
+  };
+
+  const confirmarImportacion = async () => {
+    if (!preview?.filas?.length) return;
+    setImportando(true);
+    try {
+      for (let i = 0; i < preview.filas.length; i += 50) await base44.entities.FacturaIVA.bulkCreate(preview.filas.slice(i, i + 50));
+      toast.success(`${preview.filas.length} fila(s) importadas en borrador; ${preview.duplicadasLibro.length + preview.duplicadasArchivo.length} duplicada(s) omitidas`);
+      setPreview(null);
       setCsvTexto('');
       setCsvAbierto(false);
       refrescar();
     } catch (e) {
       toast.error(e.message || 'Error al importar');
+    } finally {
+      setImportando(false);
+    }
+  };
+
+  const revisarTodo = async () => {
+    const pend = libro.filter((f) => f.estado === 'borrador');
+    if (!pend.length || !window.confirm(`¿Marcar ${pend.length} fila(s) en borrador como revisadas?`)) return;
+    try {
+      for (let i = 0; i < pend.length; i += 10) await Promise.all(pend.slice(i, i + 10).map((f) => base44.entities.FacturaIVA.update(f.id, { estado: 'revisada' })));
+      toast.success(`${pend.length} fila(s) marcadas como revisadas`);
+      refrescar();
+    } catch (e) {
+      toast.error(e.message || 'No se pudieron actualizar todas');
     }
   };
 
@@ -342,7 +339,8 @@ export default function IVA303Panel() {
           <CardTitle className="text-sm">Libro de IVA {trimestre} ({libro.length})</CardTitle>
           {puedeEditar && (
             <div className="flex gap-1.5">
-              <Button size="sm" variant="outline" className="gap-1" onClick={() => setCsvAbierto((v) => !v)}><Upload className="w-3.5 h-3.5" /> CSV</Button>
+              {libro.some((f) => f.estado === 'borrador') && <Button size="sm" variant="outline" className="gap-1" onClick={revisarTodo}><CheckCircle2 className="w-3.5 h-3.5" /> Revisar todo</Button>}
+              <Button size="sm" variant="outline" className="gap-1" onClick={() => setCsvAbierto((v) => !v)}><Upload className="w-3.5 h-3.5" /> Importar</Button>
               <Button size="sm" className="gap-1" onClick={() => setForm({ ...FORM_VACIO })}><Plus className="w-3.5 h-3.5" /> Factura</Button>
             </div>
           )}
@@ -350,9 +348,49 @@ export default function IVA303Panel() {
         <CardContent className="space-y-3">
           {csvAbierto && (
             <div className="space-y-2 rounded-md border p-2">
-              <p className="text-xs text-muted-foreground">Pega el CSV (coma o punto y coma). Cabecera: <code>tipo,fecha_factura,numero_factura,nif_contraparte,nombre_contraparte,base_imponible,tipo_iva</code> (opcionales: cuota_iva, total_factura, inversion_sujeto_pasivo, deducible_pct, tipo_justificante). tipo = emitida o recibida. Entran en borrador.</p>
-              <textarea className="w-full h-32 rounded-md border bg-background p-2 text-xs font-mono" value={csvTexto} onChange={(e) => setCsvTexto(e.target.value)} />
-              <Button size="sm" onClick={importarCsv} disabled={!csvTexto.trim()}>Importar</Button>
+              <p className="text-xs text-muted-foreground">
+                Sube el export de facturación o un CSV (separado por comas, punto y coma o tabuladores; UTF-8 o UTF-16). Se detectan los duplicados contra el libro y dentro del archivo. Todo entra en borrador.
+                Formato genérico: <code>tipo,fecha_factura,numero_factura,nif_contraparte,nombre_contraparte,base_imponible,tipo_iva</code> (opcionales: cuota_iva, total_factura, inversion_sujeto_pasivo, deducible_pct, tipo_justificante).
+              </p>
+              <input type="file" accept=".csv,.tsv,.txt" onChange={onArchivo} className="text-xs" />
+              <details className="text-xs">
+                <summary className="cursor-pointer text-muted-foreground">…o pega el contenido</summary>
+                <textarea className="w-full h-28 mt-1 rounded-md border bg-background p-2 text-xs font-mono" value={csvTexto} onChange={(e) => setCsvTexto(e.target.value)} />
+                <Button size="sm" variant="outline" className="mt-1" onClick={() => prepararImportacion(csvTexto, 'texto pegado')} disabled={!csvTexto.trim()}>Analizar</Button>
+              </details>
+              <label className="flex items-center gap-2 text-xs">
+                <input type="checkbox" checked={incluirRec} onChange={(e) => cambiarRecibidas(e.target.checked)} />
+                Incluir también las facturas recibidas del export (por defecto se omiten: las compras se toman de la app)
+              </label>
+
+              {preview && (
+                <div className="rounded-md bg-muted/40 p-2 space-y-1 text-xs">
+                  <p className="font-medium">{preview.nombre} · {preview.formato === 'export_facturacion' ? 'export de facturación' : preview.formato === 'generico' ? 'CSV genérico' : 'formato no reconocido'} · separador: {preview.separador}</p>
+                  {preview.resumen && (
+                    <>
+                      <p>Nuevas emitidas: {preview.resumen.emitidas.n} factura(s) · base {fmt(preview.resumen.emitidas.base)} · IVA {fmt(preview.resumen.emitidas.cuota)}</p>
+                      {preview.resumen.recibidas.n > 0 && <p>Nuevas recibidas: {preview.resumen.recibidas.n} factura(s) · base {fmt(preview.resumen.recibidas.base)} · IVA {fmt(preview.resumen.recibidas.cuota)}</p>}
+                      {preview.resumen.fechaMin && <p className="text-muted-foreground">Fechas: {preview.resumen.fechaMin} a {preview.resumen.fechaMax}</p>}
+                    </>
+                  )}
+                  {(preview.duplicadasLibro.length > 0 || preview.duplicadasArchivo.length > 0) && (
+                    <p className="text-amber-700">Duplicadas omitidas: {preview.duplicadasLibro.length} ya estaban en el libro, {preview.duplicadasArchivo.length} repetidas en el archivo.</p>
+                  )}
+                  {Object.entries(preview.omitidas || {}).map(([k, v]) => <p key={k} className="text-muted-foreground">Omitido: {k}{v > 1 ? ` (${v})` : ''}</p>)}
+                  {preview.errores.length > 0 && (
+                    <div className="text-red-700">
+                      {preview.errores.slice(0, 5).map((m, i) => <p key={i}>{m}</p>)}
+                      {preview.errores.length > 5 && <p>…y {preview.errores.length - 5} más.</p>}
+                    </div>
+                  )}
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" onClick={confirmarImportacion} disabled={importando || !preview.filas.length}>
+                      {importando ? 'Importando…' : `Importar ${preview.filas.length} fila(s)`}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setPreview(null)}>Descartar</Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
