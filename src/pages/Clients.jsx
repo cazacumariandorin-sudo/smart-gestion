@@ -5,11 +5,12 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { asignarCodigoCliente } from '@/lib/numeroParte';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Phone, Mail, MapPin, Pencil, Trash2, User, Save, Loader2, ChevronDown, ChevronUp, Building, CreditCard, Wrench, ScanSearch } from 'lucide-react';
+import { Plus, Search, Phone, Mail, MapPin, Pencil, Trash2, User, Save, Loader2, ChevronDown, ChevronUp, Building, CreditCard, Wrench, ScanSearch, Upload } from 'lucide-react';
 import { checkDuplicados } from '@/hooks/useDuplicadoCheck.js';
 import DuplicadoInlineWarning from '@/components/duplicados/DuplicadoInlineWarning';
 import DuplicadoConfirmModal from '@/components/duplicados/DuplicadoConfirmModal';
 import DuplicadosLoteModal from '@/components/duplicados/DuplicadosLoteModal';
+import ImportarClientesCSV from '@/components/clientes/ImportarClientesCSV';
 import { useUserRole } from '@/lib/useUserRole';
 import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -94,6 +95,7 @@ export default function Clients() {
   const [dupWarning, setDupWarning] = useState([]);
   const [showDupModal, setShowDupModal] = useState(false);
   const [showLoteModal, setShowLoteModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [confirmedNew, setConfirmedNew] = useState(false);
   const debounceRef = useRef(null);
 
@@ -173,6 +175,11 @@ export default function Clients() {
         hideBack={true}
         actions={
           <div className="flex gap-2">
+            {(canAdmin || role === 'administracion' || role === 'director_comercial') && (
+              <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)} className="gap-1.5">
+                <Upload className="w-4 h-4" /><span className="hidden sm:inline">Importar CSV</span>
+              </Button>
+            )}
             {canAdmin && (
               <Button variant="outline" size="sm" onClick={() => setShowLoteModal(true)} className="gap-1.5">
                 <ScanSearch className="w-4 h-4" /><span className="hidden sm:inline">Duplicados</span>
@@ -277,6 +284,8 @@ export default function Clients() {
         onUsarExistente={() => { setShowDupModal(false); closeDialog(); }}
         onCrearNuevo={() => { setShowDupModal(false); setConfirmedNew(true); doSave({ es_nuevo_confirmado: true }); }}
       />
+
+      <ImportarClientesCSV open={showImportModal} onClose={() => setShowImportModal(false)} />
 
       <DuplicadosLoteModal
         open={showLoteModal}
