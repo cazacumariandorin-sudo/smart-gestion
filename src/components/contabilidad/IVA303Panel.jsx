@@ -281,7 +281,7 @@ export default function IVA303Panel() {
                 </span>
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {calculo.conteo.emitidas} emitidas · {calculo.conteo.recibidas} recibidas ({calculo.conteo.recibidas_libro} libro, {calculo.conteo.recibidas_autonomos} autónomos) · {calculo.conteo.con_isp} con inversión sujeto pasivo
+                {calculo.conteo.emitidas} emitidas · {calculo.conteo.recibidas} recibidas ({calculo.conteo.recibidas_libro} libro, {calculo.conteo.recibidas_autonomos} autónomos, {calculo.conteo.recibidas_gastos ?? 0} gastos de la app) · {calculo.conteo.con_isp} con inversión sujeto pasivo
               </p>
               <div className="mt-3 divide-y text-sm">
                 {filasCasillas.map(([l, v]) => (
@@ -305,6 +305,29 @@ export default function IVA303Panel() {
                     <span>{a.texto}</span>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {calculo.compras_app && calculo.compras_app.incluidos > 0 && (
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Compras de la app (IVA estimado)</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground mb-2">La app guarda solo el importe con IVA, así que se aplica un tipo por categoría. Cuentan los gastos en estado: {calculo.compras_app.estados_incluidos.join(', ')}.</p>
+                <div className="divide-y text-xs">
+                  <div className="grid grid-cols-5 gap-1 py-1 font-medium text-muted-foreground">
+                    <span>Categoría</span><span className="text-right">Nº</span><span className="text-right">Importe</span><span className="text-right">IVA est.</span><span className="text-right">Deducible</span>
+                  </div>
+                  {Object.entries(calculo.compras_app.por_categoria).map(([cat, v]) => (
+                    <div key={cat} className="grid grid-cols-5 gap-1 py-1">
+                      <span className="capitalize">{cat} <span className="text-muted-foreground">({v.tipoIva}%{v.deduciblePct < 100 ? `, ${v.deduciblePct}% ded.` : ''})</span></span>
+                      <span className="text-right">{v.n}</span><span className="text-right">{fmt(v.importe)}</span><span className="text-right">{fmt(v.cuota)}</span><span className="text-right">{fmt(v.deducible)}</span>
+                    </div>
+                  ))}
+                  <div className="grid grid-cols-5 gap-1 py-1 font-semibold">
+                    <span>Total</span><span className="text-right">{calculo.compras_app.incluidos}</span><span className="text-right">{fmt(calculo.compras_app.importe_total)}</span><span className="text-right">{fmt(calculo.compras_app.cuota_estimada)}</span><span className="text-right">{fmt(calculo.compras_app.cuota_deducible)}</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
