@@ -1,5 +1,5 @@
 {
-  "description": "Libro INTERNO de IVA (control del modelo 303). Una fila por factura y tipo de IVA: si una factura lleva varios tipos, se registran varias filas con el mismo n\u00famero. Las facturas de aut\u00f3nomos NO se copian aqu\u00ed: el c\u00e1lculo las lee directamente de FacturaAutonomo. Las rectificativas se registran con importes negativos.",
+  "description": "Libro INTERNO de IVA (control del modelo 303) y base de la Facturaci\u00f3n emitida. Una fila por factura y tipo de IVA: si una factura lleva varios tipos, se registran varias filas con el mismo n\u00famero. Las facturas de aut\u00f3nomos NO se copian aqu\u00ed: el c\u00e1lculo las lee directamente de FacturaAutonomo. Las rectificativas se registran con importes negativos.",
   "name": "FacturaIVA",
   "properties": {
     "base_imponible": {
@@ -25,8 +25,20 @@
       ],
       "type": "string"
     },
+    "estado_cobro": {
+      "description": "Estado de cobro de la factura emitida (pagado/pendiente). Vac\u00edo si no se conoce",
+      "enum": [
+        "pagado",
+        "pendiente"
+      ],
+      "type": "string"
+    },
     "fecha_factura": {
       "description": "Fecha de expedici\u00f3n/devengo (AAAA-MM-DD). Determina el trimestre del 303",
+      "type": "string"
+    },
+    "fecha_vencimiento": {
+      "description": "Fecha de vencimiento de cobro (AAAA-MM-DD)",
       "type": "string"
     },
     "inversion_sujeto_pasivo": {
