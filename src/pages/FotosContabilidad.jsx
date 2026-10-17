@@ -119,7 +119,8 @@ export default function FotosContabilidad() {
           <MobileSelect value={filtroCategoria} onValueChange={setFiltroCategoria} placeholder="Categoría" triggerClassName="w-36 shrink-0">
             <MobileSelectItem value="todos">Todas</MobileSelectItem>
             {CATEGORIAS.map(c => <MobileSelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</MobileSelectItem>)}
-           <MobileSelect value={filtroTipoDoc} onValueChange={setFiltroTipoDoc} placeholder="Tipo de documento" triggerClassName="w-44 shrink-0">
+          </MobileSelect>
+          <MobileSelect value={filtroTipoDoc} onValueChange={setFiltroTipoDoc} placeholder="Tipo de documento" triggerClassName="w-44 shrink-0">
             <MobileSelectItem value="todos">Todos los tipos</MobileSelectItem>
             {Object.entries(TIPO_DOCUMENTO_LABELS).map(([v, l]) => <MobileSelectItem key={v} value={v}>{l}</MobileSelectItem>)}
           </MobileSelect>
@@ -128,7 +129,6 @@ export default function FotosContabilidad() {
             <span className="text-xs text-muted-foreground">–</span>
             <Input type="number" inputMode="decimal" placeholder="Importe máx." value={importeMax} onChange={e => setImporteMax(e.target.value)} className="w-24" />
           </div>
-          </MobileSelect>
 
           <div className="flex items-center gap-3 ml-auto px-1">
             <span className="text-xs text-muted-foreground hidden sm:inline">
