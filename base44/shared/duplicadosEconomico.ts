@@ -85,7 +85,7 @@ export interface DocEconomico {
   tiene_hora: boolean;
   tarjeta4?: string;       // últimos 4 dígitos de la tarjeta
   dhash?: string;          // huella visual de la foto (16 hex)
-  calidad: number;         // score para elegir "mejor"   // score para elegir "mejor"
+  calidad: number;         // score para elegir "mejor"
   raw: any;                // registro original
 }
 // Distancia entre dos huellas visuales (nº de bits distintos, 0..64)
@@ -257,7 +257,9 @@ export function compararPar(a: DocEconomico, b: DocEconomico): ScorePar {
     maxPosible += 0.25;
     const diff = Math.abs((a.importe || 0) - (b.importe || 0));
     if (diff < 0.01) { score += 0.25; motivos.push('importe idéntico'); }
-    else if (diff < 0.5) { score += 0.15; motivos.push('importe muy similar'); }
+    // Tolerancia RELATIVA (2 %): con 0,50 € fijos, todos los tickets de céntimos (0,10 a 1,11 €)
+    // de un mismo parking se parecían entre sí y formaban grupos falsos.
+    else if (diff <= Math.max(0.01, 0.02 * Math.max(Math.abs(a.importe || 0), Math.abs(b.importe || 0)))) { score += 0.15; motivos.push('importe muy similar'); }
   }
 
   // Fecha
@@ -363,6 +365,21 @@ export function compararPar(a: DocEconomico, b: DocEconomico): ScorePar {
   } else if (normalized >= 0.45) {
     severidad = 'medio';
     esDuplicado = true;
+  }
+
+  // SEÑAL FUERTE PROPIA DEL DOCUMENTO: que coincidan proveedor (CIF/nombre), localidad y fechas
+  // cercanas NO basta (un técnico aparca cada día con el mismo operador). Para contar como posible
+  // duplicado hace falta ADEMÁS:
+  //   - identidad inequívoca: mismo nº de factura (exacto o casi), mismo código de validación
+  //     fiscal, misma imagen o misma tarjeta; o
+  //   - importe idéntico/muy parecido EL MISMO DÍA (un importe igual en días distintos es lo normal
+  //     en tarifas fijas, peajes o suministros periódicos).
+  const textoMotivos = motivos.join(' | ');
+  const identidadInequivoca = /nº factura idéntico|nº factura casi idéntico|código validación fiscal idéntico|misma imagen|misma tarjeta/.test(textoMotivos);
+  const importeParecidoMismoDia = /importe idéntico|importe muy similar/.test(textoMotivos) && /fecha idéntica/.test(textoMotivos);
+  if (!identidadInequivoca && !importeParecidoMismoDia) {
+    severidad = 'bajo';
+    esDuplicado = false;
   }
 
   return { score: normalized, severidad, motivos, es_duplicado: esDuplicado };
