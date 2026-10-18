@@ -370,12 +370,13 @@ export function compararPar(a: DocEconomico, b: DocEconomico): ScorePar {
   // SEÑAL FUERTE PROPIA DEL DOCUMENTO: que coincidan proveedor (CIF/nombre), localidad y fechas
   // cercanas NO basta (un técnico aparca cada día con el mismo operador). Para contar como posible
   // duplicado hace falta ADEMÁS:
-  //   - identidad inequívoca: mismo nº de factura (exacto o casi), mismo código de validación
-  //     fiscal, misma imagen o misma tarjeta; o
+  //   - identidad inequívoca: mismo nº de factura (EXACTO; un nº "casi" igual puede ser un ticket
+  //     correlativo del mismo operador), mismo código de validación fiscal, misma imagen o misma
+  //     tarjeta; o
   //   - importe idéntico/muy parecido EL MISMO DÍA (un importe igual en días distintos es lo normal
   //     en tarifas fijas, peajes o suministros periódicos).
   const textoMotivos = motivos.join(' | ');
-  const identidadInequivoca = /nº factura idéntico|nº factura casi idéntico|código validación fiscal idéntico|misma imagen|misma tarjeta/.test(textoMotivos);
+  const identidadInequivoca = /nº factura idéntico|código validación fiscal idéntico|misma imagen|misma tarjeta/.test(textoMotivos);
   const importeParecidoMismoDia = /importe idéntico|importe muy similar/.test(textoMotivos) && /fecha idéntica/.test(textoMotivos);
   if (!identidadInequivoca && !importeParecidoMismoDia) {
     severidad = 'bajo';
