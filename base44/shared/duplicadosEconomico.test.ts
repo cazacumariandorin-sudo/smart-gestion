@@ -46,6 +46,23 @@ comprobar('vídeo G9: BigMat 44,81 € mismo nº y hora, NIF distinto → duplic
 comprobar('vídeo G10: Castellana 10,45 € días 17 y 28 (peaje recurrente) → NO duplicado', gasto({ nombre_comercio: 'CASTELLANA, S.A.C.E.', nif_comercio: 'A82492729', importe: 10.45, fecha_documento: '2026-08-28', hora_documento: '13:19', numero_factura: '339841', localidad: 'S.Rafael' }), gasto({ nombre_comercio: 'CASTELLANA, S.A.C.E.', nif_comercio: 'A82492729', importe: 10.45, fecha_documento: '2026-08-17', hora_documento: '09:20', localidad: 'S. Rafael - Segovia' }), false);
 comprobar('vídeo G11: Family Energy 90 € días 19 y 25, facturas distintas → NO duplicado', gasto({ nombre_comercio: 'FAMILY ENERGY S.L.', nif_comercio: 'B98997826', importe: 90, fecha_documento: '2026-08-25', hora_documento: '14:57', numero_factura: 'F131128539', localidad: "L'OLLERIA" }), gasto({ nombre_comercio: 'FAMILY ENERGY S.L.', nif_comercio: 'B98997826', importe: 90, fecha_documento: '2026-08-19', hora_documento: '14:41', numero_factura: 'F131128181', localidad: "L'OLLERIA VALENCIA" }), false);
 
+// ── Señal del técnico ────────────────────────────────────────────────────────
+const conTecnico = (o: any, tecnico: { email?: string; name?: string }) => doc({ ...o, operario_email: tecnico.email, operario_name: tecnico.name });
+comprobar('técnicos distintos, mismo día, mismo importe y proveedor, sin nº → NO duplicado',
+  conTecnico({ fecha: '2026-09-10', importe: 7.4 }, { email: 'ana@x.es', name: 'ANA PEREZ' }), conTecnico({ fecha: '2026-09-10', importe: 7.4 }, { email: 'luis@x.es', name: 'LUIS GOMEZ' }), false);
+comprobar('mismo técnico (mismo email), mismo día e importe, sin nº → duplicado',
+  conTecnico({ fecha: '2026-09-10', importe: 7.4 }, { email: 'ana@x.es', name: 'ANA PEREZ' }), conTecnico({ fecha: '2026-09-10', importe: 7.4 }, { email: 'ANA@x.es', name: 'Ana Pérez' }), true);
+comprobar('mismo técnico por nombre con el orden invertido (sin email) → duplicado',
+  conTecnico({ fecha: '2026-09-10', importe: 7.4 }, { name: 'ANA PEREZ' }), conTecnico({ fecha: '2026-09-10', importe: 7.4 }, { name: 'Perez Ana' }), true);
+comprobar('falta el técnico en uno de los dos → se decide por importe y día (duplicado)',
+  conTecnico({ fecha: '2026-09-10', importe: 7.4 }, { name: 'ANA PEREZ' }), conTecnico({ fecha: '2026-09-10', importe: 7.4 }, {}), true);
+comprobar('técnicos distintos con el MISMO nº de factura → sigue siendo duplicado (doble reclamación)',
+  conTecnico({ fecha: '2026-09-10', importe: 7.4, numero_factura: 'FA777001' }, { email: 'ana@x.es' }), conTecnico({ fecha: '2026-09-10', importe: 7.4, numero_factura: 'FA777001' }, { email: 'luis@x.es' }), true);
+Deno.test('los técnicos distintos quedan anotados en los motivos', () => {
+  const r = compararPar(conTecnico({ fecha: '2026-09-10', importe: 7.4, numero_factura: 'FA777001' }, { email: 'ana@x.es' }), conTecnico({ fecha: '2026-09-10', importe: 7.4, numero_factura: 'FA777001' }, { email: 'luis@x.es' }));
+  if (!r.motivos.includes('técnicos distintos')) throw new Error('falta el motivo "técnicos distintos"');
+});
+
 // ── Tickets reales de Telpark: solo t01 y t05 son el mismo recibo ────────────
 Deno.test('Telpark real (11 tickets): un único grupo con el recibo duplicado t01 + t05', () => {
   const R = [

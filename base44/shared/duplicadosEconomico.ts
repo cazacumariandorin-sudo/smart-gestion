@@ -241,6 +241,18 @@ export interface ScorePar {
   es_duplicado: boolean;
 }
 
+/** true = mismo técnico, false = técnicos distintos, null = no se sabe (falta el dato en alguno). */
+export function mismoTecnico(a: DocEconomico, b: DocEconomico): boolean | null {
+  const ea = String(a.operario_email || '').trim().toLowerCase();
+  const eb = String(b.operario_email || '').trim().toLowerCase();
+  if (ea && eb) return ea === eb;
+  const ordenado = (t: any) => normalizarTexto(t).split(' ').filter(Boolean).sort().join(' ');
+  const na = ordenado(a.operario_name);
+  const nb = ordenado(b.operario_name);
+  if (na && nb) return na === nb;
+  return null;
+}
+
 export function compararPar(a: DocEconomico, b: DocEconomico): ScorePar {
   const motivos: string[] = [];
   let score = 0;
@@ -373,11 +385,16 @@ export function compararPar(a: DocEconomico, b: DocEconomico): ScorePar {
   //   - identidad inequívoca: mismo nº de factura (EXACTO; un nº "casi" igual puede ser un ticket
   //     correlativo del mismo operador), mismo código de validación fiscal, misma imagen o misma
   //     tarjeta; o
-  //   - importe idéntico/muy parecido EL MISMO DÍA (un importe igual en días distintos es lo normal
-  //     en tarifas fijas, peajes o suministros periódicos).
+  //   - importe idéntico/muy parecido EL MISMO DÍA y del MISMO TÉCNICO (un importe igual en días
+  //     distintos es lo normal en tarifas fijas, peajes o suministros periódicos, y dos personas
+  //     distintas pueden pagar lo mismo en el mismo sitio el mismo día).
+  // La identidad inequívoca se mantiene aunque los técnicos sean distintos: dos personas subiendo
+  // el mismo justificante es una posible doble reclamación.
+  const tecnico = mismoTecnico(a, b);
+  if (tecnico === false) motivos.push('técnicos distintos');
   const textoMotivos = motivos.join(' | ');
   const identidadInequivoca = /nº factura idéntico|código validación fiscal idéntico|misma imagen|misma tarjeta/.test(textoMotivos);
-  const importeParecidoMismoDia = /importe idéntico|importe muy similar/.test(textoMotivos) && /fecha idéntica/.test(textoMotivos);
+  const importeParecidoMismoDia = /importe idéntico|importe muy similar/.test(textoMotivos) && /fecha idéntica/.test(textoMotivos) && tecnico !== false;
   if (!identidadInequivoca && !importeParecidoMismoDia) {
     severidad = 'bajo';
     esDuplicado = false;
