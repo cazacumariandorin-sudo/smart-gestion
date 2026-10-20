@@ -246,7 +246,9 @@ export default function TicketCapture({ onDone, onDoneMulti, onSkip }) {
       const dhash = esImagen ? await calcularDHash(subidaFile) : '';
       setPaginas(prev => prev.map((p, i) => i === idx ? { ...p, estado: 'ocr', dhash } : p));
       const subida = await subirArchivo(subidaFile);
-      const file_url = subida?.file_url;
+      // URL del almacenamiento de Base44 (legible por el modelo y estable para re-OCR). Si Drive subió bien,
+      // file_url es un enlace de descarga de Drive que el OCR no puede leer.
+      const file_url = subida?.cdn_url_para_llm || subida?.file_url;
       if (!file_url) throw new Error('No se pudo subir el archivo');
 
       // OCR multi-ticket
