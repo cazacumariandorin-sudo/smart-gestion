@@ -237,14 +237,10 @@ Deno.serve(async (req) => {
 
     if (!fileUrl) {
       // Fallback Base44 CDN
+      // UploadFile exige un File real (multipart); un data URL en texto se rechaza.
       const bytes = new Uint8Array(pdfBytes);
-      let binary = '';
-      const chunk = 0x8000;
-      for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
-      }
-      const dataUrl = `data:application/pdf;base64,${btoa(binary)}`;
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: dataUrl });
+      const archivoPdf = new File([bytes], `INDICE-${nota.numero_ciclo || nota.ciclo_mes || nota.id}.pdf`, { type: 'application/pdf' });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: archivoPdf });
       fileUrl = file_url;
       storage = 'local';
     }

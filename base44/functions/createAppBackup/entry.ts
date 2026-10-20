@@ -55,22 +55,26 @@ Deno.serve(async (req) => {
       }
     };
 
-    const jsonBlob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-    const formData = new FormData();
-    formData.append('file', jsonBlob, `backup-${new Date().toISOString().split('T')[0]}.json`);
+    // Debe ser un File (no un Blob): el SDK solo envía multipart con File y la integración lo exige.
+    const nombreBackup = `backup-${new Date().toISOString().split('T')[0]}.json`;
+    const jsonFile = new File([JSON.stringify(backupData, null, 2)], nombreBackup, { type: 'application/json' });
 
     let fileUrl = null;
+    let uploadError = '';
     try {
-      const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file: jsonBlob });
+      const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file: jsonFile });
       fileUrl = uploadRes?.file_url || null;
-    } catch {
-      // Upload might fail, backup still valid
+      if (!fileUrl) uploadError = 'la subida no devolvió URL';
+    } catch (e) {
+      uploadError = String((e as any)?.message || e);
+      console.error('createAppBackup: no se pudo guardar el archivo del backup:', uploadError);
     }
 
     // Actualizar registro con resultado
     await base44.asServiceRole.entities.AppBackup.update(backupRecord.id, {
       status: 'completado',
       backup_file_url: fileUrl,
+      error_message: fileUrl ? '' : `Backup SIN ARCHIVO: ${uploadError}`,
       data_summary: {
         total_entities: totalEntities,
         total_records: totalRecords,

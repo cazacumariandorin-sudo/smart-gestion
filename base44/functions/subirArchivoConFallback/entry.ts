@@ -37,7 +37,14 @@ Deno.serve(async (req) => {
     // Siempre subir a CDN de Base44 primero
     let cdnUrl;
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: file_base64 });
+      // La integración UploadFile exige un File real (multipart). Un data URL en texto se rechaza con
+      // "Expected UploadFile, received: <class 'str'>", y el SDK solo envía multipart con File (no Blob).
+      const [, b64Cdn] = file_base64.split(',');
+      const binCdn = atob(b64Cdn);
+      const bytesCdn = new Uint8Array(binCdn.length);
+      for (let i = 0; i < binCdn.length; i++) bytesCdn[i] = binCdn.charCodeAt(i);
+      const archivoCdn = new File([bytesCdn], nombreArchivo, { type: mimeType });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: archivoCdn });
       cdnUrl = file_url;
     } catch (e) {
       return Response.json({ error: 'No se pudo subir el archivo: ' + e.message }, { status: 500 });

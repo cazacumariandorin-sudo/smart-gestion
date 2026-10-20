@@ -63,9 +63,10 @@ Deno.serve(async (req) => {
     const jsonContent = JSON.stringify(backup, null, 2);
     const encoder = new TextEncoder();
     const bytes = encoder.encode(jsonContent);
-    const blob = new Blob([bytes], { type: 'application/json' });
+    // File (no Blob): el SDK solo envía multipart con File y la integración lo exige.
+    const archivoBackup = new File([bytes], `backup-gastos-${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' });
 
-    const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file: blob });
+    const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file: archivoBackup });
 
     return Response.json({
       success: true,

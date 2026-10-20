@@ -2,6 +2,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const ROOT_FOLDER_ID = '1yJzcwSzo2acrswgmtKLbNTKVd7WxUtF1';
 
+// UploadFile exige un File real (multipart); un data URL en texto se rechaza.
+function dataUrlAFile(dataUrl: string): File {
+  const [header, b64] = dataUrl.split(',');
+  const mime = header.split(':')[1]?.split(';')[0] || 'application/octet-stream';
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const ext = mime.split('/')[1]?.replace('jpeg', 'jpg') || 'bin';
+  return new File([bytes], `archivo_${Date.now()}.${ext}`, { type: mime });
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -103,7 +114,7 @@ Deno.serve(async (req) => {
       } catch (gdriveError) {
         console.warn('Google Drive upload failed, falling back to local storage:', gdriveError.message);
         // Fallback to local Base44 storage
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: dataUrlAFile(file) });
         
         return Response.json({
           success: true,
@@ -114,7 +125,7 @@ Deno.serve(async (req) => {
       }
     } else {
       // Fallback to local Base44 storage
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: dataUrlAFile(file) });
       
       return Response.json({
         success: true,
