@@ -1,90 +1,187 @@
 {
   "name": "Presupuesto",
-  "type": "object",
   "properties": {
-    "titulo": {
-      "type": "string",
-      "description": "T\u00edtulo descriptivo del presupuesto (opcional, se autogenera si est\u00e1 vac\u00edo)"
-    },
-    "codigo_registro": {
-      "type": "string",
-      "description": "ID \u00fanico estandarizado: PRES-SG-AAAA-NNN (ej: PRES-SG-2026-001)"
+    "base_imponible": {
+      "description": "Base imponible total (calculada en el servidor, igual que importe)",
+      "type": "number"
     },
     "cliente_id": {
-      "type": "string",
-      "description": "ID del cliente"
+      "description": "ID del cliente",
+      "type": "string"
     },
     "cliente_name": {
-      "type": "string",
-      "description": "Nombre del cliente"
+      "description": "Nombre del cliente",
+      "type": "string"
     },
-    "fecha": {
-      "type": "string",
-      "format": "date",
-      "description": "Fecha del presupuesto"
-    },
-    "importe": {
-      "type": "number",
-      "description": "Importe total (\u20ac)"
-    },
-    "estado": {
-      "type": "string",
-      "enum": [
-        "borrador",
-        "enviado",
-        "aceptado",
-        "rechazado"
-      ],
-      "default": "borrador",
-      "description": "Estado del presupuesto"
+    "codigo_registro": {
+      "description": "N\u00famero \u00fanico del presupuesto: PRE-AAAA-NNNNN (ej: PRE-2026-00001)",
+      "type": "string"
     },
     "conceptos": {
-      "type": "array",
-      "description": "L\u00edneas del presupuesto",
+      "description": "L\u00edneas del presupuesto (l\u00edneas con importe o l\u00edneas de solo texto)",
       "items": {
-        "type": "object",
         "properties": {
-          "descripcion": {
-            "type": "string"
-          },
           "cantidad": {
             "type": "number"
           },
-          "unidad": {
+          "cuota_iva": {
+            "description": "Cuota de IVA de la l\u00ednea (calculado)",
+            "type": "number"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "detalle": {
+            "description": "Texto adicional bajo la descripci\u00f3n (por ejemplo, operarios y horas)",
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string"
+          },
+          "iva_pct": {
+            "description": "Tipo de IVA de la l\u00ednea (21, 10, 4 o 0)",
+            "type": "number"
+          },
+          "parte_id": {
+            "description": "Parte de trabajo del que procede la l\u00ednea",
             "type": "string"
           },
           "precio_unitario": {
             "type": "number"
           },
+          "tipo": {
+            "description": "linea = con importe; texto = solo texto, sin importe",
+            "enum": [
+              "linea",
+              "texto"
+            ],
+            "type": "string"
+          },
           "total": {
+            "description": "Base de la l\u00ednea (calculado)",
+            "type": "number"
+          },
+          "unidad": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "descripcion": {
+      "description": "Descripci\u00f3n del presupuesto (autocompletada desde partes)",
+      "type": "string"
+    },
+    "desglose_iva": {
+      "description": "Desglose por tipo de IVA (calculado)",
+      "items": {
+        "properties": {
+          "base": {
+            "type": "number"
+          },
+          "cuota": {
+            "type": "number"
+          },
+          "tipo": {
             "type": "number"
           }
-        }
-      }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "es_duplicado_confirmado": {
+      "default": false,
+      "description": "Si es true, el usuario confirm\u00f3 que es duplicado autorizado",
+      "type": "boolean"
+    },
+    "estado": {
+      "default": "borrador",
+      "description": "Estado del presupuesto",
+      "enum": [
+        "borrador",
+        "enviado",
+        "aceptado",
+        "rechazado",
+        "facturado"
+      ],
+      "type": "string"
+    },
+    "fecha": {
+      "description": "Fecha del presupuesto",
+      "format": "date",
+      "type": "string"
+    },
+    "file_url": {
+      "description": "PDF del presupuesto",
+      "type": "string"
+    },
+    "forma_pago": {
+      "description": "Forma de pago (texto que sale en el pie del PDF)",
+      "type": "string"
+    },
+    "historial_estados": {
+      "description": "Registro de cambios de estado",
+      "items": {
+        "properties": {
+          "estado": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string"
+          },
+          "por": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "importe": {
+      "description": "Importe SIN IVA (base imponible) en \u20ac. Se calcula en el servidor a partir de las l\u00edneas",
+      "type": "number"
+    },
+    "iva_total": {
+      "description": "Cuota de IVA total (suma de las cuotas por l\u00ednea)",
+      "type": "number"
+    },
+    "notas": {
+      "description": "Observaciones (salen en el pie del PDF)",
+      "type": "string"
+    },
+    "obra_id": {
+      "description": "ID de la obra a la que corresponde (opcional)",
+      "type": "string"
+    },
+    "obra_name": {
+      "description": "Nombre de la obra (opcional)",
+      "type": "string"
     },
     "partes_trabajo_ids": {
-      "type": "array",
       "description": "IDs de partes de trabajo consolidados",
       "items": {
         "type": "string"
-      }
+      },
+      "type": "array"
     },
-    "es_duplicado_confirmado": {
-      "type": "boolean",
-      "default": false,
-      "description": "Si es true, el usuario confirm\u00f3 que es duplicado autorizado"
+    "referencia_cliente": {
+      "description": "Pedido, orden de trabajo o referencia del cliente (opcional)",
+      "type": "string"
     },
-    "descripcion": {
-      "type": "string",
-      "description": "Descripci\u00f3n del presupuesto (autocompletada desde partes)"
+    "titulo": {
+      "description": "T\u00edtulo descriptivo del presupuesto (opcional, se autogenera si est\u00e1 vac\u00edo)",
+      "type": "string"
     },
-    "notas": {
-      "type": "string",
-      "description": "Observaciones"
+    "total_con_iva": {
+      "description": "Total con IVA",
+      "type": "number"
     },
-    "file_url": {
-      "type": "string",
-      "description": "PDF del presupuesto"
+    "valido_hasta": {
+      "description": "Fecha hasta la que es v\u00e1lido el presupuesto",
+      "format": "date",
+      "type": "string"
     }
   },
   "required": [
@@ -122,7 +219,36 @@
         },
         {
           "user_condition": {
-            "role": "jefe_obra"
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
           }
         }
       ]
@@ -156,17 +282,7 @@
         },
         {
           "user_condition": {
-            "role": "jefe_obra"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "t\u00e9cnico"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "contabilidad"
+            "role": "ingeniero"
           }
         }
       ]
@@ -200,39 +316,11 @@
         },
         {
           "user_condition": {
-            "role": "jefe_obra"
-          }
-        }
-      ]
-    },
-    "delete": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "propietario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "administracion"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "director_comercial"
+            "role": "ingeniero"
           }
         }
       ]
     }
-  }
+  },
+  "type": "object"
 }
