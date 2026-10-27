@@ -1,0 +1,41 @@
+{
+  "name": "Sincronizar previsiones con fichajes (s\u00e1bado 0600)",
+  "description": "Cada s\u00e1bado a las 06:00 actualiza las previsiones de obra con horas reales extra\u00eddas de los fichajes pasados y crea previsiones reales para obras con fichajes pero sin previsi\u00f3n. Las previsiones futuras se conservan como planificaci\u00f3n manual para el cliente.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 6 * * 6",
+      "one_time_date": null,
+      "timezone": "Europe/Madrid",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "sincronizar_previsiones_con_fichajes",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sincronizarPrevisionesConFichajes",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}

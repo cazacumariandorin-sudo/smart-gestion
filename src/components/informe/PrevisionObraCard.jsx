@@ -23,6 +23,13 @@ const STATUS_CFG = {
   cancelada:   { label: 'Cancelada',   className: 'bg-red-50 text-red-700 border-red-200' },
 };
 
+const SEMAFORO = {
+  verde:    { dot: '#1D9E75', label: 'En plazo' },
+  amarillo: { dot: '#BA7517', label: 'Atención' },
+  rojo:     { dot: '#E24B4A', label: 'Retraso' },
+  sin_datos:{ dot: '#888780', label: 'Sin datos' },
+};
+
 function durDias(inicio, fin) {
   if (!inicio || !fin) return null;
   return differenceInCalendarDays(parseISO(fin), parseISO(inicio)) + 1;
@@ -42,9 +49,12 @@ export default function PrevisionObraCard({ obraName, clientName, registros, for
     const fromOps = (r.operarios_asignados || []).reduce((a, op) => a + (op.horas_previstas || 0), 0);
     return s + (r.horas_totales_previstas || fromOps || 0);
   }, 0);
+  const totalReal = registros.reduce((s, r) => s + (r.horas_reales_acumuladas || 0), 0);
   const dias = durDias(fechaMin, fechaMax);
   const status = registros[0]?.status || 'planificada';
   const cfg = STATUS_CFG[status] || STATUS_CFG.planificada;
+  const semKey = registros[0]?.status_semaforo || 'sin_datos';
+  const sem = SEMAFORO[semKey];
 
   // Sort registros by fecha_inicio asc
   const sorted = [...registros].sort((a, b) => {
@@ -77,6 +87,12 @@ export default function PrevisionObraCard({ obraName, clientName, registros, for
                 <Clock className="w-2.5 h-2.5 mr-1" />{totalHoras}h
               </Badge>
             )}
+            {totalReal > 0 && (
+              <Badge variant="outline" className="text-[10px] shrink-0 bg-emerald-50 text-emerald-700 border-emerald-200">
+                <span className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: sem.dot }} />
+                Real {totalReal}h
+              </Badge>
+            )}
             <Badge variant="outline" className="text-[10px] shrink-0 bg-slate-50 text-slate-600">
               {registros.length} registro{registros.length !== 1 ? 's' : ''}
             </Badge>
@@ -102,7 +118,9 @@ export default function PrevisionObraCard({ obraName, clientName, registros, for
                 <tr className="bg-muted/40 text-muted-foreground">
                   <th className="px-4 py-2 text-left font-medium whitespace-nowrap">Fechas</th>
                   <th className="px-4 py-2 text-left font-medium">Notas</th>
-                  <th className="px-4 py-2 text-left font-medium whitespace-nowrap">Horas</th>
+                  <th className="px-4 py-2 text-left font-medium whitespace-nowrap">Prev.</th>
+                  <th className="px-4 py-2 text-left font-medium whitespace-nowrap">Real</th>
+                  <th className="px-4 py-2 text-left font-medium whitespace-nowrap">Avance</th>
                   <th className="px-4 py-2 text-left font-medium">Operarios</th>
                   <th className="px-4 py-2 text-left font-medium">Estado</th>
                   <th className="px-4 py-2 text-right font-medium">Acciones</th>
@@ -126,6 +144,17 @@ export default function PrevisionObraCard({ obraName, clientName, registros, for
                       </td>
                       <td className="px-4 py-2.5 whitespace-nowrap font-medium">
                         {rHoras > 0 ? `${rHoras}h` : '—'}
+                      </td>
+                      <td className="px-4 py-2.5 whitespace-nowrap font-medium text-emerald-700">
+                        {(r.horas_reales_acumuladas || 0) > 0 ? `${r.horas_reales_acumuladas}h` : '—'}
+                      </td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        {(r.porcentaje_avance_horas || 0) > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-xs">
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: (SEMAFORO[r.status_semaforo] || SEMAFORO.sin_datos).dot }} />
+                            {r.porcentaje_avance_horas}%
+                          </span>
+                        ) : '—'}
                       </td>
                       <td className="px-4 py-2.5">
                         {r.operarios_asignados?.length > 0 ? (
