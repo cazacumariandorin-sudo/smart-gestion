@@ -20,6 +20,7 @@ import AutoCorrectTextarea from '@/components/ui/AutoCorrectTextarea';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { TIPOS_ING_PARA_DOCUMENTAL, ingDocToManualShape } from '@/lib/documentosUnificados';
 
 const isPermissionError = (err) => {
   const status = err?.status || err?.response?.status || err?.statusCode;
@@ -53,7 +54,7 @@ export default function Manuales() {
   const canCreate = isAdmin || isJefeObra || role === 'director_comercial' || isOperario || isTecnico;
   // Un usuario puede eliminar sus propias subidas
   const isOwnDoc = (m) => !!m?.created_by && m.created_by === user?.email;
-  const canDelete = (m) => isAdmin || isJefeObra || isOwnDoc(m);
+  const canDelete = (m) => !m?._origen && (isAdmin || isJefeObra || isOwnDoc(m));
   const [search, setSearch] = useState('');
   const [clientFilter, setClientFilter] = useState('all');
   const [obraFilter, setObraFilter] = useState('all');
@@ -69,6 +70,11 @@ export default function Manuales() {
   const puedeVerInactivas = isAdmin || isGerencia;
 
   const { data: manuales = [], isLoading, refetch: refetchManuales } = useQuery({ queryKey: ['manuales'], queryFn: () => base44.entities.Manual.list('-date', 300) });
+  // Planos/manuales subidos en Ingeniería (MaterialDocumentoOrigen), solo tipos técnicos
+  const { data: ingDocs = [] } = useQuery({
+    queryKey: ['manuales-ing-docs'],
+    queryFn: () => base44.entities.MaterialDocumentoOrigen.filter({ tipo: { $in: Object.keys(TIPOS_ING_PARA_DOCUMENTAL) } }),
+  });
 
   const onRefresh = useCallback(async () => { await refetchManuales(); }, [refetchManuales]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
@@ -79,6 +85,9 @@ export default function Manuales() {
     ...obras.map(o => ({ id: o.id, name: o.name, client_id: o.client_id, client_name: o.client_name })),
     ...solarObras.map(o => ({ id: o.id, name: o.name, client_id: o.client_id, client_name: o.client_name }))
   ].sort((a, b) => a.name.localeCompare(b.name)), [obras, solarObras]);
+  const obrasById = useMemo(() => Object.fromEntries(todasObras.map(o => [o.id, o])), [todasObras]);
+  const ingDocsShapes = useMemo(() => ingDocs.map(d => ingDocToManualShape(d, obrasById)), [ingDocs, obrasById]);
+  const allDocs = useMemo(() => [...manuales, ...ingDocsShapes], [manuales, ingDocsShapes]);
   const { data: fabricantes = [] } = useQuery({ queryKey: ['fabricantes'], queryFn: () => base44.entities.Fabricante.list('name', 300) });
 
   const createM = useMutation({ mutationFn: d => base44.entities.Manual.create(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['manuales'] }); close_(); }, onError: (e) => showMutationError(e, 'subir') });
@@ -131,7 +140,7 @@ export default function Manuales() {
     }
   };
 
-  const filtered = useMemo(() => manuales.filter(m => {
+  const filtered = useMemo(() => allDocs.filter(m => {
     const q = search.toLowerCase();
     const matchQ = !search || m.title?.toLowerCase().includes(q) || m.client_name?.toLowerCase().includes(q) || m.obra_name?.toLowerCase().includes(q) || m.categoria?.toLowerCase().includes(q);
     const matchC = clientFilter === 'all' || m.client_id === clientFilter;
@@ -139,7 +148,7 @@ export default function Manuales() {
     const matchF = fabricanteFilter === 'all' || m.fabricante_id === fabricanteFilter;
     const matchActiva = esItemVisible(m, obrasMap, mostrarInactivas);
     return matchQ && matchC && matchO && matchF && matchActiva;
-  }), [manuales, search, clientFilter, obraFilter, fabricanteFilter, obrasMap, mostrarInactivas]);
+  }), [allDocs, search, clientFilter, obraFilter, fabricanteFilter, obrasMap, mostrarInactivas]);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -163,7 +172,7 @@ export default function Manuales() {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
             <BookOpen className="w-7 h-7 text-primary" /> Manuales y Documentos
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">{filtered.length} documentos</p>
+          <p className="text-sm text-muted-foreground mt-1">{filtered.length} documentos · <span className="text-teal-600">{ingDocsShapes.length} desde Ingeniería</span></p>
         </div>
         {canCreate && (
           <Button onClick={() => setDialogOpen(true)} className="gap-2 shadow-sm">
@@ -222,6 +231,7 @@ export default function Manuales() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium leading-snug break-words">{m.title}</p>
                 <div className="flex items-center gap-2 flex-wrap mt-1">
+                  {m._origen === 'ingenieria' && <Badge className="text-[10px] bg-teal-50 text-teal-700 border border-teal-200">Ingeniería</Badge>}
                   {m.categoria && <Badge variant="outline" className="text-[10px]">{m.categoria}</Badge>}
                   {m.version && <span className="text-[10px] text-muted-foreground">v{m.version}</span>}
                   {m.date && <span className="text-[10px] text-muted-foreground">{format(parseISO(m.date), 'd MMM yyyy', { locale: es })}</span>}
@@ -241,7 +251,7 @@ export default function Manuales() {
                     </Button>
                   </>
                 )}
-                {(isAdmin || isGerencia || isAdministracion) && (
+                {(isAdmin || isGerencia || isAdministracion) && !m._origen && (
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" title="Reasignar obra/cliente" onClick={() => setReasignarDoc(m)}>
                     <Link2 className="w-3.5 h-3.5" />
                   </Button>

@@ -9,6 +9,8 @@ import PageHeader from '@/components/layout/PageHeader';
 import { detectRevision, matchObra, detectTipo } from '@/lib/ingenieriaFilename';
 import { calcularHash, detectarDuplicado, diffDatos, DiffList } from '@/lib/ingenieriaDiff.jsx';
 import DocumentoCard from '@/components/ingenieria/DocumentoCard';
+import { manualToIngDocShape } from '@/lib/documentosUnificados';
+import { Eye, Download, BookOpen } from 'lucide-react';
 
 const TIPO_OCR = {
   listado_puntos: { fn: 'procesarListadoPuntos', label: 'Listado de puntos' },
@@ -101,6 +103,13 @@ export default function IngenieriaDocumentos() {
     queryFn: async () => effectiveObraId ? base44.entities.MaterialDocumentoOrigen.filter({ proyecto_ingenieria_id: effectiveObraId }, '-created_date', 100) : [],
     enabled: !!effectiveObraId,
   });
+  // Manuales del proyecto subidos en Documental (Manual), visibles también aquí
+  const { data: manualesDoc = [] } = useQuery({
+    queryKey: ['ing-docs-manuales', effectiveObraId],
+    queryFn: async () => effectiveObraId ? base44.entities.Manual.filter({ obra_id: effectiveObraId }, '-date', 100) : [],
+    enabled: !!effectiveObraId,
+  });
+  const manualesShapes = (manualesDoc || []).map(manualToIngDocShape);
 
   const pendientes = documentos.filter(d => d.estado === 'pendiente_revision');
 
@@ -367,7 +376,35 @@ export default function IngenieriaDocumentos() {
             </div>
           )}
           <div className="divide-y divide-border max-h-[60vh] overflow-y-auto">
-            {documentos.length === 0 && <div className="p-4 text-sm text-muted-foreground">Sin documentos.</div>}
+            {documentos.length === 0 && manualesShapes.length === 0 && <div className="p-4 text-sm text-muted-foreground">Sin documentos.</div>}
+            {manualesShapes.length > 0 && (
+              <div className="bg-blue-50/40 border-b border-blue-100">
+                <div className="px-3 py-2 flex items-center gap-1.5 text-xs font-semibold text-blue-700">
+                  <BookOpen className="w-3.5 h-3.5" /> Manuales del proyecto (desde Documental) · {manualesShapes.length}
+                </div>
+                {manualesShapes.map(m => (
+                  <div key={m.id} className="px-3 py-2 flex items-center gap-2 text-xs hover:bg-blue-50 transition-colors">
+                    <FileText className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{m.numero_documento}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {m.categoria ? `${m.categoria} · ` : ''}{m.fecha_documento || 'sin fecha'}{m.revision ? ` · rev ${m.revision}` : ''}
+                      </p>
+                    </div>
+                    {m.archivo_url_mejorado && (
+                      <div className="flex gap-1 shrink-0">
+                        <a href={m.archivo_url_mejorado} target="_blank" rel="noopener noreferrer" title="Ver">
+                          <button className="p-1.5 rounded hover:bg-blue-100"><Eye className="w-3.5 h-3.5 text-blue-600" /></button>
+                        </a>
+                        <a href={m.archivo_url_mejorado} download={m.numero_documento || 'manual'} title="Descargar">
+                          <button className="p-1.5 rounded hover:bg-blue-100"><Download className="w-3.5 h-3.5 text-muted-foreground" /></button>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
             {documentos.map(d => (
               <DocumentoCard key={d.id} doc={d} onReprocesar={() => reprocesar(d)} reprocesando={precisionId === d.id} />
             ))}
