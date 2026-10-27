@@ -11,7 +11,7 @@ import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Download, CalendarDays, Table2, Copy, Trash2, AlertTriangle, CheckCircle2, Search, ChevronDown, ChevronRight, Clock } from 'lucide-react';
+import { Download, CalendarDays, Table2, Copy, Trash2, AlertTriangle, CheckCircle2, Search, ChevronDown, ChevronRight, Clock, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 import CalendarioHorarioView from './CalendarioHorarioView';
+import InformeObraView from './InformeObraView';
 import QueryErrorFallback from '@/components/QueryErrorFallback';
 
 // ── helpers compartidos ──────────────────────────────────────────────────────
@@ -390,6 +391,7 @@ export default function InformesTab() {
 
   const MODES = [
     { value: 'calendario', label: 'Calendario', icon: CalendarDays },
+    { value: 'obra', label: 'Por obra', icon: Building2 },
     { value: 'tabla', label: 'Por día', icon: Table2 },
     ...(isAdmin ? [{ value: 'duplicados', label: 'Duplicados', icon: Copy, badge: dupCount }] : []),
   ];
@@ -425,6 +427,11 @@ export default function InformesTab() {
             <Button onClick={generateExcel} size="sm" variant="outline" className="gap-1.5 h-9"><Download className="w-3.5 h-3.5" /> Excel</Button>
           </>
         )}
+        {mode === 'obra' && (
+          <Badge variant="outline" className="text-[10px] gap-1">
+            <Building2 className="w-3 h-3" /> Valoración por obra · periodo flexible
+          </Badge>
+        )}
       </div>
 
       {fichajesLoading || fichajesError ? (
@@ -432,6 +439,7 @@ export default function InformesTab() {
       ) : (
         <>
           {mode === 'calendario' && <CalendarioHorarioView fichajes={filtered} canSeeAll={canSeeAll} canForce={isAdmin || role === 'gerencia' || role === 'administracion'} operarios={operarios} month={monthFilter} onMonthChange={setMonthFilter} />}
+          {mode === 'obra' && <InformeObraView canSeeAll={canSeeAll} forceOperarioId={isOwnDataOnly ? (myOperario?.id || null) : null} />}
           {mode === 'tabla' && <TablaView fichajes={filtered} />}
           {mode === 'duplicados' && isAdmin && <DuplicadosView fichajes={fichajes} />}
         </>
