@@ -20,8 +20,7 @@ import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { cn } from '@/lib/utils';
 import { minutosATexto, calcularMinutosFichaje, useFichajesShared } from './InformesTab';
 import OperarioObraDetalleDialog from './OperarioObraDetalleDialog';
-import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
+import { exportInformeObraExcel, exportInformeObraPDF } from '@/lib/informeObraExport';
 import QueryErrorFallback from '@/components/QueryErrorFallback';
 
 const MESES = [
@@ -179,72 +178,9 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
 
   const obraLabel = obraFilter === 'all' ? 'Todas las obras' : obraFilter;
 
-  const exportExcel = () => {
-    const rows = porOperario.map(g => ({
-      Operario: g.name,
-      'Horas (texto)': minutosATexto(g.minutos),
-      'Horas (decimal)': Number(g.horas.toFixed(2)),
-      Días: g.diasCount,
-      Fichajes: g.fichajes,
-      'Coste/hora (€)': g.costeHora || '',
-      'Valoración (€)': Number(g.valoracion.toFixed(2)),
-    }));
-    // Fila de totales
-    rows.push({
-      Operario: 'TOTAL',
-      'Horas (texto)': minutosATexto(totales.totalMins),
-      'Horas (decimal)': Number(totales.totalHoras.toFixed(2)),
-      Días: '',
-      Fichajes: totales.totalFichajes,
-      'Coste/hora (€)': '',
-      'Valoración (€)': Number(totales.totalValor.toFixed(2)),
-    });
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Valoración obra');
-    XLSX.writeFile(wb, `valoracion-obra-${obraFilter === 'all' ? 'todas' : obraFilter.replace(/\s+/g, '_')}-${periodValue}.xlsx`);
-  };
+  const exportExcel = () => exportInformeObraExcel({ porOperario, totales, fichajes: fichajesFiltrados, obraFilter, periodValue });
 
-  const exportPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(15); doc.setFont(undefined, 'bold'); doc.text('Valoración de horas por obra', 14, 18);
-    doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.setTextColor(80, 80, 80);
-    doc.text(`${obraLabel} · ${periodLabel}`, 14, 25);
-    doc.line(14, 28, 196, 28);
-    let y = 36;
-    const cw = [56, 30, 24, 24, 24, 28];
-    const hdrs = ['Operario', 'Horas', 'Días', 'Fichajes', 'Coste/h', 'Valoración'];
-    doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setFillColor(249, 115, 22); doc.setTextColor(255, 255, 255);
-    let x = 14;
-    hdrs.forEach((h, i) => { doc.rect(x, y, cw[i], 6, 'F'); doc.text(h, x + 2, y + 4); x += cw[i]; });
-    y += 6;
-    doc.setFont(undefined, 'normal'); doc.setTextColor(20, 20, 20);
-    porOperario.forEach((g, ri) => {
-      if (y > 275) { doc.addPage(); y = 20; }
-      doc.setFillColor(...(ri % 2 === 0 ? [255, 255, 255] : [250, 250, 252]));
-      x = 14;
-      const cells = [
-        (g.name || '').slice(0, 28),
-        minutosATexto(g.minutos),
-        String(g.diasCount),
-        String(g.fichajes),
-        g.costeHora ? `${g.costeHora} €` : '—',
-        `${g.valoracion.toFixed(2)} €`,
-      ];
-      cells.forEach((c, i) => { doc.rect(x, y, cw[i], 6, 'F'); doc.text(String(c), x + 2, y + 4); x += cw[i]; });
-      y += 6;
-    });
-    // Total
-    if (y > 275) { doc.addPage(); y = 20; }
-    doc.setFillColor(240, 240, 245); doc.setFont(undefined, 'bold');
-    x = 14;
-    const totalCells = ['TOTAL', minutosATexto(totales.totalMins), '', String(totales.totalFichajes), '', `${totales.totalValor.toFixed(2)} €`];
-    totalCells.forEach((c, i) => { doc.rect(x, y, cw[i], 6, 'F'); doc.text(String(c), x + 2, y + 4); x += cw[i]; });
-    y += 10;
-    doc.setFontSize(8); doc.setTextColor(150);
-    doc.text(`${totales.numOperarios} operarios · ${totales.totalFichajes} fichajes · ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, y);
-    doc.save(`valoracion-obra-${obraFilter === 'all' ? 'todas' : obraFilter.replace(/\s+/g, '_')}-${periodValue}.pdf`);
-  };
+  const exportPDF = () => exportInformeObraPDF({ porOperario, totales, fichajes: fichajesFiltrados, obraLabel, periodLabel, obraFilter, periodValue });
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
