@@ -12,16 +12,24 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Building2, Users, Clock, Euro, Download, Search, FileSpreadsheet } from 'lucide-react';
+import { Building2, Users, Clock, Euro, Download, Search, FileSpreadsheet, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { cn } from '@/lib/utils';
 import { minutosATexto, calcularMinutosFichaje, useFichajesShared } from './InformesTab';
+import OperarioObraDetalleDialog from './OperarioObraDetalleDialog';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import QueryErrorFallback from '@/components/QueryErrorFallback';
+
+const MESES = [
+  { v: '01', label: 'Enero' }, { v: '02', label: 'Febrero' }, { v: '03', label: 'Marzo' },
+  { v: '04', label: 'Abril' }, { v: '05', label: 'Mayo' }, { v: '06', label: 'Junio' },
+  { v: '07', label: 'Julio' }, { v: '08', label: 'Agosto' }, { v: '09', label: 'Septiembre' },
+  { v: '10', label: 'Octubre' }, { v: '11', label: 'Noviembre' }, { v: '12', label: 'Diciembre' },
+];
 
 // ── Helpers de periodo ───────────────────────────────────────────────────────
 
@@ -70,6 +78,7 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
   const [yearValue, setYearValue] = useState(String(today.getFullYear()));
   const [obraFilter, setObraFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [selectedOperario, setSelectedOperario] = useState(null);
 
   const periodValue = periodType === 'mes' ? monthValue : periodType === 'trimestre' ? trimestreValue : yearValue;
   const { start, end, label: periodLabel } = getPeriodRange(periodType, periodValue);
@@ -95,6 +104,15 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
       if (name) set.add(name);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [fichajes]);
+
+  // Años con fichajes (+ año actual) para los selectores de periodo
+  const yearsDisponibles = useMemo(() => {
+    const set = new Set([String(new Date().getFullYear())]);
+    fichajes.forEach(f => {
+      if (f.date) set.add(f.date.slice(0, 4));
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
   }, [fichajes]);
 
   // Fichajes filtrados por periodo + obra (+ operario forzado si rol restringido)
@@ -246,16 +264,36 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
         </div>
 
         {periodType === 'mes' && (
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-muted-foreground uppercase font-medium">Mes</span>
-            <Input type="month" value={monthValue} onChange={e => setMonthValue(e.target.value)} className="w-40 h-9" />
-          </div>
+          <>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] text-muted-foreground uppercase font-medium">Año</span>
+              <MobileSelect
+                value={monthValue.split('-')[0]}
+                onValueChange={(y) => setMonthValue(`${y}-${monthValue.split('-')[1] || '01'}`)}
+                triggerClassName="w-24"
+              >
+                {yearsDisponibles.map(y => <MobileSelectItem key={y} value={y}>{y}</MobileSelectItem>)}
+              </MobileSelect>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] text-muted-foreground uppercase font-medium">Mes</span>
+              <MobileSelect
+                value={monthValue.split('-')[1] || '01'}
+                onValueChange={(m) => setMonthValue(`${monthValue.split('-')[0]}-${m}`)}
+                triggerClassName="w-32"
+              >
+                {MESES.map(mes => <MobileSelectItem key={mes.v} value={mes.v}>{mes.label}</MobileSelectItem>)}
+              </MobileSelect>
+            </div>
+          </>
         )}
         {periodType === 'trimestre' && (
           <>
             <div className="flex flex-col gap-1">
               <span className="text-[10px] text-muted-foreground uppercase font-medium">Año</span>
-              <Input type="number" value={yearValue} onChange={e => setYearValue(e.target.value)} className="w-24 h-9" />
+              <MobileSelect value={yearValue} onValueChange={setYearValue} triggerClassName="w-24">
+                {yearsDisponibles.map(y => <MobileSelectItem key={y} value={y}>{y}</MobileSelectItem>)}
+              </MobileSelect>
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-[10px] text-muted-foreground uppercase font-medium">Trim.</span>
@@ -275,7 +313,9 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
         {periodType === 'año' && (
           <div className="flex flex-col gap-1">
             <span className="text-[10px] text-muted-foreground uppercase font-medium">Año</span>
-            <Input type="number" value={yearValue} onChange={e => setYearValue(e.target.value)} className="w-28 h-9" />
+            <MobileSelect value={yearValue} onValueChange={setYearValue} triggerClassName="w-28">
+              {yearsDisponibles.map(y => <MobileSelectItem key={y} value={y}>{y}</MobileSelectItem>)}
+            </MobileSelect>
           </div>
         )}
 
@@ -353,16 +393,21 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
               </thead>
               <tbody className="divide-y divide-border/50">
                 {porOperario.map(g => (
-                  <tr key={g.id} className="hover:bg-muted/30">
+                  <tr
+                    key={g.id}
+                    onClick={() => setSelectedOperario(g)}
+                    className="hover:bg-primary/5 cursor-pointer transition-colors"
+                  >
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold shrink-0">
                           {g.name?.charAt(0).toUpperCase()}
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="font-semibold truncate">{g.name}</p>
                           <p className="text-[10px] text-muted-foreground">{g.diasCount} día{g.diasCount !== 1 ? 's' : ''}</p>
                         </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                       </div>
                     </td>
                     <td className="text-right px-3 py-2.5 font-bold text-primary whitespace-nowrap">{minutosATexto(g.minutos)}</td>
@@ -398,6 +443,15 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
           Valoración = horas × coste/hora del operario. Configura el coste/hora en Ficha de operario.
         </p>
       )}
+
+      <OperarioObraDetalleDialog
+        open={!!selectedOperario}
+        onOpenChange={(o) => !o && setSelectedOperario(null)}
+        operario={selectedOperario}
+        fichajes={selectedOperario ? fichajesFiltrados.filter(f => f.operario_id === selectedOperario.id) : []}
+        obraLabel={obraLabel}
+        periodLabel={periodLabel}
+      />
     </div>
   );
 }
