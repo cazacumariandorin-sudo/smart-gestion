@@ -6,23 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import MaterialesOcrDialog from '@/components/materiales/MaterialesOcrDialog';
 import NotasGastosSourceDialog from '@/components/materiales/NotasGastosSourceDialog';
+import MaterialDocumentoCard from '@/components/materiales/MaterialDocumentoCard';
+import MaterialLineaDetalleDialog from '@/components/materiales/MaterialLineaDetalleDialog';
 import { ocrDocumentoMateriales } from '@/lib/materialesOcrClient';
-import { ScanLine, FileText, ExternalLink, Plus, Box, FileImage } from 'lucide-react';
+import { ScanLine, FileText, Box, FileImage } from 'lucide-react';
 import { useUserRole } from '@/lib/useUserRole';
 import { toast } from 'sonner';
-
-const TIPO_LABEL = { factura: 'Factura', albaran: 'Albarán', ticket: 'Ticket', proforma: 'Proforma' };
-const TIPO_COLOR = {
-  factura: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200',
-  albaran: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
-  ticket: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
-  proforma: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200',
-};
 
 export default function MaterialesOcr() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [notasOpen, setNotasOpen] = useState(false);
   const [presetFile, setPresetFile] = useState(null);
+  const [lineaDetalle, setLineaDetalle] = useState({ open: false, line: null, doc: null });
   const qc = useQueryClient();
   const { canAccess } = useUserRole();
 
@@ -87,28 +82,7 @@ export default function MaterialesOcr() {
           ) : (
             <div className="space-y-2">
               {docs.map(d => (
-                <div key={d.id} className="flex items-center gap-3 p-3 rounded-xl border bg-card hover:shadow-sm">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <FileText className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge className={`${TIPO_COLOR[d.tipo] || 'bg-slate-100'} border-0`}>{TIPO_LABEL[d.tipo] || d.tipo}</Badge>
-                      {d.numero_documento && <span className="text-xs font-mono font-semibold">{d.numero_documento}</span>}
-                      {d.proveedor_nombre && <span className="text-xs text-muted-foreground truncate">· {d.proveedor_nombre}</span>}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {d.fecha_documento || '—'} · {d.lineas_count || 0} línea{(d.lineas_count || 0) !== 1 ? 's' : ''}
-                      {d.obra_name ? ` · ${d.obra_name}` : ''}
-                    </p>
-                  </div>
-                  {d.archivo_url_mejorado && (
-                    <a href={d.archivo_url_mejorado} target="_blank" rel="noopener noreferrer"
-                      className="p-2 rounded-lg hover:bg-muted transition" title="Abrir documento">
-                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                    </a>
-                  )}
-                </div>
+                <MaterialDocumentoCard key={d.id} doc={d} onLineClick={(line, doc) => setLineaDetalle({ open: true, line, doc })} />
               ))}
             </div>
           )}
@@ -117,6 +91,7 @@ export default function MaterialesOcr() {
 
       <MaterialesOcrDialog open={dialogOpen} onClose={handleDialogClose} onSaved={onSaved} presetFile={presetFile} />
       <NotasGastosSourceDialog open={notasOpen} onClose={() => setNotasOpen(false)} onSelect={handleSelectFromNota} />
+      <MaterialLineaDetalleDialog open={lineaDetalle.open} onClose={() => setLineaDetalle({ open: false, line: null, doc: null })} line={lineaDetalle.line} doc={lineaDetalle.doc} />
     </div>
   );
 }
