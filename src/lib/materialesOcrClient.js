@@ -78,13 +78,24 @@ const RESPONSE_SCHEMA = {
   required: ['lineas'],
 };
 
-/** OCR de un documento de materiales vía función backend (orquestador primario + respaldo Anthropic). */
+/** OCR de un documento de materiales vía función backend (orquestador primario + respaldo Anthropic).
+ *  Reintenta hasta 2 veces: la llamada de IA tarda 3-8 s y puede fallar
+ *  intermitentemente (timeout transitorio, modelo sin respuesta). */
 export async function ocrDocumentoMateriales(file_url, file_tipo = 'image/jpeg') {
-  const res = await base44.functions.invoke('procesarFacturaMateriales', { file_url, file_tipo });
-  if (!res?.success || !res?.datos || !Array.isArray(res.datos.lineas)) {
-    throw new Error(res?.error || 'OCR no devolvió líneas válidas');
+  let lastErr = '';
+  for (let intento = 1; intento <= 2; intento++) {
+    try {
+      const res = await base44.functions.invoke('procesarFacturaMateriales', { file_url, file_tipo });
+      if (res?.success && res?.datos && Array.isArray(res.datos.lineas)) {
+        return { datos: res.datos, modelo: res.modelo || 'backend', fallback: !!res.fallback };
+      }
+      lastErr = res?.error || (res?.datos && !Array.isArray(res.datos.lineas) ? 'El modelo no devolvió lista de líneas' : 'OCR sin respuesta');
+    } catch (e) {
+      lastErr = String(e?.message || e).slice(0, 200);
+    }
+    if (intento < 2) await new Promise(r => setTimeout(r, 800));
   }
-  return { datos: res.datos, modelo: res.modelo || 'backend', fallback: !!res.fallback };
+  throw new Error(lastErr || 'OCR no devolvió líneas válidas');
 }
 
 /** Normaliza nombre: UPPERCASE, sin tildes ni signos. */

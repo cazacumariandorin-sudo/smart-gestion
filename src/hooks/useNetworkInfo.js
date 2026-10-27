@@ -5,13 +5,16 @@ function getConnection() {
   return navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
 }
 
-/** Timeout dinámico según RTT — cubre degradación por VoLTE en redes 4G nominales. */
+/** Timeout dinámico según RTT — cubre degradación por VoLTE en redes 4G nominales.
+ *  Suelo de 12 s: las llamadas de IA/OCR (materiales, nóminas, multas) tardan
+ *  3-8 s de forma habitual; con 5 s abortaban intermitentemente en escritorio
+ *  (RTT<50) y el SDK devolvía undefined → "OCR no devolvió líneas válidas". */
 export function getTimeoutByRtt(rtt) {
-  if (rtt == null) return 5000;
-  if (rtt < 50) return 5000;
-  if (rtt < 150) return 8000;
-  if (rtt < 500) return 15000;
-  return 20000;
+  if (rtt == null) return 12000;
+  if (rtt < 50) return 12000;
+  if (rtt < 150) return 15000;
+  if (rtt < 500) return 20000;
+  return 25000;
 }
 
 function buildInfo(prevRtt) {
@@ -60,6 +63,6 @@ export function getTimeoutByNetwork() {
     return buildInfo(null).timeout;
   } catch (e) {
     console.warn('[Network] Error calculando timeout, usando fallback:', e.message);
-    return 15000;  // Fallback seguro para navegadores sin Network API
+    return 20000;  // Fallback seguro para navegadores sin Network API
   }
 }
