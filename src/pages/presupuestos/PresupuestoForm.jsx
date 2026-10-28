@@ -1,56 +1,95 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Trash2, FileText, Loader2, Upload, Search, ClipboardCheck } from "lucide-react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { X, Plus, Trash2, FileText, Upload, Type } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import OcrUploader from "@/components/gastos/OcrUploader";
 import ParteSelector from "@/components/presupuestos/ParteSelector";
 import { extraerConceptosDesdeTexto } from "@/lib/conceptosExtractor";
+import { calcularDocumento } from "@/lib/presupuestoCalculo";
 import SimantecLogo from "@/components/SimantecLogo";
 import CorrectorOrtograficoButton from "@/components/CorrectorOrtograficoButton";
 import AutoCorrectTextarea from "@/components/ui/AutoCorrectTextarea";
 import AutoCorrectInput from "@/components/ui/AutoCorrectInput";
 
-export default function PresupuestoForm({ onSubmit, onCancel }) {
-    const [formData, setFormData] = useState({
-        titulo: "",
-        cliente_id: "",
-        cliente_name: "",
-        fecha: format(new Date(), 'yyyy-MM-dd'),
-        importe: 0,
-        conceptos: [],
-        partes_trabajo_ids: [],
-        descripcion: "",
-        notas: ""
-    });
+const IVA_OPCIONES = [21, 10, 4, 0];
+const selectCls = "h-7 w-full rounded-md border border-input bg-background px-1 text-xs";
+const eur = (n) => (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR" });
 
-    const [nuevoConcepto, setNuevoConcepto] = useState({
-        descripcion: "",
-        cantidad: 1,
-        unidad: "ud",
-        precio_unitario: 0
-    });
+// fecha 'AAAA-MM-DD' + días (sin depender de la zona horaria)
+function sumarDias(fecha, dias) {
+    const m = String(fecha || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return "";
+    const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+    d.setUTCDate(d.getUTCDate() + dias);
+    return d.toISOString().slice(0, 10);
+}
 
+// Normaliza una línea venga de donde venga (OCR, partes, presupuestos antiguos sin IVA ni tipo)
+const normalizarLinea = (c) => ({
+    tipo: c.tipo === "texto" ? "texto" : "linea",
+    descripcion: c.descripcion || "",
+    detalle: c.detalle || "",
+    cantidad: Number(c.cantidad) || 0,
+    unidad: c.unidad || "ud",
+    precio_unitario: Number(c.precio_unitario) || 0,
+    iva_pct: c.iva_pct === undefined || c.iva_pct === null ? 21 : Number(c.iva_pct),
+    parte_id: c.parte_id,
+    fecha: c.fecha,
+});
+
+const LINEA_NUEVA = { tipo: "linea", descripcion: "", cantidad: 1, unidad: "ud", precio_unitario: 0, iva_pct: 21 };
+
+/**
+ * Formulario de presupuesto (alta y edición de borradores).
+ * Props:
+ *  - onSubmit(datos), onCancel()
+ *  - presupuestoInicial: si viene, el formulario edita ese presupuesto (solo borradores)
+ *  - ocupados: Map(parteId -> código del presupuesto activo que ya lo usa); un parte solo puede estar en un presupuesto activo (DOC-04)
+ */
+export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial = null, ocupados = new Map() }) {
+    const edicion = !!presupuestoInicial;
+    const [formData, setFormData] = useState(() => {
+        const p = presupuestoInicial;
+        const fecha = p?.fecha || format(new Date(), "yyyy-MM-dd");
+        return {
+            titulo: p?.titulo || "",
+            cliente_id: p?.cliente_id || "",
+            cliente_name: p?.cliente_name || "",
+            fecha,
+            valido_hasta: p?.valido_hasta || sumarDias(fecha, 30),
+            referencia_cliente: p?.referencia_cliente || "",
+            forma_pago: p?.forma_pago || "",
+            conceptos: (p?.conceptos || []).map(normalizarLinea),
+            partes_trabajo_ids: p?.partes_trabajo_ids || [],
+            descripcion: p?.descripcion || "",
+            notas: p?.notas || "",
+        };
+    });
+    const [validoManual, setValidoManual] = useState(!!presupuestoInicial?.valido_hasta);
+    const [nuevoConcepto, setNuevoConcepto] = useState(LINEA_NUEVA);
     const [loadingPartes, setLoadingPartes] = useState(false);
     const [archivoFuente, setArchivoFuente] = useState(null);
-    const [procesandoOcr, setProcesandoOcr] = useState(false);
+
+    // Totales en vivo: mismas reglas que el servidor (IVA por línea, redondeo por línea)
+    const calculo = useMemo(() => calcularDocumento(formData.conceptos), [formData.conceptos]);
+    const lineasCalculadas = calculo.lineas;
 
     // Cargar clientes disponibles
     const { data: clientes = [] } = useQuery({
         queryKey: ['clientes_presupuesto'],
-        queryFn: () => base44.entities.Client.list('name', 200),
+        queryFn: () => base44.entities.Client.list('name', 500),
     });
 
     // Cargar partes de trabajo + partes diarios filtrados por cliente seleccionado
-    const { data: partesTrabajo = [], refetch: refetchPartes, isLoading: isLoadingPartes } = useQuery({
+    const { data: partesTrabajoBase = [], isLoading: isLoadingPartes } = useQuery({
         queryKey: ['partes_trabajo_presupuesto', formData.cliente_id],
         queryFn: async () => {
             if (!formData.cliente_id) return [];
@@ -67,7 +106,7 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                 .map(w => ({
                     id: w.id,
                     tipo: 'parte_trabajo',
-                    titulo: w.titulo || `Parte ${w.id.slice(-4)}`,
+                    titulo: w.numero_parte || w.titulo || `Parte ${w.id.slice(-4)}`,
                     obra_name: w.obra_name || 'Sin obra',
                     fecha: w.created_date,
                     sub: `${w.trabajadores?.length || 0} trabajadores`,
@@ -86,7 +125,6 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                     ...obrasCiviles.filter(o => o.client_id === formData.cliente_id).map(o => o.id),
                     ...obrasSolar.filter(o => o.client_id === formData.cliente_id).map(o => o.id),
                 ]);
-                // añadir obras referenciadas por WorkOrder del cliente
                 workOrders.filter(w => w.client_id === formData.cliente_id && w.obra_id).forEach(w => idsCliente.add(w.obra_id));
                 pdsFiltrados = partesDiarios.filter(p => p.obra_id && idsCliente.has(p.obra_id));
             }
@@ -94,7 +132,7 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
             const pdsNorm = pdsFiltrados.map(p => ({
                 id: p.id,
                 tipo: 'parte_diario',
-                titulo: `Parte diario ${format(new Date(p.fecha), 'dd/MM/yyyy', { locale: es })}`,
+                titulo: `Parte diario ${format(parseISO(String(p.fecha).slice(0, 10)), 'dd/MM/yyyy')}`,
                 obra_name: p.obra_name || 'Sin obra',
                 fecha: p.fecha,
                 sub: p.tecnico_name || '',
@@ -111,78 +149,72 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
         enabled: !!formData.cliente_id,
     });
 
+    // Los partes que ya están en otro presupuesto activo se marcan (el servidor también lo impide)
+    const partesTrabajo = useMemo(() => partesTrabajoBase.map(p => (
+        ocupados.has(p.id) ? { ...p, sub: [p.sub, `YA EN ${ocupados.get(p.id)}`].filter(Boolean).join(' · ') } : p
+    )), [partesTrabajoBase, ocupados]);
+
+    const set = (campo, valor) => setFormData(prev => ({ ...prev, [campo]: valor }));
+
+    const handleFecha = (fecha) => setFormData(prev => ({
+        ...prev,
+        fecha,
+        valido_hasta: validoManual ? prev.valido_hasta : sumarDias(fecha, 30),
+    }));
+
     const handleDatosOcrExtraidos = (datos) => {
         if (datos?.conceptos && datos.conceptos.length > 0) {
             setFormData(prev => ({
                 ...prev,
-                conceptos: [...prev.conceptos, ...datos.conceptos],
-                importe: prev.importe + (datos.importe_total || 0),
-                descripcion: datos.notas || prev.descripcion
+                conceptos: [...prev.conceptos, ...datos.conceptos.map(normalizarLinea)],
+                descripcion: datos.notas || prev.descripcion,
             }));
         }
     };
 
-    const handleArchivoFuente = (archivoInfo) => {
-        setArchivoFuente(archivoInfo);
-    };
-
     const handleAddConcepto = () => {
-        // Permitir añadir líneas sin precio (la valoración puede hacerla otro usuario)
+        // Se permiten líneas sin precio (la valoración puede hacerla otro usuario) y líneas de solo texto
         if (!nuevoConcepto.descripcion || !nuevoConcepto.descripcion.trim()) return;
-
-        const precioUnitario = parseFloat(nuevoConcepto.precio_unitario) || 0;
-        const total = (nuevoConcepto.cantidad || 1) * precioUnitario;
-        setFormData(prev => ({
-            ...prev,
-            conceptos: [...prev.conceptos, { ...nuevoConcepto, precio_unitario: precioUnitario, total }]
-        }));
-
-        setFormData(prev => ({ ...prev, importe: prev.importe + total }));
-        setNuevoConcepto({ descripcion: "", cantidad: 1, unidad: "ud", precio_unitario: 0 });
+        const linea = normalizarLinea({ ...nuevoConcepto, precio_unitario: parseFloat(nuevoConcepto.precio_unitario) || 0 });
+        setFormData(prev => ({ ...prev, conceptos: [...prev.conceptos, linea] }));
+        setNuevoConcepto(prev => ({ ...LINEA_NUEVA, tipo: prev.tipo, iva_pct: prev.iva_pct }));
     };
 
-    // Editar una línea de concepto ya rellenada (incluidas las autocompletadas) para incorporar detalles
+    // Editar una línea ya rellenada (incluidas las autocompletadas) para incorporar detalles
     const handleEditConcepto = (index, field, value) => {
         setFormData(prev => {
             const conceptos = [...prev.conceptos];
-            const prevConcepto = conceptos[index];
-            const actualizado = { ...prevConcepto, [field]: value };
-            const cant = Number(actualizado.cantidad) || 0;
-            const precio = Number(actualizado.precio_unitario) || 0;
-            const totalPrevio = Number(prevConcepto.total) || 0;
-            actualizado.total = cant * precio;
-            conceptos[index] = actualizado;
-            return { ...prev, conceptos, importe: prev.importe - totalPrevio + actualizado.total };
+            conceptos[index] = { ...conceptos[index], [field]: value };
+            return { ...prev, conceptos };
         });
     };
 
     const handleRemoveConcepto = (index) => {
-        const conceptoEliminado = formData.conceptos[index];
-        setFormData(prev => ({
-            ...prev,
-            conceptos: prev.conceptos.filter((_, i) => i !== index),
-            importe: prev.importe - conceptoEliminado.total
-        }));
+        setFormData(prev => ({ ...prev, conceptos: prev.conceptos.filter((_, i) => i !== index) }));
     };
 
     const handleToggleParteTrabajo = (parte) => {
         const ya = formData.partes_trabajo_ids.includes(parte.id);
+        if (!ya && ocupados.has(parte.id)) {
+            toast.error(`Este parte ya está en el presupuesto ${ocupados.get(parte.id)}. Un parte solo puede estar en un presupuesto activo.`);
+            return;
+        }
 
-        // Autocompletar descripción: al añadir, anexamos el resumen del parte si no está presente
+        // Autocompletar descripcion: al anadir, anexamos el resumen del parte si no esta presente
         let nuevaDesc = formData.descripcion;
         if (!ya && parte.descripcion_auto) {
             const marca = parte.descripcion_auto.trim().slice(0, 40);
             if (!formData.descripcion.includes(marca)) {
                 nuevaDesc = formData.descripcion
-                    ? `${formData.descripcion}\n— ${parte.titulo} (${parte.obra_name}):\n${parte.descripcion_auto}`
-                    : `— ${parte.titulo} (${parte.obra_name}):\n${parte.descripcion_auto}`;
+                    ? `${formData.descripcion}\n-- ${parte.titulo} (${parte.obra_name}):\n${parte.descripcion_auto}`
+                    : `-- ${parte.titulo} (${parte.obra_name}):\n${parte.descripcion_auto}`;
             }
         }
 
         // Extraer conceptos desde los materiales del parte (sin precio)
         let conceptosExtraidos = [];
         if (!ya && parte.materiales_texto) {
-            conceptosExtraidos = extraerConceptosDesdeTexto(parte.materiales_texto);
+            conceptosExtraidos = extraerConceptosDesdeTexto(parte.materiales_texto).map(normalizarLinea);
         }
 
         setFormData(prev => {
@@ -209,8 +241,29 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit(formData);
+        if (!formData.cliente_id) { toast.error("Selecciona un cliente"); return; }
+        if (formData.conceptos.length === 0) { toast.error("Añade al menos una línea al presupuesto"); return; }
+        // Los importes los calcula el servidor; aquí solo se envían las líneas
+        onSubmit({
+            ...(edicion ? { id: presupuestoInicial.id } : {}),
+            titulo: formData.titulo,
+            cliente_id: formData.cliente_id,
+            cliente_name: formData.cliente_name,
+            fecha: formData.fecha,
+            valido_hasta: formData.valido_hasta,
+            referencia_cliente: formData.referencia_cliente,
+            forma_pago: formData.forma_pago,
+            descripcion: formData.descripcion,
+            notas: formData.notas,
+            partes_trabajo_ids: formData.partes_trabajo_ids,
+            conceptos: formData.conceptos.map(c => ({
+                tipo: c.tipo, descripcion: c.descripcion, detalle: c.detalle, cantidad: c.cantidad, unidad: c.unidad,
+                precio_unitario: c.precio_unitario, iva_pct: c.iva_pct, parte_id: c.parte_id, fecha: c.fecha,
+            })),
+        });
     };
+
+    const textoNuevo = nuevoConcepto.tipo === "texto";
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -219,7 +272,7 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <SimantecLogo variant="icon" size={34} />
-                            <CardTitle>Nuevo Presupuesto</CardTitle>
+                            <CardTitle>{edicion ? `Editar presupuesto ${presupuestoInicial.codigo_registro || ""}` : "Nuevo Presupuesto"}</CardTitle>
                         </div>
                         <Button variant="ghost" size="icon" onClick={onCancel}>
                             <X className="w-4 h-4" />
@@ -228,14 +281,14 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Datos básicos */}
+                        {/* Datos basicos */}
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                                 <Label htmlFor="titulo">Título (opcional)</Label>
                                 <Input
                                     id="titulo"
                                     value={formData.titulo}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, titulo: e.target.value }))}
+                                    onChange={(e) => set("titulo", e.target.value)}
                                     placeholder="Se autogenera si está vacío"
                                 />
                             </div>
@@ -245,13 +298,8 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                                     value={formData.cliente_id}
                                     onValueChange={(value) => {
                                         const cliente = clientes.find(c => c.id === value);
-                                        setFormData(prev => ({ 
-                                            ...prev, 
-                                            cliente_id: value,
-                                            cliente_name: cliente?.name || ''
-                                        }));
+                                        setFormData(prev => ({ ...prev, cliente_id: value, cliente_name: cliente?.name || '' }));
                                     }}
-                                    required
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Seleccionar cliente" />
@@ -267,41 +315,43 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="fecha">Fecha *</Label>
-                                <Input
-                                    id="fecha"
-                                    type="date"
-                                    value={formData.fecha}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, fecha: e.target.value }))}
-                                    required
-                                />
+                                <Input id="fecha" type="date" value={formData.fecha} onChange={(e) => handleFecha(e.target.value)} required />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="importe">Importe Total (€)</Label>
+                                <Label htmlFor="valido_hasta">Válido hasta</Label>
                                 <Input
-                                    id="importe"
-                                    type="number"
-                                    step="0.01"
-                                    value={formData.importe.toFixed(2)}
-                                    readOnly
-                                    className="bg-muted font-bold"
+                                    id="valido_hasta"
+                                    type="date"
+                                    value={formData.valido_hasta}
+                                    onChange={(e) => { setValidoManual(true); set("valido_hasta", e.target.value); }}
+                                />
+                                <p className="text-[11px] text-muted-foreground">Por defecto, 30 días desde la fecha.</p>
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <Label htmlFor="referencia">Pedido / referencia del cliente (opcional)</Label>
+                                <Input
+                                    id="referencia"
+                                    value={formData.referencia_cliente}
+                                    onChange={(e) => set("referencia_cliente", e.target.value)}
+                                    placeholder="Ej.: pedido, orden de trabajo o código de obra del cliente"
                                 />
                             </div>
                         </div>
 
-                        {/* Descripción autocompletada */}
+                        {/* Descripcion autocompletada */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
                                 <Label htmlFor="descripcion">Descripción (autocompletada)</Label>
                                 <CorrectorOrtograficoButton
                                     text={formData.descripcion}
-                                    onCorrected={(t) => setFormData(prev => ({ ...prev, descripcion: t }))}
+                                    onCorrected={(t) => set("descripcion", t)}
                                     label="Corregir ortografía"
                                 />
                             </div>
                             <AutoCorrectTextarea
                                 id="descripcion"
                                 value={formData.descripcion}
-                                onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
+                                onChange={(e) => set("descripcion", e.target.value)}
                                 placeholder="Se rellena automáticamente al seleccionar partes de trabajo"
                                 className="min-h-[60px]"
                                 spellCheck
@@ -320,7 +370,7 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                             </Label>
                             <OcrUploader
                                 onDatosExtraidos={handleDatosOcrExtraidos}
-                                onArchivoSubido={handleArchivoFuente}
+                                onArchivoSubido={setArchivoFuente}
                             />
                             {archivoFuente && (
                                 <p className="text-xs text-muted-foreground">
@@ -329,100 +379,114 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                             )}
                         </div>
 
-                        {/* Conceptos */}
+                        {/* Líneas */}
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <Label>Conceptos</Label>
+                                <Label>Líneas</Label>
                                 <Badge variant="outline">{formData.conceptos.length} líneas</Badge>
                             </div>
-                            
+
                             {formData.conceptos.length > 0 && (
                                 <div className="space-y-2">
-                                    {formData.conceptos.map((concepto, index) => (
-                                        <div key={index} className="flex items-center gap-2 p-2 border rounded-lg bg-card">
-                                            <div className="flex-1 grid grid-cols-12 gap-2 text-xs items-center">
-                                                <AutoCorrectInput
-                                                    wrapperClassName="col-span-5"
-                                                    className="h-7 text-xs"
-                                                    value={concepto.descripcion}
-                                                    onChange={(e) => handleEditConcepto(index, "descripcion", e.target.value)}
-                                                    placeholder="Descripción"
-                                                    spellCheck
-                                                    lang="es"
-                                                />
-                                                <Input
-                                                    className="col-span-1 h-7 text-xs text-center px-1"
-                                                    type="number"
-                                                    value={concepto.cantidad}
-                                                    onChange={(e) => handleEditConcepto(index, "cantidad", parseFloat(e.target.value) || 0)}
-                                                />
-                                                <Input
-                                                    className="col-span-1 h-7 text-xs text-center px-1"
-                                                    value={concepto.unidad}
-                                                    onChange={(e) => handleEditConcepto(index, "unidad", e.target.value)}
-                                                />
-                                                <Input
-                                                    className="col-span-2 h-7 text-xs text-right"
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={concepto.precio_unitario}
-                                                    onChange={(e) => handleEditConcepto(index, "precio_unitario", parseFloat(e.target.value) || 0)}
-                                                    placeholder="0,00"
-                                                />
-                                                <span className="col-span-2 text-right font-bold">{concepto.total.toFixed(2)}€</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveConcepto(index)}
-                                                    className="col-span-1 text-destructive hover:text-destructive/80 flex justify-end"
-                                                >
-                                                    <Trash2 className="w-3 h-3" />
-                                                </button>
+                                    {formData.conceptos.map((concepto, index) => {
+                                        const calc = lineasCalculadas[index] || {};
+                                        const esTexto = concepto.tipo === "texto";
+                                        return (
+                                            <div key={index} className="p-2 border rounded-lg bg-card space-y-1.5">
+                                                <div className="grid grid-cols-12 gap-2 text-xs items-center">
+                                                    <AutoCorrectInput
+                                                        wrapperClassName={esTexto ? "col-span-10" : "col-span-4"}
+                                                        className="h-7 text-xs"
+                                                        value={concepto.descripcion}
+                                                        onChange={(e) => handleEditConcepto(index, "descripcion", e.target.value)}
+                                                        placeholder={esTexto ? "Línea de texto (cabecera, obra, pedido…)" : "Descripción"}
+                                                        spellCheck
+                                                        lang="es"
+                                                    />
+                                                    {!esTexto && (
+                                                        <>
+                                                            <Input className="col-span-1 h-7 text-xs text-center px-1" type="number" step="any" value={concepto.cantidad}
+                                                                onChange={(e) => handleEditConcepto(index, "cantidad", parseFloat(e.target.value) || 0)} />
+                                                            <Input className="col-span-1 h-7 text-xs text-center px-1" value={concepto.unidad}
+                                                                onChange={(e) => handleEditConcepto(index, "unidad", e.target.value)} />
+                                                            <Input className="col-span-2 h-7 text-xs text-right" type="number" step="0.01" value={concepto.precio_unitario}
+                                                                onChange={(e) => handleEditConcepto(index, "precio_unitario", parseFloat(e.target.value) || 0)} placeholder="0,00" />
+                                                            <select className={`${selectCls} col-span-1`} value={concepto.iva_pct}
+                                                                onChange={(e) => handleEditConcepto(index, "iva_pct", Number(e.target.value))} title="IVA de la línea">
+                                                                {IVA_OPCIONES.map(v => <option key={v} value={v}>{v}%</option>)}
+                                                            </select>
+                                                            <span className="col-span-2 text-right font-bold">{eur(calc.total)}</span>
+                                                        </>
+                                                    )}
+                                                    <button type="button" onClick={() => handleRemoveConcepto(index)}
+                                                        className="col-span-1 text-destructive hover:text-destructive/80 flex justify-end" title="Quitar línea">
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                                {!esTexto && (
+                                                    <AutoCorrectInput
+                                                        className="h-7 text-[11px]"
+                                                        value={concepto.detalle || ""}
+                                                        onChange={(e) => handleEditConcepto(index, "detalle", e.target.value)}
+                                                        placeholder="Detalle opcional bajo la línea (operarios, horas, materiales…)"
+                                                        spellCheck
+                                                        lang="es"
+                                                    />
+                                                )}
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
 
-                            {/* Añadir nuevo concepto */}
-                            <div className="grid gap-3 md:grid-cols-12 p-3 border rounded-lg bg-muted/30">
-                                <AutoCorrectInput
-                                    wrapperClassName="md:col-span-5"
-                                    placeholder="Descripción"
-                                    value={nuevoConcepto.descripcion}
-                                    onChange={(e) => setNuevoConcepto(prev => ({ ...prev, descripcion: e.target.value }))}
-                                    spellCheck
-                                    lang="es"
-                                />
-                                <Input
-                                    className="md:col-span-2"
-                                    type="number"
-                                    placeholder="Cant."
-                                    value={nuevoConcepto.cantidad}
-                                    onChange={(e) => setNuevoConcepto(prev => ({ ...prev, cantidad: parseFloat(e.target.value) || 1 }))}
-                                />
-                                <Input
-                                    className="md:col-span-2"
-                                    placeholder="Unidad"
-                                    value={nuevoConcepto.unidad}
-                                    onChange={(e) => setNuevoConcepto(prev => ({ ...prev, unidad: e.target.value }))}
-                                />
-                                <Input
-                                    className="md:col-span-2"
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="Precio"
-                                    value={nuevoConcepto.precio_unitario}
-                                    onChange={(e) => setNuevoConcepto(prev => ({ ...prev, precio_unitario: parseFloat(e.target.value) || 0 }))}
-                                />
-                                <Button
-                                    type="button"
-                                    className="md:col-span-1"
-                                    size="icon"
-                                    variant="outline"
-                                    onClick={handleAddConcepto}
-                                >
-                                    <Plus className="w-4 h-4" />
-                                </Button>
+                            {/* Anadir nueva línea */}
+                            <div className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                                        <input type="checkbox" checked={textoNuevo}
+                                            onChange={(e) => setNuevoConcepto(prev => ({ ...prev, tipo: e.target.checked ? "texto" : "linea" }))} />
+                                        <Type className="w-3 h-3" /> Línea de solo texto (sin importe)
+                                    </label>
+                                </div>
+                                <div className="grid gap-3 md:grid-cols-12">
+                                    <AutoCorrectInput
+                                        wrapperClassName={textoNuevo ? "md:col-span-11" : "md:col-span-4"}
+                                        placeholder={textoNuevo ? "Texto de la línea" : "Descripción"}
+                                        value={nuevoConcepto.descripcion}
+                                        onChange={(e) => setNuevoConcepto(prev => ({ ...prev, descripcion: e.target.value }))}
+                                        spellCheck
+                                        lang="es"
+                                    />
+                                    {!textoNuevo && (
+                                        <>
+                                            <Input className="md:col-span-2" type="number" step="any" placeholder="Cant." value={nuevoConcepto.cantidad}
+                                                onChange={(e) => setNuevoConcepto(prev => ({ ...prev, cantidad: parseFloat(e.target.value) || 0 }))} />
+                                            <Input className="md:col-span-1" placeholder="Unid." value={nuevoConcepto.unidad}
+                                                onChange={(e) => setNuevoConcepto(prev => ({ ...prev, unidad: e.target.value }))} />
+                                            <Input className="md:col-span-2" type="number" step="0.01" placeholder="Precio" value={nuevoConcepto.precio_unitario}
+                                                onChange={(e) => setNuevoConcepto(prev => ({ ...prev, precio_unitario: parseFloat(e.target.value) || 0 }))} />
+                                            <select className="md:col-span-2 h-9 rounded-md border border-input bg-background px-2 text-sm" value={nuevoConcepto.iva_pct}
+                                                onChange={(e) => setNuevoConcepto(prev => ({ ...prev, iva_pct: Number(e.target.value) }))} title="IVA">
+                                                {IVA_OPCIONES.map(v => <option key={v} value={v}>IVA {v}%</option>)}
+                                            </select>
+                                        </>
+                                    )}
+                                    <Button type="button" className="md:col-span-1" size="icon" variant="outline" onClick={handleAddConcepto} title="Añadir línea">
+                                        <Plus className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Totales (calculados con las mismas reglas que el servidor) */}
+                            <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+                                {calculo.desglose_iva.map(d => (
+                                    <div key={d.tipo} className="flex justify-between text-xs text-muted-foreground">
+                                        <span>Base {eur(d.base)} · IVA {d.tipo}%</span><span>{eur(d.cuota)}</span>
+                                    </div>
+                                ))}
+                                <div className="flex justify-between"><span>Base imponible</span><span className="font-medium">{eur(calculo.base_imponible)}</span></div>
+                                <div className="flex justify-between"><span>IVA</span><span className="font-medium">{eur(calculo.iva_total)}</span></div>
+                                <div className="flex justify-between text-base font-bold border-t pt-1"><span>TOTAL</span><span>{eur(calculo.total_con_iva)}</span></div>
                             </div>
                         </div>
 
@@ -443,25 +507,30 @@ export default function PresupuestoForm({ onSubmit, onCancel }) {
                             </div>
                         )}
 
-                        {/* Notas */}
+                        {/* Forma de pago y notas */}
+                        <div className="space-y-2">
+                            <Label htmlFor="forma_pago">Forma de pago (sale en el pie del PDF)</Label>
+                            <Input id="forma_pago" value={formData.forma_pago} onChange={(e) => set("forma_pago", e.target.value)}
+                                placeholder="Ej.: Transferencia bancaria a 30 días" />
+                        </div>
                         <div className="space-y-2">
                             <Label htmlFor="notas">Notas / Observaciones (opcional)</Label>
                             <AutoCorrectTextarea
                                 id="notas"
                                 value={formData.notas}
-                                onChange={(e) => setFormData(prev => ({ ...prev, notas: e.target.value }))}
-                                placeholder="Añade aquí tus observaciones personales..."
+                                onChange={(e) => set("notas", e.target.value)}
+                                placeholder="Añade aquí tus observaciones..."
                                 className="min-h-[80px]"
                             />
                         </div>
 
-                        {/* Botones de acción */}
+                        {/* Botones de accion */}
                         <div className="flex gap-3 pt-4 border-t">
                             <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
                                 Cancelar
                             </Button>
                             <Button type="submit" className="flex-1">
-                                Guardar Presupuesto
+                                {edicion ? "Guardar cambios" : "Guardar Presupuesto"}
                             </Button>
                         </div>
                     </form>
