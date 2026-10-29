@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { generarProvisional, cargarOperarios, registrarAuditoria } from '../../shared/registroLegal.ts';
 
 /**
  * forzarCierreFichajes — cierra a petición de gerencia/admin todos los fichajes
@@ -71,6 +72,7 @@ Deno.serve(async (req) => {
     // EJECUTAR — aplicar cierre
     const resultados: any[] = [];
     const errores: any[] = [];
+    const operariosMap = await cargarOperarios(base44);
 
     const horaSalida  = minutesToTime(timeToMins(HORARIO_NORMAL.fin));
     const pausaInicio = minutesToTime(timeToMins(HORARIO_NORMAL.pausa_inicio));
@@ -88,13 +90,49 @@ Deno.serve(async (req) => {
         const pausaBrutas = timeToMins(HORARIO_NORMAL.pausa_fin) - timeToMins(HORARIO_NORMAL.pausa_inicio);
         const horasTrabajadas = Math.max(0, (salidaMins - entradaMins - pausaBrutas) / 60);
 
+        const motivoCierre = `Cierre forzado por ${user.email} - ${new Date().toISOString().slice(0,16).replace('T',' ')}`;
+        const notasFinales = ((f.notas || '') + ` [${motivoCierre}]`).trim();
+
         await base44.asServiceRole.entities.Fichaje.update(f.id, {
           hora_salida:     horaSalida,
           pausa_inicio:    pausaInicio,
           pausa_fin:       pausaFin,
           horas_trabajadas: Math.round(horasTrabajadas * 100) / 100,
-          notas: ((f.notas || '') + ` [Cierre forzado por ${user.email} - ${new Date().toISOString().slice(0,16).replace('T',' ')}]`).trim(),
+          // El cierre forzado queda marcado como tal: no es un fichaje real del trabajador.
+          origen:          'cierre_forzado_gerencia',
+          cerrado_por:     user.email,
+          fecha_cierre:    new Date().toISOString(),
+          motivo_cierre:   motivoCierre,
+          notas: notasFinales,
         });
+
+        // Genera/actualiza la versión legal PROVISIONAL (nunca oficial: eso es de administración).
+        try {
+          await generarProvisional(base44, {
+            fichaje: {
+              ...f,
+              hora_salida: horaSalida,
+              pausa_inicio: pausaInicio,
+              pausa_fin: pausaFin,
+              horas_trabajadas: Math.round(horasTrabajadas * 100) / 100,
+              origen: 'cierre_forzado_gerencia',
+              notas: notasFinales,
+            },
+            operario: operariosMap[f.operario_id],
+            usuario: user,
+            origen: 'cierre_forzado_gerencia',
+            motivo: motivoCierre,
+          });
+          await registrarAuditoria(base44, {
+            entidad: 'Fichaje',
+            registro_id: f.id,
+            accion: 'fichaje_cerrado_forzado',
+            usuario: user.email,
+            rol: user.role,
+            motivo: motivoCierre,
+            origen: 'cierre_forzado_gerencia',
+          });
+        } catch (_e) { /* la capa legal no bloquea el cierre operativo */ }
 
         resultados.push({
           operario_name: f.operario_name,

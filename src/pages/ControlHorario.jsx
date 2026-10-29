@@ -7,7 +7,8 @@ import AlarmasTab from '@/components/horario/AlarmasTab';
 import ApuntesTab from '@/components/horario/ApuntesTab';
 import FaltasTab from '@/components/horario/FaltasTab';
 import CierreForzadoPanel from '@/components/horario/CierreForzadoPanel';
-import { Clock, BarChart3, Bell, ClipboardList, Zap, UserX } from 'lucide-react';
+import RegistroLegalTab from '@/components/horario/RegistroLegalTab';
+import { Clock, BarChart3, Bell, ClipboardList, Zap, UserX, ShieldCheck } from 'lucide-react';
 import { useAlarmas } from '@/hooks/useAlarmas';
 import { useTabState } from '@/hooks/useTabState';
 import { useUserRole } from '@/lib/useUserRole';
@@ -22,6 +23,8 @@ export default function ControlHorario() {
   const showAlarmas = isAdmin || isGerencia || isAdministracion;
   const showApuntes = isAdmin || isGerencia || isAdministracion || isJefeObra || isOperario || role === 'técnico';
   const showFaltas = isAdmin || isGerencia || isAdministracion || isJefeObra || isOperario || role === 'técnico' || role === 'control_horario';
+  // Registro legal: administración/admin gestionan; gerencia, control horario y trabajadores solo consultan.
+  const showLegal = isAdmin || isGerencia || isAdministracion || role === 'control_horario' || role === 'técnico' || role === 'operario';
 
   const { data: alarmas = [] } = useQuery({
     queryKey: ['alarmas'],
@@ -50,6 +53,7 @@ export default function ControlHorario() {
             { value: 'faltas',   label: 'Faltas',    icon: UserX,        color: 'bg-purple-500 hover:bg-purple-600 border-purple-600 shadow-purple-200', show: showFaltas },
             { value: 'alarmas',  label: 'Alarmas',   icon: Bell,         color: 'bg-rose-500 hover:bg-rose-600 border-rose-600 shadow-rose-200', show: showAlarmas },
             { value: 'cierre-forzado', label: 'Cierre Forzado', icon: Zap, color: 'bg-amber-500 hover:bg-amber-600 border-amber-600 shadow-amber-200', show: showCierreForzado },
+            { value: 'legal', label: 'Registro legal', icon: ShieldCheck, color: 'bg-slate-700 hover:bg-slate-800 border-slate-800 shadow-slate-200', show: showLegal },
           ].filter(t => t.show).map(({ value, label, icon: Icon, color }) => (
             <button
               key={value}
@@ -73,6 +77,7 @@ export default function ControlHorario() {
           <TabsTrigger value="faltas" />
           <TabsTrigger value="alarmas" />
           {showCierreForzado && <TabsTrigger value="cierre-forzado" />}
+          {showLegal && <TabsTrigger value="legal" />}
         </TabsList>
 
         <TabsContent value="fichajes"><FichajesTab /></TabsContent>
@@ -83,6 +88,11 @@ export default function ControlHorario() {
         {showCierreForzado && (
           <TabsContent value="cierre-forzado">
             <CierreForzadoPanel />
+          </TabsContent>
+        )}
+        {showLegal && (
+          <TabsContent value="legal">
+            <RegistroLegalTab />
           </TabsContent>
         )}
       </Tabs>

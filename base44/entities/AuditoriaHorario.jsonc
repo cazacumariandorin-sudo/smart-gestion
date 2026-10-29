@@ -1,0 +1,151 @@
+{
+  "name": "AuditoriaHorario",
+  "type": "object",
+  "description": "Registro append-only de toda acci\u00f3n sobre fichajes y registros legales (qui\u00e9n, cu\u00e1ndo, qu\u00e9 cambi\u00f3 y por qu\u00e9). Da trazabilidad al cierre forzado, la validaci\u00f3n de administraci\u00f3n y las exportaciones legales.",
+  "properties": {
+    "entidad": {
+      "type": "string",
+      "description": "Entidad afectada: Fichaje o RegistroHorarioLegal."
+    },
+    "registro_id": {
+      "type": "string",
+      "description": "ID del registro afectado."
+    },
+    "accion": {
+      "type": "string",
+      "enum": [
+        "fichaje_creado",
+        "fichaje_editado",
+        "fichaje_cerrado_forzado",
+        "fichaje_cerrado_automatico",
+        "registro_legal_provisional_generado",
+        "registro_legal_provisional_actualizado",
+        "fichaje_validado_admin",
+        "fichaje_rechazado_admin",
+        "fichaje_anulado",
+        "exportacion_legal_generada"
+      ],
+      "description": "Acci\u00f3n auditada."
+    },
+    "usuario": {
+      "type": "string",
+      "description": "Email del usuario que ejecut\u00f3 la acci\u00f3n (o 'sistema')."
+    },
+    "rol": {
+      "type": "string",
+      "description": "Rol del usuario en el momento de la acci\u00f3n."
+    },
+    "fecha_hora": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO de la acci\u00f3n."
+    },
+    "campo": {
+      "type": "string",
+      "description": "Campo modificado (si aplica)."
+    },
+    "valor_anterior": {
+      "type": "string",
+      "description": "Valor previo (texto)."
+    },
+    "valor_nuevo": {
+      "type": "string",
+      "description": "Valor nuevo (texto)."
+    },
+    "motivo": {
+      "type": "string",
+      "description": "Motivo o justificaci\u00f3n."
+    },
+    "origen": {
+      "type": "string",
+      "description": "Origen de la acci\u00f3n (app, cierre autom\u00e1tico, exportaci\u00f3n...)."
+    },
+    "version_legal": {
+      "type": "number",
+      "description": "Versi\u00f3n legal asociada (si aplica)."
+    }
+  },
+  "required": [
+    "accion",
+    "usuario",
+    "fecha_hora"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "control_horario"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

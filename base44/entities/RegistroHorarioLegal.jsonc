@@ -1,0 +1,277 @@
+{
+  "name": "RegistroHorarioLegal",
+  "type": "object",
+  "description": "Versi\u00f3n legal/oficial de un fichaje, versionada y separada del registro operativo. Solo administraci\u00f3n/admin la crea, valida y exporta. Un cierre forzado de gerencia genera como m\u00e1ximo un registro PROVISIONAL: nunca es prueba legal hasta que administraci\u00f3n lo marca como oficial.",
+  "properties": {
+    "fichaje_id": {
+      "type": "string",
+      "description": "ID del Fichaje operativo del que deriva este registro legal."
+    },
+    "operario_id": {
+      "type": "string",
+      "description": "ID del Operario (trabajador)."
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del trabajador (desnormalizado)."
+    },
+    "operario_email": {
+      "type": "string",
+      "description": "Email del usuario vinculado al operario. Permite que el propio trabajador lea sus registros (RLS)."
+    },
+    "operario_dni": {
+      "type": "string",
+      "description": "DNI/NIE del trabajador (desnormalizado)."
+    },
+    "empresa_id": {
+      "type": "string",
+      "description": "ID de la empresa (Entidad Empresa)."
+    },
+    "empresa_nombre": {
+      "type": "string",
+      "description": "Nombre de la empresa (desnormalizado)."
+    },
+    "centro_trabajo_id": {
+      "type": "string",
+      "description": "ID del centro de trabajo (opcional)."
+    },
+    "centro_trabajo_nombre": {
+      "type": "string",
+      "description": "Nombre del centro de trabajo (opcional)."
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la jornada (YYYY-MM-DD)."
+    },
+    "dia_semana": {
+      "type": "string",
+      "description": "D\u00eda de la semana en texto (Lunes, Martes...)."
+    },
+    "hora_entrada": {
+      "type": "string",
+      "description": "Hora de entrada (HH:MM)."
+    },
+    "hora_salida": {
+      "type": "string",
+      "description": "Hora de salida (HH:MM)."
+    },
+    "pausa_inicio": {
+      "type": "string",
+      "description": "Inicio de pausa (HH:MM)."
+    },
+    "pausa_fin": {
+      "type": "string",
+      "description": "Fin de pausa (HH:MM)."
+    },
+    "pausa_minutos": {
+      "type": "number",
+      "description": "Minutos de pausa."
+    },
+    "jornada_real_minutos": {
+      "type": "number",
+      "description": "Minutos de presencia (trabajo + pausa)."
+    },
+    "horas_trabajadas": {
+      "type": "number",
+      "description": "Horas netas trabajadas."
+    },
+    "horas_extra_ordinarias": {
+      "type": "number",
+      "default": 0,
+      "description": "Horas extra ordinarias."
+    },
+    "horas_extra_festivas": {
+      "type": "number",
+      "default": 0,
+      "description": "Horas extra en festivo."
+    },
+    "horas_nocturnas": {
+      "type": "number",
+      "default": 0,
+      "description": "Horas nocturnas."
+    },
+    "horas_festivas": {
+      "type": "number",
+      "default": 0,
+      "description": "Horas trabajadas en festivo."
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra (opcional)."
+    },
+    "obra_nombre": {
+      "type": "string",
+      "description": "Nombre de la obra (desnormalizado)."
+    },
+    "obra_tipo": {
+      "type": "string",
+      "description": "Tipo de obra o lugar de trabajo."
+    },
+    "notas": {
+      "type": "string",
+      "description": "Notas operativas heredadas del fichaje."
+    },
+    "origen": {
+      "type": "string",
+      "enum": [
+        "trabajador",
+        "gerencia",
+        "cierre_forzado_gerencia",
+        "cierre_automatico",
+        "administracion",
+        "importacion"
+      ],
+      "default": "trabajador",
+      "description": "Origen del registro legal."
+    },
+    "fuente_registro": {
+      "type": "string",
+      "description": "Origen concreto registrado en el fichaje operativo en el momento de generar el registro legal."
+    },
+    "estado_legal": {
+      "type": "string",
+      "enum": [
+        "provisional",
+        "pendiente_validacion",
+        "validado_admin",
+        "oficial",
+        "anulado",
+        "corregido"
+      ],
+      "default": "provisional",
+      "description": "\u00daNICA fuente de verdad del estado legal. Solo 'oficial' y 'validado_admin' entran en la exportaci\u00f3n legal."
+    },
+    "version_legal": {
+      "type": "number",
+      "default": 1,
+      "description": "Versi\u00f3n del registro legal para el mismo fichaje. Se incrementa en cada correcci\u00f3n; nunca se reescribe una versi\u00f3n oficial."
+    },
+    "generado_por": {
+      "type": "string",
+      "description": "Email del usuario (o 'sistema') que gener\u00f3 el registro legal."
+    },
+    "validado_por": {
+      "type": "string",
+      "description": "Email del usuario de administraci\u00f3n/admin que valid\u00f3 el registro como oficial."
+    },
+    "validado_en": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la validaci\u00f3n."
+    },
+    "motivo_validacion": {
+      "type": "string",
+      "description": "Motivo o justificaci\u00f3n de la validaci\u00f3n."
+    },
+    "observaciones_interna": {
+      "type": "string",
+      "description": "Observaciones internas de administraci\u00f3n."
+    },
+    "hash_o_firma": {
+      "type": "string",
+      "description": "Huella de integridad del registro en el momento de su validaci\u00f3n (reservado)."
+    },
+    "exportado_en": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima vez que el registro se incluy\u00f3 en una exportaci\u00f3n legal."
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true,
+      "description": "False cuando una versi\u00f3n posterior lo reemplaza."
+    }
+  },
+  "required": [
+    "fecha",
+    "operario_id",
+    "estado_legal"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "control_horario"
+          }
+        },
+        {
+          "data.operario_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

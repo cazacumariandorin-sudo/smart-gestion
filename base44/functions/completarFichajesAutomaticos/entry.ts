@@ -86,6 +86,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        const motivoAuto = 'Cierre automático 18:04 - operario no fichó salida';
         await base44.asServiceRole.entities.Fichaje.update(fichaje.id, {
           hora_salida: minutesToTime(timeToMinutes(HORARIO_NORMAL.fin)),
           pausa_inicio: minutesToTime(timeToMinutes(HORARIO_NORMAL.pausa_inicio)),
@@ -96,7 +97,12 @@ Deno.serve(async (req) => {
             HORARIO_NORMAL.pausa_inicio,
             HORARIO_NORMAL.pausa_fin
           ),
-          notas: (fichaje.notas || '') + ' [Cierre automático 18:04 - operario no fichó salida]',
+          // Marca de origen: un cierre automático no es un fichaje real del trabajador.
+          origen: 'cierre_automatico',
+          cerrado_por: 'sistema',
+          fecha_cierre: new Date().toISOString(),
+          motivo_cierre: motivoAuto,
+          notas: (fichaje.notas || '') + ` [${motivoAuto}]`,
         });
 
         resultados.completados++;

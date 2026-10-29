@@ -1,6 +1,7 @@
 {
   "name": "Fichaje",
   "type": "object",
+  "description": "Registro OPERATIVO de jornada. No es prueba legal: el registro legal oficial vive en RegistroHorarioLegal y solo lo valida administraci\u00f3n.",
   "properties": {
     "operario_id": {
       "type": "string",
@@ -62,6 +63,32 @@
     "notas": {
       "type": "string",
       "description": "Observaciones"
+    },
+    "origen": {
+      "type": "string",
+      "enum": [
+        "trabajador",
+        "gerencia",
+        "cierre_forzado_gerencia",
+        "cierre_automatico",
+        "administracion",
+        "importacion"
+      ],
+      "default": "trabajador",
+      "description": "C\u00f3mo se origin\u00f3/cerr\u00f3 el registro. Un cierre forzado o autom\u00e1tico queda marcado aqu\u00ed y NO equivale a un fichaje real del trabajador."
+    },
+    "cerrado_por": {
+      "type": "string",
+      "description": "Email del usuario (o 'sistema') que cerr\u00f3 el fichaje cuando no lo cerr\u00f3 el propio trabajador."
+    },
+    "fecha_cierre": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO del cierre autom\u00e1tico o forzado."
+    },
+    "motivo_cierre": {
+      "type": "string",
+      "description": "Motivo del cierre forzado o autom\u00e1tico."
     }
   },
   "required": [
@@ -171,11 +198,6 @@
         {
           "user_condition": {
             "role": "propietario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "control_horario"
           }
         },
         {
