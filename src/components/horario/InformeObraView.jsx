@@ -99,16 +99,18 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
     return map;
   }, [operarios]);
 
-  // Faltas de asistencia por operario dentro del periodo (registradas en el módulo Faltas)
+  // Ausencias por operario dentro del periodo (registradas en el módulo Faltas).
+  // Se cuenta por SOLAPE de fechas: una ausencia que empieza antes pero toca el periodo también computa.
   const faltasPorOperario = useMemo(() => {
     const map = {};
     faltas.forEach(fl => {
       if (forceOperarioId && fl.operario_id !== forceOperarioId) return;
       if (!fl.fecha_inicio) return;
-      const d = parseISO(fl.fecha_inicio.slice(0, 10));
-      if (d < start || d > end) return;
+      const ini = parseISO(fl.fecha_inicio.slice(0, 10));
+      const fin = fl.fecha_fin ? parseISO(fl.fecha_fin.slice(0, 10)) : ini;
+      if (fin < start || ini > end) return;
       if (!map[fl.operario_id]) {
-        map[fl.operario_id] = { total: 0, injustificadas: 0, justificadas: 0, pendientes: 0, dias: 0 };
+        map[fl.operario_id] = { total: 0, injustificadas: 0, justificadas: 0, pendientes: 0, dias: 0, name: fl.operario_name || '' };
       }
       const m = map[fl.operario_id];
       m.total += 1;
@@ -169,21 +171,33 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
       map[f.operario_id].fichajes += 1;
       if (f.date) map[f.operario_id].dias.add(f.date.slice(0, 10));
     });
+    // Incluir operarios con ausencias en el periodo aunque no tengan fichajes (p. ej. baja todo el mes).
+    // Solo cuando no hay obra filtrada: con una obra concreta la ausencia no es imputable a esa obra.
+    if (obraFilter === 'all') {
+      Object.entries(faltasPorOperario).forEach(([opId, info]) => {
+        if (map[opId]) return;
+        const op = operarios.find(o => o.id === opId);
+        map[opId] = { id: opId, name: op?.name || info.name || '—', minutos: 0, fichajes: 0, dias: new Set() };
+      });
+    }
     return Object.values(map)
       .map(g => {
         const horas = g.minutos / 60;
         const coste = costeHoraMap[g.id] || 0;
+        const fi = faltasPorOperario[g.id];
         return {
           ...g,
           horas,
           costeHora: coste,
           valoracion: horas * coste,
           diasCount: g.dias.size,
+          ausencias: fi?.total || 0,
+          ausenciasInjustificadas: fi?.injustificadas || 0,
         };
       })
       .filter(g => !search || g.name.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => b.minutos - a.minutos);
-  }, [fichajesFiltrados, costeHoraMap, search]);
+  }, [fichajesFiltrados, costeHoraMap, search, faltasPorOperario, obraFilter, operarios]);
 
   // Totales
   const totales = useMemo(() => {
@@ -204,10 +218,12 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
   // ── Exportación ──────────────────────────────────────────────────────────────
 
   const obraLabel = obraFilter === 'all' ? 'Todas las obras' : obraFilter;
+  // Las ausencias no se imputan a una obra concreta: solo se muestran y exportan en la vista global.
+  const showAusencias = obraFilter === 'all';
 
-  const exportExcel = () => exportInformeObraExcel({ porOperario, totales, fichajes: fichajesFiltrados, obraFilter, periodValue });
+  const exportExcel = () => exportInformeObraExcel({ porOperario, totales, fichajes: fichajesFiltrados, obraFilter, periodValue, showAusencias });
 
-  const exportPDF = () => exportInformeObraPDF({ porOperario, totales, fichajes: fichajesFiltrados, obraLabel, periodLabel, obraFilter, periodValue });
+  const exportPDF = () => exportInformeObraPDF({ porOperario, totales, fichajes: fichajesFiltrados, obraLabel, periodLabel, obraFilter, periodValue, showAusencias });
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -350,7 +366,7 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
                   <th className="text-right font-semibold px-3 py-2">Horas</th>
                   <th className="text-right font-semibold px-3 py-2 hidden sm:table-cell">Días</th>
                   <th className="text-right font-semibold px-3 py-2">Fichajes</th>
-                  <th className="text-right font-semibold px-3 py-2">Faltas</th>
+                  {showAusencias && <th className="text-right font-semibold px-3 py-2">Ausencias</th>}
                   <th className="text-right font-semibold px-3 py-2 hidden xs:table-cell">Coste/h</th>
                   <th className="text-right font-semibold px-3 py-2">Valoración</th>
                 </tr>
@@ -379,6 +395,7 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
                     <td className="text-right px-3 py-2.5 font-bold text-primary whitespace-nowrap">{minutosATexto(g.minutos)}</td>
                     <td className="text-right px-3 py-2.5 hidden sm:table-cell text-muted-foreground">{g.diasCount}</td>
                     <td className="text-right px-3 py-2.5 text-muted-foreground">{g.fichajes}</td>
+                    {showAusencias && (
                     <td className="text-right px-3 py-2.5">
                       {fInfo ? (
                         <span
@@ -386,12 +403,13 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
                             fInfo.injustificadas > 0 ? 'text-red-600 dark:text-red-400' :
                             fInfo.pendientes > 0 ? 'text-amber-600 dark:text-amber-400' :
                             'text-emerald-600 dark:text-emerald-400')}
-                          title={`${fInfo.total} falta(s) · ${fInfo.justificadas} justificada(s) · ${fInfo.injustificadas} injustificada(s) · ${fInfo.pendientes} pendiente(s)`}
+                          title={`${fInfo.total} ausencia(s) · ${fInfo.justificadas} justificada(s) · ${fInfo.injustificadas} injustificada(s) · ${fInfo.pendientes} pendiente(s)`}
                         >
                           <UserX className="w-3.5 h-3.5" />{fInfo.total}
                         </span>
                       ) : <span className="text-muted-foreground">—</span>}
                     </td>
+                    )}
                     <td className="text-right px-3 py-2.5 hidden xs:table-cell text-muted-foreground whitespace-nowrap">
                       {g.costeHora ? `${g.costeHora} €` : '—'}
                     </td>
@@ -408,7 +426,7 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
                   <td className="text-right px-3 py-3 text-primary">{minutosATexto(totales.totalMins)}</td>
                   <td className="text-right px-3 py-3 hidden sm:table-cell"></td>
                   <td className="text-right px-3 py-3">{totales.totalFichajes}</td>
-                  <td className="text-right px-3 py-3 text-foreground">{totales.totalFaltas || '—'}</td>
+                  {showAusencias && <td className="text-right px-3 py-3 text-foreground">{totales.totalFaltas || '—'}</td>}
                   <td className="text-right px-3 py-3 hidden xs:table-cell"></td>
                   <td className="text-right px-3 py-3 text-emerald-600 dark:text-emerald-400">{totales.totalValor.toFixed(0)} €</td>
                 </tr>
