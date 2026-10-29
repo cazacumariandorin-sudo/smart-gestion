@@ -21,17 +21,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import OperarioDetalleDialog from '@/components/vacaciones/OperarioDetalleDialog';
 import AusenciaCard from '@/components/vacaciones/AusenciaCard';
+import { TIPOS_VACACION, TIPOS_FALTA, cfgRegistro } from '@/lib/ausenciasCatalogo';
 import PanelAprobacionCancelaciones from '@/components/vacaciones/PanelAprobacionCancelaciones';
 
-const TIPOS = [
-  { key: 'vacaciones', label: 'Vacaciones', color: 'bg-blue-500', light: 'bg-blue-100 text-blue-700 border-blue-200' },
-  { key: 'baja_medica', label: 'Baja médica', color: 'bg-red-500', light: 'bg-red-100 text-red-700 border-red-200' },
-  { key: 'dia_asunto_personal', label: 'Asunto personal', color: 'bg-purple-500', light: 'bg-purple-100 text-purple-700 border-purple-200' },
-  { key: 'fiesta', label: 'Fiesta / festivo', color: 'bg-yellow-500', light: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-  { key: 'vacaciones_convenio', label: 'Vacaciones convenio', color: 'bg-emerald-500', light: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-];
-
-const tipoCfg = Object.fromEntries(TIPOS.map(t => [t.key, t]));
+const TIPOS = TIPOS_VACACION;
 
 const emptyForm = {
   operario_id: '', operario_name: '', fecha_inicio: '', fecha_fin: '',
@@ -46,12 +39,12 @@ export default function CalendarioVacaciones() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [filterOp, setFilterOp] = useState('all');
-  const [selectedDayEvents, setSelectedDayEvents] = useState(null);
-  const [detalleOpen, setDetalleOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
   const [activeTab, setActiveTab] = useState('calendario');
 
   const onRefresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: ['vacaciones'] });
+    qc.invalidateQueries({ queryKey: ['faltas_asistencia'] });
     qc.invalidateQueries({ queryKey: ['operarios'] });
   }, [qc]);
   const { pullDistance, refreshing } = usePullToRefresh(onRefresh);
@@ -59,6 +52,10 @@ export default function CalendarioVacaciones() {
   const { data: vacaciones = [], isLoading } = useQuery({
     queryKey: ['vacaciones'],
     queryFn: () => base44.entities.Vacacion.list('-fecha_inicio', 500),
+  });
+  const { data: faltas = [] } = useQuery({
+    queryKey: ['faltas_asistencia'],
+    queryFn: () => base44.entities.FaltaAsistencia.list('-fecha_inicio', 500),
   });
   const { data: operarios = [] } = useQuery({
     queryKey: ['operarios'],
@@ -95,6 +92,16 @@ export default function CalendarioVacaciones() {
     'vacaciones',
     (prev, { id, d }) => prev.map(v => v.id === id ? { ...v, ...d } : v)
   );
+  const updateFaltaM = useOptimisticMutation(
+    ({ id, d }) => base44.entities.FaltaAsistencia.update(id, d),
+    'faltas_asistencia',
+    (prev, { id, d }) => prev.map(f => f.id === id ? { ...f, ...d } : f)
+  );
+  const deleteFaltaM = useOptimisticMutation(
+    id => base44.entities.FaltaAsistencia.delete(id),
+    'faltas_asistencia',
+    (prev, id) => prev.filter(f => f.id !== id)
+  );
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -125,14 +132,20 @@ export default function CalendarioVacaciones() {
     return vacaciones.filter(v => filterOp === 'all' || v.operario_id === filterOp);
   }, [vacaciones, filterOp]);
 
-  // Get events for a specific day
-  const getEventsForDay = (day) => {
-    const dayStr = format(day, 'yyyy-MM-dd');
-    return filtered.filter(v => {
-      const start = v.fecha_inicio;
-      const end = v.fecha_fin || v.fecha_inicio;
-      return dayStr >= start && dayStr <= end;
-    });
+  // Faltas registradas en el módulo de Control Horario
+  const filteredFaltas = useMemo(() => {
+    return faltas.filter(f => filterOp === 'all' || f.operario_id === filterOp);
+  }, [faltas, filterOp]);
+
+  // Registros (ausencia o falta) que cubren un día concreto
+  const getRegistrosForDay = (dayStr) => {
+    const vacs = filtered
+      .filter(v => dayStr >= v.fecha_inicio && dayStr <= (v.fecha_fin || v.fecha_inicio))
+      .map(v => ({ ...v, source: 'vacacion' }));
+    const falts = filteredFaltas
+      .filter(f => dayStr >= f.fecha_inicio && dayStr <= (f.fecha_fin || f.fecha_inicio))
+      .map(f => ({ ...f, source: 'falta' }));
+    return [...vacs, ...falts];
   };
 
   // Festivos Comunidad de Madrid 2025-2026
@@ -219,13 +232,12 @@ export default function CalendarioVacaciones() {
 
   const firstDayOfWeek = (monthDays[0]?.getDay() + 6) % 7; // Monday-based
 
-  const handleDayClick = (day) => {
-    const events = getEventsForDay(day);
-    if (events.length > 0) {
-      setSelectedDayEvents(events);
-      setDetalleOpen(true);
-    }
-  };
+  const handleDayClick = (day) => setSelectedDay(format(day, 'yyyy-MM-dd'));
+
+  const registrosDia = useMemo(
+    () => (selectedDay ? getRegistrosForDay(selectedDay) : []),
+    [selectedDay, filtered, filteredFaltas]
+  );
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
@@ -243,8 +255,12 @@ export default function CalendarioVacaciones() {
       </div>
 
       {/* Leyenda tipos */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         {TIPOS.map(t => (
+          <Badge key={t.key} variant="outline" className={t.light + ' text-xs'}>{t.label}</Badge>
+        ))}
+        <span className="text-xs font-semibold text-muted-foreground ml-1">Faltas:</span>
+        {TIPOS_FALTA.map(t => (
           <Badge key={t.key} variant="outline" className={t.light + ' text-xs'}>{t.label}</Badge>
         ))}
       </div>
@@ -287,10 +303,10 @@ export default function CalendarioVacaciones() {
             <div className="grid grid-cols-7 gap-1">
               {Array(firstDayOfWeek).fill(null).map((_, i) => <div key={`empty-${i}`} />)}
               {monthDays.map(day => {
-                const events = getEventsForDay(day);
-                const weekend = isWeekend(day);
-                const hasEvents = events.length > 0;
                 const dayStr = format(day, 'yyyy-MM-dd');
+                const registros = getRegistrosForDay(dayStr);
+                const weekend = isWeekend(day);
+                const hasEvents = registros.length > 0;
                 const festivo = festivosMadrid.find(f => f.fecha === dayStr);
                 const isHoliday = !!festivo;
                 const isToday = format(day, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
@@ -335,15 +351,15 @@ export default function CalendarioVacaciones() {
                     
                     {/* Eventos */}
                     <div className="space-y-0.5">
-                      {events.slice(0, 2).map((ev, idx) => {
-                        const cfg = tipoCfg[ev.tipo];
+                      {registros.slice(0, 2).map((reg, idx) => {
+                        const cfg = cfgRegistro(reg);
                         return (
-                          <div key={idx} className={cn('text-[9px] rounded px-1 py-0.5 truncate font-medium', cfg?.color || 'bg-primary', 'text-white')}>
-                            {ev.operario_name?.split(' ')[0]}
+                          <div key={idx} className={cn('text-[9px] rounded px-1 py-0.5 truncate font-medium', cfg.color, 'text-white')}>
+                            {reg.operario_name?.split(' ')[0]}{reg.source === 'falta' ? ' · F' : ''}
                           </div>
                         );
                       })}
-                      {events.length > 2 && <div className="text-[9px] text-muted-foreground">+{events.length - 2}</div>}
+                      {registros.length > 2 && <div className="text-[9px] text-muted-foreground">+{registros.length - 2}</div>}
                     </div>
                   </div>
                 );
@@ -584,11 +600,18 @@ export default function CalendarioVacaciones() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog detalle operario */}
-      <OperarioDetalleDialog 
-        open={detalleOpen} 
-        onOpenChange={setDetalleOpen} 
-        events={selectedDayEvents} 
+      {/* Dialog detalle del día (ausencias y faltas, editables) */}
+      <OperarioDetalleDialog
+        open={!!selectedDay}
+        onOpenChange={(v) => { if (!v) setSelectedDay(null); }}
+        fecha={selectedDay}
+        registros={registrosDia}
+        isOperario={isOperarioRole}
+        onEditVacacion={(id, d) => updateM.mutate({ id, d })}
+        onDeleteVacacion={(id) => deleteM.mutate(id)}
+        onApproveVacacion={(id, aprobado) => updateM.mutate({ id, d: { aprobado } })}
+        onEditFalta={(id, d) => updateFaltaM.mutate({ id, d })}
+        onDeleteFalta={(id) => deleteFaltaM.mutate(id)}
       />
     </div>
   );
