@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Building2, Users, Clock, Euro, Download, Search, FileSpreadsheet, ChevronRight } from 'lucide-react';
+import { Building2, Users, Clock, Euro, Download, Search, FileSpreadsheet, ChevronRight, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -87,6 +87,10 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
     queryKey: ['operarios'],
     queryFn: () => base44.entities.Operario.list('name', 500),
   });
+  const { data: faltas = [] } = useQuery({
+    queryKey: ['faltas-asistencia'],
+    queryFn: () => base44.entities.FaltaAsistencia.list('-fecha_inicio', 500),
+  });
 
   // Mapa operario_id → coste_hora
   const costeHoraMap = useMemo(() => {
@@ -94,6 +98,27 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
     operarios.forEach(o => { if (o.coste_hora) map[o.id] = o.coste_hora; });
     return map;
   }, [operarios]);
+
+  // Faltas de asistencia por operario dentro del periodo (registradas en el módulo Faltas)
+  const faltasPorOperario = useMemo(() => {
+    const map = {};
+    faltas.forEach(fl => {
+      if (forceOperarioId && fl.operario_id !== forceOperarioId) return;
+      if (!fl.fecha_inicio) return;
+      const d = parseISO(fl.fecha_inicio.slice(0, 10));
+      if (d < start || d > end) return;
+      if (!map[fl.operario_id]) {
+        map[fl.operario_id] = { total: 0, injustificadas: 0, justificadas: 0, pendientes: 0, dias: 0 };
+      }
+      const m = map[fl.operario_id];
+      m.total += 1;
+      m.dias += fl.dias || 1;
+      if (fl.estado === 'injustificada' || fl.estado === 'sancionada') m.injustificadas += 1;
+      else if (fl.estado === 'justificada') m.justificadas += 1;
+      else m.pendientes += 1;
+    });
+    return map;
+  }, [faltas, start, end, forceOperarioId]);
 
   // Lista de obras únicas con fichajes (derivada de project / obra_name)
   const obrasDisponibles = useMemo(() => {
@@ -165,14 +190,16 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
     const totalMins = porOperario.reduce((s, g) => s + g.minutos, 0);
     const totalValor = porOperario.reduce((s, g) => s + g.valoracion, 0);
     const totalDias = fichajesFiltrados.reduce((s, f) => s + (f.date ? 1 : 0), 0);
+    const totalFaltas = Object.values(faltasPorOperario).reduce((s, m) => s + m.total, 0);
     return {
       totalMins,
       totalHoras: totalMins / 60,
       totalValor,
       numOperarios: porOperario.length,
       totalFichajes: fichajesFiltrados.length,
+      totalFaltas,
     };
-  }, [porOperario, fichajesFiltrados]);
+  }, [porOperario, fichajesFiltrados, faltasPorOperario]);
 
   // ── Exportación ──────────────────────────────────────────────────────────────
 
@@ -323,12 +350,15 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
                   <th className="text-right font-semibold px-3 py-2">Horas</th>
                   <th className="text-right font-semibold px-3 py-2 hidden sm:table-cell">Días</th>
                   <th className="text-right font-semibold px-3 py-2">Fichajes</th>
+                  <th className="text-right font-semibold px-3 py-2">Faltas</th>
                   <th className="text-right font-semibold px-3 py-2 hidden xs:table-cell">Coste/h</th>
                   <th className="text-right font-semibold px-3 py-2">Valoración</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {porOperario.map(g => (
+                {porOperario.map(g => {
+                  const fInfo = faltasPorOperario[g.id];
+                  return (
                   <tr
                     key={g.id}
                     onClick={() => setSelectedOperario(g)}
@@ -349,6 +379,19 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
                     <td className="text-right px-3 py-2.5 font-bold text-primary whitespace-nowrap">{minutosATexto(g.minutos)}</td>
                     <td className="text-right px-3 py-2.5 hidden sm:table-cell text-muted-foreground">{g.diasCount}</td>
                     <td className="text-right px-3 py-2.5 text-muted-foreground">{g.fichajes}</td>
+                    <td className="text-right px-3 py-2.5">
+                      {fInfo ? (
+                        <span
+                          className={cn('inline-flex items-center gap-1 text-xs font-bold',
+                            fInfo.injustificadas > 0 ? 'text-red-600 dark:text-red-400' :
+                            fInfo.pendientes > 0 ? 'text-amber-600 dark:text-amber-400' :
+                            'text-emerald-600 dark:text-emerald-400')}
+                          title={`${fInfo.total} falta(s) · ${fInfo.justificadas} justificada(s) · ${fInfo.injustificadas} injustificada(s) · ${fInfo.pendientes} pendiente(s)`}
+                        >
+                          <UserX className="w-3.5 h-3.5" />{fInfo.total}
+                        </span>
+                      ) : <span className="text-muted-foreground">—</span>}
+                    </td>
                     <td className="text-right px-3 py-2.5 hidden xs:table-cell text-muted-foreground whitespace-nowrap">
                       {g.costeHora ? `${g.costeHora} €` : '—'}
                     </td>
@@ -356,7 +399,8 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
                       {g.valoracion > 0 ? `${g.valoracion.toFixed(0)} €` : '—'}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
               <tfoot className="bg-muted/60 border-t-2 border-border">
                 <tr className="font-bold">
@@ -364,6 +408,7 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
                   <td className="text-right px-3 py-3 text-primary">{minutosATexto(totales.totalMins)}</td>
                   <td className="text-right px-3 py-3 hidden sm:table-cell"></td>
                   <td className="text-right px-3 py-3">{totales.totalFichajes}</td>
+                  <td className="text-right px-3 py-3 text-foreground">{totales.totalFaltas || '—'}</td>
                   <td className="text-right px-3 py-3 hidden xs:table-cell"></td>
                   <td className="text-right px-3 py-3 text-emerald-600 dark:text-emerald-400">{totales.totalValor.toFixed(0)} €</td>
                 </tr>
