@@ -23,6 +23,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { format, parseISO, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import QueryErrorFallback from '@/components/QueryErrorFallback';
+import { toast } from 'sonner';
+import { mensajeConflictoAusencia } from '@/lib/conflictoAusencias';
 
 const UNITS = ['m', 'm²', 'm³', 'ud', 'kg', 'l', 'h', 'ml', 'tn'];
 const emptyApunte = { concepto: '', unidad: 'ud', cantidad: '', precio_unitario: '', total: '' };
@@ -139,7 +141,11 @@ export default function FichajesTab() {
     setForm(p => ({ ...p, obra_id: obra_id || '', obra_name: obra_name || '', obra_tipo: obra_tipo || 'otro', project: project || obra_name || '' }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!editing) {
+      const conflicto = await mensajeConflictoAusencia(form.operario_id, form.date);
+      if (conflicto) { toast.error(conflicto); return; }
+    }
     const horas = calcularHoras(form.hora_entrada, form.hora_salida, form.pausa_inicio, form.pausa_fin);
     const data = { ...form, horas_trabajadas: horas, project: form.obra_name || form.project };
     editing ? updateM.mutate({ id: editing.id, d: data }) : createM.mutate(data);

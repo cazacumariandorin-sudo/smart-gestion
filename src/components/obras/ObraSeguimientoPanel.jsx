@@ -18,6 +18,8 @@ import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
 import { Plus, Pencil, CheckCircle2, BarChart3, Clock, ClipboardList, Loader2, Save, AlertTriangle } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { toast } from 'sonner';
+import { mensajeConflictoAusencia } from '@/lib/conflictoAusencias';
 import { Link } from 'react-router-dom';
 
 const SEMAFORO = {
@@ -151,7 +153,9 @@ export default function ObraSeguimientoPanel({ obra, obraTipo = 'civil' }) {
     if (prevision) await updatePrevM.mutateAsync({ id: prevision.id, d: { status: 'completada' } });
   };
 
-  const handleSaveApunte = () => {
+  const handleSaveApunte = async () => {
+    const conflicto = await mensajeConflictoAusencia(apunteForm.operario_id, apunteForm.date);
+    if (conflicto) { toast.error(conflicto); return; }
     const d = { ...apunteForm, cantidad: parseFloat(apunteForm.cantidad) || 0, precio_unitario: parseFloat(apunteForm.precio_unitario) || undefined };
     createApunteM.mutate(d);
   };

@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
+import { toast } from 'sonner';
+import { mensajeConflictoAusencia } from '@/lib/conflictoAusencias';
 import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
 import { Plus, Download, Trash2, Pencil, Save, Loader2, ClipboardList, TrendingUp } from 'lucide-react';
 import VoiceInputButton from '@/components/ui/VoiceInputButton';
@@ -147,7 +149,11 @@ export default function ApuntesTab() {
       .catch(() => {});
   }, [user?.email, user?.role]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!editing) {
+      const conflicto = await mensajeConflictoAusencia(form.operario_id, form.date);
+      if (conflicto) { toast.error(conflicto); return; }
+    }
     const qty = parseFloat(form.cantidad) || 0;
     const price = parseFloat(form.precio_unitario) || 0;
     const data = { ...form, cantidad: qty, precio_unitario: price || undefined, total: qty && price ? +(qty * price).toFixed(2) : undefined };

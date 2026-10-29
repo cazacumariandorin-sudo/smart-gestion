@@ -21,6 +21,7 @@ import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
 import { User, Zap, Plus, Clock, CheckCircle2, AlertTriangle, Loader2, Pencil, Save, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { mensajeConflictoAusencia } from '@/lib/conflictoAusencias';
 import { cn } from '@/lib/utils';
 
 function horasMinutos(hStr) {
@@ -182,6 +183,8 @@ export default function GestionDiaSheet({ date, fichajes = [], operarios = [], o
   const handleCrear = async () => {
     if (!form.operario_id) { toast.error('Selecciona un operario'); return; }
     if (!form.hora_entrada) { toast.error('Indica la hora de entrada'); return; }
+    const conflicto = await mensajeConflictoAusencia(form.operario_id, fecha);
+    if (conflicto) { toast.error(conflicto); return; }
     const op = operarios.find(o => o.id === form.operario_id);
     setCreando(true);
     try {

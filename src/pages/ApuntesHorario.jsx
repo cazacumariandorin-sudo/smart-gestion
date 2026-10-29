@@ -14,6 +14,8 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
 import { useUserRole } from '@/lib/useUserRole';
+import { toast } from 'sonner';
+import { mensajeConflictoAusencia } from '@/lib/conflictoAusencias';
 
 const EMPTY_FORM = {
   operario_id: '',
@@ -122,6 +124,13 @@ export default function ApuntesHorario() {
     setForm(f => ({ ...f, obra_id: val, obra_name: obra?.name || '' }));
   };
 
+  // No se permite registrar jornada en un día con ausencia o falta registrada
+  const handleGuardar = async () => {
+    const conflicto = await mensajeConflictoAusencia(form.operario_id, form.date);
+    if (conflicto) { toast.error(conflicto); return; }
+    createMutation.mutate(form);
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
@@ -195,7 +204,7 @@ export default function ApuntesHorario() {
             </div>
             <div className="flex gap-2 mt-4 justify-end">
               <Button variant="outline" size="sm" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }}>Cancelar</Button>
-              <Button size="sm" onClick={() => createMutation.mutate(form)}
+              <Button size="sm" onClick={handleGuardar}
                 disabled={!form.operario_id || !form.concepto || !form.cantidad || createMutation.isPending}>
                 Guardar
               </Button>
