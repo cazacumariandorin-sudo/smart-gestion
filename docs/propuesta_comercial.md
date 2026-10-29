@@ -7,7 +7,8 @@ Diseñar una arquitectura de producto para que la app pueda ofrecer varias edici
 - versión interna operativa de la empresa,
 - versión de obra / cliente,
 - versión administrativa / legal,
-- versión completa.
+- versión completa,
+- versión demo comercial / prueba sin datos reales.
 
 La propuesta se basa en tres pilares:
 
@@ -21,7 +22,7 @@ La intención es que el mismo software pueda servir para:
 - supervisión de obra,
 - cumplimiento legal y administrativa,
 - gestión completa del negocio,
-- sin mezclar datos irrelevantes con la vista oficial de cumplimiento.
+- y una prueba comercial guiada sin riesgo para los datos reales del cliente.
 
 ## 2. Principio general
 
@@ -35,7 +36,8 @@ Debe existir una base común con:
 - módulos funcionales,
 - exportaciones,
 - views por entorno,
-- feature flags por plan.
+- feature flags por plan,
+- modo demo con datos sintéticos.
 
 A partir de ahí, cada edición activa solo los módulos necesarios y limita la información visible según el tipo de usuario.
 
@@ -56,7 +58,8 @@ Esta capa es compartida por todas las ediciones:
 - exportaciones genéricas,
 - almacenamiento,
 - retención documental,
-- seguridad y control de accesos.
+- seguridad y control de accesos,
+- modo demo / sandbox.
 
 ### 3.2. Módulos funcionales
 
@@ -77,6 +80,7 @@ Los módulos principales deberían estar desacoplados y activarse por plan:
 - `auditoria_legal`
 - `export_legal`
 - `reporting`
+- `demo_sandbox`
 
 Cada edición activa un subconjunto de estos módulos.
 
@@ -89,6 +93,7 @@ La app debe distinguir al menos estas vistas:
 - `administracion_legal`
 - `auditor_externo`
 - `completa`
+- `demo_trial`
 
 El acceso a cada vista se define por:
 
@@ -97,7 +102,8 @@ El acceso a cada vista se define por:
 - permisos concretos,
 - módulo activado,
 - entidad/tabla permitida,
-- campo visible/oculto.
+- campo visible/oculto,
+- estado de la sesión demo.
 
 ## 4. Estructura de roles por edición
 
@@ -113,6 +119,7 @@ El acceso a cada vista se define por:
 - `auditor_externo`
 - `admin_legal`
 - `admin_empresa`
+- `demo_evaluador`
 
 ## 4.2. Roles por edición
 
@@ -192,6 +199,27 @@ Permisos:
 - todas las vistas
 - todos los módulos activados
 
+### Edición 5: Demo comercial / prueba gratuita
+
+Roles activos:
+
+- `demo_evaluador`
+- `admin_empresa`
+- `gerencia`
+- `administracion`
+- `operario`
+- `cliente_obra`
+- `jefe_obra`
+
+Permisos mínimos:
+
+- acceso completo a la demo durante un plazo limitado,
+- datos sintéticos en una empresa de prueba,
+- sin acceso a datos reales de terceros,
+- sin activación de producción ni de clientes reales,
+- exportación demo y visualización completa,
+- no se permite uso comercial real ni migración de datos durante la demo.
+
 ## 5. Módulos activos por plan
 
 ## 5.1. Plan Básico: Control horario
@@ -270,6 +298,24 @@ Módulos activos:
   - `reporting`
   - `operaciones_generales`
 
+## 5.5. Plan Demo comercial / prueba sin datos reales
+
+Módulos activos:
+
+- todos los módulos del plan completo o del plan elegido en la demo,
+- pero con datos seedados ficticios,
+- sin acceso a producción,
+- sin autenticación con clientes reales,
+- con datos de ejemplo y roles demo.
+
+Reglas especiales:
+
+- la demo se ejecuta en un tenant aislado,
+- los datos no son exportables reales,
+- la expiración se controla por fecha,
+- el menú puede mostrar un banner `Demo / Prueba / Sin datos reales`,
+- la demo debe resetearse fácilmente o recrearse cada vez que el cliente la inicia.
+
 ## 6. Arquitectura de permisos
 
 ## 6.1. Estructura de permisos recomendada
@@ -277,7 +323,7 @@ Módulos activos:
 El sistema debe usar una estructura tipo RBAC + ABAC:
 
 - RBAC: rol asignado al usuario
-- ABAC: condiciones dinámicas (empresa, obra, trabajador, plan, entorno)
+- ABAC: condiciones dinámicas (empresa, obra, trabajador, plan, entorno, tenancy/demo)
 
 Ejemplo:
 
@@ -291,7 +337,10 @@ Ejemplo:
 - `can_view_internal_dashboard`
 - `can_view_client_data`
 - `can_view_compliance_view`
-- `can_view_obra_details` 
+- `can_view_obra_details`
+- `can_access_demo_tenant`
+- `can_export_demo_data`
+- `can_use_trial_mode`
 
 ## 6.2. Modelo recomendado de permisos
 
@@ -336,6 +385,7 @@ Se permite ver o editar cierta entidad:
 - `RegistroHorarioLegal`
 - `AuditoriaHorario`
 - `DocumentoObra`
+- `DemoTenantData`
 
 ### C. Por campo
 
@@ -345,6 +395,7 @@ Ejemplo:
 
 - en la vista legal, ocultar: `precio`, `coste`, `id_cliente`, `notas_comerciales`, `comentarios_internos`
 - en la vista oficial, mostrar solo: `fecha`, `entrada`, `salida`, `pausa`, `trabajador`, `validación`, `estado legal`
+- en demo, ocultar el acceso a “Producción” o “Datos reales” y mostrar banner de demo sintética
 
 ### D. Por entorno
 
@@ -352,6 +403,7 @@ Ejemplo:
 - `legal_oficial`
 - `cliente_obra`
 - `auditor_externo`
+- `demo_trial`
 
 ## 7. Vista oficial / compliance: ocultación de datos no relevantes
 
@@ -360,9 +412,10 @@ El entorno legal debe tener una capa de rendered views con minimización de dato
 ### 7.1. Datos visibles para la vista oficial
 
 - trabajador
-- DNI/NIE si es requerido
+- identificación mínima
 - fecha
-- entrada/salida
+- entrada
+- salida
 - pausa
 - horas trabajadas
 - incidencias relevantes
@@ -385,7 +438,7 @@ El entorno legal debe tener una capa de rendered views con minimización de dato
 - comentarios no vinculados a la jornada
 - documentos internos no requeridos por control horario
 
-## 8. Arquitectura para distinguir entorno interno vs oficial
+## 8. Arquitectura para distinguir entorno interno vs oficial vs demo
 
 Se recomienda una estructura como esta:
 
@@ -403,12 +456,17 @@ src/
       legal/
       informes/
       auditoria/
+    demo/
+      sandbox/
+      seed/
+      trial/
     shared/
       auth/
       roles/
       permissions/
       audit/
       exports/
+      demo-flags/
 ```
 
 La lógica podría ser:
@@ -416,8 +474,9 @@ La lógica podría ser:
 - `internal` -> carga todos los módulos disponibles según el plan
 - `official` -> carga solo la vista legal
 - `client` -> carga solo la vista del cliente / obra
+- `demo` -> carga datos de prueba, banner de demo, expiración por fecha, tenant aislado
 
-## 9. Propuesta de feature flags por plan
+## 9. Propuesta de feature flags por plan y demo
 
 ```json
 {
@@ -472,6 +531,31 @@ La lógica podría ser:
         "admin_legal",
         "client_obra"
       ]
+    },
+    "demo_trial": {
+      "modules": [
+        "control_horario",
+        "obra",
+        "operarios",
+        "documentos",
+        "incidencias",
+        "dashboard",
+        "compliance_legal",
+        "export_legal"
+      ],
+      "roles": [
+        "demo_evaluador",
+        "admin_empresa",
+        "gerencia",
+        "administracion",
+        "operario",
+        "cliente_obra",
+        "jefe_obra"
+      ],
+      "demo": true,
+      "durationDays": 14,
+      "seedData": true,
+      "realDataBlocked": true
     }
   }
 }
@@ -547,7 +631,18 @@ Permisos:
 - no edición
 - no acceso a información comercial no relevante
 
-## 11. Propuesta de edición comercial
+### 10.8. Usuario demo / evaluador
+
+Permisos:
+
+- acceso a la demo comercial
+- navegación por todos los módulos activos de la edición demo
+- datos sintéticos
+- tiempo limitado de prueba
+- no acceso a producción ni migración real
+- no exportación fuera del entorno demo
+
+## 11. Propuesta de edición comercial con demo
 
 ## 11.1. Plan 1: Solo control horario
 
@@ -590,7 +685,7 @@ No incluye:
 - exportación oficial
 - gestión interna de personal
 
-## 11.3. Plan 3: Administración / Legal
+## 11.3. Plan 3: Administrativa / Legal
 
 Orientado a:
 
@@ -624,9 +719,59 @@ Incluye:
 - informes ejecutivos
 - operaciones internas
 
-## 12. Recomendación de diseño para la app
+## 11.5. Plan 5: Demo comercial / prueba de x días
 
-### 12.1. No duplicar app por versión
+Orientado a:
+
+- posibles clientes que quieren probar la app sin riesgo y sin datos reales.
+
+Requisitos:
+
+- se activa con una fecha de fin de prueba,
+- usa un tenant aislado,
+- carga datos sintéticos generados automáticamente,
+- no permite operaciones de producción real,
+- todos los módulos principales activos para que el cliente vea el alcance completo,
+- se marca con un banner `Demo / Prueba / Datos ficticios`,
+- la expiración puede ser 7, 14, 21, 30 o 45 días según la estrategia comercial.
+
+## 12. Recomendación para la demo comercial
+
+La versión demo debe funcionar como una “sandbox” realista, no como una versión limitada sin valor.
+
+Debe permitir:
+
+- explorar la funcionalidad completa,
+- probar módulos de gestión,
+- validar la UX,
+- evaluar permisos y roles,
+- exportar informes demo,
+- simular un caso de negocio con datos ficticios,
+- comparar la app con necesidades reales,
+- sin afectar a datos reales ni a clientes reales.
+
+Se recomienda:
+
+- `tenant_demo` aislado,
+- `datos_seed` automáticos,
+- `watermark` visual en la UI,
+- `banner de expiración` visible siempre,
+- `bloqueo de exportación real` con etiqueta `demo`,
+- `reset` del entorno demo al iniciar una nueva prueba.
+
+## 13. Reglas de la demo comercial
+
+1. La demo no puede usarse con datos reales.
+2. La demo debe tener un tiempo de caducidad configurable.
+3. La demo debe indicarse claramente como `demo` en interfaz y exportaciones.
+4. La demo debe usar un tenant separado y sin acceso a datos de producción.
+5. La demo debe permitir una experiencia de transición al plan real.
+6. La demo debe ser fácil de resetear y reutilizar.
+7. La exportación demo debe estar claramente marcada como no oficial.
+
+## 14. Recomendación de diseño para la app
+
+### 14.1. No duplicar app por versión
 
 La mejor solución es tener:
 
@@ -634,13 +779,24 @@ La mejor solución es tener:
 - módulos diferentes,
 - roles y permisos por entorno,
 - vistas por plan,
-- feature flags.
+- feature flags,
+- tenant demo aislado.
 
-### 12.2. La vista oficial debe estar gobernada por redacción de datos
+### 14.2. La vista oficial debe estar gobernada por redacción de datos
 
 Esto significa que incluso si el plan completo está activado, la vista legal debe mostrar solo lo que es relevante para la administración. La app puede tener acceso completo a la base, pero la vista debería estar “redactada” según el contexto legal.
 
-## 13. Ventaja comercial
+### 14.3. La demo debe ser un entorno paralelo
+
+La demo no debería mezclarse con la versión productiva. Debe tener:
+
+- un tenant distinto,
+- un estado `demo=true`,
+- datos synthetic,
+- expiración del período de prueba,
+- acceso restringido a exportaciones reales.
+
+## 15. Ventaja comercial
 
 Esta propuesta permite vender el producto en varias dimensiones:
 
@@ -649,6 +805,7 @@ Esta propuesta permite vender el producto en varias dimensiones:
 - tipo de usuario
 - necesidad legal y administrativa
 - nivel de acceso
+- prueba sin riesgo
 
 Es más sostenible que crear varias apps separadas, porque mantiene:
 
@@ -656,30 +813,33 @@ Es más sostenible que crear varias apps separadas, porque mantiene:
 - menor coste de mantenimiento,
 - más seguridad,
 - mejor capacidad de crecimiento,
-- diferenciación clara por plan.
+- diferenciación clara por plan,
+- demo comercial navegable y útil.
 
-## 14. Conclusión
+## 16. Conclusión
 
-Sí, este criterio puede aplicarse a toda la app.
+Sí, este criterio puede aplicarse a toda la app, y además se debe incorporar la dimensión de demo comercial.
 
-La recomendación técnica es construir una plataforma modular con:
+La mejor arquitectura es:
 
-- roles,
-- módulos,
-- permisos dinámicos,
-- feature flags por plan,
-- vista oficial / compliance minimizada,
-- exportación legal separada,
-- auditoría y control de acceso.
+- una sola base de producto,
+- varios módulos,
+- varios roles,
+- varios planes,
+- y una capa legal/compliance separada,
+- plus un entorno demo con datos sintéticos,
+- acceso limitado a producción,
+- fecha de expiración y banner claro de prueba.
 
-De esta forma, se pueden definir modelos como:
+Esto permite:
 
-- solo control horario,
-- solo cliente / obra,
-- solo administrativa / legal,
-- versión completa,
+- vender “solo control horario”,
+- vender “solo obra / cliente”,
+- vender “administrativa / legal”,
+- vender “completa”,
+- y ofrecer una demo total con período de prueba sin riesgo para datos reales.
 
-sin duplicar la aplicación ni mezclar funciones internas con la evidencia legal.
+La demo comercial no sustituye la versión final; es una capa de evaluación que reduce fricción comercial y permite valorar la solución antes de la compra real.
 
 ---
 
