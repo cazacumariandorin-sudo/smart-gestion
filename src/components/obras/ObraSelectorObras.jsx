@@ -14,35 +14,35 @@ const FIXED = [
   { id: '__otro', name: '📍 Otro', tipo: 'otro' },
 ];
 
-export default function ObraSelectorObras({ value, onChange, placeholder = 'Seleccionar obra...', triggerClassName, clientFilter, onClientDetected }) {
+export default function ObraSelectorObras({ value, onChange, placeholder = 'Seleccionar obra...', triggerClassName, clientFilter, onClientDetected, incluirFinalizadas = false }) {
+  // Sin caché: cada vez que se abre el selector se vuelve a pedir la lista completa,
+  // de modo que una obra recién creada aparece inmediatamente.
   const { data: obrasCivilesRaw = [] } = useQuery({
     queryKey: ['obras-selector'],
-    queryFn: async () => {
-      const all = await base44.entities.Obra.list('name', 300);
-      return all.filter(o => o.status !== 'finalizada');
-    },
-    staleTime: 5 * 60 * 1000,
+    queryFn: () => base44.entities.Obra.list('name', 500),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
   const { data: obrasSolarRaw = [] } = useQuery({
     queryKey: ['solar-obras-selector'],
-    queryFn: async () => {
-      const all = await base44.entities.SolarObra.list('name', 300);
-      return all.filter(o => o.status !== 'finalizada');
-    },
-    staleTime: 5 * 60 * 1000,
+    queryFn: () => base44.entities.SolarObra.list('name', 500),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Filtrado por cliente cuando se proporciona clientFilter (vínculo cliente↔obra)
-  const obrasCiviles = clientFilter
-    ? obrasCivilesRaw.filter(o => o.client_id === clientFilter)
-    : obrasCivilesRaw;
-  const obrasSolar = clientFilter
-    ? obrasSolarRaw.filter(o => o.client_id === clientFilter)
-    : obrasSolarRaw;
+  const porCliente = (lista) => (clientFilter ? lista.filter(o => o.client_id === clientFilter) : lista);
+
+  const obrasCivilesTodas = porCliente(obrasCivilesRaw);
+  const obrasSolar = porCliente(obrasSolarRaw.filter(o => o.status !== 'finalizada'));
+  const obrasCiviles = obrasCivilesTodas.filter(o => o.status !== 'finalizada');
+  const obrasFinalizadas = incluirFinalizadas
+    ? obrasCivilesTodas.filter(o => o.status === 'finalizada')
+    : [];
 
   const handleChange = (val) => {
     if (!val) { onChange({ obra_id: null, obra_name: '', obra_tipo: 'otro', project: '' }); return; }
-    const civil = obrasCiviles.find(o => o.id === val);
+    const civil = obrasCivilesTodas.find(o => o.id === val);
     if (civil) {
       onClientDetected?.({ client_id: civil.client_id || '', client_name: civil.client_name || '' });
       onChange({ obra_id: civil.id, obra_name: civil.name, obra_tipo: 'obra_civil', project: civil.name });
@@ -57,6 +57,15 @@ export default function ObraSelectorObras({ value, onChange, placeholder = 'Sele
     const fixed = FIXED.find(f => f.id === val);
     if (fixed) { onChange({ obra_id: null, obra_name: fixed.name.replace(/^[^ ]+ /, ''), obra_tipo: fixed.tipo, project: fixed.name.replace(/^[^ ]+ /, '') }); return; }
   };
+
+  // Si el fichaje apunta a una obra que ya no está en la lista (p. ej. obra eliminada),
+  // se añade igualmente para no perder el valor guardado.
+  const idActual = value?.obra_id || '';
+  const obraActualHuerfana = idActual
+    && !obrasCivilesTodas.some(o => o.id === idActual)
+    && !obrasSolar.some(o => o.id === idActual)
+    ? { id: idActual, name: value?.obra_name || 'Obra actual' }
+    : null;
 
   // Compute current select value (id) from obra_id or legacy project
   const currentVal = value?.obra_id
@@ -77,6 +86,12 @@ export default function ObraSelectorObras({ value, onChange, placeholder = 'Sele
       {obrasSolar.map(o => (
         <MobileSelectItem key={o.id} value={o.id}>☀️ {o.name}{o.status === 'pausada' ? ' (pausada)' : ''}</MobileSelectItem>
       ))}
+      {obrasFinalizadas.map(o => (
+        <MobileSelectItem key={o.id} value={o.id}>🏗 {o.name} (finalizada)</MobileSelectItem>
+      ))}
+      {obraActualHuerfana && (
+        <MobileSelectItem value={obraActualHuerfana.id}>🏗 {obraActualHuerfana.name}</MobileSelectItem>
+      )}
       {FIXED.map(f => (
         <MobileSelectItem key={f.id} value={f.id}>{f.name}</MobileSelectItem>
       ))}

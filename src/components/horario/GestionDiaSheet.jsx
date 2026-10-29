@@ -5,7 +5,7 @@
  *  - forzar el cierre de los fichajes abiertos (sin salida) para esa fecha
  *  - crear manualmente un fichaje para un operario que no lo registró
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -139,7 +139,7 @@ function FichajeRow({ f, enAusencia = false }) {
             <Label className="text-xs">Obra / lugar</Label>
             <ObraSelectorObras value={{ obra_id: form.obra_id, obra_name: form.obra_name, obra_tipo: form.obra_tipo }}
               onChange={v => setForm(s => ({ ...s, obra_id: v.obra_id || '', obra_name: v.obra_name || '', obra_tipo: v.obra_tipo || 'obra_civil', project: v.project || v.obra_name || '' }))}
-              triggerClassName="w-full h-9" />
+              incluirFinalizadas triggerClassName="w-full h-9" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Notas</Label>
@@ -242,6 +242,13 @@ export default function GestionDiaSheet({ date, fichajes = [], ausencias = [], o
       finally { setClosing(false); }
     }
   };
+
+  // Al abrir el panel se refresca la lista de obras (incluye las recién creadas)
+  useEffect(() => {
+    if (!open) return;
+    qc.invalidateQueries({ queryKey: ['obras-selector'] });
+    qc.invalidateQueries({ queryKey: ['solar-obras-selector'] });
+  }, [open, qc]);
 
   if (!date) return null;
   const totalMins = fichajes.reduce((s, f) => s + calcularMinutosFichaje(f), 0);
@@ -351,7 +358,7 @@ export default function GestionDiaSheet({ date, fichajes = [], ausencias = [], o
                   <Label className="text-xs">Obra / lugar (opcional)</Label>
                   <ObraSelectorObras value={{ obra_id: form.obra_id, obra_name: form.obra_name, obra_tipo: form.obra_tipo }}
                     onChange={v => setForm(s => ({ ...s, obra_id: v.obra_id || '', obra_name: v.obra_name || '', obra_tipo: v.obra_tipo || 'obra_civil', project: v.project || v.obra_name || '' }))}
-                    triggerClassName="w-full h-10" />
+                    incluirFinalizadas triggerClassName="w-full h-10" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Motivo / nota (opcional)</Label>
