@@ -22,6 +22,7 @@ import { minutosATexto, calcularMinutosFichaje, useFichajesShared } from './Info
 import OperarioObraDetalleDialog from './OperarioObraDetalleDialog';
 import { exportInformeObraExcel, exportInformeObraPDF } from '@/lib/informeObraExport';
 import QueryErrorFallback from '@/components/QueryErrorFallback';
+import { useAusenciasHorario, diasEnRango, metaAusencia } from '@/hooks/useAusenciasHorario';
 
 const MESES = [
   { v: '01', label: 'Enero' }, { v: '02', label: 'Febrero' }, { v: '03', label: 'Marzo' },
@@ -87,10 +88,8 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
     queryKey: ['operarios'],
     queryFn: () => base44.entities.Operario.list('name', 500),
   });
-  const { data: faltas = [] } = useQuery({
-    queryKey: ['faltas-asistencia'],
-    queryFn: () => base44.entities.FaltaAsistencia.list('-fecha_inicio', 500),
-  });
+  // Ausencias unificadas: Calendario Vacaciones (bajas, permisos, asuntos propios) + módulo Faltas
+  const { ausencias } = useAusenciasHorario();
 
   // Mapa operario_id → coste_hora
   const costeHoraMap = useMemo(() => {
@@ -99,28 +98,27 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
     return map;
   }, [operarios]);
 
-  // Ausencias por operario dentro del periodo (registradas en el módulo Faltas).
+  // Ausencias por operario dentro del periodo: vacaciones, bajas médicas, permisos y faltas.
   // Se cuenta por SOLAPE de fechas: una ausencia que empieza antes pero toca el periodo también computa.
   const faltasPorOperario = useMemo(() => {
     const map = {};
-    faltas.forEach(fl => {
-      if (forceOperarioId && fl.operario_id !== forceOperarioId) return;
-      if (!fl.fecha_inicio) return;
-      const ini = parseISO(fl.fecha_inicio.slice(0, 10));
-      const fin = fl.fecha_fin ? parseISO(fl.fecha_fin.slice(0, 10)) : ini;
-      if (fin < start || ini > end) return;
-      if (!map[fl.operario_id]) {
-        map[fl.operario_id] = { total: 0, injustificadas: 0, justificadas: 0, pendientes: 0, dias: 0, name: fl.operario_name || '' };
+    ausencias.forEach(a => {
+      if (forceOperarioId && a.operario_id !== forceOperarioId) return;
+      const dias = diasEnRango(a, start, end);
+      if (!dias) return;
+      if (!map[a.operario_id]) {
+        map[a.operario_id] = { total: 0, injustificadas: 0, justificadas: 0, pendientes: 0, dias: 0, name: a.operario_name || '', tipos: {} };
       }
-      const m = map[fl.operario_id];
+      const m = map[a.operario_id];
       m.total += 1;
-      m.dias += fl.dias || 1;
-      if (fl.estado === 'injustificada' || fl.estado === 'sancionada') m.injustificadas += 1;
-      else if (fl.estado === 'justificada') m.justificadas += 1;
+      m.dias += dias;
+      m.tipos[a.tipo] = (m.tipos[a.tipo] || 0) + 1;
+      if (a.tipo === 'ausencia_injustificada') m.injustificadas += 1;
+      else if (['ausencia_justificada', 'permiso_retribuido', 'baja_medica'].includes(a.tipo)) m.justificadas += 1;
       else m.pendientes += 1;
     });
     return map;
-  }, [faltas, start, end, forceOperarioId]);
+  }, [ausencias, start, end, forceOperarioId]);
 
   // Lista de obras únicas con fichajes (derivada de project / obra_name)
   const obrasDisponibles = useMemo(() => {
@@ -403,7 +401,7 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
                             fInfo.injustificadas > 0 ? 'text-red-600 dark:text-red-400' :
                             fInfo.pendientes > 0 ? 'text-amber-600 dark:text-amber-400' :
                             'text-emerald-600 dark:text-emerald-400')}
-                          title={`${fInfo.total} ausencia(s) · ${fInfo.justificadas} justificada(s) · ${fInfo.injustificadas} injustificada(s) · ${fInfo.pendientes} pendiente(s)`}
+                          title={`${fInfo.total} ausencia(s) · ${fInfo.dias} día(s)${fInfo.injustificadas ? ` · ${fInfo.injustificadas} injustificada(s)` : ''} · ${Object.entries(fInfo.tipos).map(([t, n]) => `${metaAusencia(t).label}: ${n}`).join(' · ')}`}
                         >
                           <UserX className="w-3.5 h-3.5" />{fInfo.total}
                         </span>

@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 import CalendarioHorarioView from './CalendarioHorarioView';
+import { useAusenciasHorario } from '@/hooks/useAusenciasHorario';
 import InformeObraView from './InformeObraView';
 import QueryErrorFallback from '@/components/QueryErrorFallback';
 
@@ -322,6 +323,8 @@ export default function InformesTab() {
     queryKey: ['operarios'],
     queryFn: () => base44.entities.Operario.list('name', 200),
   });
+  // Ausencias registradas en Calendario Vacaciones (bajas, permisos...) y en Faltas
+  const { ausencias } = useAusenciasHorario();
 
   const myOperario = isOwnDataOnly
     ? (operarios.find(o => o.user_email === user?.email) ||
@@ -340,6 +343,12 @@ export default function InformesTab() {
     }
     return true;
   }), [fichajes, opFilter, mode, isOwnDataOnly, myOperario]);
+
+  const ausenciasFiltradas = useMemo(() => ausencias.filter(a => {
+    if (isOwnDataOnly && (!myOperario || a.operario_id !== myOperario.id)) return false;
+    if (opFilter !== 'all' && a.operario_id !== opFilter) return false;
+    return true;
+  }), [ausencias, opFilter, isOwnDataOnly, myOperario]);
 
   const generatePDF = () => {
     const doc = new jsPDF();
@@ -438,7 +447,7 @@ export default function InformesTab() {
         <QueryErrorFallback isLoading={fichajesLoading} error={fichajesError ? fichajesErrorObj : null} retryFn={refetchFichajes} />
       ) : (
         <>
-          {mode === 'calendario' && <CalendarioHorarioView fichajes={filtered} canSeeAll={canSeeAll} canForce={isAdmin || role === 'gerencia' || role === 'administracion'} operarios={operarios} month={monthFilter} onMonthChange={setMonthFilter} />}
+          {mode === 'calendario' && <CalendarioHorarioView fichajes={filtered} ausencias={ausenciasFiltradas} canSeeAll={canSeeAll} canForce={isAdmin || role === 'gerencia' || role === 'administracion'} operarios={operarios} month={monthFilter} onMonthChange={setMonthFilter} />}
           {mode === 'obra' && <InformeObraView canSeeAll={canSeeAll} forceOperarioId={isOwnDataOnly ? (myOperario?.id || null) : null} />}
           {mode === 'tabla' && <TablaView fichajes={filtered} />}
           {mode === 'duplicados' && isAdmin && <DuplicadosView fichajes={fichajes} />}

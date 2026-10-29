@@ -1,13 +1,14 @@
 import { useState, useMemo } from 'react';
-import { startOfMonth, endOfMonth, eachDayOfInterval, getDay, format, isSameMonth, isToday, addMonths, subMonths } from 'date-fns';
+import { startOfMonth, endOfMonth, eachDayOfInterval, getDay, format, isSameMonth, isToday, addMonths, subMonths, parseISO, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, User, Building2, CheckCircle2, AlertTriangle, XCircle, Coffee, ClipboardCheck, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Building2, CheckCircle2, AlertTriangle, XCircle, Coffee, ClipboardCheck, Plus, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useQueryClient } from '@tanstack/react-query';
 import GestionDiaSheet from './GestionDiaSheet';
+import { metaAusencia } from '@/hooks/useAusenciasHorario';
 
 function horasMinutos(hStr) {
   if (!hStr) return null;
@@ -27,7 +28,7 @@ function calcularMinutosFichaje(f) {
   return Math.max(0, diff);
 }
 
-function DiaCell({ date, fichajesDia = [], canSeeAll, canForce = false, isCurrentMonth, onClick }) {
+function DiaCell({ date, fichajesDia = [], ausenciasDia = [], canSeeAll, canForce = false, isCurrentMonth, onClick }) {
   const sinSalida = fichajesDia.filter(f => f.hora_entrada && !f.hora_salida).length;
   const estado = fichajesDia.length === 0 ? 'vacio' : sinSalida > 0 ? 'incompleto' : 'completo';
   const totalMins = fichajesDia.reduce((s, f) => s + calcularMinutosFichaje(f), 0);
@@ -36,13 +37,16 @@ function DiaCell({ date, fichajesDia = [], canSeeAll, canForce = false, isCurren
   const diaSemana = getDay(date);
   const esFinSemana = diaSemana === 0 || diaSemana === 6;
   const hasFichajes = fichajesDia.length > 0;
+  const hasAusencias = ausenciasDia.length > 0;
+  const primeraAusencia = hasAusencias ? metaAusencia(ausenciasDia[0].tipo) : null;
 
   return (
     <button
-      onClick={() => (canForce || hasFichajes) && onClick(date, fichajesDia)}
+      onClick={() => (canForce || hasFichajes || hasAusencias) && onClick(date, fichajesDia)}
       className={cn(
         'relative flex flex-col rounded-lg border transition-all duration-100 select-none p-1.5 min-h-[72px]',
         !isCurrentMonth ? 'border-transparent opacity-30 pointer-events-none' :
+        !hasFichajes && hasAusencias ? 'border-dashed border-border bg-background hover:bg-muted/30 active:scale-[0.97] cursor-pointer pl-2.5' :
         !hasFichajes && !canForce && esFinSemana ? 'border-border/30 bg-muted/20 cursor-default' :
         !hasFichajes && !canForce ? 'border-border/40 bg-background cursor-default hover:bg-muted/20' :
         !hasFichajes && canForce ? 'border-dashed border-border/60 bg-background hover:bg-muted/40 active:scale-[0.97] cursor-pointer' :
@@ -54,6 +58,7 @@ function DiaCell({ date, fichajesDia = [], canSeeAll, canForce = false, isCurren
       <span className={cn('text-xs font-bold leading-none mb-1', hoy ? 'text-primary' : 'text-foreground', (!hasFichajes || esFinSemana) && 'text-muted-foreground')}>
         {format(date, 'd')}
       </span>
+      {hasAusencias && <span className={cn('absolute left-1 top-1.5 bottom-1.5 w-1 rounded-full', primeraAusencia.dot)} />}
       {hasFichajes && (
         <div className="flex flex-col gap-0.5 flex-1">
           <span className={cn('text-[11px] font-bold', estado === 'completo' ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400')}>
@@ -65,12 +70,25 @@ function DiaCell({ date, fichajesDia = [], canSeeAll, canForce = false, isCurren
           </div>
         </div>
       )}
-      {!hasFichajes && canForce && <Plus className="w-3 h-3 text-muted-foreground/40 absolute bottom-1.5 right-1.5" />}
+      {hasAusencias && (
+        <div className="space-y-0.5 mt-auto pt-0.5">
+          {ausenciasDia.slice(0, 2).map(a => {
+            const m = metaAusencia(a.tipo);
+            return (
+              <div key={a.id} className={cn('text-[8px] leading-tight rounded px-1 py-0.5 truncate border font-semibold', m.soft)}>
+                {a.operario_name?.split(' ')[0] || m.label}
+              </div>
+            );
+          })}
+          {ausenciasDia.length > 2 && <div className="text-[8px] text-muted-foreground leading-none">+{ausenciasDia.length - 2}</div>}
+        </div>
+      )}
+      {!hasFichajes && !hasAusencias && canForce && <Plus className="w-3 h-3 text-muted-foreground/40 absolute bottom-1.5 right-1.5" />}
     </button>
   );
 }
 
-function DetalleDiaSheet({ date, fichajes, open, onClose }) {
+function DetalleDiaSheet({ date, fichajes, ausencias = [], open, onClose }) {
   if (!date) return null;
   const totalMins = fichajes.reduce((s, f) => s + calcularMinutosFichaje(f), 0);
   const sinSalida = fichajes.filter(f => !f.hora_salida).length;
@@ -86,6 +104,26 @@ function DetalleDiaSheet({ date, fichajes, open, onClose }) {
           </div>
         </SheetHeader>
         <div className="space-y-3">
+          {ausencias.length > 0 && (
+            <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-1.5">
+              <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                <UserX className="w-2.5 h-2.5" /> Ausencias registradas
+              </p>
+              {ausencias.map(a => {
+                const m = metaAusencia(a.tipo);
+                return (
+                  <div key={a.id} className="flex items-center gap-2 text-[11px]">
+                    <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', m.dot)} />
+                    <span className="font-semibold truncate">{a.operario_name || '—'}</span>
+                    <span className={cn('px-1.5 py-0.5 rounded border text-[9px] font-semibold shrink-0', m.soft)}>{m.label}</span>
+                    <span className="ml-auto text-muted-foreground whitespace-nowrap">
+                      {format(parseISO(a.inicio), 'dd/MM')}–{format(parseISO(a.fin || a.inicio), 'dd/MM')}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {fichajes.sort((a, b) => (a.hora_entrada || '').localeCompare(b.hora_entrada || '')).map(f => {
             const mins = calcularMinutosFichaje(f);
             const completo = !!f.hora_entrada && !!f.hora_salida;
@@ -148,7 +186,7 @@ function DetalleDiaSheet({ date, fichajes, open, onClose }) {
 
 const DIAS_SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
-export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false, canForce = false, operarios = [], month, onMonthChange }) {
+export default function CalendarioHorarioView({ fichajes = [], ausencias = [], canSeeAll = false, canForce = false, operarios = [], month, onMonthChange }) {
   const [mesInterno, setMesInterno] = useState(new Date());
   const [diaSeleccionado, setDiaSeleccionado] = useState(null);
   const qc = useQueryClient();
@@ -184,7 +222,30 @@ export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false
     return map;
   }, [fichajes]);
 
+  // Ausencias (vacaciones, bajas, faltas) repartidas por día del mes visible
+  const ausenciasPorDia = useMemo(() => {
+    const map = {};
+    const inicioMes = startOfMonth(mesActual);
+    const finMes = endOfMonth(mesActual);
+    ausencias.forEach(a => {
+      if (!a.inicio) return;
+      const desde = parseISO(a.inicio);
+      const hasta = parseISO(a.fin || a.inicio);
+      let cursor = desde < inicioMes ? inicioMes : desde;
+      const limite = hasta > finMes ? finMes : hasta;
+      while (cursor <= limite) {
+        const k = format(cursor, 'yyyy-MM-dd');
+        if (!map[k]) map[k] = [];
+        map[k].push(a);
+        cursor = addDays(cursor, 1);
+      }
+    });
+    return map;
+  }, [ausencias, mesKey]);
+
   const fichajesDia = diaSeleccionado ? (fichajesPorDia[format(diaSeleccionado, 'yyyy-MM-dd')] || []) : [];
+  const ausenciasDia = diaSeleccionado ? (ausenciasPorDia[format(diaSeleccionado, 'yyyy-MM-dd')] || []) : [];
+  const diasConAusencias = Object.keys(ausenciasPorDia).length;
 
   const { totalMinsMes, diasConFichajes, trabajadoresUnicos, sinSalidaMes } = useMemo(() => {
     let totalMinsMes = 0; const diasSet = new Set(); const trabSet = new Set(); let sinSalidaMes = 0;
@@ -204,6 +265,7 @@ export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false
         {[
           { label: 'Horas mes', value: minutosATexto(totalMinsMes), color: 'text-primary' },
           { label: 'Días trabajados', value: diasConFichajes, color: 'text-foreground' },
+          diasConAusencias > 0 ? { label: 'Días con ausencia', value: diasConAusencias, color: 'text-red-600 dark:text-red-400' } : null,
           canSeeAll ? { label: 'Trabajadores', value: trabajadoresUnicos, color: 'text-foreground' } : null,
           sinSalidaMes > 0 ? { label: 'Sin salida', value: sinSalidaMes, color: 'text-amber-600 dark:text-amber-400' } : null,
         ].filter(Boolean).map(kpi => (
@@ -232,14 +294,14 @@ export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false
           if (!date) return <div key={`e-${idx}`} />;
           const key = format(date, 'yyyy-MM-dd');
           return (
-            <DiaCell key={key} date={date} fichajesDia={fichajesPorDia[key] || []} canSeeAll={canSeeAll} canForce={canForce}
+            <DiaCell key={key} date={date} fichajesDia={fichajesPorDia[key] || []} ausenciasDia={ausenciasPorDia[key] || []} canSeeAll={canSeeAll} canForce={canForce}
               isCurrentMonth={isSameMonth(date, mesActual)}
               onClick={(d) => setDiaSeleccionado(d)} />
           );
         })}
       </div>
       <div className="flex flex-wrap gap-3 pt-1">
-        {[{ color: 'bg-emerald-200 dark:bg-emerald-800', label: 'Completo' }, { color: 'bg-amber-200 dark:bg-amber-800', label: 'Sin salida' }, { color: 'bg-muted', label: 'Sin fichajes' }].map(({ color, label }) => (
+        {[{ color: 'bg-emerald-200 dark:bg-emerald-800', label: 'Completo' }, { color: 'bg-amber-200 dark:bg-amber-800', label: 'Sin salida' }, { color: 'bg-muted', label: 'Sin fichajes' }, { color: 'bg-red-400', label: 'Ausencia / baja' }].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <span className={cn('w-3 h-3 rounded-sm', color)} />{label}
           </div>
@@ -248,7 +310,7 @@ export default function CalendarioHorarioView({ fichajes = [], canSeeAll = false
       {canForce ? (
         <GestionDiaSheet date={diaSeleccionado} fichajes={fichajesDia} operarios={operarios} open={!!diaSeleccionado} onClose={() => setDiaSeleccionado(null)} onUpdated={() => qc.invalidateQueries({ queryKey: ['fichajes'] })} />
       ) : (
-        <DetalleDiaSheet date={diaSeleccionado} fichajes={fichajesDia} open={!!diaSeleccionado} onClose={() => setDiaSeleccionado(null)} />
+        <DetalleDiaSheet date={diaSeleccionado} fichajes={fichajesDia} ausencias={ausenciasDia} open={!!diaSeleccionado} onClose={() => setDiaSeleccionado(null)} />
       )}
     </div>
   );
