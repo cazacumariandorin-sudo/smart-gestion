@@ -308,7 +308,7 @@ export default function CalendarioHorarioView({ fichajes = [], ausencias = [], c
         ))}
       </div>
       {canForce ? (
-        <GestionDiaSheet date={diaSeleccionado} fichajes={fichajesDia} operarios={operarios} open={!!diaSeleccionado} onClose={() => setDiaSeleccionado(null)} onUpdated={() => qc.invalidateQueries({ queryKey: ['fichajes'] })} />
+        <GestionDiaSheet date={diaSeleccionado} fichajes={fichajesDia} ausencias={ausenciasDia} operarios={operarios} open={!!diaSeleccionado} onClose={() => setDiaSeleccionado(null)} onUpdated={() => qc.invalidateQueries({ queryKey: ['fichajes'] })} />
       ) : (
         <DetalleDiaSheet date={diaSeleccionado} fichajes={fichajesDia} ausencias={ausenciasDia} open={!!diaSeleccionado} onClose={() => setDiaSeleccionado(null)} />
       )}

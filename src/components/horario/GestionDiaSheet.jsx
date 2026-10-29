@@ -19,7 +19,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
-import { User, Zap, Plus, Clock, CheckCircle2, AlertTriangle, Loader2, Pencil, Save, Trash2, X } from 'lucide-react';
+import { User, UserX, Zap, Plus, Clock, CheckCircle2, AlertTriangle, Loader2, Pencil, Save, Trash2, X } from 'lucide-react';
+import AusenciasDiaPanel from './AusenciasDiaPanel';
 import { toast } from 'sonner';
 import { mensajeConflictoAusencia } from '@/lib/conflictoAusencias';
 import { cn } from '@/lib/utils';
@@ -42,7 +43,7 @@ function calcularMinutosFichaje(f) {
   return Math.max(0, d);
 }
 
-function FichajeRow({ f }) {
+function FichajeRow({ f, enAusencia = false }) {
   const qc = useQueryClient();
   const [edit, setEdit] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -111,6 +112,7 @@ function FichajeRow({ f }) {
             : sinSalida
             ? <Badge className="text-[10px] bg-amber-100 text-amber-700 border-amber-200 gap-1"><AlertTriangle className="w-2.5 h-2.5" />Sin salida</Badge>
             : <Badge variant="outline" className="text-[10px]">Sin datos</Badge>}
+          {enAusencia && <Badge className="text-[10px] bg-red-100 text-red-700 border-red-200 gap-1"><UserX className="w-2.5 h-2.5" />Ausencia</Badge>}
           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEdit(e => !e)} title={edit ? 'Cerrar' : 'Editar'}>
             {edit ? <X className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
           </Button>
@@ -119,6 +121,12 @@ function FichajeRow({ f }) {
           </Button>
         </div>
       </div>
+      {enAusencia && (
+        <div className="px-3 py-1.5 border-t border-red-200 dark:border-red-900 bg-red-50/60 dark:bg-red-950/20 flex items-center gap-1.5">
+          <UserX className="w-3 h-3 text-red-600 dark:text-red-400 shrink-0" />
+          <p className="text-[10px] text-red-700 dark:text-red-300">Fichaje en un día con ausencia registrada — posible fichaje erróneo.</p>
+        </div>
+      )}
       {edit && (
         <div className="p-3 border-t border-border space-y-2.5">
           <div className="grid grid-cols-2 gap-2">
@@ -160,7 +168,7 @@ function FichajeRow({ f }) {
   );
 }
 
-export default function GestionDiaSheet({ date, fichajes = [], operarios = [], open, onClose, onUpdated }) {
+export default function GestionDiaSheet({ date, fichajes = [], ausencias = [], operarios = [], open, onClose, onUpdated }) {
   const qc = useQueryClient();
   const fecha = date ? format(date, 'yyyy-MM-dd') : '';
   const fechaLabel = date ? format(date, "EEEE, d 'de' MMMM yyyy", { locale: es }) : '';
@@ -178,7 +186,8 @@ export default function GestionDiaSheet({ date, fichajes = [], operarios = [], o
 
   const operariosYaFichados = new Set(fichajes.map(f => f.operario_id));
   const abiertos = fichajes.filter(f => f.hora_entrada && !f.hora_salida);
-  const disponibles = operarios.filter(o => o.active !== false && !operariosYaFichados.has(o.id));
+  const enAusenciaIds = new Set(ausencias.map(a => a.operario_id).filter(Boolean));
+  const disponibles = operarios.filter(o => o.active !== false && !operariosYaFichados.has(o.id) && !enAusenciaIds.has(o.id));
 
   const handleCrear = async () => {
     if (!form.operario_id) { toast.error('Selecciona un operario'); return; }
@@ -250,12 +259,15 @@ export default function GestionDiaSheet({ date, fichajes = [], operarios = [], o
         </SheetHeader>
 
         <div className="space-y-4">
+          {/* Ausencias y faltas del día */}
+          <AusenciasDiaPanel ausencias={ausencias} operarios={operarios} />
+
           {/* Fichajes existentes */}
           {fichajes.length > 0 && (
             <div className="space-y-2">
               <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">Fichajes existentes</p>
               {fichajes.sort((a, b) => (a.hora_entrada || '').localeCompare(b.hora_entrada || '')).map(f => (
-                <FichajeRow key={f.id} f={f} />
+                <FichajeRow key={f.id} f={f} enAusencia={enAusenciaIds.has(f.operario_id)} />
               ))}
             </div>
           )}
@@ -308,7 +320,7 @@ export default function GestionDiaSheet({ date, fichajes = [], operarios = [], o
             <p className="text-xs text-muted-foreground -mt-1">Registra un fichaje no creado por el técnico en este día.</p>
 
             {disponibles.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">Todos los operarios activos ya tienen fichaje este día.</p>
+              <p className="text-xs text-muted-foreground italic">No hay operarios disponibles: ya tienen fichaje o están de ausencia este día.</p>
             ) : (
               <>
                 <div className="space-y-1.5">
