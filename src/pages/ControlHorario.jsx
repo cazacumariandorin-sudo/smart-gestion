@@ -5,8 +5,9 @@ import FichajesTab from '@/components/horario/FichajesTab';
 import InformesTab from '@/components/horario/InformesTab';
 import AlarmasTab from '@/components/horario/AlarmasTab';
 import ApuntesTab from '@/components/horario/ApuntesTab';
+import FaltasTab from '@/components/horario/FaltasTab';
 import CierreForzadoPanel from '@/components/horario/CierreForzadoPanel';
-import { Clock, BarChart3, Bell, ClipboardList, Zap } from 'lucide-react';
+import { Clock, BarChart3, Bell, ClipboardList, Zap, UserX } from 'lucide-react';
 import { useAlarmas } from '@/hooks/useAlarmas';
 import { useTabState } from '@/hooks/useTabState';
 import { useUserRole } from '@/lib/useUserRole';
@@ -20,6 +21,7 @@ export default function ControlHorario() {
   const showCierreForzado = isAdmin || isGerencia || isAdministracion;
   const showAlarmas = isAdmin || isGerencia || isAdministracion;
   const showApuntes = isAdmin || isGerencia || isAdministracion || isJefeObra || isOperario || role === 'técnico';
+  const showFaltas = isAdmin || isGerencia || isAdministracion || isJefeObra || isOperario || role === 'técnico' || role === 'control_horario';
 
   const { data: alarmas = [] } = useQuery({
     queryKey: ['alarmas'],
@@ -45,6 +47,7 @@ export default function ControlHorario() {
             { value: 'fichajes', label: 'Fichajes',  icon: Clock,        color: 'bg-blue-500 hover:bg-blue-600 border-blue-600 shadow-blue-200', show: true },
             { value: 'informes', label: 'Informes',  icon: BarChart3,    color: 'bg-teal-500 hover:bg-teal-600 border-teal-600 shadow-teal-200', show: true },
             { value: 'apuntes',  label: 'Apuntes',   icon: ClipboardList,color: 'bg-indigo-500 hover:bg-indigo-600 border-indigo-600 shadow-indigo-200', show: showApuntes },
+            { value: 'faltas',   label: 'Faltas',    icon: UserX,        color: 'bg-purple-500 hover:bg-purple-600 border-purple-600 shadow-purple-200', show: showFaltas },
             { value: 'alarmas',  label: 'Alarmas',   icon: Bell,         color: 'bg-rose-500 hover:bg-rose-600 border-rose-600 shadow-rose-200', show: showAlarmas },
             { value: 'cierre-forzado', label: 'Cierre Forzado', icon: Zap, color: 'bg-amber-500 hover:bg-amber-600 border-amber-600 shadow-amber-200', show: showCierreForzado },
           ].filter(t => t.show).map(({ value, label, icon: Icon, color }) => (
@@ -67,6 +70,7 @@ export default function ControlHorario() {
           <TabsTrigger value="fichajes" />
           <TabsTrigger value="informes" />
           <TabsTrigger value="apuntes" />
+          <TabsTrigger value="faltas" />
           <TabsTrigger value="alarmas" />
           {showCierreForzado && <TabsTrigger value="cierre-forzado" />}
         </TabsList>
@@ -74,6 +78,7 @@ export default function ControlHorario() {
         <TabsContent value="fichajes"><FichajesTab /></TabsContent>
         <TabsContent value="informes"><InformesTab /></TabsContent>
         <TabsContent value="apuntes"><ApuntesTab /></TabsContent>
+        <TabsContent value="faltas"><FaltasTab /></TabsContent>
         <TabsContent value="alarmas"><AlarmasTab /></TabsContent>
         {showCierreForzado && (
           <TabsContent value="cierre-forzado">

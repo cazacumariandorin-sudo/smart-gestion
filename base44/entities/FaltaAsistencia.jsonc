@@ -1,0 +1,284 @@
+{
+  "name": "FaltaAsistencia",
+  "type": "object",
+  "description": "Registro de faltas de asistencia de operarios seg\u00fan el Convenio Colectivo del Metal de la Comunidad de Madrid 2024-2026 (Art. 26 licencias retribuidas y Art. 27 faltas y sanciones). Distingue permisos retribuidos, bajas m\u00e9dicas, ausencias justificadas e injustificadas, con gravedad (leve/grave/muy grave) y control del aviso en 24 h.",
+  "properties": {
+    "operario_id": {
+      "type": "string",
+      "description": "ID del Operario ausente"
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del operario (desnormalizado)"
+    },
+    "fecha_inicio": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio de la ausencia"
+    },
+    "fecha_fin": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de fin de la ausencia (inclusive). Igual a fecha_inicio para ausencias de un d\u00eda."
+    },
+    "dias": {
+      "type": "number",
+      "description": "D\u00edas naturales de duraci\u00f3n de la ausencia (calculado)"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "permiso_retribuido",
+        "baja_medica",
+        "ausencia_justificada",
+        "ausencia_injustificada",
+        "permiso_sin_sueldo"
+      ],
+      "description": "permiso_retribuido = Art. 26 (matrimonio, nacimiento, fallecimiento, traslado, deber p\u00fablico, sindical, ex\u00e1menes). baja_medica = incapacidad temporal. ausencia_justificada = otra ausencia con justificaci\u00f3n v\u00e1lida no enumerada. ausencia_injustificada = Art. 27 (no avisada en 24 h o sin justificaci\u00f3n m\u00e9dica/legal). permiso_sin_sueldo = ausencia autorizada sin remuneraci\u00f3n."
+    },
+    "motivo_permiso": {
+      "type": "string",
+      "enum": [
+        "matrimonio",
+        "nacimiento_fallecimiento",
+        "traslado_domicilio",
+        "deber_publico",
+        "funciones_sindicales",
+        "examenes",
+        "otro"
+      ],
+      "description": "Solo para tipo=permiso_retribuido. Motivo del Art. 26: matrimonio (15 d\u00edas), nacimiento/fallecimiento/enfermedad grave familiar hasta 2\u00ba grado (3 d\u00edas, 5 si desplazamiento), traslado domicilio (1 d\u00eda), deber inexcusable p\u00fablico, funciones sindicales, ex\u00e1menes acad\u00e9micos."
+    },
+    "gravedad": {
+      "type": "string",
+      "enum": [
+        "leve",
+        "grave",
+        "muy_grave"
+      ],
+      "description": "Solo para ausencia_injustificada, seg\u00fan Art. 27. leve = puntualidad injustificada <30 min/mes. grave = m\u00e1s de 3 faltas de asistencia o puntualidad injustificadas en un mes. muy_grave = faltas reiteradas y continuadas."
+    },
+    "comunicado_24h": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si el operario avis\u00f3 de la ausencia en un plazo de 24 h (requisito del Art. 27 para que la ausencia no se considere injustificada)."
+    },
+    "justificado": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si la ausencia cuenta con justificaci\u00f3n m\u00e9dica o legal v\u00e1lida."
+    },
+    "justificante_url": {
+      "type": "string",
+      "description": "URI del justificante (parte de baja, documento oficial) subido a almacenamiento privado (file_uri). Para visualizar, generar URL firmada con CreateFileSignedUrl."
+    },
+    "justificante_nombre": {
+      "type": "string",
+      "description": "Nombre original del archivo del justificante."
+    },
+    "observaciones": {
+      "type": "string",
+      "description": "Notas sobre la ausencia (motivo detallado, contacto, etc.)"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente_revision",
+        "justificada",
+        "injustificada",
+        "sancionada"
+      ],
+      "default": "pendiente_revision",
+      "description": "pendiente_revision = reci\u00e9n registrada, espera validaci\u00f3n de gerencia/administraci\u00f3n. justificada = con justificante v\u00e1lido. injustificada = sin justificaci\u00f3n o sin aviso 24 h. sancionada = derivada a expediente disciplinario."
+    },
+    "creado_por": {
+      "type": "string",
+      "description": "Email del usuario que registr\u00f3 la falta"
+    },
+    "resuelto_por": {
+      "type": "string",
+      "description": "Email de gerencia/administraci\u00f3n que resolvi\u00f3 la falta (marc\u00f3 justificada/injustificada/sancionada)"
+    },
+    "fecha_resolucion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp ISO de la resoluci\u00f3n"
+    }
+  },
+  "required": [
+    "operario_id",
+    "fecha_inicio",
+    "tipo"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "control_horario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "control_horario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "t\u00e9cnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operario"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        },
+        {
+          "$and": [
+            {
+              "created_by": "{{user.email}}"
+            },
+            {
+              "data.estado": "pendiente_revision"
+            }
+          ]
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    }
+  }
+}
