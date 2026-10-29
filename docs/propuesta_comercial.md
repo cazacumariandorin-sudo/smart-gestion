@@ -316,530 +316,173 @@ Reglas especiales:
 - el menú puede mostrar un banner `Demo / Prueba / Sin datos reales`,
 - la demo debe resetearse fácilmente o recrearse cada vez que el cliente la inicia.
 
-## 6. Arquitectura de permisos
+## 6. Matriz exacta de permisos por rol
 
-## 6.1. Estructura de permisos recomendada
+La siguiente matriz representa el conjunto mínimo recomendado para cada rol.
 
-El sistema debe usar una estructura tipo RBAC + ABAC:
+| Rol | Ver fichajes | Crear fichaje | Editar fichaje | Ver obra | Ver documentos obra | Ver auditoría | Exportar operativo | Exportar legal | Validar legal | Ver datos internos | Editar datos internos | Acceso demo |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| operario | Sí, propios | Sí | Sí, propios | No | No | No | No | No | No | No | No | Sí, si el plan incluye demo |
+| control_horario | Sí, todos del ámbito | Sí | Sí, según ámbito | Sí, del ámbito | Sí, del ámbito | Sí, operativa | Sí | No | No | Parcial | Parcial | Sí, demo |
+| jefe_obra | Sí, asignados | Sí, según obra | Sí, según obra | Sí, asignada | Sí, asignada | No | Sí, operativo | No | No | No | No | Sí, demo |
+| gerencia | Sí, todos | Sí, en gestión | Sí, operativa | Sí | Sí, interna | Sí, operativa | Sí | No | No | Sí, interna | Sí, limitada | Sí, demo |
+| administracion | Sí, todos | Sí | Sí, todos | Sí | Sí | Sí | Sí | Sí, si el plan incluye legal | Sí, validación interna | Sí, interna | Sí | Sí, demo |
+| admin_legal | Sí, todos | No | No | Sí, mínima | Sí, mínima | Sí, legal | No | Sí, legal | Sí | Sí, minimizada | No | Sí, demo |
+| direccion | Sí, resumen | No | No | Sí, resumen | Sí, resumen | Sí, resumen | Sí, resumen | Sí, si plan legal | No | Sí, elevada | No | Sí, demo |
+| cliente_obra | Sí, si pertenece a su obra | No | No | Sí, propia | Sí, propia | No | No | No | No | No | No | Sí, demo |
+| auditor_externo | Sí, legal | No | No | Sí, mínima | Sí, mínima | Sí, legal | No | Sí, legal | No | No | No | Sí, demo |
+| admin_empresa | Sí, todos | Sí | Sí | Sí | Sí | Sí | Sí | Sí | Sí | Sí | Sí | Sí, demo |
+| demo_evaluador | Sí, demo | Sí, demo | Sí, demo | Sí, demo | Sí, demo | Sí, demo | Sí, demo | Sí, demo (solo marca demo) | Sí, demo | Sí, demo | Sí, demo | Sí |
 
-- RBAC: rol asignado al usuario
-- ABAC: condiciones dinámicas (empresa, obra, trabajador, plan, entorno, tenancy/demo)
+Notas:
+- `Ver datos internos` significa ver información del negocio no regulatoria, como costes, proveedores, KPI, finanzas y operaciones internas.
+- `Exportar legal` se habilita solo en la vista legal y solo si el plan incluye compliance/legal.
+- `Validar legal` queda limitado a `administracion` y `admin_legal`.
+- `demo_evaluador` nunca debe poder exportar un archivo que parezca oficial ni real.
 
-Ejemplo:
+## 7. Matriz de módulos activos por plan
 
-- `can_view_fichajes`
-- `can_create_fichaje`
-- `can_edit_fichaje`
-- `can_export_operativo`
-- `can_export_legal`
-- `can_validate_legal`
-- `can_view_audit`
-- `can_view_internal_dashboard`
-- `can_view_client_data`
-- `can_view_compliance_view`
-- `can_view_obra_details`
-- `can_access_demo_tenant`
-- `can_export_demo_data`
-- `can_use_trial_mode`
+| Plan | Módulos activos | Roles clave | Campos visibles principales | Observación |
+|---|---|---|---|---|
+| Control horario | `control_horario`, `operarios`, `fichajes`, `apuntes_horario`, `incidencias`, `export_horario`, `audit_horario` | operario, control_horario, jefe_obra, gerencia, administracion | `fecha`, `operario`, `entrada`, `salida`, `pausa`, `horas`, `obra`, `notas` | Se ocultan finanzas, compras y datos comerciales |
+| Cliente / obra | `obra`, `documentos`, `incidencias`, `cliente_obra`, `dashboard_obra`, `seguimiento_trabajos`, `estado_obra` | cliente_obra, jefe_obra, coordinador_obra, gerencia | `obra`, `estado`, `incidencias`, `documentos`, `avances`, `fecha` | Se ocultan datos internos del personal y legales |
+| Administrativa / legal | `control_horario`, `operarios_minimos`, `compliance_legal`, `export_legal`, `auditoria_legal`, `retencion_documental`, `reporting_legal` | admin_legal, administracion, auditor_externo | `fecha`, `operario`, `entrada`, `salida`, `pausa`, `horas`, `estado legal`, `validado_por`, `auditoría` | La vista está minimizada y redactada |
+| Completa / empresa | todos los módulos | admin_empresa, gerencia, administracion, direccion, operario, cliente_obra, jefe_obra, control_horario | todo el sistema | incluye negocio interno + legal + obra |
+| Demo comercial | selectivo según plan elegido; siempre con `tenant_demo`, `seed_data`, `banner demo`, `expiracion` | demo_evaluador, admin_empresa, gerencia, administracion, operario | los del plan elegido, pero con datos ficticios y marca `demo` | no debe tocar producción ni dejar exportación oficial |
 
-## 6.2. Modelo recomendado de permisos
+## 8. Matriz de campos visibles por perfil y plan
+
+La siguiente tabla define, a nivel práctico, qué información debe verse en cada perfil para evitar mostrar datos no relevantes.
+
+| Perfil | Plan | Campos visibles | Campos ocultos | Política de visibilidad |
+|---|---|---|---|---|
+| operario | Control horario | `id_operario`, `nombre`, `fecha`, `entrada`, `salida`, `pausa`, `horas_trabajadas`, `obra` | `costes`, `presupuestos`, `finanzas`, `proveedores`, `notas internas` | Solo sus datos y el propio horario |
+| control_horario | Control horario | `operario`, `fecha`, `entrada`, `salida`, `pausa`, `horas`, `obra`, `incidencias`, `notas internas` | `costes`, `facturas`, `proveedores`, `precios` | Solo del ámbito asignado |
+| jefe_obra | Control horario / Obra | `operario`, `obra`, `fecha`, `entrada`, `salida`, `incidencias`, `avance obra` | `costes internos`, `datos personales sensibles`, `export legal` | Restringido a la obra asignada |
+| gerencia | Completa o horario | `resumen operación`, `obras`, `operarios`, `horas`, `incidencias`, `dashboard` | `datos legales sensibles no requeridos`, `comerciales no relevantes`, `finanzas detalle` | Vista ejecutiva, no legal oficial |
+| administracion | Completa o legal | `todo el negocio`, `fichajes`, `auditoría`, `export legal`, `resúmenes` | ninguno, salvo medidas de seguridad | Tiene capacidad de gestión y validación |
+| admin_legal | Legal | `fecha`, `operario`, `entrada`, `salida`, `pausa`, `horas`, `estado legal`, `validado_por`, `auditoría`, `export legal` | `costes`, `clientes`, `preferencias comerciales`, `notas internas no regulatorias` | Vista minimizada y oficial |
+| direccion | Completa o legal | `resumen legal`, `resumen operativo`, `dashboard ejecutivo`, `informes` | `datos de detalle no requeridos`, `datos personales sensibles en bruto` | Resumen ejecutivo |
+| cliente_obra | Obra | `obra`, `documentos`, `incidencias`, `estado obra`, `avances`, `fechas` | `personal`, `horas internas`, `auditoría legal`, `datos reales empresariales` | Solo acceso a su obra |
+| auditor_externo | Legal | `detalle legal`, `resumen legal`, `auditoría legal`, `validación` | `datos comerciales`, `costes internos`, `documentación no regulatoria` | Lectura sin edición |
+| admin_empresa | Completa | todo | ninguno (siempre que esté en plan completo) | acceso completo del negocio |
+| demo_evaluador | Demo | todos los del plan demo | `producción`, `datos reales`, `entorno real` | Siempre marcado como demo |
+
+## 9. Matriz de módulos activos por plan y perfil
+
+| Plan | Perfil | Módulos visibles | Permisos clave |
+|---|---|---|---|
+| Control horario | operario | `control_horario`, `fichajes` | ver/crear/editar propio |
+| Control horario | control_horario | `control_horario`, `fichajes`, `export_horario`, `audit_horario` | crear/corregir y exportar operativo |
+| Control horario | jefe_obra | `control_horario`, `obra`, `incidencias` | ver obra asignada |
+| Control horario | administracion | `control_horario`, `export_horario`, `audit_horario`, `compliance_legal` | validación, export legal, auditoría |
+| Cliente / obra | cliente_obra | `obra`, `documentos`, `incidencias`, `seguimiento_trabajos` | solo lectura de obra |
+| Legal | admin_legal | `control_horario`, `compliance_legal`, `export_legal`, `auditoria_legal` | export legal y validación |
+| Legal | auditor_externo | `compliance_legal`, `export_legal`, `auditoria_legal` | lectura legal solamente |
+| Completa | admin_empresa | todos | acceso total |
+| Completa | gerencia | todos los módulos relevantes | dashboard + operación + legal |
+| Demo | demo_evaluador | plan elegido + `demo_sandbox` | prueba libre pero aislada |
+
+## 10. Reglas de seguridad por plan
+
+- `demo` siempre debe estar en un tenant separado.
+- `demo` nunca debe tener acceso a producción ni datos reales.
+- `demo` debe mostrar banner visible: `Demo / Prueba / Datos ficticios`.
+- `export_legal` no debe funcionar para demo con nombres de archivos oficiales.
+- `admin_legal` debe tener acceso a la vista oficial únicamente.
+- `cliente_obra` no puede ver la auditoría legal ni la exportación legal.
+- `operario` no puede ver a otros trabajadores ni exportar información de gestión.
+- `admin_empresa` puede ver todo dentro del plan completo, pero no debe poder modificar la política de demo.
+
+## 11. Recomendación de implementación técnica
+
+### 11.1. Modo de activación
+
+Recomendado usar `feature flags` y `role permissions`:
+
+```json
+{
+  "plan": "control_horario",
+  "modules": [
+    "control_horario",
+    "operarios",
+    "fichajes",
+    "export_horario",
+    "audit_horario"
+  ],
+  "roles": [
+    "operario",
+    "control_horario",
+    "jefe_obra",
+    "gerencia",
+    "administracion"
+  ],
+  "demo": false
+}
+```
+
+### 11.2. Política de acceso por ruta
+
+La app debe separar rutas por entorno:
+
+- `/internal/*` -> módulos internos
+- `/official/*` -> vista legal / compliance
+- `/client/*` -> acceso de cliente / obra
+- `/demo/*` -> entorno demo
+
+### 11.3. Política de campos visibles
+
+Se recomienda una capa `fieldMask` por rol y entorno:
 
 ```json
 {
   "role": "admin_legal",
-  "plan": "legal",
-  "permissions": [
-    "can_view_control_horario",
-    "can_validate_legal_records",
-    "can_export_legal",
-    "can_view_audit_legal",
-    "can_view_minimal_worker_data",
-    "can_view_official_view"
+  "view": "official",
+  "visibleFields": [
+    "fecha",
+    "trabajador",
+    "entrada",
+    "salida",
+    "pausa",
+    "horas_trabajadas",
+    "estado_legal",
+    "validado_por",
+    "auditoria"
   ],
-  "moduleAccess": [
-    "control_horario",
-    "compliance_legal",
-    "export_legal",
-    "auditoria_legal"
+  "hiddenFields": [
+    "coste",
+    "precio",
+    "proveedor",
+    "id_cliente",
+    "notas_internas",
+    "dashboard_kpi"
   ]
 }
 ```
 
-## 6.3. Niveles de permisos
+## 12. Conclusión
 
-### A. Por módulo
+La estructura recomendada es clara y puede aplicarse de forma completa a toda la app:
 
-Se habilita un módulo completo o no.
+- una base común,
+- módulos activados por plan,
+- roles con permisos bien definidos,
+- visibilidad de campos por perfil,
+- separación entre entorno interno y entorno legal,
+- entorno demo comercial aislado y con caducidad.
 
-Ejemplo:
+Esto hace posible vender al cliente:
 
-- `moduleAccess: ["control_horario","obra"]`
+- solo control horario,
+- solo cliente / obra,
+- administrativo / legal,
+- completa,
+- o demo comercial para evaluación sin riesgo.
 
-### B. Por entidad
+La ventaja es doble:
 
-Se permite ver o editar cierta entidad:
-
-- `Fichaje`
-- `Obra`
-- `Operario`
-- `RegistroHorarioLegal`
-- `AuditoriaHorario`
-- `DocumentoObra`
-- `DemoTenantData`
-
-### C. Por campo
-
-Se ocultan o se muestran campos concretos.
-
-Ejemplo:
-
-- en la vista legal, ocultar: `precio`, `coste`, `id_cliente`, `notas_comerciales`, `comentarios_internos`
-- en la vista oficial, mostrar solo: `fecha`, `entrada`, `salida`, `pausa`, `trabajador`, `validación`, `estado legal`
-- en demo, ocultar el acceso a “Producción” o “Datos reales” y mostrar banner de demo sintética
-
-### D. Por entorno
-
-- `interna_empresa`
-- `legal_oficial`
-- `cliente_obra`
-- `auditor_externo`
-- `demo_trial`
-
-## 7. Vista oficial / compliance: ocultación de datos no relevantes
-
-El entorno legal debe tener una capa de rendered views con minimización de datos.
-
-### 7.1. Datos visibles para la vista oficial
-
-- trabajador
-- identificación mínima
-- fecha
-- entrada
-- salida
-- pausa
-- horas trabajadas
-- incidencias relevantes
-- estado legal
-- validado por
-- fecha de validación
-- exportación oficial
-- auditoría legal
-
-### 7.2. Datos ocultos para la vista oficial
-
-- costes de obra
-- presupuestos
-- compras internas
-- proveedores
-- clientes
-- notas operativas internas
-- dashboards no regulatorios
-- KPI del negocio
-- comentarios no vinculados a la jornada
-- documentos internos no requeridos por control horario
-
-## 8. Arquitectura para distinguir entorno interno vs oficial vs demo
-
-Se recomienda una estructura como esta:
-
-```text
-src/
-  app/
-    internal/
-      dashboard/
-      horario/
-      obra/
-      finanzas/
-      materiales/
-    official/
-      cumplimiento/
-      legal/
-      informes/
-      auditoria/
-    demo/
-      sandbox/
-      seed/
-      trial/
-    shared/
-      auth/
-      roles/
-      permissions/
-      audit/
-      exports/
-      demo-flags/
-```
-
-La lógica podría ser:
-
-- `internal` -> carga todos los módulos disponibles según el plan
-- `official` -> carga solo la vista legal
-- `client` -> carga solo la vista del cliente / obra
-- `demo` -> carga datos de prueba, banner de demo, expiración por fecha, tenant aislado
-
-## 9. Propuesta de feature flags por plan y demo
-
-```json
-{
-  "plans": {
-    "control_horario": {
-      "modules": [
-        "control_horario",
-        "operarios",
-        "fichajes",
-        "export_horario",
-        "audit_horario"
-      ],
-      "roles": [
-        "operario",
-        "control_horario",
-        "jefe_obra",
-        "gerencia",
-        "administracion"
-      ]
-    },
-    "legal": {
-      "modules": [
-        "control_horario",
-        "compliance_legal",
-        "export_legal",
-        "auditoria_legal"
-      ],
-      "roles": [
-        "admin_legal",
-        "administracion",
-        "auditor_externo"
-      ]
-    },
-    "completo": {
-      "modules": [
-        "control_horario",
-        "obra",
-        "operarios",
-        "materiales",
-        "compras",
-        "finanzas",
-        "dashboard",
-        "compliance_legal",
-        "export_legal"
-      ],
-      "roles": [
-        "operario",
-        "jefe_obra",
-        "control_horario",
-        "gerencia",
-        "administracion",
-        "admin_legal",
-        "client_obra"
-      ]
-    },
-    "demo_trial": {
-      "modules": [
-        "control_horario",
-        "obra",
-        "operarios",
-        "documentos",
-        "incidencias",
-        "dashboard",
-        "compliance_legal",
-        "export_legal"
-      ],
-      "roles": [
-        "demo_evaluador",
-        "admin_empresa",
-        "gerencia",
-        "administracion",
-        "operario",
-        "cliente_obra",
-        "jefe_obra"
-      ],
-      "demo": true,
-      "durationDays": 14,
-      "seedData": true,
-      "realDataBlocked": true
-    }
-  }
-}
-```
-
-## 10. Reglas de acceso por perfil
-
-### 10.1. Operario
-
-Permisos:
-
-- ver y editar su propio fichaje
-- ver su propio historial
-- no ver otros trabajadores
-- no acceder a exportación legal
-- no ver datos comerciales internos
-
-### 10.2. Control horario
-
-Permisos:
-
-- ver todos los fichajes del entorno asignado
-- cerrar registros operativos
-- validar faltas
-- exportación operativa
-- no validación oficial legal
-
-### 10.3. Jefe de obra
-
-Permisos:
-
-- ver obra y personal asignado
-- gestionar incidencias de obra
-- no acceder a datos no ligados a la obra
-- no exportación legal
-
-### 10.4. Administración
-
-Permisos:
-
-- ver todo el negocio interno
-- validar legalmente
-- exportar legal
-- acceder a auditoría
-- vista oficial
-
-### 10.5. Admin legal
-
-Permisos:
-
-- vista oficial y reducida
-- exportación legal
-- auditoría legal
-- validación de registros oficiales
-- acceso restringido a información no regulatoria
-
-### 10.6. Cliente / obra
-
-Permisos:
-
-- ver su obra
-- ver incidencias y documentos de obra
-- no ver datos internos del personal
-- no ver exportación legal
-
-### 10.7. Auditor externo
-
-Permisos:
-
-- lectura de registros legales
-- vista oficial / compliance
-- exportación legal
-- no edición
-- no acceso a información comercial no relevante
-
-### 10.8. Usuario demo / evaluador
-
-Permisos:
-
-- acceso a la demo comercial
-- navegación por todos los módulos activos de la edición demo
-- datos sintéticos
-- tiempo limitado de prueba
-- no acceso a producción ni migración real
-- no exportación fuera del entorno demo
-
-## 11. Propuesta de edición comercial con demo
-
-## 11.1. Plan 1: Solo control horario
-
-Orientado a:
-
-- empresas que solo necesitan controlar jornada y exportar registros.
-
-Incluye:
-
-- fichajes
-- control horario
-- validación operativa
-- exportación horaria
-- roles restrictivos
-
-No incluye:
-
-- obra completa
-- compras
-- finanzas
-- módulos de negocio no relacionados con horario
-
-## 11.2. Plan 2: Cliente / Obra
-
-Orientado a:
-
-- clientes que necesitan controlar obra, estado y documentación
-
-Incluye:
-
-- obra
-- seguimiento de trabajos
-- incidencias
-- documentos de obra
-- acceso de cliente
-
-No incluye:
-
-- control horario legal
-- exportación oficial
-- gestión interna de personal
-
-## 11.3. Plan 3: Administrativa / Legal
-
-Orientado a:
-
-- cumplimiento legal,
-- auditorías,
-- demostración ante administración estatal.
-
-Incluye:
-
-- vista oficial minimizada
-- exportación legal
-- validación por administración
-- auditoría y trazabilidad
-- retención legal
-
-No incluye:
-
-- módulos de negocio no regulatorios
-
-## 11.4. Plan 4: Completa
-
-Orientado a:
-
-- gestión integral de empresa
-
-Incluye:
-
-- todo lo anterior
-- todos los módulos
-- todos los roles
-- informes ejecutivos
-- operaciones internas
-
-## 11.5. Plan 5: Demo comercial / prueba de x días
-
-Orientado a:
-
-- posibles clientes que quieren probar la app sin riesgo y sin datos reales.
-
-Requisitos:
-
-- se activa con una fecha de fin de prueba,
-- usa un tenant aislado,
-- carga datos sintéticos generados automáticamente,
-- no permite operaciones de producción real,
-- todos los módulos principales activos para que el cliente vea el alcance completo,
-- se marca con un banner `Demo / Prueba / Datos ficticios`,
-- la expiración puede ser 7, 14, 21, 30 o 45 días según la estrategia comercial.
-
-## 12. Recomendación para la demo comercial
-
-La versión demo debe funcionar como una “sandbox” realista, no como una versión limitada sin valor.
-
-Debe permitir:
-
-- explorar la funcionalidad completa,
-- probar módulos de gestión,
-- validar la UX,
-- evaluar permisos y roles,
-- exportar informes demo,
-- simular un caso de negocio con datos ficticios,
-- comparar la app con necesidades reales,
-- sin afectar a datos reales ni a clientes reales.
-
-Se recomienda:
-
-- `tenant_demo` aislado,
-- `datos_seed` automáticos,
-- `watermark` visual en la UI,
-- `banner de expiración` visible siempre,
-- `bloqueo de exportación real` con etiqueta `demo`,
-- `reset` del entorno demo al iniciar una nueva prueba.
-
-## 13. Reglas de la demo comercial
-
-1. La demo no puede usarse con datos reales.
-2. La demo debe tener un tiempo de caducidad configurable.
-3. La demo debe indicarse claramente como `demo` en interfaz y exportaciones.
-4. La demo debe usar un tenant separado y sin acceso a datos de producción.
-5. La demo debe permitir una experiencia de transición al plan real.
-6. La demo debe ser fácil de resetear y reutilizar.
-7. La exportación demo debe estar claramente marcada como no oficial.
-
-## 14. Recomendación de diseño para la app
-
-### 14.1. No duplicar app por versión
-
-La mejor solución es tener:
-
-- base única,
-- módulos diferentes,
-- roles y permisos por entorno,
-- vistas por plan,
-- feature flags,
-- tenant demo aislado.
-
-### 14.2. La vista oficial debe estar gobernada por redacción de datos
-
-Esto significa que incluso si el plan completo está activado, la vista legal debe mostrar solo lo que es relevante para la administración. La app puede tener acceso completo a la base, pero la vista debería estar “redactada” según el contexto legal.
-
-### 14.3. La demo debe ser un entorno paralelo
-
-La demo no debería mezclarse con la versión productiva. Debe tener:
-
-- un tenant distinto,
-- un estado `demo=true`,
-- datos synthetic,
-- expiración del período de prueba,
-- acceso restringido a exportaciones reales.
-
-## 15. Ventaja comercial
-
-Esta propuesta permite vender el producto en varias dimensiones:
-
-- funcionalidad
-- tamaño de empresa
-- tipo de usuario
-- necesidad legal y administrativa
-- nivel de acceso
-- prueba sin riesgo
-
-Es más sostenible que crear varias apps separadas, porque mantiene:
-
-- reutilización de código,
-- menor coste de mantenimiento,
-- más seguridad,
-- mejor capacidad de crecimiento,
-- diferenciación clara por plan,
-- demo comercial navegable y útil.
-
-## 16. Conclusión
-
-Sí, este criterio puede aplicarse a toda la app, y además se debe incorporar la dimensión de demo comercial.
-
-La mejor arquitectura es:
-
-- una sola base de producto,
-- varios módulos,
-- varios roles,
-- varios planes,
-- y una capa legal/compliance separada,
-- plus un entorno demo con datos sintéticos,
-- acceso limitado a producción,
-- fecha de expiración y banner claro de prueba.
-
-Esto permite:
-
-- vender “solo control horario”,
-- vender “solo obra / cliente”,
-- vender “administrativa / legal”,
-- vender “completa”,
-- y ofrecer una demo total con período de prueba sin riesgo para datos reales.
-
-La demo comercial no sustituye la versión final; es una capa de evaluación que reduce fricción comercial y permite valorar la solución antes de la compra real.
+- mejora la venta comercial por plan,
+- y protege la integridad del sistema y del cumplimiento legal.
 
 ---
 
