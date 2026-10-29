@@ -115,7 +115,7 @@ export default function RegistroLegalTab() {
       const d = res.data || {};
       if (d.error) throw new Error(d.error);
       descargarBase64(d.base64, d.filename);
-      toast({ title: 'Exportación legal generada', description: `${d.registros || 0} registros · ${d.auditoria || 0} eventos de auditoría` });
+      toast({ title: 'Exportación legal generada', description: `${d.registros || 0} registros · ${d.historico || 0} meses de histórico · ${d.auditoria || 0} eventos` });
     } catch (e) {
       toast({ title: 'No se pudo exportar', description: e.message, variant: 'destructive' });
     } finally {
@@ -132,7 +132,7 @@ export default function RegistroLegalTab() {
         <div className="text-xs text-muted-foreground leading-relaxed">
           <p className="font-semibold text-foreground">Registro legal oficial</p>
           {canManage ? (
-            <p>Valida aquí la versión oficial. La exportación legal solo incluye registros <strong>oficiales</strong>. Un cierre forzado o automático llega como <em>provisional</em> y nunca es prueba legal hasta que administración lo valida.</p>
+            <p>Valida aquí la versión oficial. La exportación legal solo incluye registros <strong>oficiales</strong> en el detalle y los resúmenes, junto con la portada corporativa (datos de empresa y logo) y el <strong>histórico completo</strong> de todos los periodos. Un cierre forzado o automático llega como <em>provisional</em> y nunca es prueba legal hasta que administración lo valida.</p>
           ) : (
             <p className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> Consulta de tus propios registros legales (solo lectura).</p>
           )}
