@@ -34,11 +34,12 @@ export default function ObraSelectorObras({ value, onChange, placeholder = 'Sele
   const porCliente = (lista) => (clientFilter ? lista.filter(o => o.client_id === clientFilter) : lista);
 
   const obrasCivilesTodas = porCliente(obrasCivilesRaw);
-  const obrasSolar = porCliente(obrasSolarRaw.filter(o => o.status !== 'finalizada'));
-  const obrasCiviles = obrasCivilesTodas.filter(o => o.status !== 'finalizada');
-  const obrasFinalizadas = incluirFinalizadas
-    ? obrasCivilesTodas.filter(o => o.status === 'finalizada')
-    : [];
+  const obrasSolarTodas = porCliente(obrasSolarRaw);
+  // El listado muestra solo el nombre de la obra, sin anotaciones de estado.
+  // Las finalizadas se ocultan salvo que se pidan explícitamente.
+  const soloVigentes = (lista) => incluirFinalizadas ? lista : lista.filter(o => o.status !== 'finalizada');
+  const obrasCiviles = soloVigentes(obrasCivilesTodas);
+  const obrasSolar = soloVigentes(obrasSolarTodas);
 
   const handleChange = (val) => {
     if (!val) { onChange({ obra_id: null, obra_name: '', obra_tipo: 'otro', project: '' }); return; }
@@ -48,7 +49,7 @@ export default function ObraSelectorObras({ value, onChange, placeholder = 'Sele
       onChange({ obra_id: civil.id, obra_name: civil.name, obra_tipo: 'obra_civil', project: civil.name });
       return;
     }
-    const solar = obrasSolar.find(o => o.id === val);
+    const solar = obrasSolarTodas.find(o => o.id === val);
     if (solar) {
       onClientDetected?.({ client_id: solar.client_id || '', client_name: solar.client_name || '' });
       onChange({ obra_id: solar.id, obra_name: solar.name, obra_tipo: 'solar', project: solar.name });
@@ -63,7 +64,7 @@ export default function ObraSelectorObras({ value, onChange, placeholder = 'Sele
   const idActual = value?.obra_id || '';
   const obraActualHuerfana = idActual
     && !obrasCivilesTodas.some(o => o.id === idActual)
-    && !obrasSolar.some(o => o.id === idActual)
+    && !obrasSolarTodas.some(o => o.id === idActual)
     ? { id: idActual, name: value?.obra_name || 'Obra actual' }
     : null;
 
@@ -78,16 +79,13 @@ export default function ObraSelectorObras({ value, onChange, placeholder = 'Sele
         <MobileSelectItem value="__header_civil" disabled className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 pointer-events-none select-none">OBRAS CIVILES</MobileSelectItem>
       }
       {obrasCiviles.map(o => (
-        <MobileSelectItem key={o.id} value={o.id}>🏗 {o.name}{o.status === 'pausada' ? ' (pausada)' : ''}</MobileSelectItem>
+        <MobileSelectItem key={o.id} value={o.id}>🏗 {o.name}</MobileSelectItem>
       ))}
       {obrasSolar.length > 0 &&
         <MobileSelectItem value="__header_solar" disabled className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 pointer-events-none select-none">OBRAS SOLARES</MobileSelectItem>
       }
       {obrasSolar.map(o => (
-        <MobileSelectItem key={o.id} value={o.id}>☀️ {o.name}{o.status === 'pausada' ? ' (pausada)' : ''}</MobileSelectItem>
-      ))}
-      {obrasFinalizadas.map(o => (
-        <MobileSelectItem key={o.id} value={o.id}>🏗 {o.name} (finalizada)</MobileSelectItem>
+        <MobileSelectItem key={o.id} value={o.id}>☀️ {o.name}</MobileSelectItem>
       ))}
       {obraActualHuerfana && (
         <MobileSelectItem value={obraActualHuerfana.id}>🏗 {obraActualHuerfana.name}</MobileSelectItem>
