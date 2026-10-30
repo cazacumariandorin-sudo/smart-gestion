@@ -1,0 +1,45 @@
+{
+  "name": "Cargar calendario laboral del a\u00f1o siguiente",
+  "description": "El 31 de diciembre carga desde la fuente oficial (BOCM/BOE) los festivos del a\u00f1o siguiente en el CalendarioLaboral, para que el cierre autom\u00e1tico de fichajes y el calendario de ausencias los usen desde el 1 de enero.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 10 31 12 *",
+      "one_time_date": null,
+      "timezone": "Europe/Madrid",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "cargar_calendario_laboral_ano_siguiente",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "cargar_calendario": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "cargarCalendarioLaboral",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Cargar calendario oficial del a\u00f1o siguiente",
+            "description": "BOCM / BOE"
+          }
+        }
+      }
+    ]
+  }
+}

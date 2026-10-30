@@ -1,7 +1,7 @@
 {
   "name": "CalendarioLaboral",
   "type": "object",
-  "description": "Calendario oficial de festivos de la empresa (Comunidad de Madrid, sede Madrid). FUENTE \u00daNICA: el cierre autom\u00e1tico de fichajes y el calendario de ausencias leen de aqu\u00ed. Se actualiza cada 1 de enero con el calendario publicado en el BOCM.",
+  "description": "Calendario oficial de festivos de la empresa (Comunidad de Madrid, sede Madrid). FUENTE \u00daNICA: el cierre autom\u00e1tico de fichajes y el calendario de ausencias leen de aqu\u00ed. Se actualiza autom\u00e1ticamente el 31 de diciembre con la fuente oficial (BOCM/BOE) a trav\u00e9s de la funci\u00f3n cargarCalendarioLaboral.",
   "properties": {
     "fecha": {
       "type": "string",
@@ -26,16 +26,20 @@
     "confirmado": {
       "type": "boolean",
       "default": true,
-      "description": "False cuando la fecha a\u00fan no est\u00e1 publicada oficialmente (p. ej. el a\u00f1o siguiente) y debe revisarse el 1 de enero."
+      "description": "False cuando la fecha a\u00fan no est\u00e1 publicada oficialmente y debe revisarse (p. ej. a\u00f1o estimado porque el BOCM no lo ha publicado todav\u00eda)."
     },
     "activo": {
       "type": "boolean",
       "default": true,
-      "description": "False anula el festivo sin borrar el registro."
+      "description": "False anula el festivo sin borrar el registro. La carga autom\u00e1tica respeta los registros anulados a mano."
     },
     "nota": {
       "type": "string",
       "description": "Observaciones: traslados, pendiente de publicaci\u00f3n oficial, decisi\u00f3n interna..."
+    },
+    "fuente": {
+      "type": "string",
+      "description": "Fuente oficial de la que se carg\u00f3 la fecha (decreto del BOCM, resoluci\u00f3n del BOE) o aviso de que se gener\u00f3 sin fuente oficial."
     }
   },
   "required": [

@@ -446,11 +446,16 @@ export default function CalendarioVacaciones() {
                 );
               })}
             </div>
-            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg space-y-1">
               <p className="text-xs text-muted-foreground">
                 <Info className="w-3 h-3 inline mr-1" />
                 Mostrando festivos de {format(currentDate, 'MMMM yyyy', { locale: es })}. Navega entre meses para ver otros festivos.
               </p>
+              {festivosMadrid.find(f => f.fuente)?.fuente && (
+                <p className="text-[11px] text-muted-foreground">
+                  Fuente oficial: {festivosMadrid.find(f => f.fuente).fuente}
+                </p>
+              )}
             </div>
           </Card>
         </TabsContent>
