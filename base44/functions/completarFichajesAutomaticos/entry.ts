@@ -1,84 +1,79 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import {
+  calcularHorasNetas,
+  esFinDeSemana,
+  fechaMadridISO,
+  horarioDelDia,
+  minutosDe,
+} from '../../shared/horarioEmpresa.ts';
 
-// Festivos nacionales y de la Comunidad de Madrid
-const getFestivosMadrid = (year) => {
-  const fijosNacionales = ['01-01','05-01','08-10','11-01','12-06','12-08','12-25'];
-  const fijosMadrid = ['05-02','07-25'];
-  const variables = {
-    2024: ['03-28','03-29','05-20','08-15'],
-    2025: ['04-17','04-18','06-09','08-15'],
-    2026: ['04-02','04-03','05-25','08-15'],
-  };
-  return [...fijosNacionales, ...fijosMadrid, ...(variables[year] || [])].map(f => `${year}-${f}`);
-};
-
-const HORARIO_NORMAL = {
-  inicio: { h: 8, m: 1 },
-  fin: { h: 18, m: 4 },
-  pausa_inicio: { h: 14, m: 7 },
-  pausa_fin: { h: 15, m: 2 },
-};
-
-function parseTime(timeStr) {
-  if (!timeStr) return null;
-  const [h, m] = timeStr.split(':').map(Number);
-  return { h, m };
-}
-
-function timeToMinutes(time) {
-  return time.h * 60 + time.m;
-}
-
-function minutesToTime(mins) {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-
-function esFestivo(fecha, festivos) {
-  return festivos.includes(fecha.toISOString().split('T')[0]);
-}
-
-function esFinDeSemana(fecha) {
-  const dia = fecha.getDay();
-  return dia === 0 || dia === 6;
-}
-
-function calcularHorasNetas(entrada, salida, pausaInicio, pausaFin) {
-  const brutas = timeToMinutes(salida) - timeToMinutes(entrada);
-  const pausa = timeToMinutes(pausaFin) - timeToMinutes(pausaInicio);
-  return (brutas - pausa) / 60;
-}
-
+/**
+ * Cierre automático de fichajes del día.
+ *
+ * Reglas (horario de empresa, ver base44/shared/horarioEmpresa.ts):
+ *   · L-J 08:00-18:00 con comida 14:00-15:00  ·  Viernes 08:00-13:00 sin comida.
+ *   · Solo se ejecuta en día laborable: ni fin de semana ni festivo del
+ *     CalendarioLaboral (Comunidad de Madrid + San Isidro).
+ *   · Completa únicamente fichajes con entrada y sin salida.
+ *   · Las horas se calculan desde la ENTRADA REAL del trabajador hasta el fin de
+ *     jornada, descontando solo la comida que se solape (no se inventan horas).
+ *   · Queda marcado como origen 'cierre_automatico': no es un fichaje real del
+ *     trabajador y así consta en el registro legal.
+ */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Permitir ejecución desde cron (sin usuario) o desde admin/gerencia
+    // Permitir ejecución desde cron (sin usuario) o desde admin/gerencia/administración
     let user = null;
     try { user = await base44.auth.me(); } catch { user = null; }
-    if (user && user.role !== 'admin' && user.role !== 'gerencia') {
-      return Response.json({ error: 'Forbidden: Solo admin/gerencia' }, { status: 403 });
+    if (user && !['admin', 'gerencia', 'administracion'].includes(user.role)) {
+      return Response.json({ error: 'Forbidden: Solo admin/gerencia/administración' }, { status: 403 });
     }
 
-    const hoy = new Date();
-    const year = hoy.getFullYear();
-    const festivos = getFestivosMadrid(year);
+    const body = await req.json().catch(() => ({}));
+    const fecha = body?.fecha || fechaMadridISO();
 
-    // No ejecutar en festivos ni fines de semana
-    if (esFestivo(hoy, festivos)) {
-      return Response.json({ success: true, message: 'Es festivo', skipped: true });
-    }
-    if (esFinDeSemana(hoy)) {
-      return Response.json({ success: true, message: 'Es fin de semana', skipped: true });
+    if (esFinDeSemana(fecha)) {
+      return Response.json({ success: true, skipped: true, message: 'Fin de semana: no es día laborable' });
     }
 
-    const fechaHoy = hoy.toISOString().split('T')[0];
-    const fichajesPendientes = await base44.asServiceRole.entities.Fichaje.filter({ date: fechaHoy });
+    const anio = fecha.slice(0, 4);
+    const calendario = await base44.asServiceRole.entities.CalendarioLaboral.filter({
+      fecha: { $gte: `${anio}-01-01`, $lte: `${anio}-12-31` },
+    });
 
-    const resultados = { completados: 0, skipped: 0, errores: [], detalles: [] };
+    // Sin calendario cargado no se completa nada: evita fabricar jornadas en días
+    // que sí son festivos. Debe actualizarse cada 1 de enero.
+    if (!calendario.length) {
+      return Response.json({
+        success: true,
+        skipped: true,
+        message: `Sin calendario laboral cargado para ${anio}. Actualízalo antes de completar fichajes.`,
+      });
+    }
 
-    for (const fichaje of fichajesPendientes) {
+    const festivo = calendario.find((f) => f.fecha === fecha && f.activo !== false);
+    if (festivo) {
+      return Response.json({ success: true, skipped: true, message: `Festivo: ${festivo.nombre}` });
+    }
+
+    const horario = horarioDelDia(fecha);
+    if (!horario) {
+      return Response.json({ success: true, skipped: true, message: 'Día no laborable según el horario de empresa' });
+    }
+
+    const fichajes = await base44.asServiceRole.entities.Fichaje.filter({ date: fecha });
+    const resultados = {
+      fecha,
+      jornada: `${horario.inicio}-${horario.fin}`,
+      completados: 0,
+      skipped: 0,
+      errores: [],
+      detalles: [],
+    };
+
+    for (const fichaje of fichajes) {
       try {
         // Solo procesar si tiene hora_entrada pero NO hora_salida
         if (!fichaje.hora_entrada || fichaje.hora_salida) {
@@ -86,23 +81,41 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const motivoAuto = 'Cierre automático 18:04 - operario no fichó salida';
+        if (minutosDe(fichaje.hora_entrada) >= minutosDe(horario.fin)) {
+          resultados.skipped++;
+          resultados.detalles.push({
+            operario: fichaje.operario_name,
+            accion: 'omitido',
+            motivo: `Entrada (${fichaje.hora_entrada}) posterior al fin de jornada (${horario.fin})`,
+          });
+          continue;
+        }
+
+        // Si el trabajador ya registró su pausa, se respeta; si no, la de empresa.
+        const pausaRegistrada = Boolean(fichaje.pausa_inicio && fichaje.pausa_fin);
+        const pausaInicio = pausaRegistrada ? fichaje.pausa_inicio : horario.pausa_inicio;
+        const pausaFin = pausaRegistrada ? fichaje.pausa_fin : horario.pausa_fin;
+
+        const horas = calcularHorasNetas(fichaje.hora_entrada, horario.fin, {
+          pausa_inicio: pausaInicio,
+          pausa_fin: pausaFin,
+        });
+
+        const motivo = `Cierre automático ${horario.fin} · jornada de empresa ${horario.inicio}-${horario.fin}${
+          pausaInicio ? ` con comida ${pausaInicio}-${pausaFin}` : ' sin comida'
+        }`;
+
         await base44.asServiceRole.entities.Fichaje.update(fichaje.id, {
-          hora_salida: minutesToTime(timeToMinutes(HORARIO_NORMAL.fin)),
-          pausa_inicio: minutesToTime(timeToMinutes(HORARIO_NORMAL.pausa_inicio)),
-          pausa_fin: minutesToTime(timeToMinutes(HORARIO_NORMAL.pausa_fin)),
-          horas_trabajadas: calcularHorasNetas(
-            HORARIO_NORMAL.inicio,
-            HORARIO_NORMAL.fin,
-            HORARIO_NORMAL.pausa_inicio,
-            HORARIO_NORMAL.pausa_fin
-          ),
-          // Marca de origen: un cierre automático no es un fichaje real del trabajador.
+          hora_salida: horario.fin,
+          pausa_inicio: pausaInicio ?? null,
+          pausa_fin: pausaFin ?? null,
+          horas_trabajadas: horas,
+          // Un cierre automático no es un fichaje real del trabajador.
           origen: 'cierre_automatico',
           cerrado_por: 'sistema',
           fecha_cierre: new Date().toISOString(),
-          motivo_cierre: motivoAuto,
-          notas: (fichaje.notas || '') + ` [${motivoAuto}]`,
+          motivo_cierre: motivo,
+          notas: (fichaje.notas || '') + ` [${motivo}]`,
         });
 
         resultados.completados++;
@@ -110,14 +123,15 @@ Deno.serve(async (req) => {
           operario: fichaje.operario_name,
           accion: 'completado',
           hora_entrada: fichaje.hora_entrada,
-          hora_salida: '18:04',
+          hora_salida: horario.fin,
+          horas_trabajadas: horas,
         });
       } catch (error) {
         resultados.errores.push({ fichaje_id: fichaje.id, error: error.message });
       }
     }
 
-    return Response.json({ success: true, fecha: fechaHoy, resultados });
+    return Response.json({ success: true, ...resultados });
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }

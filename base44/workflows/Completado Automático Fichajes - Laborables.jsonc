@@ -1,6 +1,6 @@
 {
-  "name": "Completado Autom\u00e1tico Fichajes - Laborables",
   "description": "Completa autom\u00e1ticamente fichajes incompletos de lunes a viernes (excluyendo festivos de Madrid) a las 23:30",
+  "name": "Completado Autom\u00e1tico Fichajes - Laborables",
   "trigger": {
     "condition": null,
     "config": {
@@ -9,7 +9,7 @@
       "schedule_mode": "recurring",
       "cron_expression": "30 23 * * 1-5",
       "one_time_date": null,
-      "timezone": "UTC",
+      "timezone": "Europe/Madrid",
       "interval_value": null,
       "interval_unit": null,
       "interval_anchor": null,

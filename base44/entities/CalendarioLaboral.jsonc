@@ -1,0 +1,105 @@
+{
+  "name": "CalendarioLaboral",
+  "type": "object",
+  "description": "Calendario oficial de festivos de la empresa (Comunidad de Madrid, sede Madrid). FUENTE \u00daNICA: el cierre autom\u00e1tico de fichajes y el calendario de ausencias leen de aqu\u00ed. Se actualiza cada 1 de enero con el calendario publicado en el BOCM.",
+  "properties": {
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "D\u00eda festivo o no laborable (YYYY-MM-DD)."
+    },
+    "nombre": {
+      "type": "string",
+      "description": "Nombre de la festividad."
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "nacional",
+        "autonomico",
+        "local",
+        "empresa"
+      ],
+      "default": "nacional",
+      "description": "nacional = estatal; autonomico = Comunidad de Madrid; local = fiesta local de la sede (San Isidro, 15 de mayo, por decisi\u00f3n interna); empresa = cierre decidido por la empresa."
+    },
+    "confirmado": {
+      "type": "boolean",
+      "default": true,
+      "description": "False cuando la fecha a\u00fan no est\u00e1 publicada oficialmente (p. ej. el a\u00f1o siguiente) y debe revisarse el 1 de enero."
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true,
+      "description": "False anula el festivo sin borrar el registro."
+    },
+    "nota": {
+      "type": "string",
+      "description": "Observaciones: traslados, pendiente de publicaci\u00f3n oficial, decisi\u00f3n interna..."
+    }
+  },
+  "required": [
+    "fecha",
+    "nombre"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    }
+  }
+}

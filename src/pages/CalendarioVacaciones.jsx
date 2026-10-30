@@ -61,6 +61,14 @@ export default function CalendarioVacaciones() {
     queryKey: ['operarios'],
     queryFn: () => base44.entities.Operario.list('name', 200),
   });
+  // Festivos: fuente única en la entidad CalendarioLaboral (se actualiza cada 1 de enero)
+  const { data: festivosMadrid = [] } = useQuery({
+    queryKey: ['calendario_laboral'],
+    queryFn: async () => {
+      const lista = await base44.entities.CalendarioLaboral.list('fecha', 200);
+      return (lista || []).filter(f => f.activo !== false);
+    },
+  });
 
   // Autoload operario para rol operario/control_horario
   const [myOperario, setMyOperario] = useState(null);
@@ -147,33 +155,6 @@ export default function CalendarioVacaciones() {
       .map(f => ({ ...f, source: 'falta' }));
     return [...vacs, ...falts];
   };
-
-  // Festivos Comunidad de Madrid 2025-2026
-  const festivosMadrid = useMemo(() => {
-    const festivos = [
-      { fecha: '2025-01-01', nombre: 'Año Nuevo' },
-      { fecha: '2025-01-06', nombre: 'Reyes Magos' },
-      { fecha: '2025-04-18', nombre: 'Viernes Santo' },
-      { fecha: '2025-05-01', nombre: 'Día del Trabajo' },
-      { fecha: '2025-05-15', nombre: 'San Isidro Labrador' },
-      { fecha: '2025-08-15', nombre: 'Asunción de la Virgen' },
-      { fecha: '2025-10-12', nombre: 'Fiesta Nacional de España' },
-      { fecha: '2025-11-01', nombre: 'Todos los Santos' },
-      { fecha: '2025-12-06', nombre: 'Día de la Constitución' },
-      { fecha: '2025-12-25', nombre: 'Natividad del Señor' },
-      { fecha: '2026-01-01', nombre: 'Año Nuevo' },
-      { fecha: '2026-01-06', nombre: 'Reyes Magos' },
-      { fecha: '2026-04-03', nombre: 'Viernes Santo' },
-      { fecha: '2026-05-01', nombre: 'Día del Trabajo' },
-      { fecha: '2026-05-15', nombre: 'San Isidro Labrador' },
-      { fecha: '2026-08-15', nombre: 'Asunción de la Virgen' },
-      { fecha: '2026-10-12', nombre: 'Fiesta Nacional de España' },
-      { fecha: '2026-11-01', nombre: 'Todos los Santos' },
-      { fecha: '2026-12-06', nombre: 'Día de la Constitución' },
-      { fecha: '2026-12-25', nombre: 'Natividad del Señor' },
-    ];
-    return festivos;
-  }, []);
 
   const today = new Date();
 
