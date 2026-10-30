@@ -28,7 +28,7 @@ export const ALL_MODULES = [
   'notas-gastos', 'vehiculos', 'chat', 'flota', 'galeria-fotos',
   'apuntes-horario', 'nominas', 'presupuestos', 'parte-diario',
   'economico-dashboard', 'trabajos-extras', 'material-pendiente',
-  'conciliacion', 'contabilidad', 'ingenieria',
+  'conciliacion', 'contabilidad', 'ingenieria', 'expedientes',
 ];
 
 /**
@@ -49,6 +49,7 @@ export const ROLE_MODULE_PERMISSIONS = {
     'inventario', 'fabricantes', 'demo-users', 'admin-backup', 'nominas',
     'presupuestos', 'parte-diario', 'economico-dashboard', 'trabajos-extras',
     'material-pendiente', 'conciliacion', 'contabilidad', 'ingenieria',
+    'expedientes',
   ],
 
   // ingeniero = rol operativo del módulo Ingeniería/ObraCheck. Alcance de
@@ -63,7 +64,7 @@ export const ROLE_MODULE_PERMISSIONS = {
   ],
 
   // director_comercial = todo salvo datos-sensibles y admin-backup.
-  director_comercial: ALL_MODULES.filter(m => !['datos-sensibles', 'admin-backup'].includes(m)),
+  director_comercial: ALL_MODULES.filter(m => !['datos-sensibles', 'admin-backup', 'expedientes'].includes(m)),
 
   jefe_obra: [
     'dashboard', 'work-orders', 'clients', 'reports', 'photos', 'orders',
@@ -106,7 +107,7 @@ export const ROLE_MODULE_PERMISSIONS = {
     'control-horario', 'solar-pedidos', 'users', 'datos-sensibles',
     'inventario', 'fabricantes', 'demo-users', 'admin-backup', 'nominas',
     'presupuestos', 'parte-diario', 'economico-dashboard', 'trabajos-extras',
-    'material-pendiente', 'conciliacion', 'contabilidad',
+    'material-pendiente', 'conciliacion', 'contabilidad', 'expedientes',
   ],
 
   // Antes DEMO_MODULES — módulos visibles para cuentas de demostración.

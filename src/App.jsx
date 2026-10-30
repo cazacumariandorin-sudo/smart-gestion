@@ -45,6 +45,7 @@ const Drawings = lazy(() => import('./pages/Drawings'));
 const Orders = lazy(() => import('./pages/Orders'));
 const Tecnicos = lazy(() => import('./pages/Tecnicos'));
 const ControlHorario = lazy(() => import('./pages/ControlHorario'));
+const Expedientes = lazy(() => import('./pages/Expedientes'));
 const ObrasCiviles = lazy(() => import('./pages/ObrasCiviles'));
 const CalendarioVacaciones = lazy(() => import('./pages/CalendarioVacaciones'));
 const Manuales = lazy(() => import('./pages/Manuales'));
@@ -255,6 +256,7 @@ function AnimatedRoutes() {
             <Route path="/documentacion-operarios" element={<ProtectedRoute module="operarios"><Suspense fallback={<PageLoader />}><Tecnicos /></Suspense></ProtectedRoute>} />
             <Route path="/control-horario" element={<ProtectedRoute module="control-horario"><Suspense fallback={<PageLoader />}><ControlHorario /></Suspense></ProtectedRoute>} />
             <Route path="/calendario-vacaciones" element={<ProtectedRoute module="calendario-vacaciones"><Suspense fallback={<PageLoader />}><CalendarioVacaciones /></Suspense></ProtectedRoute>} />
+            <Route path="/expedientes" element={<ProtectedRoute module="expedientes"><Suspense fallback={<PageLoader />}><Expedientes /></Suspense></ProtectedRoute>} />
 
             <Route path="/fabricantes" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><Fabricantes /></Suspense></ProtectedRoute>} />
             <Route path="/admin-backup" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><AdminBackup /></Suspense></ProtectedRoute>} />

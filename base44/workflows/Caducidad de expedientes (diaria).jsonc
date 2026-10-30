@@ -1,0 +1,45 @@
+{
+  "name": "Caducidad de expedientes (diaria)",
+  "description": "Cada madrugada marca los expedientes sin notificar que han prescrito y anonimiza los antecedentes que han cumplido su plazo de conservaci\u00f3n, de modo que desaparezcan del historial visible del trabajador.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 4 * * *",
+      "one_time_date": null,
+      "timezone": "Europe/Madrid",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "caducidad_expedientes_diaria",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "caducar_expedientes": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "caducarExpedientes",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Prescripci\u00f3n y caducidad de expedientes",
+            "description": "Anonimiza antecedentes cumplidos"
+          }
+        }
+      }
+    ]
+  }
+}

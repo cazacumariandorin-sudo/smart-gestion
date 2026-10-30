@@ -1,0 +1,324 @@
+{
+  "name": "Expediente",
+  "type": "object",
+  "description": "Expediente sancionador laboral (Convenio del Metal de Madrid). Registra la falta, el plazo de prescripci\u00f3n de la sanci\u00f3n y, cuando procede, el protocolo de Conciliaci\u00f3n Interna Pre-IRMA con acta firmada por empresa y trabajador. Estado 'archivado_conciliado' bloquea la reincidencia de ese caso y activa el plazo de caducidad del antecedente (por defecto 12 meses para faltas muy graves), tras el cual la funci\u00f3n caducarExpedientes anonimiza el registro. Dato de categor\u00eda especial: acceso restringido a gerencia, administraci\u00f3n y direcci\u00f3n.",
+  "properties": {
+    "codigo": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico del expediente: EXP-AAAA-NNN."
+    },
+    "operario_id": {
+      "type": "string",
+      "description": "ID del Operario expedientado."
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del trabajador (desnormalizado). Se sustituye por ANONIMIZADO al caducar."
+    },
+    "operario_email": {
+      "type": "string",
+      "description": "Email del trabajador."
+    },
+    "operario_dni": {
+      "type": "string",
+      "description": "DNI/NIE del trabajador."
+    },
+    "tipo_falta": {
+      "type": "string",
+      "enum": [
+        "leve",
+        "grave",
+        "muy_grave"
+      ],
+      "default": "leve",
+      "description": "Calificaci\u00f3n de la falta seg\u00fan el convenio. Determina el plazo de prescripci\u00f3n y el de caducidad del antecedente."
+    },
+    "articulo": {
+      "type": "string",
+      "description": "Art\u00edculo del convenio aplicado (p. ej. 'Art. 55.a')."
+    },
+    "origen": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "puntualidad",
+        "inasistencia",
+        "flota",
+        "otro"
+      ],
+      "default": "manual",
+      "description": "De d\u00f3nde nace el expediente: apertura manual, impuntualidad, inasistencia, descuido de flota u otro."
+    },
+    "descripcion_hechos": {
+      "type": "string",
+      "description": "Relaci\u00f3n de hechos que motivan el expediente."
+    },
+    "faltas_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de FaltaAsistencia vinculadas (si el expediente nace de una ausencia registrada)."
+    },
+    "fecha_apertura": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de apertura del expediente."
+    },
+    "fecha_conocimiento": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en que la empresa conoce los hechos: desde aqu\u00ed corre el plazo de prescripci\u00f3n."
+    },
+    "fecha_prescripcion": {
+      "type": "string",
+      "format": "date",
+      "description": "\u00daltimo d\u00eda para notificar la sanci\u00f3n antes de que prescriba."
+    },
+    "fecha_notificacion": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de notificaci\u00f3n de la carta al trabajador."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "abierto",
+        "notificado",
+        "en_conciliacion",
+        "archivado_conciliado",
+        "sancionado",
+        "prescrito",
+        "caducado",
+        "anulado"
+      ],
+      "default": "abierto",
+      "description": "abierto \u2192 notificado \u2192 en_conciliacion \u2192 archivado_conciliado (acta firmada por ambos) | sancionado. prescrito = no se notific\u00f3 en plazo. caducado = antecedente anonimizado por plazo de conservaci\u00f3n. anulado = sin efectos."
+    },
+    "reincidencia": {
+      "type": "boolean",
+      "default": false,
+      "description": "True si el expediente se abre por reincidencia sobre uno anterior."
+    },
+    "expediente_origen_id": {
+      "type": "string",
+      "description": "ID del expediente anterior del que trae causa la reincidencia."
+    },
+    "bloquea_reincidencia": {
+      "type": "boolean",
+      "default": false,
+      "description": "True cuando el acta de conciliaci\u00f3n est\u00e1 firmada: este caso concreto deja de contar para futuras reincidencias."
+    },
+    "acta_fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del acta de conciliaci\u00f3n interna."
+    },
+    "acta_lugar": {
+      "type": "string",
+      "description": "Lugar de la firma del acta."
+    },
+    "acta_manifiestan": {
+      "type": "string",
+      "description": "Texto del apartado MANIFESTAN del acta (hechos notificados)."
+    },
+    "acta_acuerdos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Acuerdos numerados del acta."
+    },
+    "acta_pdf_url": {
+      "type": "string",
+      "description": "file_uri del acta firmada en almacenamiento privado (generar URL firmada para verla)."
+    },
+    "firma_empresa": {
+      "type": "string",
+      "description": "Firma manuscrita de la empresa (data URL PNG). Se borra al caducar el expediente."
+    },
+    "firma_empresa_nombre": {
+      "type": "string",
+      "description": "Nombre y cargo de quien firma por la empresa."
+    },
+    "firma_empresa_email": {
+      "type": "string",
+      "description": "Email del usuario que firma por la empresa."
+    },
+    "firma_empresa_fecha": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp de la firma de la empresa."
+    },
+    "firma_trabajador": {
+      "type": "string",
+      "description": "Firma manuscrita del trabajador (data URL PNG). Se borra al caducar el expediente."
+    },
+    "firma_trabajador_nombre": {
+      "type": "string",
+      "description": "Nombre del trabajador que firma."
+    },
+    "firma_trabajador_fecha": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp de la firma del trabajador."
+    },
+    "fecha_archivo": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que ambas firmas cierran el expediente como archivado conciliado."
+    },
+    "caducidad_meses": {
+      "type": "number",
+      "description": "Meses de conservaci\u00f3n del antecedente una vez archivado."
+    },
+    "fecha_caducidad": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha a partir de la cual el antecedente se anonimiza."
+    },
+    "anonimizado": {
+      "type": "boolean",
+      "default": false,
+      "description": "True cuando ya se borraron los datos personales por caducidad."
+    },
+    "abierto_por": {
+      "type": "string",
+      "description": "Email de quien abri\u00f3 el expediente."
+    },
+    "notificado_por": {
+      "type": "string",
+      "description": "Email de quien notific\u00f3 la carta."
+    },
+    "archivado_por": {
+      "type": "string",
+      "description": "Email de quien cerr\u00f3 el acta de conciliaci\u00f3n."
+    },
+    "notas_internas": {
+      "type": "string",
+      "description": "Notas internas de gerencia (no forman parte del acta)."
+    },
+    "historial": {
+      "type": "array",
+      "description": "Auditor\u00eda de cambios de estado: [{fecha, usuario_email, accion, estado_anterior, estado_nuevo, nota}].",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usuario_email": {
+            "type": "string"
+          },
+          "accion": {
+            "type": "string"
+          },
+          "estado_anterior": {
+            "type": "string"
+          },
+          "estado_nuevo": {
+            "type": "string"
+          },
+          "nota": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "codigo",
+    "operario_id",
+    "tipo_falta",
+    "estado"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}
