@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Upload, List, BarChart2, Calculator } from 'lucide-react';
+import { FileText, Upload, List, BarChart2, Calculator, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import PageHeader from '@/components/layout/PageHeader';
 import CargaNominasForm from '@/components/nominas/CargaNominasForm';
@@ -7,6 +7,7 @@ import ResultadoProcesamiento from '@/components/nominas/ResultadoProcesamiento'
 import ListaNominas from '@/components/nominas/ListaNominas';
 import AnalisisCostes from '@/components/nominas/AnalisisCostes';
 import SimuladorNomina from '@/components/nominas/SimuladorNomina';
+import EscenarioNomina from '@/components/nominas/EscenarioNomina';
 import NominasErrorBoundary from '@/components/nominas/NominasErrorBoundary';
 
 export default function Nominas() {
@@ -29,7 +30,7 @@ export default function Nominas() {
       <NominasErrorBoundary>
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
           {/* Tabs */}
-          <div className="flex gap-1 bg-muted/50 rounded-xl p-1">
+          <div className="flex gap-1 bg-muted/50 rounded-xl p-1 overflow-x-auto">
             <button
               onClick={() => setTab('lista')}
               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all
@@ -44,6 +45,15 @@ export default function Nominas() {
                   ${tab === 'simulador' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <Calculator className="w-4 h-4" /> Simulador
+              </button>
+            )}
+            {puedeSimular && (
+              <button
+                onClick={() => setTab('escenario')}
+                className={`flex-1 min-w-[104px] flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all
+                  ${tab === 'escenario' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <TrendingUp className="w-4 h-4" /> Escenario
               </button>
             )}
             {isAdmin && (
@@ -70,6 +80,13 @@ export default function Nominas() {
           {tab === 'simulador' && puedeSimular && (
             <div className="bg-card border border-border rounded-2xl p-5">
               <SimuladorNomina />
+            </div>
+          )}
+
+          {/* Tab: Escenario del próximo mes */}
+          {tab === 'escenario' && puedeSimular && (
+            <div className="bg-card border border-border rounded-2xl p-5">
+              <EscenarioNomina />
             </div>
           )}
 
