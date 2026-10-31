@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Calculator, Loader2, RotateCcw, Users, TrendingUp } from 'lucide-react';
+import { Calculator, Loader2, RotateCcw, Users, TrendingUp, Search } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,7 @@ export default function EscenarioNomina() {
   const [calculando, setCalculando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState('');
+  const [filtro, setFiltro] = useState('');
 
   useEffect(() => {
     let activo = true;
@@ -89,6 +90,11 @@ export default function EscenarioNomina() {
     setError('');
     setLineas((prev) => prev.map((l) => ({ ...lineaVacia(l.real), incluido: l.incluido })));
   };
+
+  const busqueda = filtro.trim().toLowerCase();
+  const visibles = busqueda
+    ? lineas.filter((l) => (l.operario_name || '').toLowerCase().includes(busqueda))
+    : lineas;
 
   const calcular = async () => {
     const incluidas = lineas.filter((l) => l.incluido);
@@ -185,13 +191,24 @@ export default function EscenarioNomina() {
         </div>
       ) : (
         <>
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={filtro}
+              onChange={(e) => setFiltro(e.target.value)}
+              placeholder="Filtrar por trabajador"
+              className="pl-9"
+            />
+          </div>
+
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Users className="w-4 h-4" />
             {lineas.length} trabajadores con nómina registrada · {lineas.filter((l) => l.incluido).length} en el escenario
+            {busqueda ? ` · ${visibles.length} mostrados` : ''}
           </div>
 
           <div className="space-y-2">
-            {lineas.map((l) => (
+            {visibles.map((l) => (
               <EscenarioTrabajadorCard
                 key={l.operario_id || l.operario_name}
                 linea={l}
@@ -201,6 +218,11 @@ export default function EscenarioNomina() {
             {!lineas.length && (
               <p className="text-sm text-muted-foreground">
                 No hay nóminas individuales cargadas. Sube nóminas para poder estimar el escenario.
+              </p>
+            )}
+            {!!lineas.length && !visibles.length && (
+              <p className="text-sm text-muted-foreground">
+                Ningún trabajador coincide con «{filtro}».
               </p>
             )}
           </div>

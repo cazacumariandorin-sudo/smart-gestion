@@ -1,16 +1,34 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
-import { ROLES_SIMULADOR, seleccionarHistorico, simularNomina } from '../../shared/nominaSimulacion.ts';
+import {
+  ROLES_SIMULADOR,
+  seleccionarHistorico,
+  datosBaseNomina,
+  calcularNominaSimulada,
+} from '../../shared/nominaSimulacion.ts';
 
 const DENEGADO =
   'Error de seguridad (RLS): Acceso denegado. No tiene permisos suficientes para ver o modificar el simulador de nóminas.';
 
-export default async function (req) {
+const DEVENGOS_NUMERICOS = [
+  'salario_base',
+  'prorrata_extras',
+  'plus_convenio',
+  'incentivos',
+  'horas_extra',
+  'bonus',
+  'otros_devengos',
+  'dietas_importe',
+  'dietas_dias',
+  'anticipos',
+];
+
+export default async function (req: any) {
   try {
     const base44 = createClientFromRequest(req);
 
     const user = await base44.auth
       .me()
-      .catch((e) => (e.status === 401 ? null : Promise.reject(e)));
+      .catch((e: any) => (e.status === 401 ? null : Promise.reject(e)));
     if (!user) return Response.json({ ok: false, error: 'Sesión no válida.' }, { status: 401 });
 
     // La autorización se valida aquí, con el usuario de la sesión.
@@ -21,12 +39,11 @@ export default async function (req) {
 
     const body = await req.json().catch(() => ({}));
 
+    const accion = body.accion === 'plantilla' ? 'plantilla' : 'calcular';
     const operarioId = String(body.operario_id || '').trim();
     const operarioName = String(body.operario_name || '').trim();
     const mes = Number(body.mes);
     const anio = Number(body.anio);
-    const modo = ['importe', 'porcentaje', 'mantener_neto'].includes(body.modo) ? body.modo : 'importe';
-    const valor = Number(body.valor) || 0;
     const regimen = body.regimen === 'autonomo_societario' ? 'autonomo_societario' : 'general';
     const cuotaReta = Number(body.cuota_reta) || 0;
     const empresaAsumeReta = body.empresa_asume_reta === true;
@@ -40,17 +57,28 @@ export default async function (req) {
     if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
       return Response.json({ ok: false, error: 'El año no es válido.' }, { status: 400 });
     }
-    if (modo !== 'mantener_neto' && valor <= 0) {
-      return Response.json(
-        { ok: false, error: 'Indica un importe o porcentaje mayor que cero.' },
-        { status: 400 }
-      );
-    }
     if (regimen === 'autonomo_societario' && empresaAsumeReta && cuotaReta <= 0) {
       return Response.json(
         { ok: false, error: 'Indica la cuota RETA que asume la empresa.' },
         { status: 400 }
       );
+    }
+
+    // Desglose de conceptos recibido: solo importes propios de la nómina.
+    const entrada = body.devengos && typeof body.devengos === 'object' ? body.devengos : null;
+    if (accion === 'calcular') {
+      if (!entrada) {
+        return Response.json({ ok: false, error: 'Faltan los conceptos de la nómina.' }, { status: 400 });
+      }
+      for (const campo of DEVENGOS_NUMERICOS) {
+        const valor = Number(entrada[campo] ?? 0);
+        if (!Number.isFinite(valor) || valor < 0) {
+          return Response.json(
+            { ok: false, error: `El concepto "${campo}" no es un importe válido.` },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     const { items } = await base44.entities.Nomina.filter(
@@ -80,20 +108,31 @@ export default async function (req) {
       );
     }
 
-    const resultado = simularNomina({
+    const nombre = operarioName || historico[0].operario_name || 'Trabajador';
+
+    if (accion === 'plantilla') {
+      return Response.json(
+        datosBaseNomina({ historico, mes, anio, regimen, operarioNombre: nombre })
+      );
+    }
+
+    const devengos: any = {};
+    for (const campo of DEVENGOS_NUMERICOS) devengos[campo] = Number(entrada[campo] ?? 0);
+    devengos.dietas_con_pernocta = entrada.dietas_con_pernocta !== false;
+
+    const resultado = calcularNominaSimulada({
       historico,
-      mes,
-      anio,
-      modo,
-      valor,
+      devengos,
       regimen,
       cuotaReta,
       empresaAsumeReta,
-      operarioNombre: operarioName || historico[0].operario_name || 'Trabajador',
+      mes,
+      anio,
+      operarioNombre: nombre,
     });
 
     return Response.json(resultado);
-  } catch (error) {
+  } catch (error: any) {
     return Response.json({ ok: false, error: error.message }, { status: 500 });
   }
 }

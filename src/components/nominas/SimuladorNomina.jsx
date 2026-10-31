@@ -5,34 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Calculator, Loader2, AlertTriangle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import ConceptosNominaForm from './simulador/ConceptosNominaForm';
+import TablaNominaSimulada from './simulador/TablaNominaSimulada';
+import { eur, sgn } from '@/lib/nominaFormato';
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
-
-const MODOS = [
-  { value: 'importe', label: 'Nuevo bruto mensual (€)' },
-  { value: 'porcentaje', label: 'Variación sobre el bruto (%)' },
-  { value: 'mantener_neto', label: 'Mantener el líquido a percibir' },
-];
-
-const eur = (n) => `${Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-const sgn = (n) => `${n > 0 ? '+' : ''}${Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-
-function FilaResultado({ fila }) {
-  const esDestacada = fila.tipo === 'total' || fila.tipo === 'neto';
-  return (
-    <tr className={fila.tipo === 'neto' ? 'bg-primary/5 font-semibold' : esDestacada ? 'bg-muted/40 font-semibold' : ''}>
-      <td className="py-2 pr-2">{fila.concepto}</td>
-      <td className="py-2 px-2 text-right tabular-nums">{eur(fila.real)}</td>
-      <td className="py-2 px-2 text-right tabular-nums">{eur(fila.simulado)}</td>
-      <td className={`py-2 pl-2 text-right tabular-nums ${fila.variacion > 0 ? 'text-emerald-600' : fila.variacion < 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
-        {sgn(fila.variacion)}
-      </td>
-    </tr>
-  );
-}
 
 export default function SimuladorNomina() {
   const hoy = new Date();
@@ -41,15 +21,16 @@ export default function SimuladorNomina() {
     operario_id: '',
     mes: hoy.getMonth() + 1,
     anio: hoy.getFullYear(),
-    modo: 'importe',
-    valor: '',
     regimen: 'general',
     cuota_reta: '',
     empresa_asume_reta: false,
   });
+  const [devengos, setDevengos] = useState(null);
+  const [base, setBase] = useState(null);
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState('');
-  const [cargando, setCargando] = useState(false);
+  const [cargandoBase, setCargandoBase] = useState(false);
+  const [calculando, setCalculando] = useState(false);
 
   useEffect(() => {
     base44.entities.Operario.filter({ active: true }, { sort: 'name', limit: 300 })
@@ -59,38 +40,74 @@ export default function SimuladorNomina() {
 
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
 
-  const simular = async () => {
-    setError('');
+  // La plantilla de conceptos se recarga al cambiar de trabajador, periodo o régimen:
+  // es el punto de partida real sobre el que se edita.
+  useEffect(() => {
+    let activo = true;
     setResultado(null);
-    if (!form.operario_id) { setError('Selecciona un trabajador.'); return; }
-    if (form.modo !== 'mantener_neto' && !(Number(form.valor) > 0)) {
-      setError('Indica un importe o porcentaje mayor que cero.');
-      return;
-    }
-    setCargando(true);
-    try {
-      const res = await base44.functions.invoke('simularNomina', {
+    setBase(null);
+    setDevengos(null);
+    setError('');
+    if (!form.operario_id) return undefined;
+
+    setCargandoBase(true);
+    base44.functions
+      .invoke('simularNomina', {
+        accion: 'plantilla',
         operario_id: form.operario_id,
         operario_name: operarios.find((o) => o.id === form.operario_id)?.name || '',
         mes: Number(form.mes),
         anio: Number(form.anio),
-        modo: form.modo,
-        valor: Number(form.valor) || 0,
+        regimen: form.regimen,
+      })
+      .then((res) => {
+        const data = res.data || {};
+        if (data.ok === false) throw new Error(data.error || 'No se pudo cargar la nómina de referencia.');
+        if (!activo) return;
+        setBase(data);
+        setDevengos(data.devengos);
+      })
+      .catch((e) => {
+        if (activo) setError(e?.response?.data?.error || e.message || 'No se pudo cargar la nómina de referencia.');
+      })
+      .finally(() => {
+        if (activo) setCargandoBase(false);
+      });
+
+    return () => { activo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.operario_id, form.mes, form.anio, form.regimen]);
+
+  const simular = async () => {
+    setError('');
+    if (!form.operario_id) { setError('Selecciona un trabajador.'); return; }
+    if (!devengos) return;
+    setCalculando(true);
+    try {
+      const res = await base44.functions.invoke('simularNomina', {
+        accion: 'calcular',
+        operario_id: form.operario_id,
+        operario_name: operarios.find((o) => o.id === form.operario_id)?.name || '',
+        mes: Number(form.mes),
+        anio: Number(form.anio),
         regimen: form.regimen,
         cuota_reta: Number(form.cuota_reta) || 0,
         empresa_asume_reta: form.empresa_asume_reta,
+        devengos,
       });
-      if (res.data?.ok) setResultado(res.data);
-      else setError(res.data?.error || 'No se ha podido calcular la simulación.');
+      const data = res.data || {};
+      if (data.ok === false) throw new Error(data.error || 'No se ha podido calcular la simulación.');
+      setResultado(data);
     } catch (e) {
-      setError(e?.response?.data?.error || 'No se ha podido calcular la simulación.');
+      setError(e?.response?.data?.error || e.message || 'No se ha podido calcular la simulación.');
     } finally {
-      setCargando(false);
+      setCalculando(false);
     }
   };
 
   const esReta = form.regimen === 'autonomo_societario';
-  const IconoImpacto = resultado?.coste?.impacto > 0 ? TrendingUp : resultado?.coste?.impacto < 0 ? TrendingDown : Minus;
+  const IconoImpacto =
+    resultado?.coste?.impacto > 0 ? TrendingUp : resultado?.coste?.impacto < 0 ? TrendingDown : Minus;
 
   return (
     <div className="space-y-5">
@@ -107,7 +124,7 @@ export default function SimuladorNomina() {
           <Label className="text-xs">Trabajador</Label>
           <MobileSelect
             value={form.operario_id}
-            onValueChange={(v) => { set('operario_id', v); setResultado(null); }}
+            onValueChange={(v) => set('operario_id', v)}
             placeholder="Seleccionar trabajador"
           >
             {operarios.map((o) => (
@@ -136,30 +153,6 @@ export default function SimuladorNomina() {
             />
           </div>
         </div>
-
-        <div>
-          <Label className="text-xs">Qué quieres simular</Label>
-          <MobileSelect value={form.modo} onValueChange={(v) => set('modo', v)} placeholder="Tipo de cambio">
-            {MODOS.map((m) => (
-              <MobileSelectItem key={m.value} value={m.value}>{m.label}</MobileSelectItem>
-            ))}
-          </MobileSelect>
-        </div>
-
-        {form.modo !== 'mantener_neto' && (
-          <div>
-            <Label className="text-xs">
-              {form.modo === 'importe' ? 'Nuevo bruto mensual (€)' : 'Variación sobre el bruto (%)'}
-            </Label>
-            <Input
-              type="number"
-              inputMode="decimal"
-              value={form.valor}
-              onChange={(e) => set('valor', e.target.value)}
-              placeholder={form.modo === 'importe' ? 'Ej. 2800' : 'Ej. 8 o -5'}
-            />
-          </div>
-        )}
 
         <div>
           <Label className="text-xs">Régimen</Label>
@@ -193,14 +186,35 @@ export default function SimuladorNomina() {
           </div>
         )}
 
-        <Button onClick={simular} disabled={cargando} className="w-full">
-          {cargando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
-          {cargando ? 'Calculando…' : 'Simular nómina'}
-        </Button>
+        {cargandoBase && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" /> Cargando la nómina de referencia…
+          </div>
+        )}
+
+        {devengos && base && (
+          <div className="space-y-3 border-t border-border pt-4">
+            <div>
+              <h3 className="font-semibold text-sm">Conceptos de la nómina</h3>
+              <p className="text-xs text-muted-foreground">
+                Precargados de la nómina de {base.origen}. Edita los importes que quieras simular.
+              </p>
+            </div>
+            <ConceptosNominaForm
+              devengos={devengos}
+              onChange={(campo, valor) => setDevengos((d) => ({ ...d, [campo]: valor }))}
+            />
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">{error}</div>
         )}
+
+        <Button onClick={simular} disabled={calculando || !devengos} className="w-full">
+          {calculando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
+          {calculando ? 'Calculando…' : 'Calcular nómina simulada'}
+        </Button>
       </div>
 
       {resultado && (
@@ -212,21 +226,7 @@ export default function SimuladorNomina() {
             </p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs text-muted-foreground border-b border-border">
-                  <th className="text-left py-2 pr-2 font-medium">Concepto</th>
-                  <th className="text-right py-2 px-2 font-medium">Real</th>
-                  <th className="text-right py-2 px-2 font-medium">Simulado</th>
-                  <th className="text-right py-2 pl-2 font-medium">Variación</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resultado.filas.map((f, i) => <FilaResultado key={i} fila={f} />)}
-              </tbody>
-            </table>
-          </div>
+          <TablaNominaSimulada filas={resultado.filas} origen={resultado.real?.origen} />
 
           <div className="bg-muted/40 rounded-xl p-3 space-y-1 text-sm">
             <div className="flex items-center gap-2 font-semibold mb-1">
