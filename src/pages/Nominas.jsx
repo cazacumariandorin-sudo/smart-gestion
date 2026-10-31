@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { FileText, Upload, List, BarChart2 } from 'lucide-react';
+import { FileText, Upload, List, BarChart2, Calculator } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import PageHeader from '@/components/layout/PageHeader';
 import CargaNominasForm from '@/components/nominas/CargaNominasForm';
 import ResultadoProcesamiento from '@/components/nominas/ResultadoProcesamiento';
 import ListaNominas from '@/components/nominas/ListaNominas';
 import AnalisisCostes from '@/components/nominas/AnalisisCostes';
+import SimuladorNomina from '@/components/nominas/SimuladorNomina';
 import NominasErrorBoundary from '@/components/nominas/NominasErrorBoundary';
 
 export default function Nominas() {
@@ -14,6 +15,7 @@ export default function Nominas() {
   const [resultado, setResultado] = useState(null);
 
   const isAdmin = ['admin', 'gerencia', 'administracion'].includes(user?.role);
+  const puedeSimular = ['admin', 'propietario', 'gerencia', 'administracion'].includes(user?.role);
 
   const handleResultado = (res) => {
     setResultado(res);
@@ -35,6 +37,15 @@ export default function Nominas() {
             >
               <List className="w-4 h-4" /> Nóminas
             </button>
+            {puedeSimular && (
+              <button
+                onClick={() => setTab('simulador')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all
+                  ${tab === 'simulador' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <Calculator className="w-4 h-4" /> Simulador
+              </button>
+            )}
             {isAdmin && (
               <button
                 onClick={() => setTab('analisis')}
@@ -54,6 +65,13 @@ export default function Nominas() {
               </button>
             )}
           </div>
+
+          {/* Tab: Simulador de nóminas */}
+          {tab === 'simulador' && puedeSimular && (
+            <div className="bg-card border border-border rounded-2xl p-5">
+              <SimuladorNomina />
+            </div>
+          )}
 
           {/* Tab: Análisis de costes */}
           {tab === 'analisis' && isAdmin && (
