@@ -53,14 +53,15 @@ export const ROLE_MODULE_PERMISSIONS = {
   ],
 
   // ingeniero = rol operativo del módulo Ingeniería/ObraCheck. Alcance de
-  // campo + módulo Ingeniería completo. Sin users, datos-sensibles,
-  // admin-backup, nominas, presupuestos, economico-dashboard ni contabilidad
-  // (esos son de dirección/administración).
+  // campo + módulo Ingeniería completo + presupuestos (decisión de Dirección,
+  // regla DOC-08). Sin users, datos-sensibles, admin-backup, nominas,
+  // economico-dashboard ni contabilidad (esos son de dirección/administración).
   ingeniero: [
     'dashboard', 'ingenieria', 'work-orders', 'clients', 'obras',
     'obras-civiles', 'solar', 'materials', 'drawings', 'manuales',
     'informe-obras', 'operarios', 'notas-gastos', 'vehiculos', 'chat',
     'flota', 'galeria-fotos', 'apuntes-horario', 'photos', 'parte-diario',
+    'presupuestos',
   ],
 
   // director_comercial = todo salvo datos-sensibles y admin-backup.

@@ -19,8 +19,9 @@ const ESTADO_CFG = {
  * Sección de PRESUPUESTOS del periodo (previsión comercial). NO son facturas y NO se suman
  * a la facturación emitida real, que sale del libro de IVA (FacturaIVA).
  */
-function PresupuestosSeccion({ rango, periodoKey }) {
-  const { data: presupuestos = [], isLoading } = useQuery({
+function PresupuestosSeccion({ rango, periodoKey, titulo }) {
+  const { data: presupuestos = [], isLoading, error: errorAcceso } = useQuery({
+    retry: false,
     queryKey: ['contabilidad-facturacion', periodoKey],
     queryFn: async () => {
       const list = await base44.entities.Presupuesto.filter({
@@ -37,12 +38,16 @@ function PresupuestosSeccion({ rango, periodoKey }) {
     return { total, aceptado, pendiente, count: presupuestos.length };
   }, [presupuestos]);
 
+  // Roles sin acceso a presupuestos (p. ej. contabilidad, DOC-08): se oculta toda la sección
+  if (errorAcceso) return null;
+
   if (isLoading) {
     return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
   return (
     <div className="space-y-4">
+      {titulo}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="p-3">
           <p className="text-xs text-muted-foreground">Presupuestado</p>
@@ -249,10 +254,11 @@ export default function FacturacionEmitidaPanel({ rango, periodoKey }) {
   return (
     <div className="space-y-8">
       <FacturasEmitidasSeccion rango={rango} periodoKey={periodoKey} />
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold">Presupuestos del periodo <span className="font-normal text-muted-foreground">(previsión, no suma a lo facturado)</span></h3>
-        <PresupuestosSeccion rango={rango} periodoKey={periodoKey} />
-      </div>
+      <PresupuestosSeccion
+        rango={rango}
+        periodoKey={periodoKey}
+        titulo={<h3 className="text-sm font-semibold">Presupuestos del periodo <span className="font-normal text-muted-foreground">(previsión, no suma a lo facturado)</span></h3>}
+      />
     </div>
   );
 }
