@@ -1,73 +1,76 @@
 {
   "name": "Empresa",
-  "type": "object",
   "properties": {
-    "nombre": {
-      "type": "string",
-      "description": "Nombre o raz\u00f3n social de la empresa"
+    "activa": {
+      "default": true,
+      "description": "Si la empresa est\u00e1 activa",
+      "type": "boolean"
+    },
+    "actividad_principal": {
+      "description": "Actividad / sector principal (CNAE descriptivo). Ej: Instalaciones el\u00e9ctricas y fotovoltaicas.",
+      "type": "string"
     },
     "cif": {
-      "type": "string",
-      "description": "CIF / NIF de la empresa"
-    },
-    "domicilio": {
-      "type": "string",
-      "description": "Direcci\u00f3n fiscal"
-    },
-    "localidad": {
-      "type": "string",
-      "description": "Localidad"
-    },
-    "provincia": {
-      "type": "string",
-      "description": "Provincia"
+      "description": "CIF / NIF de la empresa",
+      "type": "string"
     },
     "codigo_postal": {
       "type": "string"
     },
-    "telefono": {
+    "domicilio": {
+      "description": "Direcci\u00f3n fiscal",
       "type": "string"
     },
     "email": {
       "type": "string"
     },
-    "web": {
+    "es_principal": {
+      "default": false,
+      "description": "True si esta es la empresa principal del workspace (SIMANTEC SL)",
+      "type": "boolean"
+    },
+    "fecha_constitucion": {
+      "description": "Fecha de constituci\u00f3n de la empresa",
+      "format": "date",
+      "type": "string"
+    },
+    "iban": {
+      "description": "IBAN de la cuenta principal (para emitir/recibir facturas y remesas SEPA)",
+      "type": "string"
+    },
+    "localidad": {
+      "description": "Localidad",
       "type": "string"
     },
     "logo_url": {
-      "type": "string",
-      "description": "URL del logotipo corporativo de la empresa (subido a CDN Base44)"
+      "description": "URL del logotipo corporativo de la empresa (subido a CDN Base44)",
+      "type": "string"
     },
-    "actividad_principal": {
-      "type": "string",
-      "description": "Actividad / sector principal (CNAE descriptivo). Ej: Instalaciones el\u00e9ctricas y fotovoltaicas."
-    },
-    "iban": {
-      "type": "string",
-      "description": "IBAN de la cuenta principal (para emitir/recibir facturas y remesas SEPA)"
-    },
-    "registro_mercantil": {
-      "type": "string",
-      "description": "Dato de inscripci\u00f3n en el Registro Mercantil (Tomo, Folio, Secci\u00f3n, Hoja, Inscripci\u00f3n)"
-    },
-    "fecha_constitucion": {
-      "type": "string",
-      "format": "date",
-      "description": "Fecha de constituci\u00f3n de la empresa"
-    },
-    "activa": {
-      "type": "boolean",
-      "default": true,
-      "description": "Si la empresa est\u00e1 activa"
-    },
-    "es_principal": {
-      "type": "boolean",
-      "default": false,
-      "description": "True si esta es la empresa principal del workspace (SIMANTEC SL)"
+    "nombre": {
+      "description": "Nombre o raz\u00f3n social de la empresa",
+      "type": "string"
     },
     "notas": {
-      "type": "string",
-      "description": "Observaciones"
+      "description": "Observaciones",
+      "type": "string"
+    },
+    "provincia": {
+      "description": "Provincia",
+      "type": "string"
+    },
+    "razon_social": {
+      "description": "Raz\u00f3n social completa tal y como sale en las facturas (opcional). Si est\u00e1 vac\u00eda, los PDF usan el nombre",
+      "type": "string"
+    },
+    "registro_mercantil": {
+      "description": "Dato de inscripci\u00f3n en el Registro Mercantil (Tomo, Folio, Secci\u00f3n, Hoja, Inscripci\u00f3n)",
+      "type": "string"
+    },
+    "telefono": {
+      "type": "string"
+    },
+    "web": {
+      "type": "string"
     }
   },
   "required": [
@@ -95,6 +98,20 @@
         {
           "user_condition": {
             "role": "administracion"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
           }
         }
       ]
@@ -145,6 +162,11 @@
           "user_condition": {
             "role": "contabilidad"
           }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
         }
       ]
     },
@@ -171,20 +193,7 @@
           }
         }
       ]
-    },
-    "delete": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "propietario"
-          }
-        }
-      ]
     }
-  }
+  },
+  "type": "object"
 }
