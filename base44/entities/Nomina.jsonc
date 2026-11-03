@@ -61,7 +61,8 @@
       "description": "Cuotas obreras (SS trabajador)"
     },
     "retencion_irpf": {
-      "type": "number"
+      "type": "number",
+      "description": "IRPF retenido sobre los devengos dinerarios"
     },
     "coste_ss_empresa": {
       "type": "number"
@@ -74,6 +75,30 @@
     },
     "tipo_anticipo": {
       "type": "string"
+    },
+    "salario_base": {
+      "type": "number",
+      "description": "Desglose de la n\u00f3mina: salario base del mes (d\u00edas \u00d7 precio/d\u00eda). Precarga el simulador; si falta, el importe se deduce del total devengado."
+    },
+    "complemento_absorbible": {
+      "type": "number",
+      "description": "Desglose de la n\u00f3mina: complemento absorbible del mes."
+    },
+    "incentivos": {
+      "type": "number",
+      "description": "Desglose de la n\u00f3mina: incentivos del mes."
+    },
+    "dietas_importe": {
+      "type": "number",
+      "description": "Desglose de la n\u00f3mina: dietas del mes."
+    },
+    "cuota_reta": {
+      "type": "number",
+      "description": "Desglose de la n\u00f3mina (RETA): cuota de aut\u00f3nomos abonada en especie por la empresa."
+    },
+    "ingreso_cuenta_especie": {
+      "type": "number",
+      "description": "Desglose de la n\u00f3mina (RETA): ingreso a cuenta del IRPF de la retribuci\u00f3n en especie."
     },
     "estado_asignacion": {
       "type": "string",
