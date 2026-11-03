@@ -187,6 +187,21 @@ export default async function (req: any) {
     };
   }
 
+  const avisos = avisosSimulacion({
+    regimen,
+    simulado,
+    entradas,
+    tipoIrpf: semilla.tipoIrpf,
+    categoria: operario?.categoria || '',
+    origenIrpf,
+  });
+  if (body.entradas?.absorcion === true && variantes && variantes.incremento > variantes.disponible) {
+    avisos.unshift({
+      nivel: 'aviso',
+      texto: 'El aumento supera el complemento absorbible; el excedente incrementa el total.',
+    });
+  }
+
   return Response.json({
     ...contexto,
     entradas,
@@ -195,13 +210,6 @@ export default async function (req: any) {
     filas,
     totales,
     variantes,
-    avisos: avisosSimulacion({
-      regimen,
-      simulado,
-      entradas,
-      tipoIrpf: semilla.tipoIrpf,
-      categoria: operario?.categoria || '',
-      origenIrpf,
-    }),
+    avisos,
   });
 }

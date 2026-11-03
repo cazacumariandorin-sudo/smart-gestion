@@ -174,6 +174,56 @@ export function derivarSemilla({ referencia, historico, regimen, dias }: any) {
   const diasTrabajo = Number(dias) > 0 ? Number(dias) : PARAMETROS_NOMINA.dias_mes;
 
   if (reta) {
+    /**
+     * RETA: la nómina desglosa cada concepto (salario base, complemento, incentivos,
+     * dietas, cuota en especie e ingreso a cuenta). Si el desglose está guardado se
+     * precarga tal cual, de modo que "sin cambios" reproduce la nómina real; si no,
+     * todo el importe dinerario se toma como salario base.
+     */
+    const sbDesglose = r2(ref.salario_base);
+    const compDesglose = r2(ref.complemento_absorbible);
+    const incDesglose = r2(ref.incentivos);
+    const otrosDesglose = r2(ref.otros_devengos);
+    const dietasDesglose = r2(ref.dietas_importe);
+    const cuotaDesglose = r2(ref.cuota_reta);
+    const ingresoDesglose = r2(ref.ingreso_cuenta_especie);
+
+    if (sbDesglose > 0 && cuotaDesglose > 0) {
+      const dinerarios = r2(sbDesglose + compDesglose + incDesglose + otrosDesglose);
+      const exacta = dinerarios > 0 && irpf > 0 ? irpf / dinerarios : 0;
+      const dosDecimales = Math.round(exacta * 10000) / 10000;
+      const tipo = exacta === 0
+        ? 0
+        : Math.abs(r2(dinerarios * dosDecimales) - irpf) <= 0.01
+          ? dosDecimales
+          : Math.round(exacta * 1e6) / 1e6;
+      return {
+        entradas: {
+          dias: diasTrabajo,
+          // Precio/día sin redondear: el salario base de la nómina manda.
+          precio_dia: diasTrabajo > 0 ? Math.round((sbDesglose / diasTrabajo) * 1e6) / 1e6 : 0,
+          salario_base: sbDesglose,
+          pagas_extra: 0,
+          plus_convenio: 0,
+          mejora_productividad: 0,
+          carencia_incentivos: 0,
+          complemento_absorbible: compDesglose,
+          incentivos: incDesglose,
+          horas_extra: 0,
+          otros_devengos: otrosDesglose,
+          dietas_importe: dietasDesglose,
+          dietas_dias: diasTrabajo,
+          dietas_con_pernocta: true,
+          anticipos,
+          cuota_reta: cuotaDesglose,
+          ingreso_cuenta_especie: ingresoDesglose,
+        },
+        tipoIrpf: tipo,
+        cuotaReta: cuotaDesglose,
+        base: 0,
+      };
+    }
+
     const cuota = Math.max(0, r2(dev - liq - irpf - anticipos));
     const dinerarios = Math.max(0, r2(dev - cuota));
     const divisor = dinerarios + cuota;
@@ -181,7 +231,7 @@ export function derivarSemilla({ referencia, historico, regimen, dias }: any) {
     return {
       entradas: {
         dias: diasTrabajo,
-        precio_dia: 0,
+        precio_dia: diasTrabajo > 0 ? Math.round((dinerarios / diasTrabajo) * 1e6) / 1e6 : 0,
         salario_base: dinerarios,
         pagas_extra: 0,
         plus_convenio: 0,
@@ -298,9 +348,11 @@ export function calcularNomina({ regimen, entradas, tipoIrpf }: any) {
     );
     const cuota = r2(n0(e.cuota_reta));
     const ingreso = r2(n0(e.ingreso_cuenta_especie));
-    const irpfTotal = r2((dinerarios + cuota) * tipo);
-    const irpfEspecie = r2(cuota * tipo);
-    const irpfDinerarios = r2(irpfTotal - irpfEspecie);
+    // El ingreso a cuenta es el IRPF de la retribución en especie que abona la
+    // empresa; sin él, se aplica el tipo sobre la cuota en especie.
+    const irpfDinerarios = r2(dinerarios * tipo);
+    const irpfEspecie = ingreso > 0 ? ingreso : r2(cuota * tipo);
+    const irpfTotal = r2(irpfDinerarios + irpfEspecie);
     const devengado = r2(dinerarios + dietasImporte + cuota + ingreso);
     const liquido = r2(devengado - irpfDinerarios - irpfEspecie - anticipos - cuota);
 
@@ -415,18 +467,22 @@ const CONCEPTOS_GENERAL = [
   ['dietas_gravadas', 'Dietas que cotizan (exceso del límite)'],
 ];
 
+/** Orden y etiquetas idénticos a la nómina de la gestoría. */
 const CONCEPTOS_RETA = [
-  ['salario_base', 'Dinerarios (salario base)'],
+  ['salario_base', 'Salario base (días × precio)'],
   ['complemento_absorbible', 'Complemento absorbible'],
   ['incentivos', 'Incentivos'],
-  ['plus_convenio', 'Plus convenio'],
-  ['mejora_productividad', 'Mejora de productividad'],
-  ['carencia_incentivos', 'Carencia de incentivos'],
-  ['horas_extra', 'Horas extra'],
   ['otros_devengos', 'Otros devengos'],
   ['dietas_exentas', 'Dietas'],
-  ['cuota_especie', 'Cuota RETA en especie (devengo)'],
-  ['ingreso_cuenta', 'Ingreso a cuenta de la especie'],
+  ['cuota_especie', 'Cuota RETA (especie)'],
+  ['ingreso_cuenta', 'Ingreso a cuenta empresa'],
+];
+
+const DEDUCCIONES_RETA = [
+  ['irpf_dinerarios', 'IRPF dinerarios'],
+  ['irpf_especie', 'IRPF especie'],
+  ['anticipos', 'Anticipo'],
+  ['dto_especie', 'Dto. especie'],
 ];
 
 const fila = (key: string, concepto: string, tipo: string, actual: any, simulado: any) => ({
@@ -445,32 +501,41 @@ const fila = (key: string, concepto: string, tipo: string, actual: any, simulado
  */
 export function comparar(actual: any, simulado: any, regimen: any) {
   const reta = esReta(regimen);
-  const lista = reta ? CONCEPTOS_RETA : CONCEPTOS_GENERAL;
-  const filas: any[] = lista
-    .filter(([key]) => reta || key !== 'cuota_especie')
-    .map(([key, label]) => fila(key, label, 'concepto', actual.conceptos[key], simulado.conceptos[key]));
-
-  if (!reta) {
-    filas.push(fila('base_cotizacion', 'Base de cotización (sujeta a SS)', 'base', actual.base_cotizacion, simulado.base_cotizacion));
-  }
-
-  filas.push(fila('total_devengado', 'TOTAL DEVENGADO', 'total', actual.total_devengado, simulado.total_devengado));
 
   if (reta) {
-    filas.push(fila('irpf_dinerarios', 'Retención IRPF sobre dinerarios', 'deduccion', actual.deducciones.irpf_dinerarios, simulado.deducciones.irpf_dinerarios));
-    filas.push(fila('irpf_especie', 'Retención IRPF sobre la especie', 'deduccion', actual.deducciones.irpf_especie, simulado.deducciones.irpf_especie));
-    filas.push(fila('dto_especie', 'Descuento de la cuota en especie', 'deduccion', actual.deducciones.dto_especie, simulado.deducciones.dto_especie));
-  } else {
-    filas.push(fila('ss', 'Seguridad Social del trabajador (6,50 %)', 'deduccion', actual.deducciones.ss, simulado.deducciones.ss));
-    filas.push(fila('irpf', `Retención IRPF (${(Number(actual.irpf.tipo) * 100).toFixed(2)} %)`, 'deduccion', actual.deducciones.irpf, simulado.deducciones.irpf));
+    const filas: any[] = [
+      ...CONCEPTOS_RETA.map(([key, label]) =>
+        fila(key, label, 'concepto', actual.conceptos[key], simulado.conceptos[key])
+      ),
+      ...DEDUCCIONES_RETA.map(([key, label]) =>
+        fila(key, label, 'deduccion', actual.deducciones[key], simulado.deducciones[key])
+      ),
+      fila('total_devengado', 'TOTAL DEVENGADO', 'total', actual.total_devengado, simulado.total_devengado),
+      fila('total_deducciones', 'TOTAL A DEDUCIR', 'total', actual.deducciones.total, simulado.deducciones.total),
+      fila('liquido', 'LÍQUIDO A PERCIBIR', 'liquido', actual.liquido, simulado.liquido),
+      fila('coste', 'COSTE TOTAL PARA LA EMPRESA', 'coste', actual.coste, simulado.coste),
+    ];
+    return {
+      filas,
+      totales: {
+        liquido: { actual: actual.liquido, simulado: simulado.liquido, diferencia: r2(simulado.liquido - actual.liquido) },
+        coste: { actual: actual.coste, simulado: simulado.coste, diferencia: r2(simulado.coste - actual.coste) },
+        devengado: { actual: actual.total_devengado, simulado: simulado.total_devengado, diferencia: r2(simulado.total_devengado - actual.total_devengado) },
+      },
+    };
   }
+
+  const filas: any[] = CONCEPTOS_GENERAL
+    .map(([key, label]) => fila(key, label, 'concepto', actual.conceptos[key], simulado.conceptos[key]));
+
+  filas.push(fila('base_cotizacion', 'Base de cotización (sujeta a SS)', 'base', actual.base_cotizacion, simulado.base_cotizacion));
+  filas.push(fila('total_devengado', 'TOTAL DEVENGADO', 'total', actual.total_devengado, simulado.total_devengado));
+  filas.push(fila('ss', 'Seguridad Social del trabajador (6,50 %)', 'deduccion', actual.deducciones.ss, simulado.deducciones.ss));
+  filas.push(fila('irpf', `Retención IRPF (${(Number(actual.irpf.tipo) * 100).toFixed(2)} %)`, 'deduccion', actual.deducciones.irpf, simulado.deducciones.irpf));
   filas.push(fila('anticipos', 'Anticipos y otras deducciones', 'deduccion', actual.deducciones.anticipos, simulado.deducciones.anticipos));
   filas.push(fila('total_deducciones', 'TOTAL A DEDUCIR', 'total', actual.deducciones.total, simulado.deducciones.total));
   filas.push(fila('liquido', 'LÍQUIDO A PERCIBIR', 'liquido', actual.liquido, simulado.liquido));
-
-  if (!reta) {
-    filas.push(fila('ss_empresa', 'Seguridad Social a cargo de la empresa (37,35 %)', 'empresa', actual.empresa.ss, simulado.empresa.ss));
-  }
+  filas.push(fila('ss_empresa', 'Seguridad Social a cargo de la empresa (37,35 %)', 'empresa', actual.empresa.ss, simulado.empresa.ss));
   filas.push(fila('coste', 'COSTE TOTAL PARA LA EMPRESA', 'coste', actual.coste, simulado.coste));
 
   return {

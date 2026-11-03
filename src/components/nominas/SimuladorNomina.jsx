@@ -260,6 +260,11 @@ export default function SimuladorNomina() {
             seed={base.entradas}
             regimen={form.regimen}
             onChange={cambiar}
+            absorcion={absorcion}
+            onAbsorcion={(valor) => {
+              setAbsorcion(valor);
+              calcular(entradas, valor);
+            }}
           />
 
           {!reta && (
