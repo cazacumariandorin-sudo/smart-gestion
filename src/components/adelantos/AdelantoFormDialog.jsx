@@ -187,9 +187,15 @@ export default function AdelantoFormDialog({ open, onClose, onCreated, operarioP
               disabled={!!operarioPreseleccionado}
               triggerClassName="w-full"
             >
-              {listaOperarios.filter(o => o.active !== false).map(o => (
-                <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>
-              ))}
+              {listaOperarios
+                .slice()
+                .sort((a, b) => (a.active === false ? 1 : 0) - (b.active === false ? 1 : 0)
+                  || (a.name || '').localeCompare(b.name || '', 'es'))
+                .map(o => (
+                  <MobileSelectItem key={o.id} value={o.id}>
+                    {o.name}{o.active === false ? ' (inactivo)' : ''}
+                  </MobileSelectItem>
+                ))}
             </MobileSelect>
           </div>
 
