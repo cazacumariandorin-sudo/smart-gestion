@@ -3,11 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   FileText, Download, Search, User, Calendar, AlertTriangle,
-  Pencil, Trash2, Check, X, Loader2, Copy, ChevronDown, ChevronUp, Eye
+  Pencil, Trash2, Check, X, Loader2, Copy, ChevronDown, ChevronUp, Eye, Receipt
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import EstadoPagoBadge from '@/components/nominas/EstadoPagoBadge';
+import JustificantesPagoDialog from '@/components/nominas/JustificantesPagoDialog';
 
 const MESES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -252,7 +254,7 @@ function EditForm({ nom, onSave, onCancel, saving }) {
 }
 
 // ── Vista tabla: filas por trabajador, columnas por mes ───────────────────────
-function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, onVer, confirmarBorrarId, setConfirmarBorrarId, deletePending }) {
+function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, onVer, onPagos, justificantesPorNomina = {}, confirmarBorrarId, setConfirmarBorrarId, deletePending }) {
   const [expandido, setExpandido] = useState(null); // trabajador expandido
 
   // Años disponibles en los datos
@@ -347,6 +349,7 @@ function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, onV
                             {esAdmin && <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Devengado</th>}
                             {esAdmin && <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Coste emp.</th>}
                             <th className="text-center px-3 py-2 text-xs font-medium text-muted-foreground">Estado</th>
+                            {esAdmin && <th className="text-center px-3 py-2 text-xs font-medium text-muted-foreground">Pago</th>}
                             <th className="px-2 py-2 w-24"></th>
                           </tr>
                         </thead>
@@ -383,6 +386,13 @@ function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, onV
                                       {nom.estado_asignacion === 'asignada' ? 'Asignada' : nom.estado_asignacion === 'revision_manual' ? 'Revisión' : 'Sin asignar'}
                                     </Badge>
                                   </td>
+                                  {esAdmin && (
+                                    <td className="px-3 py-2.5">
+                                      <div className="flex justify-center">
+                                        <EstadoPagoBadge nomina={nom} justificantes={justificantesPorNomina[nom.id] || []} />
+                                      </div>
+                                    </td>
+                                  )}
                                   <td className="px-2 py-2">
                                     <div className="flex items-center justify-end gap-0.5">
                                       {nom.file_url && (
@@ -393,6 +403,11 @@ function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, onV
                                       {nom.file_url && (
                                         <Button variant="ghost" size="icon" asChild className="w-7 h-7">
                                           <a href={nom.file_url} target="_blank" rel="noopener noreferrer" title="Descargar / abrir"><Download className="w-3.5 h-3.5" /></a>
+                                        </Button>
+                                      )}
+                                      {esAdmin && (
+                                        <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => onPagos(nom)} title="Justificantes de pago">
+                                          <Receipt className="w-3.5 h-3.5" />
                                         </Button>
                                       )}
                                       {esAdmin && (
@@ -444,6 +459,7 @@ export default function ListaNominas({ esAdmin }) {
   const [modalDuplicados, setModalDuplicados] = useState(false);
   const [eliminandoDuplicados, setEliminandoDuplicados] = useState(false);
   const [nominaVista, setNominaVista] = useState(null);
+  const [nominaPagos, setNominaPagos] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -451,6 +467,23 @@ export default function ListaNominas({ esAdmin }) {
     queryKey: ['nominas'],
     queryFn: () => base44.entities.Nomina.list('-created_date', 500),
   });
+
+  // Justificantes de pago (solo gerencia / administración)
+  const { data: justificantes = [] } = useQuery({
+    queryKey: ['justificantes-nomina'],
+    queryFn: () => base44.entities.JustificanteNomina.list('-fecha_pago', 500),
+    enabled: !!esAdmin,
+  });
+
+  const justificantesPorNomina = useMemo(() => {
+    const map = {};
+    for (const j of justificantes) {
+      if (!j.nomina_id) continue;
+      if (!map[j.nomina_id]) map[j.nomina_id] = [];
+      map[j.nomina_id].push(j);
+    }
+    return map;
+  }, [justificantes]);
 
   const gruposDuplicados = useMemo(() => detectarDuplicados(nominas), [nominas]);
   const idsDuplicados = useMemo(() => {
@@ -542,6 +575,8 @@ export default function ListaNominas({ esAdmin }) {
         onEditar={(id) => setEditandoId(editandoId === id ? null : id)}
         onBorrar={(id) => deleteMutation.mutate(id)}
         onVer={(id) => setNominaVista(nominas.find(n => n.id === id))}
+        onPagos={(nom) => setNominaPagos(nom)}
+        justificantesPorNomina={justificantesPorNomina}
         confirmarBorrarId={confirmarBorrarId}
         setConfirmarBorrarId={setConfirmarBorrarId}
         deletePending={deleteMutation.isPending}
@@ -571,6 +606,18 @@ export default function ListaNominas({ esAdmin }) {
 
       {nominaVista && (
         <VisorNomina nom={nominaVista} onClose={() => setNominaVista(null)} />
+      )}
+
+      {nominaPagos && (
+        <JustificantesPagoDialog
+          nomina={nominaPagos}
+          justificantes={justificantesPorNomina[nominaPagos.id] || []}
+          onClose={() => setNominaPagos(null)}
+          onChanged={() => {
+            queryClient.invalidateQueries({ queryKey: ['justificantes-nomina'] });
+            queryClient.invalidateQueries({ queryKey: ['nominas'] });
+          }}
+        />
       )}
     </div>
   );

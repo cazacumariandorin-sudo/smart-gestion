@@ -1,0 +1,162 @@
+{
+  "name": "JustificanteNomina",
+  "type": "object",
+  "description": "Justificante de pago de una n\u00f3mina (transferencia, efectivo...). Puede ser parcial o total: la suma de justificantes de una n\u00f3mina determina si est\u00e1 pagada por completo o cu\u00e1nto falta por pagar. Dato econ\u00f3mico sensible: acceso restringido a gerencia, administraci\u00f3n, direcci\u00f3n y admin.",
+  "properties": {
+    "nomina_id": {
+      "type": "string",
+      "description": "ID de la n\u00f3mina (Nomina) a la que corresponde el pago."
+    },
+    "operario_name": {
+      "type": "string",
+      "description": "Nombre del trabajador (desnormalizado para listados)."
+    },
+    "periodo": {
+      "type": "string",
+      "description": "Per\u00edodo de la n\u00f3mina (ej. Noviembre 2026)."
+    },
+    "importe": {
+      "type": "number",
+      "description": "Importe pagado en este justificante (\u20ac). Puede ser parcial."
+    },
+    "fecha_pago": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del pago."
+    },
+    "metodo": {
+      "type": "string",
+      "enum": [
+        "transferencia",
+        "efectivo",
+        "confirming",
+        "otro"
+      ],
+      "default": "transferencia",
+      "description": "Forma de pago."
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "URI del justificante (PDF/imagen) en almacenamiento privado. Para verlo, generar URL firmada con CreateFileSignedUrl."
+    },
+    "nombre_archivo": {
+      "type": "string",
+      "description": "Nombre original del archivo del justificante."
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones internas del pago."
+    },
+    "subido_por": {
+      "type": "string",
+      "description": "Email del usuario que subi\u00f3 el justificante."
+    },
+    "subido_por_nombre": {
+      "type": "string",
+      "description": "Nombre del usuario que subi\u00f3 el justificante."
+    }
+  },
+  "required": [
+    "nomina_id",
+    "importe",
+    "fecha_pago"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -84,6 +84,21 @@
       ],
       "default": "asignada"
     },
+    "importe_pagado": {
+      "type": "number",
+      "default": 0,
+      "description": "Suma de los justificantes de pago (JustificanteNomina) de esta n\u00f3mina. Se recalcula al subir o bajar justificantes."
+    },
+    "estado_pago": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "parcial",
+        "pagado"
+      ],
+      "default": "pendiente",
+      "description": "pendiente = sin justificantes; parcial = pagada en parte, a\u00fan falta importe; pagado = cobrada por completo, ciclo de pago cerrado."
+    },
     "lote_id": {
       "type": "string"
     },
