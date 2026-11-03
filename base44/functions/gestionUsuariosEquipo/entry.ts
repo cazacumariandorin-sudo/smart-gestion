@@ -48,8 +48,24 @@ export default async function (req) {
         patch.suspendido_por = user.email;
         patch.fecha_suspension = new Date().toISOString();
       }
+      const cuenta = await base44.asServiceRole.entities.User.get(userId);
       await base44.asServiceRole.entities.User.update(userId, patch);
-      return Response.json({ success: true, estado });
+
+      // La ficha laboral (Operario.active) es lo que leen los selectores de los módulos
+      // (adelantos, partes, horario, gastos...). Se sincroniza con la cuenta para que
+      // Sistema > Usuarios y el resto de la app no muestren estados distintos.
+      const activo = estado === 'activo';
+      let fichas = await base44.asServiceRole.entities.Operario.filter({ user_id: userId });
+      if (!fichas.length && cuenta?.email) {
+        fichas = await base44.asServiceRole.entities.Operario.filter({ user_email: cuenta.email });
+      }
+      for (const ficha of fichas) {
+        if ((ficha.active !== false) !== activo) {
+          await base44.asServiceRole.entities.Operario.update(ficha.id, { active: activo });
+        }
+      }
+
+      return Response.json({ success: true, estado, fichas_actualizadas: fichas.length });
     }
 
     return Response.json({ error: 'Acción no soportada' }, { status: 400 });

@@ -74,10 +74,12 @@ export default function RealUsersTab() {
     staleTime: 5 * 60_000,
   });
   const emailsConFicha = new Set(trabajadores.map(t => t.user_email).filter(Boolean));
+  const fichaPorEmail = new Map(trabajadores.filter(t => t.user_email).map(t => [t.user_email, t]));
 
   const handleRefresh = () => {
     refetch();
     qc.invalidateQueries({ queryKey: ['users'], refetchType: 'all' });
+    qc.invalidateQueries({ queryKey: ['operarios'], refetchType: 'all' });
   };
 
   const cambiarEstado = async (u) => {
@@ -185,8 +187,15 @@ export default function RealUsersTab() {
                 const roleConf = ROLE_CONFIG[u.role] || ROLE_CONFIG.operario;
                 const isDemo = u.tipo_cuenta === 'demo' || u.role === 'usuario_demo';
                 const isExpired = u.acceso_hasta && isPast(new Date(u.acceso_hasta));
-                const estadoCuenta = ESTADO_CUENTA[u.estado_cuenta] || ESTADO_CUENTA.activo;
-                const esActivo = (u.estado_cuenta || 'activo') === 'activo';
+                // La ficha laboral manda: si está desactivada, los selectores de los módulos
+                // lo tratan como inactivo, así que aquí se muestra igual.
+                const ficha = fichaPorEmail.get(u.email);
+                const fichaInactiva = ficha?.active === false;
+                const activoPorCuenta = (u.estado_cuenta || 'activo') === 'activo';
+                const estadoCuenta = fichaInactiva && activoPorCuenta
+                  ? ESTADO_CUENTA.inactivo
+                  : ESTADO_CUENTA[u.estado_cuenta] || ESTADO_CUENTA.activo;
+                const esActivo = activoPorCuenta && !fichaInactiva;
                 const initials = getInitials(u.full_name || u.email || '?');
                 const avatarColor = getAvatarColor(u.full_name || u.email || '');
 
@@ -289,6 +298,9 @@ export default function RealUsersTab() {
                           : <Power className="w-3 h-3" />}
                         {estadoCuenta.label}
                       </button>
+                      {fichaInactiva && activoPorCuenta && (
+                        <div className="text-[9px] text-muted-foreground mt-0.5">ficha laboral</div>
+                      )}
                       {isExpired && (
                         <div className="text-[9px] text-destructive mt-0.5">acceso caducado</div>
                       )}
