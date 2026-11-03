@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Users, Edit2, UserX, UserCheck } from 'lucide-react';
+import { Loader2, Users, Edit2, UserX, UserCheck, Power } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
 import EditUserRoleDialog from '@/components/EditUserRoleDialog';
@@ -43,16 +43,27 @@ function getInitials(name = '') {
     .join('');
 }
 
+const ESTADO_CUENTA = {
+  activo:              { label: 'Activo',     color: 'bg-green-50 text-green-700 border-green-200' },
+  inactivo:            { label: 'Inactivo',   color: 'bg-slate-100 text-slate-600 border-slate-200' },
+  pendiente_activacion:{ label: 'Pendiente',  color: 'bg-amber-50 text-amber-700 border-amber-200' },
+  suspendido:          { label: 'Suspendido', color: 'bg-red-50 text-red-700 border-red-200' },
+};
+
 export default function RealUsersTab() {
   const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [vinculandoUser, setVinculandoUser] = useState(null);
+  const [cambiandoEstado, setCambiandoEstado] = useState(null);
 
-  // ── LOAD ALL USERS — no filters, no conditions ──────────────────────────
+  // ── Listado completo vía backend: gerencia/administración también lo ven ──
   const { data: users = [], isLoading, refetch } = useQuery({
     queryKey: ['all-users-tab'],
-    queryFn: () => base44.entities.User.list('full_name', 500),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('gestionUsuariosEquipo', { action: 'listar' });
+      return res.data?.usuarios || [];
+    },
     staleTime: 0,
     refetchOnMount: true,
   });
@@ -67,6 +78,25 @@ export default function RealUsersTab() {
   const handleRefresh = () => {
     refetch();
     qc.invalidateQueries({ queryKey: ['users'], refetchType: 'all' });
+  };
+
+  const cambiarEstado = async (u) => {
+    const nuevo = (u.estado_cuenta || 'activo') === 'activo' ? 'inactivo' : 'activo';
+    setCambiandoEstado(u.id);
+    try {
+      const res = await base44.functions.invoke('gestionUsuariosEquipo', {
+        action: 'cambiar_estado',
+        userId: u.id,
+        estado: nuevo,
+      });
+      if (res.data?.error) throw new Error(res.data.error);
+      toast.success(nuevo === 'activo' ? 'Usuario marcado como activo' : 'Usuario marcado como inactivo');
+      handleRefresh();
+    } catch (e) {
+      toast.error(e?.response?.data?.error || e?.message || 'No se pudo cambiar el estado');
+    } finally {
+      setCambiandoEstado(null);
+    }
   };
 
   const handleAsignarIdsPendientes = async () => {
@@ -155,6 +185,8 @@ export default function RealUsersTab() {
                 const roleConf = ROLE_CONFIG[u.role] || ROLE_CONFIG.operario;
                 const isDemo = u.tipo_cuenta === 'demo' || u.role === 'usuario_demo';
                 const isExpired = u.acceso_hasta && isPast(new Date(u.acceso_hasta));
+                const estadoCuenta = ESTADO_CUENTA[u.estado_cuenta] || ESTADO_CUENTA.activo;
+                const esActivo = (u.estado_cuenta || 'activo') === 'activo';
                 const initials = getInitials(u.full_name || u.email || '?');
                 const avatarColor = getAvatarColor(u.full_name || u.email || '');
 
@@ -243,14 +275,23 @@ export default function RealUsersTab() {
                       )}
                     </td>
 
-                    {/* Estado */}
+                    {/* Estado — pulsar para activar/desactivar */}
                     <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                      <Badge
-                        variant={isExpired ? 'destructive' : 'default'}
-                        className="text-[10px] px-2 py-0.5"
+                      <button
+                        type="button"
+                        onClick={() => cambiarEstado(u)}
+                        disabled={cambiandoEstado === u.id}
+                        title={esActivo ? 'Marcar como inactivo' : 'Marcar como activo'}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors hover:opacity-80 disabled:opacity-50 ${estadoCuenta.color}`}
                       >
-                        {isExpired ? '✗' : '✓'}
-                      </Badge>
+                        {cambiandoEstado === u.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <Power className="w-3 h-3" />}
+                        {estadoCuenta.label}
+                      </button>
+                      {isExpired && (
+                        <div className="text-[9px] text-destructive mt-0.5">acceso caducado</div>
+                      )}
                     </td>
 
                     {/* Acciones */}

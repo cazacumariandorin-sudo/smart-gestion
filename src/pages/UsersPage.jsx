@@ -239,7 +239,8 @@ export default function UsersPage() {
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users', isOwner],
     queryFn: async () => {
-      const all = await base44.entities.User.list('full_name', 200);
+      const res = await base44.functions.invoke('gestionUsuariosEquipo', { action: 'listar' });
+      const all = res.data?.usuarios || [];
       return all.filter(u => {
         if (u.email === 'cazacu.mariandorin@gmail.com') return false;
         if (u.role === 'director_comercial' && !isOwner) return false;
