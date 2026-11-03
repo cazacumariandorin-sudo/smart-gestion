@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import EstadoPagoBadge from '@/components/nominas/EstadoPagoBadge';
 import JustificantesPagoDialog from '@/components/nominas/JustificantesPagoDialog';
+import { urlVisorNomina, urlDescargaNomina } from '@/lib/nominaArchivos';
 
 const MESES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -191,7 +192,7 @@ function VisorNomina({ nom, onClose }) {
         <div className="flex items-center gap-1.5">
           {nom.file_url && (
             <Button asChild size="sm" variant="outline" className="h-8 px-3 text-xs gap-1.5">
-              <a href={nom.file_url} target="_blank" rel="noopener noreferrer"><Download className="w-3.5 h-3.5" /> Descargar</a>
+              <a href={urlDescargaNomina(nom)} target="_blank" rel="noopener noreferrer"><Download className="w-3.5 h-3.5" /> Descargar</a>
             </Button>
           )}
           <Button variant="ghost" size="icon" className="w-8 h-8" onClick={onClose}><X className="w-4 h-4" /></Button>
@@ -200,7 +201,7 @@ function VisorNomina({ nom, onClose }) {
       <div className="flex-1 min-h-0 p-2 sm:p-4" onClick={e => e.stopPropagation()}>
         {nom.file_url ? (
           <iframe
-            src={nom.file_url}
+            src={urlVisorNomina(nom)}
             title={`Nomina-${nom.operario_name || ''}-${nom.id}`}
             className="w-full h-full rounded-lg border-0 bg-white"
           />
@@ -282,7 +283,7 @@ function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, onV
     <div className="space-y-2">
       {porTrabajador.map((trab) => {
         const key = trab.dni || trab.name;
-        const isOpen = expandido === key;
+        const isOpen = esAdmin ? expandido === key : true;
         const tieneDup = trab.nominas.some(n => idsDuplicados.has(n.id));
 
         // Agrupar las nóminas de este trabajador por año→mes
@@ -402,7 +403,7 @@ function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, onV
                                       )}
                                       {nom.file_url && (
                                         <Button variant="ghost" size="icon" asChild className="w-7 h-7">
-                                          <a href={nom.file_url} target="_blank" rel="noopener noreferrer" title="Descargar / abrir"><Download className="w-3.5 h-3.5" /></a>
+                                          <a href={urlDescargaNomina(nom)} target="_blank" rel="noopener noreferrer" title="Descargar / abrir"><Download className="w-3.5 h-3.5" /></a>
                                         </Button>
                                       )}
                                       {esAdmin && (
@@ -563,6 +564,7 @@ export default function ListaNominas({ esAdmin }) {
           {MESES.slice(1).map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
         </select>
         <select value={filtroAnio} onChange={e => setFiltroAnio(e.target.value)} className="h-10 rounded-md border border-input bg-transparent px-3 text-sm">
+          <option value="">Todos los años</option>
           {[2024, 2025, 2026, 2027].map(a => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
