@@ -351,7 +351,7 @@ function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, onV
                             {esAdmin && <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Coste emp.</th>}
                             <th className="text-center px-3 py-2 text-xs font-medium text-muted-foreground">Estado</th>
                             {esAdmin && <th className="text-center px-3 py-2 text-xs font-medium text-muted-foreground">Pago</th>}
-                            <th className="px-2 py-2 w-24"></th>
+                            <th className="px-2 py-2 text-center text-xs font-medium text-muted-foreground whitespace-nowrap">Documento</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -394,16 +394,16 @@ function TablaResumen({ nominas, esAdmin, idsDuplicados, onEditar, onBorrar, onV
                                       </div>
                                     </td>
                                   )}
-                                  <td className="px-2 py-2">
-                                    <div className="flex items-center justify-end gap-0.5">
+                                  <td className="px-2 py-2 whitespace-nowrap">
+                                    <div className="flex items-center justify-end gap-1">
                                       {nom.file_url && (
-                                        <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => onVer(nom.id)} title="Visualizar">
-                                          <Eye className="w-3.5 h-3.5" />
+                                        <Button variant="outline" size="sm" className="h-7 px-2 text-[11px] gap-1 text-primary" onClick={() => onVer(nom.id)} title="Visualizar nómina">
+                                          <Eye className="w-3.5 h-3.5" /> Ver
                                         </Button>
                                       )}
                                       {nom.file_url && (
-                                        <Button variant="ghost" size="icon" asChild className="w-7 h-7">
-                                          <a href={urlDescargaNomina(nom)} target="_blank" rel="noopener noreferrer" title="Descargar / abrir"><Download className="w-3.5 h-3.5" /></a>
+                                        <Button variant="outline" size="sm" asChild className="h-7 px-2 text-[11px] gap-1 text-primary">
+                                          <a href={urlDescargaNomina(nom)} target="_blank" rel="noopener noreferrer" title="Descargar nómina"><Download className="w-3.5 h-3.5" /> PDF</a>
                                         </Button>
                                       )}
                                       {esAdmin && (

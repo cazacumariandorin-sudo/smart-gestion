@@ -28,7 +28,7 @@ export default function Nominas() {
       <PageHeader title="Nóminas" subtitle="Gestión y consulta de nóminas" />
 
       <NominasErrorBoundary>
-        <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
           {/* Tabs */}
           <div className="flex gap-1 bg-muted/50 rounded-xl p-1 overflow-x-auto">
             <button
