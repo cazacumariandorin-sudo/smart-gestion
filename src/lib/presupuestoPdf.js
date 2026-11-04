@@ -57,7 +57,7 @@ function cabeceraTabla(doc, y) {
 /**
  * @param {object} p
  * @param {object} p.presupuesto  { codigo_registro, fecha, valido_hasta, conceptos[], forma_pago, notas, referencia_cliente }
- * @param {object} p.empresa      { nombre, cif, domicilio, codigo_postal, localidad, provincia, web, iban }
+ * @param {object} p.empresa      { razon_social | nombre, cif, domicilio, codigo_postal, localidad, provincia, web, iban }
  * @param {object} p.cliente      { name, nif, address, postal_code, localidad, provincia, pais, telefono }
  * @param {string} [p.logo]       data URL PNG/JPEG (opcional)
  * @param {'presupuesto'|'factura_borrador'} [p.tipo]
@@ -73,7 +73,7 @@ export function construirPresupuestoPdf({ presupuesto, empresa = {}, cliente = {
   if (logo) { try { doc.addImage(logo, 'PNG', ML, 14, 42, 42); } catch (_) { /* sin logo */ } }
   const cpEmp = [empresa.codigo_postal, mayus(empresa.localidad)].filter(Boolean).join(' ');
   bloqueDatos(doc, ML, 66, 92, [
-    { texto: empresa.nombre, negrita: true },
+    { texto: empresa.razon_social || empresa.nombre, negrita: true },
     { texto: empresa.cif && `NIF: ${empresa.cif}` },
     { texto: empresa.domicilio },
     { texto: cpEmp },
