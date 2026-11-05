@@ -5,7 +5,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
-import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, FileText, Link2, CheckCircle2, BadgeCheck, UserCheck, UserX, EyeOff } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, FileText, Link2, CheckCircle2, BadgeCheck, UserCheck, UserX, EyeOff, FolderOpen, ShieldCheck } from 'lucide-react';
 import AltaUnificadaDialog from '@/components/tecnicos/AltaUnificadaDialog';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DocsList from '@/components/operarios/DocsList';
+import ProtocolosInternos from '@/components/protocolos/ProtocolosInternos';
 import QueryErrorFallback from '@/components/QueryErrorFallback';
 import { toast } from 'sonner';
 
@@ -42,6 +43,7 @@ export default function Tecnicos() {
   const isTecnicoRole = role === 'técnico';
   const defaultTab = typeof window !== 'undefined' && typeof window.location !== 'undefined' && window.location.pathname.includes('documentacion') ? 'documentacion' : 'tecnicos';
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const [docTab, setDocTab] = useState('documentos');
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -307,11 +309,36 @@ export default function Tecnicos() {
           </TabsContent>
 
           <TabsContent value="documentacion">
-            <DocsList
-              operarios={isTecnicoRole ? visibleTecnicos : tecnicos}
-              obras={obras}
-              defaultOperarioId={isTecnicoRole ? (miOperario?.id || '') : ''}
-            />
+            <div className="flex flex-wrap gap-2 mb-4">
+              {[
+                { value: 'documentos', label: 'Documentos', icon: FolderOpen },
+                { value: 'protocolos', label: 'Protocolos internos', icon: ShieldCheck },
+              ].map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  onClick={() => setDocTab(value)}
+                  className={[
+                    'inline-flex items-center gap-2 px-3 py-2 rounded-lg border font-semibold text-xs transition-colors',
+                    docTab === value
+                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                      : 'bg-card border-border text-muted-foreground hover:bg-muted',
+                  ].join(' ')}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {docTab === 'documentos' ? (
+              <DocsList
+                operarios={isTecnicoRole ? visibleTecnicos : tecnicos}
+                obras={obras}
+                defaultOperarioId={isTecnicoRole ? (miOperario?.id || '') : ''}
+              />
+            ) : (
+              <ProtocolosInternos />
+            )}
           </TabsContent>
         </Tabs>
       </div>

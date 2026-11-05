@@ -1,0 +1,292 @@
+{
+  "name": "ProtocoloInterno",
+  "type": "object",
+  "description": "Documentaci\u00f3n interna de la empresa (pol\u00edticas, protocolos, procedimientos y comunicados) para conocimiento de toda la plantilla. Se clasifica por \u00e1rea funcional, car\u00e1cter normativo, grado de confidencialidad y vigencia. Gerencia y administraci\u00f3n suben, editan y borran; el sistema propone la clasificaci\u00f3n autom\u00e1ticamente al subir el documento y la persona que lo sube la confirma o corrige. Los documentos confidenciales solo los leen gerencia, administraci\u00f3n, direcci\u00f3n y admin.",
+  "properties": {
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo del documento (se propone autom\u00e1ticamente a partir del contenido)."
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n breve para el listado."
+    },
+    "resumen": {
+      "type": "string",
+      "description": "Resumen del contenido extra\u00eddo por la clasificaci\u00f3n autom\u00e1tica."
+    },
+    "area": {
+      "type": "string",
+      "enum": [
+        "rrhh",
+        "legal_compliance",
+        "finanzas_administracion",
+        "operaciones_ti"
+      ],
+      "enumColors": [
+        "blue",
+        "purple",
+        "yellow",
+        "green"
+      ],
+      "description": "Criterio 1 \u2014 \u00c1rea funcional o departamento: RRHH, Legal y Cumplimiento, Finanzas y Administraci\u00f3n, Operaciones y Tecnolog\u00eda (TI)."
+    },
+    "caracter": {
+      "type": "string",
+      "enum": [
+        "politica_obligatoria",
+        "procedimiento_sop",
+        "informativo"
+      ],
+      "enumColors": [
+        "red",
+        "blue",
+        "gray"
+      ],
+      "description": "Criterio 2 \u2014 Car\u00e1cter normativo y obligatoriedad: pol\u00edtica de obligado cumplimiento, procedimiento/gu\u00eda operativa (SOP) o informativo/comunicaci\u00f3n."
+    },
+    "confidencialidad": {
+      "type": "string",
+      "enum": [
+        "general",
+        "restringido",
+        "confidencial"
+      ],
+      "enumColors": [
+        "green",
+        "yellow",
+        "red"
+      ],
+      "default": "general",
+      "description": "Criterio 3 \u2014 Grado de confidencialidad: general (toda la plantilla), restringido (empleados, sin datos sensibles) o confidencial (solo direcci\u00f3n, gerencia y administraci\u00f3n)."
+    },
+    "vigencia": {
+      "type": "string",
+      "enum": [
+        "vivo",
+        "historico"
+      ],
+      "enumColors": [
+        "blue",
+        "gray"
+      ],
+      "default": "vivo",
+      "description": "Criterio 4 \u2014 Soporte y vigencia: vivo/din\u00e1mico (sujeto a revisi\u00f3n y actualizaci\u00f3n) o hist\u00f3rico/archivo (conservaci\u00f3n obligada)."
+    },
+    "version": {
+      "type": "string",
+      "description": "Versi\u00f3n del documento (ej. 1.0, rev. 3)."
+    },
+    "fecha_documento": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del documento."
+    },
+    "fecha_revision": {
+      "type": "string",
+      "format": "date",
+      "description": "Pr\u00f3xima revisi\u00f3n prevista (solo documentos vivos)."
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL del archivo. Al subirlo se guarda una copia en Google Drive (Empresa/ProtocolosInternos) y el enlace accesible."
+    },
+    "drive_file_id": {
+      "type": "string",
+      "description": "ID del archivo en Google Drive (si la subida a Drive funcion\u00f3)."
+    },
+    "nombre_archivo": {
+      "type": "string",
+      "description": "Nombre original del archivo."
+    },
+    "mime_type": {
+      "type": "string",
+      "description": "Tipo MIME del archivo."
+    },
+    "etiquetas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Palabras clave extra\u00eddas del documento (b\u00fasqueda y agrupaci\u00f3n)."
+    },
+    "clasificado_auto": {
+      "type": "boolean",
+      "default": false,
+      "description": "True cuando la clasificaci\u00f3n fue propuesta autom\u00e1ticamente al subir el documento."
+    },
+    "confianza_clasificacion": {
+      "type": "number",
+      "description": "Confianza de la clasificaci\u00f3n autom\u00e1tica (0-1)."
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true,
+      "description": "False archiva el documento: deja de mostrarse a la plantilla sin borrarlo."
+    },
+    "subido_por": {
+      "type": "string",
+      "description": "Email del usuario que subi\u00f3 el documento."
+    },
+    "subido_por_nombre": {
+      "type": "string",
+      "description": "Nombre del usuario que subi\u00f3 el documento."
+    },
+    "notas_internas": {
+      "type": "string",
+      "description": "Notas internas de gerencia/administraci\u00f3n (no visibles en el listado general)."
+    }
+  },
+  "required": [
+    "titulo",
+    "area",
+    "caracter",
+    "confidencialidad"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "$and": [
+            {
+              "$or": [
+                {
+                  "user_condition": {
+                    "role": "t\u00e9cnico"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "operario"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "jefe_obra"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "ingeniero"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "director_comercial"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "control_horario"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "contabilidad"
+                  }
+                }
+              ]
+            },
+            {
+              "data.confidencialidad": {
+                "$ne": "confidencial"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    }
+  }
+}
