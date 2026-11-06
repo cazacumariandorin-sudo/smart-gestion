@@ -2,12 +2,14 @@ import { useState, useMemo } from 'react';
 import { startOfMonth, endOfMonth, eachDayOfInterval, getDay, format, isSameMonth, isToday, addMonths, subMonths, parseISO, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, User, Building2, CheckCircle2, AlertTriangle, XCircle, Coffee, ClipboardCheck, Plus, UserX } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Building2, CheckCircle2, AlertTriangle, XCircle, Coffee, ClipboardCheck, Plus, UserX, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useQueryClient } from '@tanstack/react-query';
 import GestionDiaSheet from './GestionDiaSheet';
+import KpiDetalleSheet from './KpiDetalleSheet';
+import PersonasDiaPopover from './PersonasDiaPopover';
 import { metaAusencia } from '@/hooks/useAusenciasHorario';
 
 function horasMinutos(hStr) {
@@ -40,11 +42,29 @@ function DiaCell({ date, fichajesDia = [], ausenciasDia = [], canSeeAll, canForc
   const hasAusencias = ausenciasDia.length > 0;
   const primeraAusencia = hasAusencias ? metaAusencia(ausenciasDia[0].tipo) : null;
 
+  // Personas fichadas ese día, con sus horas netas
+  const personasMap = {};
+  fichajesDia.forEach(f => {
+    const k = f.operario_id || f.operario_name || f.id;
+    if (!personasMap[k]) personasMap[k] = { id: k, name: f.operario_name || '—', mins: 0 };
+    personasMap[k].mins += calcularMinutosFichaje(f);
+  });
+  const personas = Object.values(personasMap).sort((a, b) => b.mins - a.mins);
+  const MAX_NOMBRES = 2;
+
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={isCurrentMonth ? 0 : -1}
       onClick={() => (canForce || hasFichajes || hasAusencias) && onClick(date, fichajesDia)}
+      onKeyDown={e => {
+        if ((e.key === 'Enter' || e.key === ' ') && (canForce || hasFichajes || hasAusencias)) {
+          e.preventDefault();
+          onClick(date, fichajesDia);
+        }
+      }}
       className={cn(
-        'relative flex flex-col rounded-lg border transition-all duration-100 select-none p-1.5 min-h-[72px]',
+        'relative flex flex-col rounded-lg border transition-all duration-100 select-none p-1.5 min-h-[80px] text-left',
         !isCurrentMonth ? 'border-transparent opacity-30 pointer-events-none' :
         !hasFichajes && hasAusencias ? 'border-dashed border-border bg-background hover:bg-muted/30 active:scale-[0.97] cursor-pointer pl-2.5' :
         !hasFichajes && !canForce && esFinSemana ? 'border-border/30 bg-muted/20 cursor-default' :
@@ -60,11 +80,19 @@ function DiaCell({ date, fichajesDia = [], ausenciasDia = [], canSeeAll, canForc
       </span>
       {hasAusencias && <span className={cn('absolute left-1 top-1.5 bottom-1.5 w-1 rounded-full', primeraAusencia.dot)} />}
       {hasFichajes && (
-        <div className="flex flex-col gap-0.5 flex-1">
+        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
           <span className={cn('text-[11px] font-bold', estado === 'completo' ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400')}>
             {minutosATexto(totalMins)}
           </span>
-          {canSeeAll && trabajadores > 0 && <span className="text-[9px] text-muted-foreground">{trabajadores} pers.</span>}
+          <div className="hidden sm:flex flex-col gap-px overflow-hidden">
+            {personas.slice(0, MAX_NOMBRES).map(p => (
+              <span key={p.id} className="text-[8px] leading-tight truncate text-foreground/80">{p.name}</span>
+            ))}
+            {personas.length > MAX_NOMBRES && (
+              <PersonasDiaPopover personas={personas} ocultas={personas.length - MAX_NOMBRES} dateLabel={format(date, 'd MMM')} />
+            )}
+          </div>
+          <span className="sm:hidden text-[9px] text-muted-foreground">{trabajadores} pers.</span>
           <div className="mt-auto flex justify-end">
             {estado === 'completo' ? <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" /> : <AlertTriangle className="w-2.5 h-2.5 text-amber-500" />}
           </div>
@@ -84,7 +112,7 @@ function DiaCell({ date, fichajesDia = [], ausenciasDia = [], canSeeAll, canForc
         </div>
       )}
       {!hasFichajes && !hasAusencias && canForce && <Plus className="w-3 h-3 text-muted-foreground/40 absolute bottom-1.5 right-1.5" />}
-    </button>
+    </div>
   );
 }
 
@@ -189,6 +217,7 @@ const DIAS_SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 export default function CalendarioHorarioView({ fichajes = [], ausencias = [], canSeeAll = false, canForce = false, operarios = [], month, onMonthChange }) {
   const [mesInterno, setMesInterno] = useState(new Date());
   const [diaSeleccionado, setDiaSeleccionado] = useState(null);
+  const [kpiAbierto, setKpiAbierto] = useState(null);
   const qc = useQueryClient();
 
   // Mes controlado: si el padre pasa `month` (YYYY-MM) + `onMonthChange`, el selector
@@ -245,34 +274,88 @@ export default function CalendarioHorarioView({ fichajes = [], ausencias = [], c
 
   const fichajesDia = diaSeleccionado ? (fichajesPorDia[format(diaSeleccionado, 'yyyy-MM-dd')] || []) : [];
   const ausenciasDia = diaSeleccionado ? (ausenciasPorDia[format(diaSeleccionado, 'yyyy-MM-dd')] || []) : [];
-  const diasConAusencias = Object.keys(ausenciasPorDia).length;
+  // Resumen del mes: alimenta los KPI y sus detalles desplegables
+  const resumen = useMemo(() => {
+    const porDia = {};
+    const porPersona = {};
+    const sinSalidaLista = [];
+    let totalMinsMes = 0;
 
-  const { totalMinsMes, diasConFichajes, trabajadoresUnicos, sinSalidaMes } = useMemo(() => {
-    let totalMinsMes = 0; const diasSet = new Set(); const trabSet = new Set(); let sinSalidaMes = 0;
-    const pref = mesKey;
     fichajes.forEach(f => {
-      if (!f.date?.startsWith(pref)) return;
-      totalMinsMes += calcularMinutosFichaje(f);
-      diasSet.add(f.date.slice(0, 10)); trabSet.add(f.operario_id);
-      if (f.hora_entrada && !f.hora_salida) sinSalidaMes++;
+      if (!f.date?.startsWith(mesKey)) return;
+      const dk = f.date.slice(0, 10);
+      const mins = calcularMinutosFichaje(f);
+      totalMinsMes += mins;
+
+      if (!porDia[dk]) porDia[dk] = { key: dk, mins: 0, personas: new Set() };
+      porDia[dk].mins += mins;
+      porDia[dk].personas.add(f.operario_id);
+
+      const pk = f.operario_id || f.operario_name || f.id;
+      if (!porPersona[pk]) porPersona[pk] = { id: pk, name: f.operario_name || '—', mins: 0, dias: new Set() };
+      porPersona[pk].mins += mins;
+      porPersona[pk].dias.add(dk);
+
+      if (f.hora_entrada && !f.hora_salida) {
+        sinSalidaLista.push({ id: f.id, date: dk, name: f.operario_name || '—', entrada: f.hora_entrada, project: f.project });
+      }
     });
-    return { totalMinsMes, diasConFichajes: diasSet.size, trabajadoresUnicos: trabSet.size, sinSalidaMes };
-  }, [fichajes, mesKey]);
+
+    const diasTrabajados = Object.values(porDia)
+      .map(d => ({ key: d.key, mins: d.mins, numPersonas: d.personas.size }))
+      .sort((a, b) => a.key.localeCompare(b.key));
+
+    const personas = Object.values(porPersona)
+      .map(p => ({ id: p.id, name: p.name, mins: p.mins, dias: p.dias.size }))
+      .sort((a, b) => b.mins - a.mins);
+
+    const ausenciasLista = Object.entries(ausenciasPorDia)
+      .flatMap(([key, items]) => items.map(a => {
+        const m = metaAusencia(a.tipo);
+        return { key: `${a.id}-${key}`, date: key, name: a.operario_name || '—', tipoLabel: m.label, soft: m.soft };
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    sinSalidaLista.sort((a, b) => b.date.localeCompare(a.date));
+
+    return {
+      totalMinsMes,
+      diasConFichajes: diasTrabajados.length,
+      trabajadoresUnicos: personas.length,
+      sinSalidaMes: sinSalidaLista.length,
+      diasConAusencias: Object.keys(ausenciasPorDia).length,
+      diasTrabajados,
+      personas,
+      ausenciasLista,
+      sinSalidaLista,
+    };
+  }, [fichajes, mesKey, ausenciasPorDia]);
+
+  const { totalMinsMes, diasConFichajes, trabajadoresUnicos, sinSalidaMes, diasConAusencias } = resumen;
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[
-          { label: 'Horas mes', value: minutosATexto(totalMinsMes), color: 'text-primary' },
-          { label: 'Días trabajados', value: diasConFichajes, color: 'text-foreground' },
-          diasConAusencias > 0 ? { label: 'Días con ausencia', value: diasConAusencias, color: 'text-red-600 dark:text-red-400' } : null,
-          canSeeAll ? { label: 'Trabajadores', value: trabajadoresUnicos, color: 'text-foreground' } : null,
-          sinSalidaMes > 0 ? { label: 'Sin salida', value: sinSalidaMes, color: 'text-amber-600 dark:text-amber-400' } : null,
+          { tipo: 'horas', label: 'Horas mes', value: minutosATexto(totalMinsMes), color: 'text-primary' },
+          { tipo: 'dias', label: 'Días trabajados', value: diasConFichajes, color: 'text-foreground' },
+          diasConAusencias > 0 ? { tipo: 'ausencias', label: 'Días con ausencia', value: diasConAusencias, color: 'text-red-600 dark:text-red-400' } : null,
+          canSeeAll ? { tipo: 'trabajadores', label: 'Trabajadores', value: trabajadoresUnicos, color: 'text-foreground' } : null,
+          sinSalidaMes > 0 ? { tipo: 'sinSalida', label: 'Sin salida', value: sinSalidaMes, color: 'text-amber-600 dark:text-amber-400' } : null,
         ].filter(Boolean).map(kpi => (
-          <div key={kpi.label} className="bg-card border border-border rounded-xl p-3 text-center">
-            <p className="text-[10px] text-muted-foreground mb-0.5">{kpi.label}</p>
+          <button
+            key={kpi.label}
+            type="button"
+            onClick={() => setKpiAbierto(kpi.tipo)}
+            title="Pulsa para ver el detalle"
+            className="group bg-card border border-border rounded-xl p-3 text-center transition-colors hover:border-primary/50 hover:bg-muted/40 active:scale-[0.98]"
+          >
+            <p className="text-[10px] text-muted-foreground mb-0.5 flex items-center justify-center gap-1">
+              {kpi.label}
+              <Info className="w-2.5 h-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+            </p>
             <p className={cn('text-xl font-bold', kpi.color)}>{kpi.value}</p>
-          </div>
+          </button>
         ))}
       </div>
       <div className="flex items-center justify-between">
@@ -312,6 +395,13 @@ export default function CalendarioHorarioView({ fichajes = [], ausencias = [], c
       ) : (
         <DetalleDiaSheet date={diaSeleccionado} fichajes={fichajesDia} ausencias={ausenciasDia} open={!!diaSeleccionado} onClose={() => setDiaSeleccionado(null)} />
       )}
+      <KpiDetalleSheet
+        tipo={kpiAbierto}
+        open={!!kpiAbierto}
+        onClose={() => setKpiAbierto(null)}
+        resumen={resumen}
+        mesLabel={format(mesActual, 'MMMM yyyy', { locale: es })}
+      />
     </div>
   );
 }
