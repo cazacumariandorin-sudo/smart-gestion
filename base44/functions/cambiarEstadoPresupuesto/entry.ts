@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { ROLES_PRESUPUESTO, ESTADOS, transicionPermitida, conflictoPartes } from '../../shared/presupuestoReglas.ts';
+import { ROLES_PRESUPUESTO, ESTADOS, transicionPermitida, conflictoPartes, conflictoExtras } from '../../shared/presupuestoReglas.ts';
 
 /**
  * cambiarEstadoPresupuesto — cambia el estado respetando las transiciones permitidas y deja registro.
@@ -34,6 +34,10 @@ Deno.serve(async (req) => {
       const conflicto = conflictoPartes(p.partes_trabajo_ids || [], todos, id);
       if (conflicto) {
         return Response.json({ error: `Un parte ya está en el presupuesto ${conflicto.codigo_registro || conflicto.id} (${conflicto.estado})`, code: 'PARTE_YA_PRESUPUESTADO', conflicto }, { status: 409 });
+      }
+      const conflictoExtra = conflictoExtras(p.conceptos || [], todos, id);
+      if (conflictoExtra) {
+        return Response.json({ error: `Un trabajo extra ya está en el presupuesto ${conflictoExtra.codigo_registro || conflictoExtra.id} (${conflictoExtra.estado})`, code: 'EXTRA_YA_PRESUPUESTADO', conflicto: conflictoExtra }, { status: 409 });
       }
     }
 

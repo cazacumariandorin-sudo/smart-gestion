@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { calcularDocumento } from '../../shared/presupuestoCalculo.ts';
-import { ROLES_PRESUPUESTO, validarConceptos, sumarDias, conflictoPartes, soloCamposEditables } from '../../shared/presupuestoReglas.ts';
+import { ROLES_PRESUPUESTO, validarConceptos, sumarDias, conflictoPartes, conflictoExtras, soloCamposEditables } from '../../shared/presupuestoReglas.ts';
 
 /**
  * guardarPresupuesto — crea o edita un presupuesto.
@@ -57,6 +57,10 @@ Deno.serve(async (req) => {
       if (conflicto) {
         return Response.json({ error: `Un parte ya está en el presupuesto ${conflicto.codigo_registro || conflicto.id} (${conflicto.estado})`, code: 'PARTE_YA_PRESUPUESTADO', conflicto }, { status: 409 });
       }
+      const conflictoExtra = conflictoExtras(conceptosEntrada, todos, id);
+      if (conflictoExtra) {
+        return Response.json({ error: `Un trabajo extra ya está en el presupuesto ${conflictoExtra.codigo_registro || conflictoExtra.id} (${conflictoExtra.estado})`, code: 'EXTRA_YA_PRESUPUESTADO', conflicto: conflictoExtra }, { status: 409 });
+      }
       const cambios = { ...datos, ...totales, cliente_id, fecha, valido_hasta: datos.valido_hasta || actual.valido_hasta || sumarDias(fecha, 30) };
       const actualizado = await base44.entities.Presupuesto.update(id, cambios);
       return Response.json({ success: true, data: { ...actual, ...cambios, ...(actualizado || {}) }, codigo_registro: actual.codigo_registro, mensaje: 'Presupuesto actualizado' });
@@ -72,6 +76,12 @@ Deno.serve(async (req) => {
     const conflicto = conflictoPartes(datos.partes_trabajo_ids || [], existentes);
     if (conflicto) {
       return Response.json({ error: `Un parte ya está en el presupuesto ${conflicto.codigo_registro || conflicto.id} (${conflicto.estado})`, code: 'PARTE_YA_PRESUPUESTADO', conflicto }, { status: 409 });
+    }
+
+    // DOC-04: un trabajo extra, un presupuesto activo
+    const conflictoExtra = conflictoExtras(conceptosEntrada, existentes);
+    if (conflictoExtra) {
+      return Response.json({ error: `Un trabajo extra ya está en el presupuesto ${conflictoExtra.codigo_registro || conflictoExtra.id} (${conflictoExtra.estado})`, code: 'EXTRA_YA_PRESUPUESTADO', conflicto: conflictoExtra }, { status: 409 });
     }
 
     // Detección de duplicados (mismo cliente, fecha, importe y al menos una línea igual), salvo confirmación manual

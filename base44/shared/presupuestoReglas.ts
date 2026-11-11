@@ -67,6 +67,19 @@ export function conflictoPartes(partesNuevos: string[], existentes: any[], exclu
   return null;
 }
 
+/** Trabajo extra que ya está en otro presupuesto activo (DOC-04). `conceptos` son las líneas del presupuesto que se guarda. */
+export function conflictoExtras(conceptos: any[], existentes: any[], excluirId?: string): { id: string; codigo_registro?: string; estado: string; extra_id: string } | null {
+  const pedidos = new Set((conceptos || []).map((c: any) => c && c.extra_id).filter(Boolean));
+  if (pedidos.size === 0) return null;
+  for (const p of existentes || []) {
+    if (!p || p.id === excluirId || !ESTADOS_ACTIVOS.includes(p.estado || 'borrador')) continue;
+    for (const c of p.conceptos || []) {
+      if (c && c.extra_id && pedidos.has(c.extra_id)) return { id: p.id, codigo_registro: p.codigo_registro, estado: p.estado, extra_id: c.extra_id };
+    }
+  }
+  return null;
+}
+
 /** Solo estos campos pueden venir del cliente (nunca estado, código, historial ni importes calculados). */
 export const CAMPOS_EDITABLES = ['titulo', 'cliente_id', 'cliente_name', 'fecha', 'descripcion', 'notas', 'forma_pago', 'referencia_cliente',
   'valido_hasta', 'obra_id', 'obra_name', 'conceptos', 'partes_trabajo_ids', 'file_url'];
