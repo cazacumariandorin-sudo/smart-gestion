@@ -35,6 +35,10 @@
             "description": "Texto adicional bajo la descripci\u00f3n (por ejemplo, operarios y horas)",
             "type": "string"
           },
+          "extra_id": {
+            "description": "Trabajo extra de obra del que procede la l\u00ednea (un extra solo puede estar en un presupuesto activo)",
+            "type": "string"
+          },
           "fecha": {
             "type": "string"
           },
@@ -129,6 +133,9 @@
             "type": "string"
           },
           "fecha": {
+            "type": "string"
+          },
+          "motivo": {
             "type": "string"
           },
           "por": {

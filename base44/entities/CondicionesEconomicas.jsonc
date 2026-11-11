@@ -1,0 +1,172 @@
+{
+  "description": "Condiciones econ\u00f3micas acordadas con un cliente (y, si hace falta, con una obra concreta) para preparar presupuestos y facturas borrador. La condici\u00f3n de una obra prevalece sobre la del cliente. Los valores son sugerencias editables en cada documento.",
+  "name": "CondicionesEconomicas",
+  "properties": {
+    "activa": {
+      "default": true,
+      "description": "Si la condici\u00f3n est\u00e1 vigente",
+      "type": "boolean"
+    },
+    "alojamiento_dia_trabajador": {
+      "default": 100,
+      "description": "Alojamiento y manutenci\u00f3n por trabajador y d\u00eda de trabajo (\u20ac)",
+      "type": "number"
+    },
+    "client_id": {
+      "description": "Cliente al que se aplica",
+      "type": "string"
+    },
+    "client_name": {
+      "description": "Nombre del cliente",
+      "type": "string"
+    },
+    "desplazamiento_importe": {
+      "description": "Importe habitual de desplazamiento acordado (\u20ac, opcional)",
+      "type": "number"
+    },
+    "iva_pct": {
+      "default": 21,
+      "description": "Tipo de IVA habitual (21, 10, 4 o 0)",
+      "type": "number"
+    },
+    "notas": {
+      "description": "Observaciones del acuerdo",
+      "type": "string"
+    },
+    "obra_id": {
+      "description": "Obra concreta (opcional). Si est\u00e1 vac\u00edo, la condici\u00f3n vale para todo el cliente",
+      "type": "string"
+    },
+    "obra_name": {
+      "description": "Nombre de la obra",
+      "type": "string"
+    },
+    "precio_hora": {
+      "default": 40,
+      "description": "Precio por hora y operario (\u20ac, sin IVA)",
+      "type": "number"
+    }
+  },
+  "required": [
+    "client_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
+    }
+  },
+  "type": "object"
+}
