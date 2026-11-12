@@ -4,6 +4,38 @@
 **Estado:** propuesta funcional para planificar la implementación por fases  
 **Alcance:** ficha de empresa, costes de nómina y presupuestos  
 
+## Fase 0 iniciada: validación base y toma de decisiones
+
+La fase 0 no modifica negocio ni cálculos; prepara el marco de decisión y deja las reglas de implementación explícitas antes de empezar a codificar. En esta fase se deben cerrar los siguientes puntos y dejar constancia de ellos en la ruta de trabajo.
+
+### Checklist de decisión
+
+- [ ] Definir roles autorizados para la ficha de empresa, los gastos de empresa, la revisión de costes y el cálculo interno de presupuestos.
+- [ ] Confirmar si `propietario` tiene acceso equivalente a `gerencia` o debe quedar fuera de la edición.
+- [ ] Confirmar la definición precisa de "coste diario": laborable o productivo.
+- [ ] Definir la base horaria/días laborables para el cálculo de coste diario y por hora.
+- [ ] Confirmar si los 2.400 €/mes netos de gerencia y director comercial son solo referencia o deben convertirse en estimación de coste de empresa.
+- [ ] Validar si el puesto de administración se vincula a la nómina real existente o requiere una estimación auxiliar.
+- [ ] Confirmar si los gastos de empresa se registran en bruto o neto, con o sin IVA, y si se deben prorratear anualmente en el resumen mensual.
+- [ ] Define la base de cálculo del porcentaje de gastos fijos en presupuestos: facturación prevista, facturación real, presupuestos aceptados, horas estimadas, etc.
+- [ ] Confirmar si el porcentaje de gastos fijos es opcional por presupuesto o obligatorio si hay base válida.
+- [ ] Acordar la regla de coste laboral del presupuesto: antes o después de IVA, por partida o global, y con qué base de horas/tarifa.
+- [ ] Decidir qué nivel de detalle del coste laboral se muestra al cliente y qué parte queda interna.
+- [ ] Confirmar cómo se guardará la instantánea del presupuesto para que no se altere por cambios futuros de coste.
+- [ ] Acordar si la revisión semestral será solo informativa o si deberá generar una validación de la dirección o administración.
+
+### Registro de decisiones pendientes
+
+Todas estas decisiones deben dejarse en un documento de consenso dentro del repositorio o en una issue de proyecto antes de empezar la implementación funcional de la Fase 1.
+
+### Salida esperada de la Fase 0
+
+- Matriz de permisos por rol.
+- Diccionario de cálculo y definiciones de los indicadores.
+- Reglas de almacenamiento y vigencia de costes.
+- Lista de costes y referencias de empresa iniciales validadas.
+- Base para comenzar sin riesgo de crear inconsistencias en la lógica de precios.
+
 ## 1. Objetivo
 
 Centralizar la estructura organizativa y los costes de empresa en la ficha de empresa; calcular un coste laboral diario basado en nóminas reales con revisión semestral; y ofrecer en presupuestos un cálculo interno, opcional y restringido de gastos fijos y coste laboral, sin revelar su desglose al cliente.
