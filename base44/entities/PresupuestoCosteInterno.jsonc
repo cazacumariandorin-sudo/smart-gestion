@@ -17,6 +17,8 @@
     "porcentaje_gastos_fijos": { "type": "number" },
     "importe_gastos_fijos": { "type": "number" },
     "base_presupuesto_sin_gastos_fijos": { "type": "number" },
+    "coste_total_interno_estimado": { "type": "number" },
+    "margen_interno_estimado": { "type": "number" },
     "coste_diario_revision_fecha": { "type": "string" },
     "gastos_fijos_fuente_periodo": { "type": "string" },
     "calculado_en": { "type": "string" },
