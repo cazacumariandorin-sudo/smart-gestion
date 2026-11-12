@@ -1,0 +1,33 @@
+{
+  "name": "PresupuestoCosteInterno",
+  "description": "Snapshot privado de costes internos de presupuesto. Nunca forma parte del presupuesto/PDF entregado al cliente.",
+  "type": "object",
+  "properties": {
+    "presupuesto_id": { "type": "string", "description": "ID del presupuesto asociado" },
+    "presupuesto_codigo": { "type": "string" },
+    "horas_por_partida": { "type": "array", "items": { "type": "object", "properties": { "indice": { "type": "number" }, "descripcion": { "type": "string" }, "horas": { "type": "number" }, "coste_laboral": { "type": "number" } } } },
+    "horas_totales": { "type": "number" },
+    "coste_diario_aprobado": { "type": "number" },
+    "horas_por_dia": { "type": "number", "default": 8 },
+    "coste_hora_interno": { "type": "number" },
+    "coste_laboral_estimado": { "type": "number" },
+    "base_presupuesto": { "type": "number" },
+    "porcentaje_coste_laboral": { "type": "number" },
+    "gastos_fijos_aplicados": { "type": "boolean", "default": false },
+    "porcentaje_gastos_fijos": { "type": "number" },
+    "importe_gastos_fijos": { "type": "number" },
+    "base_presupuesto_sin_gastos_fijos": { "type": "number" },
+    "coste_diario_revision_fecha": { "type": "string" },
+    "gastos_fijos_fuente_periodo": { "type": "string" },
+    "calculado_en": { "type": "string" },
+    "calculado_por": { "type": "string" },
+    "estado": { "type": "string", "default": "calculado" }
+  },
+  "required": ["presupuesto_id"],
+  "rls": {
+    "create": { "$or": [ { "user_condition": { "role": "admin" } }, { "user_condition": { "role": "propietario" } }, { "user_condition": { "role": "gerencia" } }, { "user_condition": { "role": "director_comercial" } }, { "user_condition": { "role": "administracion" } } ] },
+    "read": { "$or": [ { "user_condition": { "role": "admin" } }, { "user_condition": { "role": "propietario" } }, { "user_condition": { "role": "gerencia" } }, { "user_condition": { "role": "director_comercial" } }, { "user_condition": { "role": "administracion" } } ] },
+    "update": { "$or": [ { "user_condition": { "role": "admin" } }, { "user_condition": { "role": "propietario" } }, { "user_condition": { "role": "gerencia" } }, { "user_condition": { "role": "director_comercial" } }, { "user_condition": { "role": "administracion" } } ] },
+    "delete": { "$or": [ { "user_condition": { "role": "admin" } }, { "user_condition": { "role": "propietario" } }, { "user_condition": { "role": "gerencia" } } ] }
+  }
+}
