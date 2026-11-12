@@ -1,439 +1,167 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-
-/**
- * guardarMaterialesOcr
- * Persiste las líneas confirmadas por el usuario (post-revisión OCR):
- *   1. Crea MaterialDocumentoOrigen (1 por documento)
- *   2. Por línea:
- *      - Resuelve/crea Fabricante por nombre_normalizado
- *      - Upsert MaterialCatalog por (referencia + fabricante_id)
- *      - Compara con último MaterialPrecioHistorico → calcula variacion_pct + origen_cambio
- *      - Crea MaterialPrecioHistorico (NUNCA sobrescribe histórico)
- *      - Snapshot en MaterialCatalog (precio_neto, pvp, descuento, iva, fecha_ultimo_precio)
- */
-function normalizeName(s) {
-  if (!s) return '';
-  return s.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-}
-
-Deno.serve(async (req) => {
-  try {
-    const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
-    // Brecha de seguridad cerrada: persistencia de materiales OCR (crea
-    // MaterialDocumentoOrigen, Fabricante, MaterialCatalog, MaterialPrecioHistorico).
-    // Sólo admin (y su alias propietario) y gerencia pueden invocar esta función.
-    // Capa independiente de UI/ruta/RLS — denegación por defecto si role vacío.
-    const role = user?.role || 'operario';
-    if (role !== 'admin' && role !== 'propietario' && role !== 'gerencia') {
-      return Response.json({ error: 'Forbidden: el módulo Alta Materiales (OCR) requiere rol admin o gerencia' }, { status: 403 });
+{
+  "name": "MaterialDocumentoOrigen",
+  "type": "object",
+  "properties": {
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "factura",
+        "albaran",
+        "ticket",
+        "proforma",
+        "pedido",
+        "presupuesto",
+        "listado_puntos",
+        "lista_material",
+        "esquema_conexion",
+        "pid_proceso",
+        "esquema_hidraulico",
+        "plano_planta",
+        "ficha_tecnica_equipo"
+      ],
+      "default": "factura",
+      "description": "Tipo de documento. Originales comerciales: factura/albaran/ticket/proforma. Módulo Ingeniería: pedido, presupuesto, listado_puntos, lista_material, esquema_conexion, pid_proceso, esquema_hidraulico, plano_planta, ficha_tecnica_equipo."
+    },
+    "numero_documento": { "type": "string" },
+    "revision": {
+      "type": "string",
+      "description": "Código de revisión impreso en el documento."
+    },
+    "fecha_documento": { "type": "string", "format": "date" },
+    "proveedor_nombre": { "type": "string" },
+    "proveedor_nif": { "type": "string" },
+    "archivo_url_mejorado": {
+      "type": "string",
+      "description": "URL del archivo pre-procesado tipo CamScanner (el usado para OCR)"
+    },
+    "archivo_url_original": {
+      "type": "string",
+      "description": "URL del archivo original sin procesar (opcional)"
+    },
+    "obra_id": { "type": "string" },
+    "obra_name": { "type": "string" },
+    "operario_id": { "type": "string" },
+    "proyecto_ingenieria_id": {
+      "type": "string",
+      "description": "Alias de obra_id cuando el documento pertenece a un proyecto de ingeniería."
+    },
+    "ingeniero_subido_por": {
+      "type": "string",
+      "description": "Email del ingeniero que subió el documento."
+    },
+    "version_documento": {
+      "type": "string",
+      "description": "Versión del plano/esquema."
+    },
+    "fecha_revision_documento": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de revisión impresa en planos/esquemas."
+    },
+    "estado": {
+      "type": "string",
+      "enum": ["pendiente_revision", "procesado", "error", "superseded", "descartado"],
+      "default": "procesado",
+      "description": "Estado del documento."
+    },
+    "datos_extraidos": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "JSON crudo de la extracción IA antes de partirlo en ItemLista/PartidaPedido/etc."
+    },
+    "numero_orden_compra_cliente": {
+      "type": "string",
+      "description": "Solo tipo=presupuesto: número de orden de compra del cliente."
+    },
+    "presupuestos_previos_referenciados": {
+      "type": "string",
+      "description": "Solo tipo=presupuesto: presupuestos previos referenciados."
+    },
+    "valido_hasta": {
+      "type": "string",
+      "format": "date",
+      "description": "Solo tipo=presupuesto: fecha de validez del presupuesto."
+    },
+    "lineas_count": {
+      "type": "number",
+      "default": 0
+    },
+    "conciliado_contabilidad": {
+      "type": "boolean",
+      "default": false
+    },
+    "fecha_conciliacion": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "conciliado_por": { "type": "string" },
+    "nota_conciliacion": { "type": "string" },
+    "estado_conciliacion": {
+      "type": "string",
+      "enum": ["no_conciliado", "conciliado", "conciliado_con_discrepancia"],
+      "default": "no_conciliado"
+    },
+    "discrepancia_tarea_id": { "type": "string" },
+    "resolucion_estado": {
+      "type": "string",
+      "enum": ["sin_discrepancia", "pendiente", "resuelta", "cerrada"],
+      "default": "sin_discrepancia"
+    },
+    "resolucion_por": { "type": "string" },
+    "fecha_resolucion": { "type": "string", "format": "date-time" },
+    "descargado_contabilidad": { "type": "boolean", "default": false },
+    "fecha_descarga": { "type": "string", "format": "date-time" },
+    "descargado_por": { "type": "string" },
+    "nota_gasto_id": {
+      "type": "string",
+      "description": "ID del RegistroGasto que originó este documento (enlace explícito para marcar notas de gasto ya migradas a materiales)."
+    },
+    "nota_origen_tipo": {
+      "type": "string",
+      "description": "Tipo de origen del documento: nota_gasto, OCR, etc."
     }
-
-    const body = await req.json();
-    const doc = body.documento || {};
-    const lineas = Array.isArray(body.lineas) ? body.lineas : [];
-    if (!lineas.length) return Response.json({ error: 'No hay líneas a guardar' }, { status: 400 });
-
-    const hoy = new Date().toISOString().slice(0, 10);
-
-    // 1. MaterialDocumentoOrigen
-    const documento = await base44.entities.MaterialDocumentoOrigen.create({
-      tipo: doc.tipo || 'factura',
-      numero_documento: doc.numero || '',
-      fecha_documento: doc.fecha || hoy,
-      proveedor_nombre: doc.proveedor_nombre || '',
-      proveedor_nif: doc.proveedor_nif || '',
-      archivo_url_mejorado: doc.archivo_url || '',
-      archivo_url_original: doc.archivo_url_original || '',
-      obra_id: doc.obra_id || '',
-      obra_name: doc.obra_name || '',
-      operario_id: doc.operario_id || '',
-      nota_gasto_id: doc.nota_gasto_id || '',
-      nota_origen_tipo: doc.nota_origen_tipo || '',
-      estado: 'procesado',
-      lineas_count: lineas.length,
-    });
-
-    const fabricanteCache = new Map();
-    async function resolverFabricante(nombreRaw) {
-      const nombre = (nombreRaw || '').trim();
-      if (!nombre) return null;
-      const normalizado = normalizeName(nombre);
-      if (fabricanteCache.has(normalizado)) return fabricanteCache.get(normalizado);
-      let fab = null;
-      try {
-        const found = await base44.entities.Fabricante.filter({ nombre_normalizado: normalizado });
-        if (found && found.length) fab = found[0];
-      } catch {}
-      if (!fab) {
-        try {
-          fab = await base44.entities.Fabricante.create({ name: nombre, nombre_normalizado: normalizado });
-        } catch { fab = null; }
-      }
-      fabricanteCache.set(normalizado, fab);
-      return fab;
+  },
+  "required": ["tipo", "fecha_documento"],
+  "rls": {
+    "create": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "user_condition": { "role": "propietario" } },
+        { "user_condition": { "role": "gerencia" } },
+        { "user_condition": { "role": "administracion" } },
+        { "user_condition": { "role": "director_comercial" } },
+        { "user_condition": { "role": "jefe_obra" } },
+        { "user_condition": { "role": "ingeniero" } }
+      ]
+    },
+    "read": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "user_condition": { "role": "propietario" } },
+        { "user_condition": { "role": "gerencia" } },
+        { "user_condition": { "role": "administracion" } },
+        { "user_condition": { "role": "director_comercial" } },
+        { "user_condition": { "role": "jefe_obra" } },
+        { "user_condition": { "role": "contabilidad" } },
+        { "user_condition": { "role": "ingeniero" } }
+      ]
+    },
+    "update": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "user_condition": { "role": "propietario" } },
+        { "user_condition": { "role": "gerencia" } },
+        { "user_condition": { "role": "administracion" } },
+        { "user_condition": { "role": "director_comercial" } },
+        { "user_condition": { "role": "jefe_obra" } },
+        { "user_condition": { "role": "ingeniero" } }
+      ]
+    },
+    "delete": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "user_condition": { "role": "propietario" } }
+      ]
     }
-
-    const resultados = [];
-    for (const linea of lineas) {
-      const precio_neto = Number(linea.precio_neto || 0);
-      const cantidad = Number(linea.cantidad || 1);
-      const descripcion = (linea.descripcion || '').trim();
-      const referencia = (linea.referencia || '').trim();
-      if (!descripcion && !precio_neto) continue;
-
-      const fabricanteRaw = linea.fabricante || doc.proveedor_nombre || '';
-      const fab = await resolverFabricante(fabricanteRaw);
-
-      // Buscar material existente por referencia + fabricante_id
-      let material = null;
-      if (referencia) {
-        if (fab) {
-          try {
-            const exists = await base44.entities.MaterialCatalog.filter({ referencia, fabricante_id: fab.id });
-            if (exists && exists.length) material = exists[0];
-          } catch {}
-        }
-        if (!material) {
-          try {
-            const byCode = await base44.entities.MaterialCatalog.filter({ code: referencia });
-            if (byCode && byCode.length) material = byCode[0];
-          } catch {}
-        }
-      }
-
-      // Último precio histórico
-      let precio_anterior = null;
-      let pvp_ant = null, desc_ant = null;
-      if (material) {
-        try {
-          const hist = await base44.entities.MaterialPrecioHistorico.filter({ material_id: material.id }, '-fecha_documento', 1);
-          if (hist && hist.length) {
-            precio_anterior = Number(hist[0].precio_neto || 0);
-            pvp_ant = hist[0].pvp != null ? Number(hist[0].pvp) : null;
-            desc_ant = hist[0].descuento_empresa != null ? Number(hist[0].descuento_empresa) : null;
-          }
-        } catch {}
-      }
-
-      let variacion_pct = null;
-      let origen_cambio = 'primer_registro';
-      if (precio_anterior != null && precio_anterior > 0) {
-        variacion_pct = ((precio_neto - precio_anterior) / precio_anterior) * 100;
-        const pvp_new = linea.pvp != null && linea.pvp !== '' ? Number(linea.pvp) : null;
-        const desc_new = linea.descuento_empresa != null && linea.descuento_empresa !== '' ? Number(linea.descuento_empresa) : null;
-        const cambio_pvp = pvp_new != null && pvp_ant != null && Math.abs(pvp_new - pvp_ant) > 0.001;
-        const cambio_desc = desc_new != null && desc_ant != null && Math.abs(desc_new - desc_ant) > 0.001;
-        if (cambio_pvp && cambio_desc) origen_cambio = 'ambos';
-        else if (cambio_pvp) origen_cambio = 'subida_pvp';
-        else if (cambio_desc) origen_cambio = 'cambio_descuento';
-        else origen_cambio = 'cambio_valoracion_no_deducible';
-      }
-
-      try {
-        await base44.entities.LineaFactura.create({
-          obra_id: doc.obra_id || '',
-          documento_origen_id: documento.id,
-          numero_factura: doc.numero || '',
-          proveedor_nombre: doc.proveedor_nombre || '',
-          proveedor_nif: doc.proveedor_nif || '',
-          fecha_documento: doc.fecha || hoy,
-          linea_id: `${documento.id}-${resultados.length + 1}`,
-          referencia,
-          fabricante_id: fab?.id || '',
-          fabricante_name: fab?.name || fabricanteRaw || '',
-          material_id: material?.id || '',
-          cantidad_facturada: cantidad,
-          unidad: linea.unidad || material?.unit || 'ud',
-          precio_unitario_neto: precio_neto,
-          importe_neto: Number((cantidad * precio_neto).toFixed(2)),
-          estado: 'pendiente_revision',
-          confianza: linea.confianza || 'media',
-        });
-      } catch (e) {
-        console.warn('No se pudo crear LineaFactura para la línea OCR:', e?.message || e);
-      }
-
-      const historico = await base44.entities.MaterialPrecioHistorico.create({
-        material_id: material?.id || '',
-        material_referencia: referencia,
-        fabricante_id: fab?.id || '',
-        fabricante_name: fab?.name || fabricanteRaw || '',
-        fecha_documento: doc.fecha || hoy,
-        pvp: linea.pvp != null && linea.pvp !== '' ? Number(linea.pvp) : null,
-        descuento_empresa: linea.descuento_empresa != null && linea.descuento_empresa !== '' ? Number(linea.descuento_empresa) : null,
-        iva: linea.iva != null && linea.iva !== '' ? Number(linea.iva) : null,
-        precio_neto,
-        precio_anterior,
-        variacion_pct,
-        origen_cambio,
-        documento_origen_id: documento.id,
-        documento_tipo: doc.tipo || 'factura',
-        documento_numero: doc.numero || '',
-        documento_url: doc.archivo_url || doc.archivo_url_original || '',
-        proveedor_nombre: doc.proveedor_nombre || '',
-        proveedor_nif: doc.proveedor_nif || '',
-        obra_id: doc.obra_id || '',
-        obra_name: doc.obra_name || '',
-        linea_ocr_raw: descripcion,
-        confianza: linea.confianza || 'media',
-        activo: true,
-      });
-
-      const fecha_snapshot = doc.fecha || hoy;
-      const pvp_snapshot = linea.pvp != null && linea.pvp !== '' ? Number(linea.pvp) : (material?.pvp ?? null);
-      const desc_snapshot = linea.descuento_empresa != null && linea.descuento_empresa !== '' ? Number(linea.descuento_empresa) : (material?.descuento_empresa ?? null);
-      const iva_snapshot = linea.iva != null && linea.iva !== '' ? Number(linea.iva) : (material?.iva ?? null);
-
-      if (material) {
-        await base44.entities.MaterialCatalog.update(material.id, {
-          name: descripcion || material.name,
-          referencia: referencia || material.referencia || '',
-          code: referencia || material.code || material.referencia || '',
-          fabricante_id: fab?.id || material.fabricante_id || '',
-          fabricante_name: fab?.name || material.fabricante_name || '',
-          unit: linea.unidad || material.unit || 'ud',
-          pvp: pvp_snapshot,
-          descuento_empresa: desc_snapshot,
-          iva: iva_snapshot,
-          precio_neto,
-          unit_price: precio_neto,
-          fecha_ultimo_precio: fecha_snapshot,
-          supplier: doc.proveedor_nombre || material.supplier || '',
-        });
-      } else {
-        material = await base44.entities.MaterialCatalog.create({
-          name: descripcion || '(sin descripción)',
-          referencia,
-          code: referencia,
-          fabricante_id: fab?.id || '',
-          fabricante_name: fab?.name || '',
-          category: '',
-          unit: linea.unidad || 'ud',
-          pvp: pvp_snapshot,
-          descuento_empresa: desc_snapshot,
-          iva: iva_snapshot,
-          precio_neto,
-          unit_price: precio_neto,
-          fecha_ultimo_precio: fecha_snapshot,
-          supplier: doc.proveedor_nombre || '',
-          description: '',
-          active: true,
-        });
-        try {
-          await base44.entities.MaterialPrecioHistorico.update(historico.id, { material_id: material.id });
-        } catch {}
-      }
-
-      resultados.push({
-        descripcion,
-        referencia,
-        material_id: material.id,
-        material_existia: precio_anterior != null,
-        variacion_pct: variacion_pct != null ? Number(variacion_pct.toFixed(2)) : null,
-        origen_cambio,
-      });
-    }
-
-    return Response.json({
-      success: true,
-      documento_id: documento.id,
-      lineas_guardadas: resultados.length,
-      resultados,
-    });
-  } catch (error) {
-    return Response.json({ success: false, error: String(error?.message || error).slice(0, 300) }, { status: 500 });
   }
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}
