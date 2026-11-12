@@ -1,456 +1,236 @@
-import { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useAuth } from '@/lib/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, ScanLine, Upload, CheckCircle2, AlertTriangle, Save, RefreshCw, FileImage } from 'lucide-react';
-import DocumentScanner from './DocumentScanner';
-import LineasMaterialesEditor from './LineasMaterialesEditor';
-import NotasGastosSourceDialog from './NotasGastosSourceDialog';
-import { ocrDocumentoMateriales, guardarMaterialesOcr } from '@/lib/materialesOcrClient';
-import { limpiarPdfSiNecesario } from '@/lib/limpiarPdf';
-import { toast } from 'sonner';
 
-const TIPOS_DOC = [
-  { value: 'factura', label: 'Factura' },
-  { value: 'albaran', label: 'Albarán' },
-  { value: 'ticket', label: 'Ticket' },
-  { value: 'proforma', label: 'Proforma' },
-];
+const TIPOS_DOC = ['factura', 'albaran', 'ticket', 'proforma'];
 
-export default function MaterialesOcrDialog({ open, onClose, onSaved, operario = null, presetFile = null }) {
-  const { user } = useAuth();
-  const [paso, setPaso] = useState('captura'); // captura | ocr | revision | guardando
-  const [scanResult, setScanResult] = useState(null); // { file, preview }
-  const [ocrData, setOcrData] = useState(null); // datos crudos del OCR
-  const [ocrError, setOcrError] = useState('');
-  const [metaDoc, setMetaDoc] = useState({ tipo: 'factura', numero: '', fecha: new Date().toISOString().slice(0, 10), proveedor_nombre: '', proveedor_nif: '', obra_id: '', obra_name: '', obra_tipo: '' });
-  const [lineas, setLineas] = useState([]);
-  const [notasOpen, setNotasOpen] = useState(false);
-  const [notaOrigen, setNotaOrigen] = useState({ id: '', tipo: '' });
-
-  useEffect(() => {
-    if (open) {
-      setPaso('captura');
-      setScanResult(null);
-      setOcrData(null);
-      setOcrError('');
-      setNotaOrigen({ id: '', tipo: '' });
-      setMetaDoc({ tipo: 'factura', numero: '', fecha: new Date().toISOString().slice(0, 10), proveedor_nombre: '', proveedor_nif: '', obra_id: '', obra_name: '', obra_tipo: '' });
-      setLineas([]);
-      // Si viene con un archivo preseleccionado (desde notas de gastos), lanza OCR directo.
-      if (presetFile?.file_url) {
-        handleSelectFromNotaGasto(presetFile);
+export async function ocrDocumentoMateriales(file_url, file_tipo = 'image/jpeg') {
+  let lastErr = '';
+  for (let intento = 1; intento <= 2; intento++) {
+    try {
+      const res = await base44.functions.invoke('procesarFacturaMateriales', { file_url, file_tipo });
+      if (res?.success && res?.datos && Array.isArray(res.datos.lineas)) {
+        return { datos: res.datos, modelo: res.modelo || 'backend', fallback: !!res.fallback };
       }
+      lastErr = res?.error || (res?.datos && !Array.isArray(res.datos.lineas) ? 'El modelo no devolvió lista de líneas' : 'OCR sin respuesta');
+    } catch (e) {
+      lastErr = String(e?.message || e).slice(0, 200);
     }
-  }, [open]);
-
-  // Cerrar al guardar // después llama onSaved
-
-  const handleScannerDone = async ({ file, preview }) => {
-    if (!file) { toast.error('No se pudo procesar la imagen'); return; }
-    setScanResult({ file, preview });
-    setPaso('ocr');
-    setOcrError('');
-    setNotaOrigen({ id: '', tipo: '' });
-    try {
-      const subida = await base44.integrations.Core.UploadPublicFile({ file });
-      const file_url = subida?.file_url;
-      if (!file_url) throw new Error('No se pudo subir el archivo');
-      setScanResult(prev => ({ ...prev, file_url }));
-      const { datos: d, modelo, fallback } = await ocrDocumentoMateriales(file_url, 'image/jpeg');
-      setOcrData({ ...d, modelo, fallback });
-      setMetaDoc(m => ({
-        ...m,
-        tipo: d.tipo_documento_inferido && TIPOS_DOC.some(t => t.value === d.tipo_documento_inferido) ? d.tipo_documento_inferido : m.tipo,
-        numero: d.numero_documento || m.numero,
-        fecha: d.fecha_documento || m.fecha,
-        proveedor_nombre: d.proveedor || m.proveedor_nombre,
-        proveedor_nif: d.nif_proveedor || m.proveedor_nif,
-      }));
-      setLineas(Array.isArray(d.lineas) ? d.lineas : []);
-      setPaso('revision');
-    } catch (err) {
-      setOcrError(String(err?.message || err).slice(0, 200));
-      setPaso('revision');
-    }
-  };
-
-  // Cargar desde una nota de gasto existente (RegistroGasto con archivo).
-  const handleSelectFromNotaGasto = async ({ file_url, registro }) => {
-    if (!file_url) { toast.error('La nota de gasto no tiene archivo válido'); return; }
-    setPaso('ocr');
-    setOcrError('');
-    setNotaOrigen({ id: registro?.id || '', tipo: 'nota_gasto' });
-    setScanResult({ file: null, preview: file_url, file_url });
-    try {
-      const { datos: d, modelo, fallback } = await ocrDocumentoMateriales(file_url, 'image/jpeg');
-      setOcrData({ ...d, modelo, fallback });
-      setMetaDoc(m => ({
-        ...m,
-        tipo: d.tipo_documento_inferido && TIPOS_DOC.some(t => t.value === d.tipo_documento_inferido) ? d.tipo_documento_inferido : m.tipo,
-        numero: d.numero_documento || registro?.numero_factura || m.numero,
-        fecha: d.fecha_documento || registro?.fecha_documento || m.fecha,
-        proveedor_nombre: d.proveedor || registro?.nombre_comercio || m.proveedor_nombre,
-        proveedor_nif: d.nif_proveedor || registro?.nif_comercio || m.proveedor_nif,
-        obra_id: registro?.obra_id || m.obra_id,
-        obra_name: registro?.obra_name || m.obra_name,
-        obra_tipo: registro?.obra_tipo || m.obra_tipo,
-      }));
-      setLineas(Array.isArray(d.lineas) ? d.lineas : []);
-      setPaso('revision');
-    } catch (err) {
-      setOcrError(String(err?.message || err).slice(0, 200));
-      // Pre-rellenar metadatos del registro aunque el OCR falle.
-      setMetaDoc(m => ({
-        ...m,
-        numero: registro?.numero_factura || m.numero,
-        fecha: registro?.fecha_documento || m.fecha,
-        proveedor_nombre: registro?.nombre_comercio || m.proveedor_nombre,
-        proveedor_nif: registro?.nif_comercio || m.proveedor_nif,
-        obra_id: registro?.obra_id || m.obra_id,
-        obra_name: registro?.obra_name || m.obra_name,
-      }));
-      setPaso('revision');
-    }
-  };
-
-  const handleSkipScanner = async () => {
-    setPaso('ocr');
-    setOcrError('');
-    setNotaOrigen({ id: '', tipo: '' });
-    // Sin scanner: el usuario sube el archivo manualmente.
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*,.pdf';
-    input.onchange = async (e) => {
-      let f = e.target.files?.[0];
-      if (!f) { setPaso('captura'); return; }
-      try {
-        f = await limpiarPdfSiNecesario(f);
-        const subida = await base44.integrations.Core.UploadPublicFile({ file: f });
-        const file_url = subida?.file_url;
-        if (!file_url) throw new Error('No se pudo subir el archivo');
-        setScanResult({ file: f, preview: URL.createObjectURL(f), file_url });
-        const { datos: d, modelo, fallback } = await ocrDocumentoMateriales(file_url, f.type || 'image/jpeg');
-        setOcrData({ ...d, modelo, fallback });
-        setMetaDoc(m => ({
-          ...m,
-          tipo: d.tipo_documento_inferido && TIPOS_DOC.some(t => t.value === d.tipo_documento_inferido) ? d.tipo_documento_inferido : m.tipo,
-          numero: d.numero_documento || m.numero,
-          fecha: d.fecha_documento || m.fecha,
-          proveedor_nombre: d.proveedor || m.proveedor_nombre,
-          proveedor_nif: d.nif_proveedor || m.proveedor_nif,
-        }));
-        setLineas(Array.isArray(d.lineas) ? d.lineas : []);
-        setPaso('revision');
-      } catch (err) {
-        setOcrError(String(err?.message || err).slice(0, 200));
-        setPaso('revision');
-      }
-    };
-    input.click();
-  };
-
-  const guardar = async () => {
-    if (!lineas.length) { toast.error('No hay líneas a guardar'); return; }
-    const lineasValidas = lineas.filter(l => l.incluir !== false && (l.descripcion || l.precio_neto));
-    if (!lineasValidas.length) { toast.error('Marca al menos una línea con datos'); return; }
-    if (!metaDoc.fecha) { toast.error('La fecha del documento es obligatoria'); return; }
-
-    setPaso('guardando');
-    try {
-      const payload = {
-        documento: {
-          tipo: metaDoc.tipo,
-          numero: metaDoc.numero,
-          fecha: metaDoc.fecha,
-          proveedor_nombre: metaDoc.proveedor_nombre,
-          proveedor_nif: metaDoc.proveedor_nif,
-          archivo_url: scanResult?.file_url || '',
-          archivo_url_original: scanResult?.file_url || '',
-          obra_id: metaDoc.obra_id || '',
-          obra_name: metaDoc.obra_name || '',
-          operario_id: operario?.id || '',
-          nota_gasto_id: notaOrigen.id || '',
-          nota_origen_tipo: notaOrigen.tipo || '',
-        },
-        lineas: lineasValidas.map(l => ({
-          fabricante: l.fabricante || '',
-          referencia: l.referencia || '',
-          descripcion: l.descripcion || '',
-          cantidad: Number(l.cantidad || 1),
-          unidad: l.unidad || 'ud',
-          pvp: l.pvp === '' || l.pvp == null ? null : Number(l.pvp),
-          descuento_empresa: l.descuento_empresa === '' || l.descuento_empresa == null ? null : Number(l.descuento_empresa),
-          iva: l.iva === '' || l.iva == null ? null : Number(l.iva),
-          precio_neto: Number(l.precio_neto || 0),
-          confianza: l.confianza || 'media',
-        })),
-      };
-      const data = await guardarMaterialesOcr(payload.documento, payload.lineas);
-      if (!data?.success) throw new Error(data?.error || 'Error al guardar');
-      const nuevas = (data.resultados || []).filter(r => r.material_existia !== true).length;
-      const cambios = (data.resultados || []).filter(r => r.variacion_pct != null).length;
-      toast.success(`Procesadas ${data.lineas_guardadas} líneas · ${nuevas} materiales nuevos · ${cambios} cambios de precio`);
-      onSaved?.();
-      onClose?.();
-    } catch (err) {
-      toast.error('Error al guardar: ' + String(err?.message || err).slice(0, 120));
-      setPaso('revision');
-    }
-  };
-
-  const titulos = {
-    captura: 'Cargar documento (escáner CamScanner)',
-    ocr: 'Extrayendo materiales…',
-    revision: 'Revisar y confirmar líneas',
-    guardando: 'Guardando materiales…',
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={isOpen => { if (!isOpen) onClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ScanLine className="w-4 h-4 text-primary" />
-            {titulos[paso]}
-            {ocrData?.fallback && paso === 'revision' && (
-              <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">IA respaldo</span>
-            )}
-          </DialogTitle>
-        </DialogHeader>
-
-        {paso === 'captura' && (
-          <>
-            <DocumentScanner onDone={handleScannerDone} onSkip={handleSkipScanner} />
-            <div className="pt-3 border-t">
-              <Button
-                variant="outline"
-                onClick={() => setNotasOpen(true)}
-                className="w-full gap-2"
-              >
-                <FileImage className="w-4 h-4" />
-                Cargar de notas de gastos existentes
-              </Button>
-              <p className="text-[11px] text-muted-foreground text-center mt-1.5">
-                Busca entre las notas ya cargadas y úsalas como fuente, con función de eliminar duplicados.
-              </p>
-            </div>
-          </>
-        )}
-
-        {paso === 'ocr' && (
-          <div className="flex flex-col items-center gap-4 py-8">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <p className="text-sm text-muted-foreground">Procesando documento con OCR+IA…</p>
-          </div>
-        )}
-
-        {paso === 'revision' && (
-          <div className="space-y-4 py-2">
-            {ocrError && (
-              <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <div className="text-xs text-amber-700 dark:text-amber-300">
-                  <p className="font-semibold mb-0.5">OCR: {ocrError}</p>
-                  <p>Puedes editar/añadir líneas manualmente abajo.</p>
-                </div>
-              </div>
-            )}
-
-            {/* Metadata del documento */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 bg-muted/30 rounded-xl border">
-              <div className="space-y-1 col-span-2 sm:col-span-1">
-                <Label className="text-[10px]">Tipo</Label>
-                <MobileSelect value={metaDoc.tipo} onValueChange={v => setMetaDoc(m => ({ ...m, tipo: v }))} placeholder="Tipo">
-                  {TIPOS_DOC.map(t => <MobileSelectItem key={t.value} value={t.value}>{t.label}</MobileSelectItem>)}
-                </MobileSelect>
-              </div>
-              <div className="space-y-1 col-span-2 sm:col-span-1">
-                <Label className="text-[10px]">Nº documento</Label>
-                <Input value={metaDoc.numero} onChange={e => setMetaDoc(m => ({ ...m, numero: e.target.value }))} className="h-9 text-xs font-mono" placeholder="FAC-2026-001" />
-              </div>
-              <div className="space-y-1 col-span-1">
-                <Label className="text-[10px]">Fecha</Label>
-                <Input type="date" value={metaDoc.fecha} onChange={e => setMetaDoc(m => ({ ...m, fecha: e.target.value }))} className="h-9 text-xs" />
-              </div>
-              <div className="space-y-1 col-span-1">
-                <Label className="text-[10px]">NIF proveedor</Label>
-                <Input value={metaDoc.proveedor_nif} onChange={e => setMetaDoc(m => ({ ...m, proveedor_nif: e.target.value }))} className="h-9 text-xs font-mono" placeholder="B12345678" />
-              </div>
-              <div className="space-y-1 col-span-2 sm:col-span-4">
-                <Label className="text-[10px]">Proveedor</Label>
-                <Input value={metaDoc.proveedor_nombre} onChange={e => setMetaDoc(m => ({ ...m, proveedor_nombre: e.target.value }))} className="h-9 text-xs" placeholder="Nombre del proveedor" />
-              </div>
-            </div>
-
-            {/* Tabla editable de líneas */}
-            <LineasMaterialesEditor lineas={lineas} onChange={setLineas} />
-
-            <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Si el OCR no detectó materiales, puedes añadirlos manualmente.</span>
-            </div>
-          </div>
-        )}
-
-        {paso === 'guardando' && (
-          <div className="flex flex-col items-center gap-4 py-12">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <p className="text-sm text-muted-foreground">Guardando materiales y precios…</p>
-          </div>
-        )}
-
-        {paso === 'revision' && (
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button onClick={guardar} disabled={paso !== 'revision'} className="gap-2">
-              <Save className="w-4 h-4" /> Guardar en Materiales
-            </Button>
-          </DialogFooter>
-        )}
-
-        <NotasGastosSourceDialog
-          open={notasOpen}
-          onClose={() => setNotasOpen(false)}
-          onSelect={handleSelectFromNotaGasto}
-        />
-      </DialogContent>
-    </Dialog>
-  );
+    if (intento < 2) await new Promise(r => setTimeout(r, 800));
+  }
+  throw new Error(lastErr || 'OCR no devolvió líneas válidas');
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+function normalizeName(s) {
+  if (!s) return '';
+  return s.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+export async function guardarMaterialesOcr(documento, lineas) {
+  const hoy = new Date().toISOString().slice(0, 10);
+  if (!Array.isArray(lineas) || !lineas.length) {
+    throw new Error('No hay líneas a guardar');
+  }
+
+  const doc = await base44.entities.MaterialDocumentoOrigen.create({
+    tipo: documento.tipo || 'factura',
+    numero_documento: documento.numero || '',
+    fecha_documento: documento.fecha || hoy,
+    proveedor_nombre: documento.proveedor_nombre || '',
+    proveedor_nif: documento.proveedor_nif || '',
+    archivo_url_mejorado: documento.archivo_url || '',
+    archivo_url_original: documento.archivo_url_original || '',
+    obra_id: documento.obra_id || '',
+    obra_name: documento.obra_name || '',
+    operario_id: documento.operario_id || '',
+    nota_gasto_id: documento.nota_gasto_id || '',
+    nota_origen_tipo: documento.nota_origen_tipo || '',
+    estado: 'procesado',
+    lineas_count: lineas.length,
+  });
+
+  const fabricanteCache = new Map();
+  async function resolverFabricante(nombreRaw) {
+    const nombre = (nombreRaw || '').trim();
+    if (!nombre) return null;
+    const normalizado = normalizeName(nombre);
+    if (fabricanteCache.has(normalizado)) return fabricanteCache.get(normalizado);
+    let fab = null;
+    try {
+      const found = await base44.entities.Fabricante.filter({ nombre_normalizado: normalizado });
+      if (found && found.length) fab = found[0];
+    } catch {}
+    if (!fab) {
+      try {
+        fab = await base44.entities.Fabricante.create({ name: nombre, nombre_normalizado: normalizado });
+      } catch { fab = null; }
+    }
+    fabricanteCache.set(normalizado, fab);
+    return fab;
+  }
+
+  const resultados = [];
+  for (const linea of lineas) {
+    const precio_neto = Number(linea.precio_neto || 0);
+    const cantidad = Number(linea.cantidad || 1);
+    const descripcion = (linea.descripcion || '').trim();
+    const referencia = (linea.referencia || '').trim();
+    if (!descripcion && !precio_neto) continue;
+
+    const fabricanteRaw = linea.fabricante || documento.proveedor_nombre || '';
+    const fab = await resolverFabricante(fabricanteRaw);
+
+    let material = null;
+    if (referencia) {
+      if (fab) {
+        try {
+          const exists = await base44.entities.MaterialCatalog.filter({ referencia, fabricante_id: fab.id });
+          if (exists && exists.length) material = exists[0];
+        } catch {}
+      }
+      if (!material) {
+        try {
+          const byCode = await base44.entities.MaterialCatalog.filter({ code: referencia });
+          if (byCode && byCode.length) material = byCode[0];
+        } catch {}
+      }
+    }
+
+    let precio_anterior = null;
+    let pvp_ant = null, desc_ant = null;
+    if (material) {
+      try {
+        const hist = await base44.entities.MaterialPrecioHistorico.filter({ material_id: material.id }, '-fecha_documento', 1);
+        if (hist && hist.length) {
+          precio_anterior = Number(hist[0].precio_neto || 0);
+          pvp_ant = hist[0].pvp != null ? Number(hist[0].pvp) : null;
+          desc_ant = hist[0].descuento_empresa != null ? Number(hist[0].descuento_empresa) : null;
+        }
+      } catch {}
+    }
+
+    let variacion_pct = null;
+    let origen_cambio = 'primer_registro';
+    if (precio_anterior != null && precio_anterior > 0) {
+      variacion_pct = ((precio_neto - precio_anterior) / precio_anterior) * 100;
+      const pvp_new = linea.pvp != null && linea.pvp !== '' ? Number(linea.pvp) : null;
+      const desc_new = linea.descuento_empresa != null && linea.descuento_empresa !== '' ? Number(linea.descuento_empresa) : null;
+      const cambio_pvp = pvp_new != null && pvp_ant != null && Math.abs(pvp_new - pvp_ant) > 0.001;
+      const cambio_desc = desc_new != null && desc_ant != null && Math.abs(desc_new - desc_ant) > 0.001;
+      if (cambio_pvp && cambio_desc) origen_cambio = 'ambos';
+      else if (cambio_pvp) origen_cambio = 'subida_pvp';
+      else if (cambio_desc) origen_cambio = 'cambio_descuento';
+      else origen_cambio = 'cambio_valoracion_no_deducible';
+    }
+
+    try {
+      await base44.entities.LineaFactura.create({
+        obra_id: documento.obra_id || '',
+        documento_origen_id: doc.id,
+        numero_factura: documento.numero || '',
+        proveedor_nombre: documento.proveedor_nombre || '',
+        proveedor_nif: documento.proveedor_nif || '',
+        fecha_documento: documento.fecha || hoy,
+        linea_id: `${doc.id}-${resultados.length + 1}`,
+        referencia,
+        fabricante_id: fab?.id || '',
+        fabricante_name: fab?.name || fabricanteRaw || '',
+        material_id: material?.id || '',
+        cantidad_facturada: cantidad,
+        unidad: linea.unidad || material?.unit || 'ud',
+        precio_unitario_neto: precio_neto,
+        importe_neto: Number((cantidad * precio_neto).toFixed(2)),
+        estado: 'pendiente_revision',
+        confianza: linea.confianza || 'media',
+      });
+    } catch (e) {
+      console.warn('No se pudo crear LineaFactura para la línea OCR:', e?.message || e);
+    }
+
+    const historico = await base44.entities.MaterialPrecioHistorico.create({
+      material_id: material?.id || '',
+      material_referencia: referencia,
+      fabricante_id: fab?.id || '',
+      fabricante_name: fab?.name || fabricanteRaw || '',
+      fecha_documento: documento.fecha || hoy,
+      pvp: linea.pvp != null && linea.pvp !== '' ? Number(linea.pvp) : null,
+      descuento_empresa: linea.descuento_empresa != null && linea.descuento_empresa !== '' ? Number(linea.descuento_empresa) : null,
+      iva: linea.iva != null && linea.iva !== '' ? Number(linea.iva) : null,
+      precio_neto,
+      precio_anterior,
+      variacion_pct,
+      origen_cambio,
+      documento_origen_id: doc.id,
+      documento_tipo: documento.tipo || 'factura',
+      documento_numero: documento.numero || '',
+      documento_url: documento.archivo_url || documento.archivo_url_original || '',
+      proveedor_nombre: documento.proveedor_nombre || '',
+      proveedor_nif: documento.proveedor_nif || '',
+      obra_id: documento.obra_id || '',
+      obra_name: documento.obra_name || '',
+      linea_ocr_raw: descripcion,
+      confianza: linea.confianza || 'media',
+      activo: true,
+    });
+
+    const fecha_snapshot = documento.fecha || hoy;
+    const pvp_snapshot = linea.pvp != null && linea.pvp !== '' ? Number(linea.pvp) : (material?.pvp ?? null);
+    const desc_snapshot = linea.descuento_empresa != null && linea.descuento_empresa !== '' ? Number(linea.descuento_empresa) : (material?.descuento_empresa ?? null);
+    const iva_snapshot = linea.iva != null && linea.iva !== '' ? Number(linea.iva) : (material?.iva ?? null);
+
+    if (material) {
+      await base44.entities.MaterialCatalog.update(material.id, {
+        name: descripcion || material.name,
+        referencia: referencia || material.referencia || '',
+        code: referencia || material.code || material.referencia || '',
+        fabricante_id: fab?.id || material.fabricante_id || '',
+        fabricante_name: fab?.name || material.fabricante_name || '',
+        unit: linea.unidad || material.unit || 'ud',
+        pvp: pvp_snapshot,
+        descuento_empresa: desc_snapshot,
+        iva: iva_snapshot,
+        precio_neto,
+        unit_price: precio_neto,
+        fecha_ultimo_precio: fecha_snapshot,
+        supplier: documento.proveedor_nombre || material.supplier || '',
+      });
+    } else {
+      material = await base44.entities.MaterialCatalog.create({
+        name: descripcion || '(sin descripción)',
+        referencia,
+        code: referencia,
+        fabricante_id: fab?.id || '',
+        fabricante_name: fab?.name || '',
+        category: '',
+        unit: linea.unidad || 'ud',
+        pvp: pvp_snapshot,
+        descuento_empresa: desc_snapshot,
+        iva: iva_snapshot,
+        precio_neto,
+        unit_price: precio_neto,
+        fecha_ultimo_precio: fecha_snapshot,
+        supplier: documento.proveedor_nombre || '',
+        description: '',
+        active: true,
+      });
+      try {
+        await base44.entities.MaterialPrecioHistorico.update(historico.id, { material_id: material.id });
+      } catch {}
+    }
+
+    resultados.push({
+      descripcion,
+      referencia,
+      material_id: material.id,
+      material_existia: precio_anterior != null,
+      variacion_pct: variacion_pct != null ? Number(variacion_pct.toFixed(2)) : null,
+      origen_cambio,
+    });
+  }
+
+  return {
+    success: true,
+    documento_id: doc.id,
+    lineas_guardadas: resultados.length,
+    resultados,
+  };
+}
