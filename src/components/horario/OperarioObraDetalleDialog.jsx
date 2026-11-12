@@ -114,8 +114,8 @@ export default function OperarioObraDetalleDialog({
                           <div key={f.id} className="px-3 py-2 flex items-center justify-between gap-2 text-xs">
                             <div className="min-w-0">
                               <p className="font-medium truncate">
-                                {f.entrada ? `Entrada ${format(parseISO(f.entrada), 'HH:mm')}` : 'Sin entrada'}
-                                {f.salida ? ` · Salida ${format(parseISO(f.salida), 'HH:mm')}` : ''}
+                                {f.hora_entrada ? `Entrada ${f.hora_entrada}` : 'Sin entrada'}
+                                {f.hora_salida ? ` · Salida ${f.hora_salida}` : ''}
                               </p>
                               {(f.notas || f.observaciones) && (
                                 <p className="text-[10px] text-muted-foreground truncate">{f.notas || f.observaciones}</p>

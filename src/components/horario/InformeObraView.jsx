@@ -98,13 +98,17 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
     return map;
   }, [operarios]);
 
+  // Rango del periodo como 'YYYY-MM-DD' (el cálculo de ausencias trabaja con cadenas)
+  const startStr = format(start, 'yyyy-MM-dd');
+  const endStr = format(end, 'yyyy-MM-dd');
+
   // Ausencias por operario dentro del periodo: vacaciones, bajas médicas, permisos y faltas.
   // Se cuenta por SOLAPE de fechas: una ausencia que empieza antes pero toca el periodo también computa.
   const faltasPorOperario = useMemo(() => {
     const map = {};
     ausencias.forEach(a => {
       if (forceOperarioId && a.operario_id !== forceOperarioId) return;
-      const dias = diasEnRango(a, start, end);
+      const dias = diasEnRango(a, startStr, endStr);
       if (!dias) return;
       if (!map[a.operario_id]) {
         map[a.operario_id] = { total: 0, injustificadas: 0, justificadas: 0, pendientes: 0, dias: 0, name: a.operario_name || '', tipos: {} };
@@ -118,7 +122,7 @@ export default function InformeObraView({ canSeeAll = false, forceOperarioId = n
       else m.pendientes += 1;
     });
     return map;
-  }, [ausencias, start, end, forceOperarioId]);
+  }, [ausencias, startStr, endStr, forceOperarioId]);
 
   // Lista de obras únicas con fichajes (derivada de project / obra_name)
   const obrasDisponibles = useMemo(() => {

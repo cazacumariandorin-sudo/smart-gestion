@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { parseISO, differenceInDays } from 'date-fns';
+import { parseISO, differenceInDays, format } from 'date-fns';
 
 /**
  * Fuente única de ausencias del control horario.
@@ -69,13 +69,24 @@ export function unificarAusencias(vacaciones = [], faltas = []) {
   return [...sinDuplicar, ...fts];
 }
 
+/** Normaliza una fecha a 'YYYY-MM-DD' (admite Date o cadena). */
+const isoDia = (v) => {
+  if (!v) return '';
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? '' : format(v, 'yyyy-MM-dd');
+  return String(v).slice(0, 10);
+};
+
 /** Días de la ausencia dentro del rango [start, end] (fechas 'YYYY-MM-DD'). */
 export function diasEnRango(a, start, end) {
   if (!a.inicio) return 0;
-  const fin = a.fin || a.inicio;
-  if (fin < start || a.inicio > end) return 0;
-  const desde = a.inicio > start ? a.inicio : start;
-  const hasta = fin < end ? fin : end;
+  const ini = isoDia(a.inicio);
+  const fin = isoDia(a.fin || a.inicio);
+  const s = isoDia(start);
+  const e = isoDia(end);
+  if (!ini || !fin || !s || !e) return 0;
+  if (fin < s || ini > e) return 0;
+  const desde = ini > s ? ini : s;
+  const hasta = fin < e ? fin : e;
   return Math.max(1, differenceInDays(parseISO(hasta), parseISO(desde)) + 1);
 }
 
