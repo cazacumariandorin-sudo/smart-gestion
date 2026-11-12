@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, ScanLine, Upload, CheckCircle2, AlertTriangle, Save, RefreshCw, FileImage } from 'lucide-react';
+import { Loader2, ScanLine, AlertTriangle, Save, RefreshCw, FileImage } from 'lucide-react';
 import DocumentScanner from './DocumentScanner';
 import LineasMaterialesEditor from './LineasMaterialesEditor';
 import NotasGastosSourceDialog from './NotasGastosSourceDialog';
@@ -23,36 +23,44 @@ const TIPOS_DOC = [
 
 export default function MaterialesOcrDialog({ open, onClose, onSaved, operario = null, presetFile = null }) {
   const { user } = useAuth();
-  const [paso, setPaso] = useState('captura'); // captura | ocr | revision | guardando
-  const [scanResult, setScanResult] = useState(null); // { file, preview }
-  const [ocrData, setOcrData] = useState(null); // datos crudos del OCR
+  const [paso, setPaso] = useState('captura');
+  const [scanResult, setScanResult] = useState(null);
+  const [ocrData, setOcrData] = useState(null);
   const [ocrError, setOcrError] = useState('');
-  const [metaDoc, setMetaDoc] = useState({ tipo: 'factura', numero: '', fecha: new Date().toISOString().slice(0, 10), proveedor_nombre: '', proveedor_nif: '', obra_id: '', obra_name: '', obra_tipo: '' });
+  const [metaDoc, setMetaDoc] = useState({
+    tipo: 'factura',
+    numero: '',
+    fecha: new Date().toISOString().slice(0, 10),
+    proveedor_nombre: '',
+    proveedor_nif: '',
+    obra_id: '',
+    obra_name: '',
+    obra_tipo: '',
+  });
   const [lineas, setLineas] = useState([]);
   const [notasOpen, setNotasOpen] = useState(false);
+  const [notaOrigen, setNotaOrigen] = useState({ id: '', tipo: '' });
 
   useEffect(() => {
-    if (open) {
-      setPaso('captura');
-      setScanResult(null);
-      setOcrData(null);
-      setOcrError('');
-      setMetaDoc({ tipo: 'factura', numero: '', fecha: new Date().toISOString().slice(0, 10), proveedor_nombre: '', proveedor_nif: '', obra_id: '', obra_name: '', obra_tipo: '' });
-      setLineas([]);
-      // Si viene con un archivo preseleccionado (desde notas de gastos), lanza OCR directo.
-      if (presetFile?.file_url) {
-        handleSelectFromNotaGasto(presetFile);
-      }
+    if (!open) return;
+    setPaso('captura');
+    setScanResult(null);
+    setOcrData(null);
+    setOcrError('');
+    setNotaOrigen({ id: '', tipo: '' });
+    setMetaDoc({ tipo: 'factura', numero: '', fecha: new Date().toISOString().slice(0, 10), proveedor_nombre: '', proveedor_nif: '', obra_id: '', obra_name: '', obra_tipo: '' });
+    setLineas([]);
+    if (presetFile?.file_url) {
+      handleSelectFromNotaGasto(presetFile);
     }
   }, [open]);
-
-  // Cerrar al guardar // después llama onSaved
 
   const handleScannerDone = async ({ file, preview }) => {
     if (!file) { toast.error('No se pudo procesar la imagen'); return; }
     setScanResult({ file, preview });
     setPaso('ocr');
     setOcrError('');
+    setNotaOrigen({ id: '', tipo: '' });
     try {
       const subida = await base44.integrations.Core.UploadPublicFile({ file });
       const file_url = subida?.file_url;
@@ -76,11 +84,11 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
     }
   };
 
-  // Cargar desde una nota de gasto existente (RegistroGasto con archivo).
   const handleSelectFromNotaGasto = async ({ file_url, registro }) => {
     if (!file_url) { toast.error('La nota de gasto no tiene archivo válido'); return; }
     setPaso('ocr');
     setOcrError('');
+    setNotaOrigen({ id: registro?.id || '', tipo: 'nota_gasto' });
     setScanResult({ file: null, preview: file_url, file_url });
     try {
       const { datos: d, modelo, fallback } = await ocrDocumentoMateriales(file_url, 'image/jpeg');
@@ -100,7 +108,6 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
       setPaso('revision');
     } catch (err) {
       setOcrError(String(err?.message || err).slice(0, 200));
-      // Pre-rellenar metadatos del registro aunque el OCR falle.
       setMetaDoc(m => ({
         ...m,
         numero: registro?.numero_factura || m.numero,
@@ -117,7 +124,7 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
   const handleSkipScanner = async () => {
     setPaso('ocr');
     setOcrError('');
-    // Sin scanner: el usuario sube el archivo manualmente.
+    setNotaOrigen({ id: '', tipo: '' });
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*,.pdf';
@@ -130,7 +137,7 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
         const file_url = subida?.file_url;
         if (!file_url) throw new Error('No se pudo subir el archivo');
         setScanResult({ file: f, preview: URL.createObjectURL(f), file_url });
-        const { datos: d, modelo, fallback } = await ocrDocumentoMateriales(file_url, f.type);
+        const { datos: d, modelo, fallback } = await ocrDocumentoMateriales(file_url, f.type || 'image/jpeg');
         setOcrData({ ...d, modelo, fallback });
         setMetaDoc(m => ({
           ...m,
@@ -170,6 +177,8 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
           obra_id: metaDoc.obra_id || '',
           obra_name: metaDoc.obra_name || '',
           operario_id: operario?.id || '',
+          nota_gasto_id: notaOrigen.id || '',
+          nota_origen_tipo: notaOrigen.tipo || '',
         },
         lineas: lineasValidas.map(l => ({
           fabricante: l.fabricante || '',
@@ -181,6 +190,7 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
           descuento_empresa: l.descuento_empresa === '' || l.descuento_empresa == null ? null : Number(l.descuento_empresa),
           iva: l.iva === '' || l.iva == null ? null : Number(l.iva),
           precio_neto: Number(l.precio_neto || 0),
+          confianza: l.confianza || 'media',
         })),
       };
       const data = await guardarMaterialesOcr(payload.documento, payload.lineas);
@@ -204,7 +214,7 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
   };
 
   return (
-    <Dialog open={open} onOpenChange={isOpen => { if (!isOpen) onClose(); }}>
+    <Dialog open={open} onOpenChange={isOpen => { if (!isOpen) onClose?.(); }}>
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -220,13 +230,8 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
           <>
             <DocumentScanner onDone={handleScannerDone} onSkip={handleSkipScanner} />
             <div className="pt-3 border-t">
-              <Button
-                variant="outline"
-                onClick={() => setNotasOpen(true)}
-                className="w-full gap-2"
-              >
-                <FileImage className="w-4 h-4" />
-                Cargar de notas de gastos existentes
+              <Button variant="outline" onClick={() => setNotasOpen(true)} className="w-full gap-2">
+                <FileImage className="w-4 h-4" /> Cargar de notas de gastos existentes
               </Button>
               <p className="text-[11px] text-muted-foreground text-center mt-1.5">
                 Busca entre las notas ya cargadas y úsalas como fuente, con función de eliminar duplicados.
@@ -254,7 +259,6 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
               </div>
             )}
 
-            {/* Metadata del documento */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 bg-muted/30 rounded-xl border">
               <div className="space-y-1 col-span-2 sm:col-span-1">
                 <Label className="text-[10px]">Tipo</Label>
@@ -280,7 +284,6 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
               </div>
             </div>
 
-            {/* Tabla editable de líneas */}
             <LineasMaterialesEditor lineas={lineas} onChange={setLineas} />
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
