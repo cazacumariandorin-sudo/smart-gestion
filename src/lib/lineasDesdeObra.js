@@ -64,7 +64,7 @@ export function lineaManoDeObra({ horas, precio_hora = TARIFA_POR_DEFECTO.precio
 }
 
 /** Alojamiento y manutención por trabajador y día. Admite el total de unidades o trabajadores × días. */
-export function lineaAlojamiento({ unidades, trabajadores, dias, precio = TARIFA_POR_DEFTO_PLACEHOLDER, iva_pct = 21, detalle }) {
+export function lineaAlojamiento({ unidades, trabajadores, dias, precio = TARIFA_POR_DEFECTO.alojamiento_dia_trabajador, iva_pct = 21, detalle }) {
   const uds = unidades !== undefined ? Number(unidades) : (Number(trabajadores) || 0) * (Number(dias) || 0);
   return base({ descripcion: 'Alojamiento y manutención por trabajador y día', cantidad: uds, unidad: 'ud', precio_unitario: Number(precio) || 0, iva_pct, ...(detalle ? { detalle } : {}) });
 }
