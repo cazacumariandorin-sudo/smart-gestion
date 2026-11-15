@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Trash2, FileText, Upload, Type } from "lucide-react";
+import { X, Plus, Trash2, FileText, Upload, Type, Wrench, BedDouble, Save } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +14,7 @@ import OcrUploader from "@/components/gastos/OcrUploader";
 import ParteSelector from "@/components/presupuestos/ParteSelector";
 import { extraerConceptosDesdeTexto } from "@/lib/conceptosExtractor";
 import { calcularDocumento } from "@/lib/presupuestoCalculo";
+import { lineasDeParte, lineasDeExtras, lineaManoDeObra, lineaAlojamiento, quitarLineasDeOrigen, resolverTarifa } from "@/lib/lineasDesdeObra";
 import SimantecLogo from "@/components/SimantecLogo";
 import CorrectorOrtograficoButton from "@/components/CorrectorOrtograficoButton";
 import AutoCorrectTextarea from "@/components/ui/AutoCorrectTextarea";
@@ -42,6 +43,7 @@ const normalizarLinea = (c) => ({
     precio_unitario: Number(c.precio_unitario) || 0,
     iva_pct: c.iva_pct === undefined || c.iva_pct === null ? 21 : Number(c.iva_pct),
     parte_id: c.parte_id,
+    extra_id: c.extra_id,
     fecha: c.fecha,
 });
 
@@ -54,7 +56,7 @@ const LINEA_NUEVA = { tipo: "linea", descripcion: "", cantidad: 1, unidad: "ud",
  *  - presupuestoInicial: si viene, el formulario edita ese presupuesto (solo borradores)
  *  - ocupados: Map(parteId -> código del presupuesto activo que ya lo usa); un parte solo puede estar en un presupuesto activo (DOC-04)
  */
-export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial = null, ocupados = new Map() }) {
+export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial = null, ocupados = new Map(), ocupadosExtras = new Map() }) {
     const edicion = !!presupuestoInicial;
     const [formData, setFormData] = useState(() => {
         const p = presupuestoInicial;
@@ -69,6 +71,8 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
             forma_pago: p?.forma_pago || "",
             conceptos: (p?.conceptos || []).map(normalizarLinea),
             partes_trabajo_ids: p?.partes_trabajo_ids || [],
+            obra_id: p?.obra_id || "",
+            obra_name: p?.obra_name || "",
             descripcion: p?.descripcion || "",
             notas: p?.notas || "",
         };
@@ -77,6 +81,12 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
     const [nuevoConcepto, setNuevoConcepto] = useState(LINEA_NUEVA);
     const [loadingPartes, setLoadingPartes] = useState(false);
     const [archivoFuente, setArchivoFuente] = useState(null);
+    const [modoLineas, setModoLineas] = useState("una_linea");      // cómo se convierte un parte en líneas
+    const [horasMO, setHorasMO] = useState("");
+    const [alojTrab, setAlojTrab] = useState("");
+    const [alojDias, setAlojDias] = useState("");
+    const [tarifaEdit, setTarifaEdit] = useState(null);             // precios editados a mano en este documento
+    const [guardandoTarifa, setGuardandoTarifa] = useState(false);
 
     // Totales en vivo: mismas reglas que el servidor (IVA por línea, redondeo por línea)
     const calculo = useMemo(() => calcularDocumento(formData.conceptos), [formData.conceptos]);
@@ -86,6 +96,24 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
     const { data: clientes = [] } = useQuery({
         queryKey: ['clientes_presupuesto'],
         queryFn: () => base44.entities.Client.list('name', 500),
+    });
+
+    // Condiciones económicas acordadas (la de la obra prevalece sobre la del cliente; si no hay, 40 €/h y 100 €/día)
+    const { data: condiciones = [], refetch: refetchCondiciones } = useQuery({
+        queryKey: ['condiciones_economicas'],
+        queryFn: () => base44.entities.CondicionesEconomicas.list('-created_date', 300),
+        retry: false,
+    });
+    const tarifa = useMemo(() => resolverTarifa(condiciones, formData.cliente_id, formData.obra_id), [condiciones, formData.cliente_id, formData.obra_id]);
+    const precioHora = tarifaEdit?.precio_hora ?? tarifa.precio_hora;
+    const precioAloj = tarifaEdit?.alojamiento_dia_trabajador ?? tarifa.alojamiento_dia_trabajador;
+
+    // Trabajos extra pendientes del cliente
+    const { data: extrasCliente = [] } = useQuery({
+        queryKey: ['extras_pendientes_presupuesto', formData.cliente_id],
+        queryFn: () => base44.entities.TrabajoExtraObra.filter({ client_id: formData.cliente_id, estado: 'pendiente' }, '-fecha_solicitud', 100),
+        enabled: !!formData.cliente_id,
+        retry: false,
     });
 
     // Cargar partes de trabajo + partes diarios filtrados por cliente seleccionado
@@ -111,6 +139,9 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                     fecha: w.created_date,
                     sub: `${w.trabajadores?.length || 0} trabajadores`,
                     descripcion_auto: [w.titulo, w.description].filter(Boolean).join('\n'),
+                    desplazamiento_importe_eur: w.desplazamiento_importe_eur,
+                    desplazamiento_concepto: w.desplazamiento_concepto,
+                    obra_id: w.obra_id,
                 }));
 
             // ParteDiarioObra no incluye client_id: resolver obras del cliente y filtrar por obra_id
@@ -217,17 +248,21 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
             conceptosExtraidos = extraerConceptosDesdeTexto(parte.materiales_texto).map(normalizarLinea);
         }
 
+        // Líneas del parte (texto, desplazamiento) según el estilo elegido; sin precio, salvo el desplazamiento
+        const lineasParte = !ya ? lineasDeParte(parte, { modo: modoLineas, iva_pct: tarifa.iva_pct }).map(normalizarLinea) : [];
+
         setFormData(prev => {
-            let nuevosConceptos = prev.conceptos;
+            let nuevosConceptos = ya ? quitarLineasDeOrigen(prev.conceptos, { parte_id: parte.id }) : prev.conceptos;
             if (!ya && conceptosExtraidos.length) {
                 const sinDuplicar = conceptosExtraidos.filter(nc =>
-                    !prev.conceptos.some(ec =>
+                    !nuevosConceptos.some(ec =>
                         ec.descripcion.trim().toLowerCase() === nc.descripcion.trim().toLowerCase() &&
                         Number(ec.cantidad) === Number(nc.cantidad)
                     )
                 );
-                nuevosConceptos = [...prev.conceptos, ...sinDuplicar];
+                nuevosConceptos = [...nuevosConceptos, ...sinDuplicar];
             }
+            if (!ya && !nuevosConceptos.some(c => c.parte_id === parte.id)) nuevosConceptos = [...nuevosConceptos, ...lineasParte];
             return {
                 ...prev,
                 partes_trabajo_ids: ya
@@ -235,8 +270,62 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                     : [...prev.partes_trabajo_ids, parte.id],
                 descripcion: nuevaDesc,
                 conceptos: nuevosConceptos,
+                obra_id: prev.obra_id || (!ya && parte.obra_id ? parte.obra_id : ''),
+                obra_name: prev.obra_name || (!ya && parte.obra_id ? parte.obra_name : ''),
             };
         });
+    };
+
+    const anadirLineas = (lineas) => setFormData(prev => ({ ...prev, conceptos: [...prev.conceptos, ...lineas.map(normalizarLinea)] }));
+
+    // Trabajos extra: marcar añade su línea, desmarcar la retira (un extra solo puede estar en un presupuesto activo)
+    const handleToggleExtra = (extra) => {
+        const ya = formData.conceptos.some(c => c.extra_id === extra.id);
+        if (!ya && ocupadosExtras.has(extra.id)) {
+            toast.error(`Este trabajo extra ya está en el presupuesto ${ocupadosExtras.get(extra.id)}. Un extra solo puede estar en un presupuesto activo.`);
+            return;
+        }
+        setFormData(prev => ({
+            ...prev,
+            conceptos: ya
+                ? quitarLineasDeOrigen(prev.conceptos, { extra_id: extra.id })
+                : [...prev.conceptos, ...lineasDeExtras([extra], { iva_pct: tarifa.iva_pct }).map(normalizarLinea)],
+        }));
+    };
+
+    const anadirManoDeObra = () => {
+        const h = parseFloat(horasMO);
+        if (!h) { toast.error("Indica las horas de mano de obra"); return; }
+        anadirLineas([lineaManoDeObra({ horas: h, precio_hora: Number(precioHora), iva_pct: tarifa.iva_pct })]);
+        setHorasMO("");
+    };
+
+    const anadirAlojamiento = () => {
+        const tr = parseFloat(alojTrab), di = parseFloat(alojDias);
+        if (!tr || !di) { toast.error("Indica trabajadores y días"); return; }
+        anadirLineas([lineaAlojamiento({ trabajadores: tr, dias: di, precio: Number(precioAloj), iva_pct: tarifa.iva_pct })]);
+        setAlojTrab(""); setAlojDias("");
+    };
+
+    // Guarda los precios como acuerdo del cliente (si ya había uno, lo actualiza: nunca se duplica)
+    const guardarTarifa = async () => {
+        setGuardandoTarifa(true);
+        try {
+            const datos = {
+                client_id: formData.cliente_id, client_name: formData.cliente_name,
+                precio_hora: Number(precioHora), alojamiento_dia_trabajador: Number(precioAloj), iva_pct: tarifa.iva_pct, activa: true,
+            };
+            const existente = condiciones.find(c => c.client_id === formData.cliente_id && !c.obra_id);
+            if (existente) await base44.entities.CondicionesEconomicas.update(existente.id, datos);
+            else await base44.entities.CondicionesEconomicas.create(datos);
+            await refetchCondiciones();
+            setTarifaEdit(null);
+            toast.success("Tarifa guardada para este cliente");
+        } catch (e) {
+            toast.error("No se pudo guardar la tarifa: " + (e?.response?.data?.error || e?.message || "sin permiso"));
+        } finally {
+            setGuardandoTarifa(false);
+        }
     };
 
     const handleSubmit = (e) => {
@@ -252,13 +341,15 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
             fecha: formData.fecha,
             valido_hasta: formData.valido_hasta,
             referencia_cliente: formData.referencia_cliente,
+            obra_id: formData.obra_id,
+            obra_name: formData.obra_name,
             forma_pago: formData.forma_pago,
             descripcion: formData.descripcion,
             notas: formData.notas,
             partes_trabajo_ids: formData.partes_trabajo_ids,
             conceptos: formData.conceptos.map(c => ({
                 tipo: c.tipo, descripcion: c.descripcion, detalle: c.detalle, cantidad: c.cantidad, unidad: c.unidad,
-                precio_unitario: c.precio_unitario, iva_pct: c.iva_pct, parte_id: c.parte_id, fecha: c.fecha,
+                precio_unitario: c.precio_unitario, iva_pct: c.iva_pct, parte_id: c.parte_id, extra_id: c.extra_id, fecha: c.fecha,
             })),
         });
     };
@@ -298,7 +389,8 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                                     value={formData.cliente_id}
                                     onValueChange={(value) => {
                                         const cliente = clientes.find(c => c.id === value);
-                                        setFormData(prev => ({ ...prev, cliente_id: value, cliente_name: cliente?.name || '' }));
+                                        setTarifaEdit(null);
+                                        setFormData(prev => ({ ...prev, cliente_id: value, cliente_name: cliente?.name || '', obra_id: '', obra_name: '' }));
                                     }}
                                 >
                                     <SelectTrigger>
@@ -394,15 +486,17 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                                         return (
                                             <div key={index} className="p-2 border rounded-lg bg-card space-y-1.5">
                                                 <div className="grid grid-cols-12 gap-2 text-xs items-center">
-                                                    <AutoCorrectInput
-                                                        wrapperClassName={esTexto ? "col-span-10" : "col-span-4"}
-                                                        className="h-7 text-xs"
-                                                        value={concepto.descripcion}
-                                                        onChange={(e) => handleEditConcepto(index, "descripcion", e.target.value)}
-                                                        placeholder={esTexto ? "Línea de texto (cabecera, obra, pedido…)" : "Descripción"}
-                                                        spellCheck
-                                                        lang="es"
-                                                    />
+                                                    <div className={esTexto ? "col-span-10" : "col-span-4"}>
+                                                        <AutoCorrectTextarea
+                                                            className="text-xs min-h-[32px]"
+                                                            rows={Math.min(6, Math.max(1, String(concepto.descripcion || "").split("\n").length))}
+                                                            value={concepto.descripcion}
+                                                            onChange={(e) => handleEditConcepto(index, "descripcion", e.target.value)}
+                                                            placeholder={esTexto ? "Línea de texto (cabecera, obra, pedido…)" : "Descripción"}
+                                                            spellCheck
+                                                            lang="es"
+                                                        />
+                                                    </div>
                                                     {!esTexto && (
                                                         <>
                                                             <Input className="col-span-1 h-7 text-xs text-center px-1" type="number" step="any" value={concepto.cantidad}
@@ -477,6 +571,71 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                                 </div>
                             </div>
 
+                            {/* Tarifa del cliente y líneas rápidas */}
+                            {formData.cliente_id && (
+                                <div className="p-3 border rounded-lg space-y-3">
+                                    <Label className="flex flex-wrap items-center gap-2">
+                                        Tarifa y líneas rápidas
+                                        <span className="font-normal text-xs text-muted-foreground">
+                                            ({tarifa.origen === "obra" ? "acuerdo de la obra" : tarifa.origen === "cliente" ? "acuerdo del cliente" : "valores sugeridos: aún no hay acuerdo guardado"})
+                                        </span>
+                                    </Label>
+                                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4 items-end">
+                                        <div>
+                                            <Label className="text-xs">€ por hora</Label>
+                                            <Input type="number" step="0.01" value={precioHora}
+                                                onChange={(e) => setTarifaEdit({ precio_hora: e.target.value, alojamiento_dia_trabajador: precioAloj })} />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs">€ alojamiento / trabajador y día</Label>
+                                            <Input type="number" step="0.01" value={precioAloj}
+                                                onChange={(e) => setTarifaEdit({ precio_hora: precioHora, alojamiento_dia_trabajador: e.target.value })} />
+                                        </div>
+                                        <Button type="button" variant="outline" size="sm" className="col-span-2 gap-1.5" onClick={guardarTarifa} disabled={guardandoTarifa || !tarifaEdit}>
+                                            <Save className="w-3.5 h-3.5" /> Guardar como tarifa del cliente
+                                        </Button>
+                                    </div>
+                                    <div className="grid gap-3 md:grid-cols-2">
+                                        <div className="flex items-end gap-2">
+                                            <div className="flex-1"><Label className="text-xs">Horas de mano de obra</Label>
+                                                <Input type="number" step="any" value={horasMO} onChange={(e) => setHorasMO(e.target.value)} placeholder="Ej.: 28" /></div>
+                                            <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={anadirManoDeObra}><Wrench className="w-3.5 h-3.5" /> Mano de obra</Button>
+                                        </div>
+                                        <div className="flex items-end gap-2">
+                                            <div className="w-24"><Label className="text-xs">Trabajadores</Label>
+                                                <Input type="number" step="any" value={alojTrab} onChange={(e) => setAlojTrab(e.target.value)} /></div>
+                                            <div className="w-20"><Label className="text-xs">Días</Label>
+                                                <Input type="number" step="any" value={alojDias} onChange={(e) => setAlojDias(e.target.value)} /></div>
+                                            <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={anadirAlojamiento}><BedDouble className="w-3.5 h-3.5" /> Alojamiento</Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Trabajos extra pendientes del cliente */}
+                            {formData.cliente_id && extrasCliente.length > 0 && (
+                                <div className="p-3 border rounded-lg space-y-2">
+                                    <Label>Trabajos extra pendientes del cliente</Label>
+                                    <div className="space-y-1">
+                                        {extrasCliente.map((extra) => {
+                                            const usado = formData.conceptos.some(c => c.extra_id === extra.id);
+                                            const ocupadoPor = ocupadosExtras.get(extra.id);
+                                            return (
+                                                <label key={extra.id} className={`flex items-start gap-2 text-xs p-1.5 rounded ${ocupadoPor && !usado ? "opacity-60" : "cursor-pointer hover:bg-muted/40"}`}>
+                                                    <input type="checkbox" className="mt-0.5" checked={usado} disabled={!!ocupadoPor && !usado} onChange={() => handleToggleExtra(extra)} />
+                                                    <span className="flex-1">
+                                                        {extra.descripcion}
+                                                        {extra.obra_name && <span className="text-muted-foreground"> · {extra.obra_name}</span>}
+                                                        {ocupadoPor && !usado && <span className="text-amber-700 font-medium"> · YA EN {ocupadoPor}</span>}
+                                                    </span>
+                                                    <span className="font-medium">{Number(extra.importe_estimado) > 0 ? eur(extra.importe_estimado) : "sin importe"}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Totales (calculados con las mismas reglas que el servidor) */}
                             <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
                                 {calculo.desglose_iva.map(d => (
@@ -497,6 +656,11 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                                     <FileText className="w-4 h-4" />
                                     Partes de Trabajo y Partes Diarios del Cliente
                                 </Label>
+                                <div className="flex flex-wrap items-center gap-4 text-xs">
+                                    <span className="text-muted-foreground">Al marcar un parte, crear:</span>
+                                    <label className="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="modoLineas" checked={modoLineas === "una_linea"} onChange={() => setModoLineas("una_linea")} /> una línea por parte</label>
+                                    <label className="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="modoLineas" checked={modoLineas === "por_parrafo"} onChange={() => setModoLineas("por_parrafo")} /> una posición por párrafo</label>
+                                </div>
                                 <ParteSelector
                                     partes={partesTrabajo}
                                     seleccionadosIds={formData.partes_trabajo_ids}

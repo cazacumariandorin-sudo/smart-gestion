@@ -61,6 +61,15 @@ export default function Presupuestos() {
         return mapa;
     }, [presupuestos, editando]);
 
+    // Trabajos extra ya usados por otro presupuesto activo (DOC-04)
+    const ocupadosExtras = useMemo(() => {
+        const mapa = new Map();
+        presupuestos
+            .filter((p) => ESTADOS_ACTIVOS.includes(p.estado || "borrador") && p.id !== editando?.id)
+            .forEach((p) => (p.conceptos || []).forEach((c) => c.extra_id && mapa.set(c.extra_id, p.codigo_registro || p.titulo || "otro presupuesto")));
+        return mapa;
+    }, [presupuestos, editando]);
+
     const guardarMutation = useMutation({
         mutationFn: async (data) => {
             const response = await base44.functions.invoke('guardarPresupuesto', data);
@@ -242,6 +251,7 @@ export default function Presupuestos() {
                     key={editando?.id || 'nuevo'}
                     presupuestoInicial={editando}
                     ocupados={ocupados}
+                    ocupadosExtras={ocupadosExtras}
                     onCancel={() => { setShowForm(false); setEditando(null); }}
                     onSubmit={(data) => guardarMutation.mutate(data)}
                 />
