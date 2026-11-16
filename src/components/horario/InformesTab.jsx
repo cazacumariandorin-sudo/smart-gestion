@@ -17,40 +17,17 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { cn } from '@/lib/utils';
-import { jsPDF } from 'jspdf';
-import * as XLSX from 'xlsx';
 import CalendarioHorarioView from './CalendarioHorarioView';
+import ExportarHorarioDialog from './ExportarHorarioDialog';
+import { calcularMinutosFichaje, minutosATexto } from '@/lib/horarioExport';
 import { useAusenciasHorario } from '@/hooks/useAusenciasHorario';
 import InformeObraView from './InformeObraView';
 import QueryErrorFallback from '@/components/QueryErrorFallback';
 
 // ── helpers compartidos ──────────────────────────────────────────────────────
 
-export function horasMinutos(hStr) {
-  if (!hStr) return null;
-  const [h, m] = hStr.split(':').map(Number);
-  return h * 60 + (m || 0);
-}
-
-export function minutosATexto(mins) {
-  if (!mins || mins <= 0) return '0h';
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
-
-export function calcularMinutosFichaje(f) {
-  const entrada = horasMinutos(f.hora_entrada);
-  const salida  = horasMinutos(f.hora_salida);
-  if (!entrada || !salida) return 0;
-  let diff = salida - entrada;
-  if (f.pausa_inicio && f.pausa_fin) {
-    const pi = horasMinutos(f.pausa_inicio);
-    const pf = horasMinutos(f.pausa_fin);
-    if (pi && pf) diff -= Math.max(0, pf - pi);
-  }
-  return Math.max(0, diff);
-}
+// Cálculo y formato de horas: fuente única en @/lib/horarioExport.
+export { horasMinutos, minutosATexto, calcularMinutosFichaje } from '@/lib/horarioExport';
 
 // FUENTE ÚNICA — todas las vistas usan esta caché
 export function useFichajesShared() {
@@ -312,6 +289,7 @@ export default function InformesTab() {
   const [mode, setMode] = useState('calendario');
   const [opFilter, setOpFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
+  const [exportOpen, setExportOpen] = useState(false);
 
   const { isAdmin, isJefeObra, user, role } = useUserRole();
   const canSeeAll = isAdmin || isJefeObra || role === 'gerencia' || role === 'director_comercial' || role === 'administracion';
@@ -349,48 +327,6 @@ export default function InformesTab() {
     if (opFilter !== 'all' && a.operario_id !== opFilter) return false;
     return true;
   }), [ausencias, opFilter, isOwnDataOnly, myOperario]);
-
-  const generatePDF = () => {
-    const doc = new jsPDF();
-    const mes = monthFilter ? format(parseISO(monthFilter + '-01'), 'MMMM yyyy', { locale: es }) : 'todos';
-    doc.setFontSize(16); doc.setFont(undefined, 'bold'); doc.text('Control Horario', 14, 18);
-    doc.setFontSize(10); doc.setFont(undefined, 'normal'); doc.setTextColor(80, 80, 80); doc.text(mes, 14, 26);
-    doc.line(14, 30, 196, 30); let y = 38;
-    const cw = 27;
-    const hdrs = ['Fecha', 'Operario', 'Entrada', 'Salida', 'Pausa', 'Obra', 'Horas'];
-    doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setFillColor(249, 115, 22); doc.setTextColor(255, 255, 255);
-    hdrs.forEach((h, i) => { doc.rect(14 + i * cw, y, cw, 6, 'F'); doc.text(h, 16 + i * cw, y + 4); }); y += 6;
-    doc.setFont(undefined, 'normal'); doc.setTextColor(20, 20, 20);
-    [...filtered].sort((a, b) => a.date > b.date ? 1 : -1).forEach((f, ri) => {
-      if (y > 275) { doc.addPage(); y = 20; }
-      doc.setFillColor(...(ri % 2 === 0 ? [255, 255, 255] : [250, 250, 252]));
-      const mins = calcularMinutosFichaje(f);
-      [
-        f.date ? format(parseISO(f.date), 'dd/MM/yy') : '',
-        (f.operario_name || '').slice(0, 14),
-        f.hora_entrada || '', f.hora_salida || '',
-        (f.pausa_inicio && f.pausa_fin) ? `${f.pausa_inicio.slice(0,5)}-${f.pausa_fin.slice(0,5)}` : '—',
-        (f.project || '—').slice(0, 14), minutosATexto(mins),
-      ].forEach((c, i) => { doc.rect(14 + i * cw, y, cw, 6, 'F'); doc.text(String(c), 16 + i * cw, y + 4); }); y += 6;
-    });
-    doc.setFontSize(8); doc.setTextColor(150);
-    doc.text(`${filtered.length} registros · ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 290);
-    doc.save(`control-horario-${monthFilter || 'todos'}.pdf`);
-  };
-
-  const generateExcel = () => {
-    const rows = [...filtered].sort((a, b) => a.date > b.date ? 1 : -1).map(f => ({
-      Fecha: f.date ? format(parseISO(f.date), 'dd/MM/yyyy') : '',
-      Operario: f.operario_name || '', Entrada: f.hora_entrada || '', Salida: f.hora_salida || '',
-      'Pausa inicio': f.pausa_inicio || '', 'Pausa fin': f.pausa_fin || '',
-      Obra: f.project || '', 'Horas (min)': calcularMinutosFichaje(f),
-      'Horas texto': minutosATexto(calcularMinutosFichaje(f)), Notas: f.notas || '',
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Fichajes');
-    XLSX.writeFile(wb, `control-horario-${monthFilter || 'todos'}.xlsx`);
-  };
 
   const dupCount = useMemo(() => {
     const map = {};
@@ -432,8 +368,7 @@ export default function InformesTab() {
                 {operarios.map(op => <MobileSelectItem key={op.id} value={op.id}>{op.name}</MobileSelectItem>)}
               </MobileSelect>
             )}
-            <Button onClick={generatePDF} size="sm" className="gap-1.5 h-9"><Download className="w-3.5 h-3.5" /> PDF</Button>
-            <Button onClick={generateExcel} size="sm" variant="outline" className="gap-1.5 h-9"><Download className="w-3.5 h-3.5" /> Excel</Button>
+            <Button onClick={() => setExportOpen(true)} size="sm" className="gap-1.5 h-9"><Download className="w-3.5 h-3.5" /> Exportar</Button>
           </>
         )}
         {mode === 'obra' && (
@@ -453,6 +388,17 @@ export default function InformesTab() {
           {mode === 'duplicados' && isAdmin && <DuplicadosView fichajes={fichajes} />}
         </>
       )}
+
+      <ExportarHorarioDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        fichajes={filtered}
+        ausencias={ausenciasFiltradas}
+        operarios={operarios}
+        mesInicial={monthFilter}
+        canSeeAll={canSeeAll}
+        usuario={user?.full_name || user?.email || ''}
+      />
     </div>
   );
 }

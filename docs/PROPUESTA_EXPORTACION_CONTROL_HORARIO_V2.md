@@ -52,7 +52,7 @@ La propuesta se estructura en 4 fases, cada una entregable por separado y sin bl
 
 ---
 
-## 3. Fase 1 — Exportación operativa correcta (prioridad máxima, esfuerzo bajo)
+## 3. Fase 1 — Exportación operativa correcta (prioridad máxima, esfuerzo bajo) · **implementada**
 
 **Objetivo:** que lo que se descarga sea exactamente lo que se está viendo.
 
