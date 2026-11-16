@@ -15,8 +15,9 @@ Lo que falta es la **cadena de custodia de la evidencia** y la **exportación op
 3. No existe **histórico de exportaciones** (`quién exportó qué periodo, qué archivo, cuántos registros`).
 4. No hay **exportación por trabajador en lote (ZIP)** ni **PDF individual** de jornada firmado.
 5. No hay **cierre de periodo** que impida que un mes ya exportado se revalide y cambie sin dejar rastro.
+6. No hay **circuito de cobertura de huecos**: un día laborable en el que nadie fichó no genera aviso ni queda declarado, y ese hueco es exactamente lo que se sanciona (751 € a 7.500 € por no llevar registro). Ver Fase 5.
 
-La propuesta se estructura en 4 fases, cada una entregable por separado y sin bloquear la operación diaria.
+La propuesta se estructura en 5 fases, cada una entregable por separado y sin bloquear la operación diaria.
 
 ---
 
@@ -167,6 +168,8 @@ ControlHorario/
 | Validar / rechazar registro legal | No | No | Sí | Sí |
 | Exportar legal (archivado) | No | No | Sí | Sí |
 | Cerrar / reabrir periodo | No | No | Cerrar | Cerrar y reabrir |
+| Declarar jornada de un hueco (Fase 5) | No | Sí | No (valida) | Sí |
+| Firmar / confirmar su propia jornada | Sí (la suya) | No | No | No |
 
 ---
 
@@ -178,8 +181,9 @@ ControlHorario/
 | **2** | Hash + archivo + entidad `ExportacionHorario` | Alto | Sin prueba del archivo entregado |
 | **3** | Cierre de periodo e inmutabilidad por versiones | Alto | Un mes entregado puede cambiar sin rastro |
 | **4** | ZIP por trabajador y PDF individual | Medio | Entrega manual trabajador a trabajador |
+| **5** | Detección de huecos + confirmación del trabajador + declaración de gerencia | **Muy alto** (legal) | Días trabajados sin registro: sanción directa en inspección |
 
-Sugerencia: aprobar **Fase 1 + Fase 2** juntas (son las que cierran el riesgo legal real) y dejar la 3 y la 4 como siguiente entrega.
+Sugerencia: **Fase 5 entra antes que la 3 y la 4**. Es la única de la lista que ataca una sanción que hoy se puede producir mañana; las demás protegen evidencia ya existente.
 
 ---
 
@@ -188,3 +192,90 @@ Sugerencia: aprobar **Fase 1 + Fase 2** juntas (son las que cierran el riesgo le
 - Firma electrónica cualificada del archivo (se valorará con proveedor externo).
 - Sellado de tiempo (TSA) sobre el hash: la propuesta deja el campo preparado, sin contratar el servicio.
 - Sustituir el Excel legal por un formato cerrado tipo PDF/A: no aporta valor hasta que exista la firma.
+- **Replicar o precargar la firma del trabajador en registros creados por otra persona.** Hipótesis planteada y descartada por falta de consenso y por análisis de riesgo (ver 11.1): no aporta cumplimiento y añade falsedad documental.
+
+---
+
+## 11. Fase 5 — Cobertura de huecos: declaración de jornada (prioridad legal alta)
+
+**Objetivo:** que no exista ningún día laborable sin registro, sin que el registro deje de ser veraz.
+
+El art. 34.9 ET obliga a la empresa a registrar la jornada diaria y conservarla cuatro años. La sanción no llega por fichar mal: llega por **no tener el registro**. Un día trabajado sin registro es el hueco que se sanciona. La solución no es inventar el fichaje, es declarar la jornada y dejar constancia de quién la declara y cuándo.
+
+### 11.1 Principio irrenunciable
+
+El registro puede ser **declarado por la empresa**; lo que no puede es **presentarse como un fichaje del trabajador**. La ley no exige la firma del trabajador para llevar el registro, así que suplantarla no aporta nada y abre un frente que hoy no existe: falsedad documental con responsabilidad personal de quien firma, pérdida de credibilidad de todo el histórico ante una inspección o un juicio, y posible reclamación de horas por parte del trabajador.
+
+Reglas que se fijan en código y no se negocian por caso:
+
+- Ninguna firma precargada, clonada ni reutilizada de un tercero.
+- Ningún registro con fecha u hora anterior a su creación presentada como fichaje real; la hora declarada se marca siempre como tal.
+- El `origen` de un registro validado no se puede reescribir.
+- Todo registro declarado nace `provisional` y solo administración lo eleva a `oficial`.
+
+### 11.2 Detección del hueco
+
+Cruce diario reutilizando lo ya existente (completado automático de fichajes + calendario laboral + ausencias):
+
+- día laborable y no festivo según `CalendarioLaboral`,
+- operario activo con usuario vinculado,
+- sin `Fichaje` ni `ApunteHorario` de esa fecha,
+- sin `FaltaAsistencia` ni `Vacacion` que cubra la fecha.
+
+El sistema **detecta y avisa; nunca crea el registro por su cuenta**.
+
+### 11.3 Plazos acordados
+
+| Momento | Acción | Responsable |
+|---|---|---|
+| t+0 | El día queda marcado como hueco | automático |
+| t+24 h | Aviso al trabajador: «no consta tu fichaje del día X, confirma tu jornada» | automático, en la app |
+| t+48 h | Sin respuesta, se habilita la declaración | gerencia |
+| Al declarar | Motivo obligatorio + hora real de la declaración | gerencia |
+| Antes de exportar | Validación legal: `provisional` → `oficial` | administración |
+
+El margen de 48 h es intencionado: el trabajador puede no haber fichado por un motivo real (olvido con el trabajo hecho, zona sin cobertura) o estar de baja médica, caso en el que no tiene por qué haber avisado el mismo día. El aviso a las 24 h le da la oportunidad de **confirmar su propia jornada** —el registro de mayor calidad probatoria— y las 48 h evitan declarar antes de saber si era una ausencia.
+
+### 11.4 Circuito
+
+1. **Confirmación del trabajador (vía preferente).** Un toque desde el móvil: «trabajé ese día», con la jornada habitual (L-J 08:00-18:00 con 1 h de comida, V 08:00-13:00) o ajustada por él. El registro se guarda con origen `trabajador`. Este debe ser el caso mayoritario.
+2. **Declaración de gerencia.** Si no responde y no hay ausencia, gerencia declara: jornada, obra, motivo del hueco (olvido, avería, sin cobertura, otra) y nota. El registro queda:
+   - origen `declaracion_empresa`,
+   - `declarado_por` (email de gerencia) y `fecha_declaracion` (timestamp real),
+   - `motivo_declaracion` obligatorio,
+   - estado legal `provisional`,
+   - evento `jornada_declarada_gerencia` en `AuditoriaHorario`,
+   - vínculo a la notificación enviada y a la respuesta del trabajador (leída, confirmada o rechazada).
+3. **Validación de administración.** Administración revisa y marca `oficial`; si detecta que la declaración no cuadra con la realidad (vacaciones, baja, festivo, cierre de obra), la rechaza con motivo y el día vuelve a hueco con la causa registrada.
+4. **Exportación legal.** Nueva columna `Origen` por fila (`fichaje`, `declaración empresa`, `cierre automático`) y hoja de **cobertura del periodo**: días fichados, declarados y pendientes. Un registro completo y honesto es la defensa; uno completo y disfrazado es la condena.
+
+### 11.5 Cambios necesarios
+
+- `RegistroHorarioLegal`: valor nuevo `declaracion_empresa` en `origen`; campos `declarado_por`, `fecha_declaracion`, `motivo_declaracion`, `notificacion_id`, `respuesta_trabajador` (`sin_respuesta` / `confirmada` / `rechazada`) y `fecha_respuesta`.
+- `NotificacionFichaje`: tipos `hueco_fichaje` y `confirmacion_pendiente`, más `registro_legal_id` y `respondido_en`.
+- `completarFichajesAutomaticos` (o función nueva `detectarHuecosJornada`): detecta el hueco y notifica; **no** crea el registro.
+- `gestionRegistroHorarioLegal`: acciones `declararJornada` y `confirmarJornadaTrabajador`, ambas con auditoría.
+- UI: bloque «Días sin registro» en `RegistroLegalTab` con el estado por día (hueco → avisado → declarado → validado), acción de declarar visible solo para gerencia y validación en el panel de administración.
+
+### 11.6 Permisos
+
+| Acción | Operario / Técnico | Gerencia | Administración | Admin / Propietario |
+|---|---|---|---|---|
+| Confirmar su jornada | Sí (solo la suya) | No | No | No |
+| Recibir aviso de hueco | Automático | Automático | Automático | Automático |
+| Declarar jornada | No | **Sí** | No (solo valida) | Sí |
+| Validar / rechazar declaración | No | No | **Sí** | Sí |
+
+### 11.7 Aceptación
+
+- Un día laborable sin fichaje y sin ausencia aparece en la lista y genera aviso a las 24 h.
+- El trabajador confirma su jornada en un toque y el registro queda oficial con origen `trabajador`.
+- Sin respuesta, gerencia declara con motivo y el registro queda provisional hasta administración.
+- La exportación legal muestra el origen de cada fila y el cuadro de cobertura del mes.
+- No existe ningún camino en la aplicación por el que una firma de un tercero quede asociada a un registro.
+
+### 11.8 Estimación y fuera de alcance
+
+4-5 días de desarrollo, empezando por la detección (1 día) para que el riesgo real empiece a cerrarse desde la primera entrega.
+
+Fuera de alcance de esta fase: firma electrónica del trabajador sobre la declaración de empresa (se valora junto al PDF individual de la Fase 4) y declaración automática sin intervención humana.
