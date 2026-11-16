@@ -1,6 +1,11 @@
 {
   "name": "PatronTarjeta",
   "properties": {
+    "activo": {
+      "default": true,
+      "description": "false = patr\u00f3n archivado por gerencia/administraci\u00f3n: deja de usarse para sugerir origen_pago, pero se conserva el hist\u00f3rico de observaciones.",
+      "type": "boolean"
+    },
     "confirmado": {
       "default": false,
       "description": "true cuando gerencia/administraci\u00f3n ha confirmado expl\u00edcitamente que esta tarjeta corresponde a este titular_tipo \u2014 solo entonces se usa para sugerir origen_pago autom\u00e1ticamente en nuevos registros.",

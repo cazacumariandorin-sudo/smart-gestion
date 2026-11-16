@@ -49,8 +49,11 @@ Deno.serve(async (req) => {
         // Un técnico crea siempre medios_propios (RLS); no hay nada que sugerirle.
         return Response.json({ success: true, sugerencia: null });
       }
-      const patrones = await base44.asServiceRole.entities.PatronTarjeta.filter({ digitos_finales: digitos });
-      if (!patrones || patrones.length === 0) {
+      const encontrados = await base44.asServiceRole.entities.PatronTarjeta.filter({ digitos_finales: digitos });
+      // Un patrón archivado por gerencia/administración deja de proponerse, pero se
+      // conserva su histórico de observaciones.
+      const patrones = (encontrados || []).filter(p => p.activo !== false);
+      if (patrones.length === 0) {
         return Response.json({ success: true, sugerencia: null });
       }
       // El patrón más fiable: confirmado primero, luego el más visto.

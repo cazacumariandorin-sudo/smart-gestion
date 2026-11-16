@@ -10,9 +10,10 @@ import FacturacionEmitidaPanel from '@/components/contabilidad/FacturacionEmitid
 import SubidaMasivaPanel from '@/components/contabilidad/SubidaMasivaPanel';
 import DescargaBloquePanel from '@/components/contabilidad/DescargaBloquePanel';
 import PrecisionCicloPanel from '@/components/contabilidad/PrecisionCicloPanel';
-import { ClipboardCheck, FileText, UploadCloud, Download, TrendingUp, SearchCheck, Receipt, Copy, Calculator } from 'lucide-react';
+import { ClipboardCheck, FileText, UploadCloud, Download, TrendingUp, SearchCheck, Receipt, Copy, Calculator, CreditCard } from 'lucide-react';
 import Retencion111Panel from '@/components/contabilidad/Retencion111Panel';
 import IVA303Panel from '@/components/contabilidad/IVA303Panel';
+import PatronesTarjetaPanel from '@/components/contabilidad/PatronesTarjetaPanel';
 import DetectorDuplicadosPanel from '@/components/economico/DetectorDuplicadosPanel';
 
 /**
@@ -23,6 +24,8 @@ export default function Contabilidad() {
   const { isContabilidad, isAdministracion, isGerencia, isAdmin } = useUserRole();
   const puedeSubida = isContabilidad || isAdministracion || isGerencia || isAdmin;
   const puedePrecision = isGerencia || isAdministracion || isAdmin;
+  // Patrones de tarjeta: solo quien puede confirmarlos según RLS (sin contabilidad externa).
+  const puedePatronesTarjeta = isGerencia || isAdministracion;
   const [granularidad, setGranularidad] = useState('mes');
   const [mesAnio, setMesAnio] = useState(() => String(new Date().getFullYear()));
   const [mesMes, setMesMes] = useState(() => String(new Date().getMonth() + 1));
@@ -101,6 +104,7 @@ export default function Contabilidad() {
           <TabsTrigger value="retencion111" className="gap-1.5"><Receipt className="w-3.5 h-3.5" /> Retención 111</TabsTrigger>
           <TabsTrigger value="iva303" className="gap-1.5"><Calculator className="w-3.5 h-3.5" /> IVA 303</TabsTrigger>
           {puedePrecision && <TabsTrigger value="duplicados" className="gap-1.5"><Copy className="w-3.5 h-3.5" /> Duplicados</TabsTrigger>}
+          {puedePatronesTarjeta && <TabsTrigger value="tarjetas" className="gap-1.5"><CreditCard className="w-3.5 h-3.5" /> Tarjetas</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="conciliacion"><ConciliacionPanel rango={rango} periodoKey={periodoKey} /></TabsContent>
@@ -112,6 +116,7 @@ export default function Contabilidad() {
         <TabsContent value="retencion111"><Retencion111Panel /></TabsContent>
         <TabsContent value="iva303"><IVA303Panel /></TabsContent>
         {puedePrecision && <TabsContent value="duplicados"><DetectorDuplicadosPanel rango={rango} periodoKey={periodoKey} /></TabsContent>}
+        {puedePatronesTarjeta && <TabsContent value="tarjetas"><PatronesTarjetaPanel /></TabsContent>}
       </Tabs>
     </div>
   );
