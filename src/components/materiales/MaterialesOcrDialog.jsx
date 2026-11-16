@@ -91,7 +91,7 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
     setNotaOrigen({ id: registro?.id || '', tipo: 'nota_gasto' });
     setScanResult({ file: null, preview: file_url, file_url });
     try {
-      const { datos: d, modelo, fallback } = await ocrDocumentoMateriales(file_url, 'image/jpeg');
+      const { datos: d, modelo, fallback } = await ocrDocumentoMateriales(file_url, registro?.tipo_archivo || 'image/jpeg');
       setOcrData({ ...d, modelo, fallback });
       setMetaDoc(m => ({
         ...m,

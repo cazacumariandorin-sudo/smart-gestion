@@ -7,10 +7,14 @@ export async function ocrDocumentoMateriales(file_url, file_tipo = 'image/jpeg')
   for (let intento = 1; intento <= 2; intento++) {
     try {
       const res = await base44.functions.invoke('procesarFacturaMateriales', { file_url, file_tipo });
-      if (res?.success && res?.datos && Array.isArray(res.datos.lineas)) {
-        return { datos: res.datos, modelo: res.modelo || 'backend', fallback: !!res.fallback };
+      // functions.invoke devuelve la respuesta HTTP del endpoint: el cuerpo
+      // (success/datos/error) viene dentro de `.data`. Leerlo en la raíz hacía
+      // que cualquier OCR se diera por fallido con "OCR sin respuesta".
+      const payload = res?.data ?? res;
+      if (payload?.success && payload?.datos && Array.isArray(payload.datos.lineas)) {
+        return { datos: payload.datos, modelo: payload.modelo || 'backend', fallback: !!payload.fallback };
       }
-      lastErr = res?.error || (res?.datos && !Array.isArray(res.datos.lineas) ? 'El modelo no devolvió lista de líneas' : 'OCR sin respuesta');
+      lastErr = payload?.error || (payload?.datos && !Array.isArray(payload.datos.lineas) ? 'El modelo no devolvió lista de líneas' : 'OCR sin respuesta');
     } catch (e) {
       lastErr = String(e?.message || e).slice(0, 200);
     }
