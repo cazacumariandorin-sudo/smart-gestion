@@ -31,6 +31,26 @@ La solución debe permitir:
 - validación visual del texto antes de guardar,
 - recuperación manual si la voz no entiende bien.
 
+## 2.1. Verificación contra el código actual (revisión 16-11-2026)
+
+Esta sección corrige la propuesta original con lo que realmente existe en la aplicación. Es la base del plan por fases del apartado 16.
+
+### 2.1.1. Lo que ya existe y se reutiliza
+
+- **Captura de voz**: `useSpeechInput` + `VoiceInputButton` (Web Speech API, `es-ES`, con permiso denegado gestionado y preferencia de usuario persistida: si se desactiva, el micrófono desaparece en toda la app). Ya se usa como dictado en partes diarios, notas de gastos, material, obras y fichajes. **No se construye captura nueva**: se añade un modo "comando" frente al modo "rellenar campo".
+- **Cola offline**: la cola de acciones pendientes con procesado al recuperar conexión ya soporta `Fichaje`, `ApunteHorario`, `RegistroGasto`, `WorkOrder` y `ObraMaterial`.
+- **Entidades destino reales**: `Fichaje`, `RegistroHorarioLegal`, `AuditoriaHorario`, `ApunteHorario`, `AsistenteTarea`, `ParteDiarioObra`, `Obra`, `SolarObra`, `FaltaAsistencia`.
+- **Validaciones reutilizables**: `conflictoAusencias.js` (bloqueo de fichaje o apunte si hay ausencia ese día) y la lógica de alta de fichaje de `FichajesTab` (`calcularHoras`, origen, pausas).
+
+### 2.1.2. Brechas detectadas y decisiones obligatorias
+
+1. **No existen las entidades "Incidencia" ni "Tarea"** que la propuesta da por hechas. Mapeo cerrado: incidencia/aviso → `AsistenteTarea` (tipo `alerta`, con prioridad); tarea o checklist → `AsistenteTarea` (tipo `tarea_manual`); apunte de obra → `ApunteHorario` o `ParteDiarioObra`; estado de obra → notas/estado de `Obra`. Sin este mapeo no se puede programar el destino del guardado.
+2. **Hora dictada ≠ hora real.** El diseño legal actual separa fichaje operativo y registro legal validado por administración con cadena de custodia. Decisión: el fichaje se registra con la **hora real del dictado**; si el técnico dicta otra hora, se guarda marcada como **hora declarada**, entra por la vía provisional (`RegistroHorarioLegal.estado_legal = provisional`) y nunca como prueba legal.
+3. **No se dicta fichaje en nombre de otro.** El trabajador sale siempre del vínculo del usuario conectado; solo gerencia/administración puede dictar para terceros. Evita suplantación.
+4. **"Voz offline" no es viable como reconocimiento.** El reconocimiento del navegador depende de red en la mayoría de Android e iOS. Offline garantiza que el registro no se pierde (cola existente), no que se pueda dictar.
+5. **El parser debe ser local y determinista** (lexicón + expresiones regulares + normalización de tildes y sinónimos). La IA queda solo como respaldo con confianza baja, con confirmación explícita y aviso de coste: el asistente conversacional actual tarda y no cumple el objetivo de < 2 s.
+6. **Reglas de negocio ya vigentes que el comando debe respetar**: ausencia registrada el día → bloqueo con aviso; jornada ya abierta → "entrada" avisa o cierra, no duplica; "salida" sin entrada abierta → rechazo con mensaje claro.
+
 ## 3. Principio de diseño
 
 La aplicación debe soportar un flujo de voz asistida con estas reglas:
@@ -318,15 +338,24 @@ La app no debe guardar automáticamente una frase ambigua. Debe confirmar:
 
 ### 11.3. Auditoría de comandos por voz
 
-Debe registrarse:
+Entidad nueva `AuditoriaVozComando` (append-only: sin edición ni borrado salvo admin), un registro por comando:
 
-- usuario,
-- fecha/hora,
-- texto original hablado,
-- texto reconocido,
-- intención interpretada,
-- resultado final,
-- si fue confirmado o editado por usuario.
+| Campo | Contenido |
+| --- | --- |
+| `usuario` / `usuario_rol` | Email y rol de quien dicta |
+| `fecha_hora` | Timestamp del dictado |
+| `texto_reconocido` | Lo que devolvió el reconocimiento del navegador |
+| `texto_editado` | Texto final si el usuario corrigió antes de guardar |
+| `intencion` | `create_fichaje`, `create_incidence`, `create_task`, `create_note`, `update_work_status` |
+| `parametros` | JSON con obra, hora, prioridad, cantidades… |
+| `confianza` | 0-1 del parser; 0 si se usó respaldo IA |
+| `usado_ia` | True si hubo respaldo IA |
+| `confirmado` / `editado` | Si el usuario aceptó tal cual o corrigió |
+| `entidad_destino` / `registro_id` | Qué se creó y con qué id |
+| `resultado` / `error` | Guardado correcto o motivo del rechazo (ausencia, jornada abierta…) |
+| `origen` | `app` u `offline` (encolado) |
+
+Esta entidad es también la fuente de los KPI del apartado 15: tiempo medio de alta, tasa de confirmación sin edición y adopción por perfil.
 
 ## 12. Recomendación de vocabulario controlado
 
@@ -355,13 +384,28 @@ Funciones:
 - `confirmAndSave()`
 - `fallbackKeyboardEdit()`
 
-### 13.2. Integración con módulos actuales
+### 13.2. Integración con módulos actuales (mapeo real, no hipotético)
 
-- `Fichaje` -> comando de hora entrada/salida
-- `Incidencia` -> comando de creación de incidencia
-- `ApunteHorario` -> comando de nota o apunte
-- `Obra` -> comando de estado o avance
-- `Tarea` -> comando de creación de tarea o checklist
+| Intención | Entidad destino real | Campos que rellena |
+| --- | --- | --- |
+| `create_fichaje` (entrada) | `Fichaje` + `RegistroHorarioLegal` provisional | `operario_id` (del vínculo), `date`, `hora_entrada`, `obra_id`/`obra_name`, `notas`, `origen = 'voz'` |
+| `create_fichaje` (salida / pausa) | `Fichaje` (actualiza el abierto) | `hora_salida`, `pausa_inicio`, `pausa_fin`, `horas_trabajadas` |
+| `create_incidence` | `AsistenteTarea` | `titulo`, `descripcion`, `tipo = 'alerta'`, `prioridad`, `modulo`, `contexto_ia` con la obra |
+| `create_task` / `create_checklist_item` | `AsistenteTarea` | `titulo`, `tipo = 'tarea_manual'`, `estado` (`pendiente`/`completada`), `entidad_relacionada_*` |
+| `create_note` (apunte de jornada) | `ApunteHorario` | `concepto`, `cantidad`, `unidad`, `notas`, `obra_id`/`obra_name`, `date` |
+| `create_note` (parte del día) | `ParteDiarioObra` | `trabajos_realizados`, `trabajos_pendientes`, `materiales_necesarios` |
+| `update_work_status` | `Obra` / `SolarObra` | notas de estado y avance (nunca cambios de fechas ni de importes por voz) |
+
+Sin entidad `Incidencia` ni `Tarea` propias: se descarta crearlas para no duplicar lógica con `AsistenteTarea`.
+
+### 13.3. Módulo `voice_assistant` — piezas reales a crear
+
+- `src/lib/vozCatalogo.js`: diccionario controlado (acciones, tipos de incidencia, estados, prioridades) y mapa intención → entidad destino.
+- `src/lib/vozParser.js`: parser local determinista (texto → intención + parámetros + confianza).
+- `src/hooks/useVozComando.js`: orquesta captura (reutiliza `useSpeechInput`), parsing, resolución de contexto (obras activas, jornada abierta, vínculo del trabajador) y confirmación.
+- `src/components/voz/VozComandoButton.jsx` y `VozComandoSheet.jsx`: micrófono fijo y tarjeta de confirmación con texto editable y chips.
+- `src/lib/vozGuardar.js`: guarda en la entidad destino reutilizando validaciones existentes y escribe la auditoría.
+- Entidad `AuditoriaVozComando`: trazabilidad completa de cada comando (ver 11.3).
 
 ## 14. Beneficios esperados
 
@@ -382,36 +426,65 @@ Funciones:
 - adopción del uso de voz por perfil
 - reducción de errores en formularios
 
-## 16. Fases recomendadas de implementación
+## 16. Fases de implementación revisadas
 
-### Fase 1: mínimo viable
+Estimación total: **7-10 días** de desarrollo más pruebas en obra. Cada fase deja algo usable; ninguna abre frentes a medias.
 
-- voz para fichajes y incidencias
-- frases cortas
-- confirmación visual
-- validación simple
-- soporte para móvil Android/iOS
+### Fase 0 — Cimientos: auditoría y mapa de intenciones (0,5 día)
 
-### Fase 2: reforzamiento del parser
+- Entidad `AuditoriaVozComando` con la estructura del apartado 11.3 y RLS: lectura admin/propietario/gerencia/administración, creación para cualquier usuario autenticado, sin edición ni borrado salvo admin.
+- `src/lib/vozCatalogo.js`: diccionario controlado (acciones, tipos de incidencia, estados, prioridades) y mapa intención → entidad destino del apartado 13.2.
+- Cierre del mapeo incidencia/tarea/estado sobre `AsistenteTarea` y `Obra`.
 
-- reconocimiento por intención
-- extracción de obra, operativo y nota
-- sistema de sugerencias por contexto
-- mejoras de precisión y sinónimos
+**Salida**: nada visible para el técnico, pero toda la voz queda trazada desde el primer comando y los KPI son medibles.
 
-### Fase 3: productividad real
+### Fase 1 — MVP: fichaje y aviso por voz (2-3 días)
 
-- tareas por voz
-- notas de obra
-- checklist por voz
-- integración con historial y auto-completado
+- `src/lib/vozParser.js` para un conjunto cerrado de comandos: entrada, salida, pausa, incidencia/aviso, prioridad y nota libre.
+- `src/components/voz/VozComandoButton.jsx`: micrófono fijo en acciones rápidas del layout, visible en móvil y escritorio.
+- `VozComandoSheet.jsx`: tarjeta con texto reconocido editable, chips de obra y de trabajador cuando haya ambigüedad, y botones Guardar / Editar / Descartar.
+- `src/lib/vozGuardar.js`: alta de `Fichaje` reutilizando `calcularHoras`, `origen = 'voz'`, obra tomada de la jornada abierta o elegida por chips; `conflictoAusencias` antes de guardar; hora real con marca de **hora declarada** si se dictó otra; aviso si ya hay jornada abierta o si la salida no tiene entrada.
+- Aviso por voz → `AsistenteTarea` tipo `alerta` con prioridad.
+- Funciona en Android e iOS con el mismo código; si el dictado falla, el flujo cae al formulario manual con el texto ya escrito.
 
-### Fase 4: auto-asistencia y optimización
+**Salida**: un técnico ficha y reporta una incidencia en dos toques y una frase.
 
-- comandos por contextos frecuentes
-- aprendizaje por usuario
-- mejora de diccionario por sector/obra
-- acciones con una sola frase para el 80% de casos repetitivos
+### Fase 2 — Parser reforzado y contexto (2 días)
+
+- Sinónimos y variaciones de orden ("falta material en Norte" / "obra Norte, falta material").
+- Resolución de obra por nombre aproximado contra las obras activas del usuario (comparación tolerante a tildes y errores de reconocimiento).
+- Sugerencias por contexto: última obra fichada, jornada abierta (el micrófono ofrece solo "salida"), obras de hoy.
+- Extracción de cantidades y tiempos ("12 paneles", "80 por ciento", "a las 8:15").
+- Respaldo por IA (`InvokeLLM`) **solo** con confianza baja, con confirmación explícita y aviso de coste.
+
+**Salida**: frases naturales habituales se interpretan sin edición en la mayoría de casos.
+
+### Fase 3 — Productividad real (2-3 días)
+
+- Apuntes de obra por voz → `ApunteHorario` (concepto, cantidad, unidad) y notas de jornada.
+- Partes diarios: trabajos realizados y pendientes → `ParteDiarioObra` en borrador, editables antes de cerrar.
+- Estado de obra por voz → notas/estado de `Obra`, sin tocar fechas ni importes.
+- Tareas y checklist → `AsistenteTarea` tipo `tarea_manual`, incluyendo marcar completada.
+- Encadenado con la cola offline existente: si no hay cobertura al confirmar, el registro se encola y se sincroniza.
+
+**Salida**: el 80% del registro diario de un técnico se puede dictar.
+
+### Fase 4 — Optimización y medición (continuo)
+
+- Atajos por contexto frecuente y estados del día (mañana entrada, mediodía pausa, tarde salida).
+- Diccionario por obra/cliente con los nombres reales que usa la plantilla.
+- Cuadro de KPIs alimentado por `AuditoriaVozComando`: tiempo medio de alta, tasa de confirmación sin edición, tasa de corrección, uso por perfil y errores más frecuentes.
+- Ajuste del lexicón con los comandos que realmente fallan, no con supuestos.
+
+### Riesgos asumidos y mitigación
+
+| Riesgo | Mitigación |
+| --- | --- |
+| Ruido de obra y reconocimiento inexacto | Confirmación visual obligatoria siempre |
+| Obras con nombres parecidos | Chips de selección y comparación tolerante |
+| Micrófono denegado | Diálogo y preferencia que ya existen en la app |
+| Frases ambiguas | Nunca se guarda sin confirmar; sin datos inventados |
+| Uso indebido de fichajes por voz | Hora real + marca de declarada + auditoría con autor |
 
 ## 17. Recomendación final
 
@@ -444,3 +517,4 @@ La mejor implementación es combinar voz con confirmación visual, una gramátic
 
 Proyecto: `cazacumariandorin-sudo/smart-gestion`
 Fecha: 2026-10-29
+Actualizado: 2026-11-16 — verificación contra el código real (apartado 2.1), mapeo a entidades existentes (13.2), auditoría concreta (11.3) y fases cerradas (16).
