@@ -50,6 +50,12 @@ function bytesToBase64(bytes) {
   return btoa(bin);
 }
 
+/** Huella SHA-256 en hexadecimal del archivo generado (custodia legal). */
+async function sha256Hex(bytes) {
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function descargarLogo(url) {
   if (!url) return null;
   try {
@@ -249,6 +255,8 @@ export default async function (req) {
 
     const body = await req.json().catch(() => ({}));
     const { desde, hasta, trabajadorId } = body;
+    // Custodia activada por defecto: el archivo legal se archiva y se registra.
+    const archivar = body.archivar !== false;
     if (!desde || !hasta) {
       return Response.json({ error: 'desde y hasta son obligatorios' }, { status: 400 });
     }
@@ -636,7 +644,62 @@ export default async function (req) {
     });
 
     const buffer = await wb.xlsx.writeBuffer();
-    const base64 = bytesToBase64(new Uint8Array(buffer));
+    const bytes = new Uint8Array(buffer);
+    const base64 = bytesToBase64(bytes);
+
+    // ── Cadena de custodia: huella SHA-256 + copia archivada ───────────────
+    const hashSha256 = await sha256Hex(bytes);
+
+    let archivado = false;
+    let fileUri = '';
+    let exportacionId = null;
+    let custodiaError = '';
+
+    if (archivar) {
+      try {
+        const archivo = new File([bytes], filename, {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
+        const subido = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file: archivo });
+        fileUri = subido?.file_uri || '';
+        archivado = !!fileUri;
+        if (!archivado) custodiaError = 'El almacenamiento no devolvió la copia';
+      } catch (e) {
+        custodiaError = e.message;
+      }
+
+      try {
+        const exportacion = await base44.asServiceRole.entities.ExportacionHorario.create({
+          tipo: 'legal',
+          periodo_desde: desde,
+          periodo_hasta: hasta,
+          trabajador_id: trabajadorId || '',
+          trabajador_nombre: trabajadorId ? (detalle[0]?.trabajador_nombre || '') : '',
+          filename,
+          registros: detalle.length,
+          trabajadores: new Set(detalle.map((d) => d.trabajador_nombre)).size,
+          hash_sha256: hashSha256,
+          tamano_bytes: bytes.length,
+          file_uri: fileUri,
+          archivado,
+          generado_por: user.email,
+          generado_por_nombre: user.full_name || '',
+          nota: archivado ? '' : `No se pudo archivar la copia: ${custodiaError}`,
+        });
+        exportacionId = exportacion?.id || null;
+      } catch (_e) { /* el registro de custodia no debe impedir la descarga */ }
+
+      // Huella de integridad en cada registro oficial incluido.
+      try {
+        for (let i = 0; i < registros.length; i += 200) {
+          const ids = registros.slice(i, i + 200).map((r) => r.id);
+          await base44.asServiceRole.entities.RegistroHorarioLegal.updateMany(
+            { id: { $in: ids } },
+            { $set: { hash_o_firma: hashSha256 } },
+          );
+        }
+      } catch (_e) { /* best-effort */ }
+    }
 
     return Response.json({
       success: true,
@@ -648,6 +711,11 @@ export default async function (req) {
       empresa: empresa?.nombre || '',
       desde,
       hasta,
+      hash_sha256: hashSha256,
+      archivado,
+      file_uri: fileUri,
+      exportacion_id: exportacionId,
+      custodia_error: archivado ? null : custodiaError,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

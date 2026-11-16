@@ -8,21 +8,7 @@ import { ShieldCheck, RefreshCw, Download, CheckCircle2, XCircle, Eye } from 'lu
 import { useUserRole } from '@/lib/useUserRole';
 import { rangoPeriodo, MESES_OPCIONES } from '@/lib/registroLegalConstantes';
 import RegistrosLegalesTable from './RegistrosLegalesTable';
-
-function descargarBase64(base64, filename) {
-  const bin = atob(base64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
+import ExportacionLegalDialog from './ExportacionLegalDialog';
 
 export default function RegistroLegalTab() {
   const { isAdmin, isAdministracion } = useUserRole();
@@ -36,6 +22,7 @@ export default function RegistroLegalTab() {
   const [selected, setSelected] = useState(new Set());
   const [motivo, setMotivo] = useState('');
   const [busy, setBusy] = useState('');
+  const [exportOpen, setExportOpen] = useState(false);
 
   const { desde, hasta } = rangoPeriodo(anio, mes);
 
@@ -108,22 +95,10 @@ export default function RegistroLegalTab() {
     }
   };
 
-  const exportar = async () => {
-    setBusy('exportar');
-    try {
-      const res = await base44.functions.invoke('exportarRegistroLegal', { desde, hasta, trabajadorId: trabajadorId || undefined });
-      const d = res.data || {};
-      if (d.error) throw new Error(d.error);
-      descargarBase64(d.base64, d.filename);
-      toast({ title: 'Exportación legal generada', description: `${d.registros || 0} registros · ${d.historico || 0} meses de histórico · ${d.auditoria || 0} eventos` });
-    } catch (e) {
-      toast({ title: 'No se pudo exportar', description: e.message, variant: 'destructive' });
-    } finally {
-      setBusy('');
-    }
-  };
-
-  const oficiales = registros.filter((r) => r.estado_legal === 'oficial' || r.estado_legal === 'validado_admin').length;
+  const oficialesRegistros = registros.filter((r) => r.estado_legal === 'oficial' || r.estado_legal === 'validado_admin');
+  const oficiales = oficialesRegistros.length;
+  const trabajadoresOficiales = new Set(oficialesRegistros.map((r) => r.operario_name)).size;
+  const trabajadorNombre = operarios.find((o) => o.id === trabajadorId)?.name || '';
 
   return (
     <div className="space-y-4">
@@ -184,7 +159,7 @@ export default function RegistroLegalTab() {
           <Button size="sm" variant="outline" onClick={() => cambiarEstado('rechazar')} disabled={!!busy || !selected.size} className="gap-1.5 text-red-600 border-red-200">
             <XCircle className="w-3.5 h-3.5" /> Rechazar
           </Button>
-          <Button size="sm" variant="secondary" onClick={exportar} disabled={!!busy || !oficiales} className="gap-1.5">
+          <Button size="sm" variant="secondary" onClick={() => setExportOpen(true)} disabled={!!busy || !oficiales} className="gap-1.5">
             <Download className="w-3.5 h-3.5" /> Exportar legal
           </Button>
         </div>
@@ -213,6 +188,18 @@ export default function RegistroLegalTab() {
           onToggleAll={toggleAll}
         />
       )}
+
+      <ExportacionLegalDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        desde={desde}
+        hasta={hasta}
+        trabajadorId={trabajadorId}
+        trabajadorNombre={trabajadorNombre}
+        registros={oficiales}
+        trabajadores={trabajadoresOficiales}
+        onDone={refetch}
+      />
     </div>
   );
 }

@@ -72,7 +72,7 @@ La propuesta se estructura en 4 fases, cada una entregable por separado y sin bl
 
 ---
 
-## 4. Fase 2 — Cadena de custodia del documento legal
+## 4. Fase 2 — Cadena de custodia del documento legal · **implementada**
 
 **Objetivo:** que el Excel legal quede guardado, identificado y verificable.
 

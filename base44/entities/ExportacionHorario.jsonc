@@ -1,0 +1,162 @@
+{
+  "name": "ExportacionHorario",
+  "type": "object",
+  "description": "Registro append-only de cada exportaci\u00f3n del control horario. Guarda qu\u00e9 periodo se export\u00f3, qui\u00e9n lo gener\u00f3, cu\u00e1ntos registros inclu\u00eda, la huella SHA-256 del archivo y la copia archivada en almacenamiento privado. Es la cadena de custodia de la evidencia entregada: nunca se edita.",
+  "properties": {
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "legal",
+        "operativo"
+      ],
+      "enumColors": [
+        "blue",
+        "gray"
+      ],
+      "default": "legal",
+      "description": "legal = Excel de registro oficial de jornada; operativo = informe de fichajes."
+    },
+    "periodo_desde": {
+      "type": "string",
+      "format": "date",
+      "description": "Primer d\u00eda cubierto por la exportaci\u00f3n."
+    },
+    "periodo_hasta": {
+      "type": "string",
+      "format": "date",
+      "description": "\u00daltimo d\u00eda cubierto por la exportaci\u00f3n."
+    },
+    "trabajador_id": {
+      "type": "string",
+      "description": "ID del Operario cuando la exportaci\u00f3n es individual. Vac\u00edo = resumen general."
+    },
+    "trabajador_nombre": {
+      "type": "string",
+      "description": "Nombre del trabajador exportado (desnormalizado)."
+    },
+    "filename": {
+      "type": "string",
+      "description": "Nombre del archivo entregado."
+    },
+    "registros": {
+      "type": "number",
+      "description": "N\u00famero de registros incluidos en el detalle."
+    },
+    "trabajadores": {
+      "type": "number",
+      "description": "N\u00famero de trabajadores incluidos."
+    },
+    "hash_sha256": {
+      "type": "string",
+      "description": "Huella SHA-256 del archivo generado: permite verificar que la copia entregada es la archivada."
+    },
+    "tamano_bytes": {
+      "type": "number",
+      "description": "Tama\u00f1o del archivo en bytes."
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "URI de la copia archivada en almacenamiento privado. Para descargarla, generar URL firmada con CreateFileSignedUrl."
+    },
+    "drive_file_id": {
+      "type": "string",
+      "description": "ID del archivo en Google Drive, si se replic\u00f3 all\u00ed."
+    },
+    "archivado": {
+      "type": "boolean",
+      "default": false,
+      "description": "True cuando la copia qued\u00f3 guardada en almacenamiento privado."
+    },
+    "generado_por": {
+      "type": "string",
+      "description": "Email del usuario que gener\u00f3 la exportaci\u00f3n."
+    },
+    "generado_por_nombre": {
+      "type": "string",
+      "description": "Nombre del usuario que gener\u00f3 la exportaci\u00f3n."
+    },
+    "nota": {
+      "type": "string",
+      "description": "Incidencias del archivo (p. ej. no se pudo archivar la copia)."
+    }
+  },
+  "required": [
+    "periodo_desde",
+    "periodo_hasta",
+    "filename",
+    "hash_sha256"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}
