@@ -486,5 +486,23 @@ La ventaja es doble:
 
 ---
 
+## 13. Estado de integración
+
+**Integrado (2026-11-16): plan por empresa.**
+
+- Entidad `PlanEmpresa`: un plan por empresa (`completo`, `control_horario`, `cliente_obra`, `legal`).
+  El plan de la empresa principal es el que gobierna la app; sin plan asignado se usa `completo`.
+- `src/lib/planes.js` (catálogo y recorte) + `src/lib/planActivo.js` (plan vigente, una sola carga).
+- `useUserRole().canAccess()` exige ahora **rol permitido ∧ módulo del plan**, así que el recorte
+  se aplica a la vez en menús, hubs, dashboard y rutas (`ProtectedRoute`), sin duplicar lógica.
+- Panel de asignación en Empresas (solo administración puede cambiarlo; gerencia lo ve en lectura).
+- Límites deliberados: el plan **no** toca los permisos por rol ni el acceso a los registros (RLS);
+  los administradores no se ven afectados por el plan para no quedarse fuera de la app.
+
+**Pendiente (fases siguientes):** vista legal minimizada por campos, roles legales nuevos
+(`admin_legal`, `auditor_externo`), cuotas por plan y demo con datos aislados.
+
+---
+
 Proyecto: `cazacumariandorin-sudo/smart-gestion`
 Fecha: 2026-10-29

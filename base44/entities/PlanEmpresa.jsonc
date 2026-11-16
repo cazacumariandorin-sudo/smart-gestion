@@ -1,0 +1,99 @@
+{
+  "name": "PlanEmpresa",
+  "type": "object",
+  "description": "Plan comercial contratado por una empresa del workspace (edici\u00f3n: completo, control horario, cliente/obra o administrativa/legal). El plan solo recorta qu\u00e9 m\u00f3dulos ve la plantilla de esa empresa: no cambia los permisos por rol ni el acceso a los registros. El plan de la empresa principal es el que gobierna la app.",
+  "properties": {
+    "empresa_id": {
+      "type": "string",
+      "description": "ID de la Empresa a la que pertenece este plan."
+    },
+    "empresa_nombre": {
+      "type": "string",
+      "description": "Nombre de la empresa (desnormalizado para listados)."
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "completo",
+        "control_horario",
+        "cliente_obra",
+        "legal"
+      ],
+      "enumColors": [
+        "green",
+        "blue",
+        "purple",
+        "yellow"
+      ],
+      "default": "completo",
+      "description": "completo = todos los m\u00f3dulos; control_horario = solo fichajes y personal; cliente_obra = solo obras y documentaci\u00f3n; legal = solo registro horario legal y expedientes."
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true,
+      "description": "False cuando el plan se sustituye por otro registro del mismo periodo de contrataci\u00f3n."
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones comerciales (fecha de contrataci\u00f3n, excepciones, qui\u00e9n lo autoriza...)."
+    },
+    "actualizado_por": {
+      "type": "string",
+      "description": "Email del usuario que asign\u00f3 el plan."
+    },
+    "actualizado_en": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp del \u00faltimo cambio de plan."
+    }
+  },
+  "required": [
+    "empresa_id",
+    "plan"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    },
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

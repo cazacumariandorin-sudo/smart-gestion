@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useUserRole } from '@/lib/useUserRole';
 import PageHeader from '@/components/layout/PageHeader';
+import PlanEmpresaPanel from '@/components/empresas/PlanEmpresaPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -130,6 +131,7 @@ export default function Empresas() {
   return (
     <div className="p-4 space-y-4">
       <PageHeader title="Empresas" subtitle="Gestión de empresas del workspace" />
+      <PlanEmpresaPanel />
       <div className="flex justify-end"><Button onClick={openNew}><Plus className="h-4 w-4" /> Nueva empresa</Button></div>
       {isLoading ? <div className="text-center py-8 text-muted-foreground">Cargando...</div> : empresas.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">No hay empresas registradas.</div>

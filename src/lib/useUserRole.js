@@ -1,6 +1,8 @@
 import { useAuth } from '@/lib/AuthContext';
 import { getSimulatedRole } from '@/lib/roleSimulator';
 import { canAccessModule } from '@/lib/permissions';
+import { moduloPermitidoPorPlan } from '@/lib/planes';
+import { getPlanActivo, suscribirPlan, cargarPlanActivo } from '@/lib/planActivo';
 import { useState, useEffect } from 'react';
 
 /**
@@ -16,6 +18,14 @@ export function useUserRole() {
     const handler = () => forceUpdate(n => n + 1);
     window.addEventListener('role-simulator-change', handler);
     return () => window.removeEventListener('role-simulator-change', handler);
+  }, []);
+
+  // Plan comercial vigente (recorta módulos; los administradores no se ven afectados).
+  const [planKey, setPlanKey] = useState(getPlanActivo());
+  useEffect(() => {
+    const unsubscribe = suscribirPlan((p) => setPlanKey(p.key));
+    cargarPlanActivo().catch(() => {});
+    return unsubscribe;
   }, []);
 
   const realRole = user?.role || 'operario';
@@ -45,7 +55,11 @@ export function useUserRole() {
 
   // Fuente única: src/lib/permissions.js (ROLE_MODULE_PERMISSIONS).
   // isAdmin / isDemo ya están cubiertos ahí (admin/propietario = all; usuario_demo = su lista).
-  const canAccess = (module) => canAccessModule(role, module);
+  // El plan comercial de la empresa recorta además los módulos (planes.js).
+  // Los administradores no se ven afectados por el plan: siempre ven todo para
+  // poder cambiarlo sin quedarse fuera de la app.
+  const canAccess = (module) =>
+    canAccessModule(role, module) && (isAdmin || moduloPermitidoPorPlan(planKey, module));
 
-  return { user, role, isAdmin, isDemo, isDemoExpired, isGerencia, isJefeObra, isTecnico, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, isContabilidad, isAdministracion, canAccess, isLoading: isLoadingAuth, isSimulating, simulatedRole };
+  return { user, role, planKey, isAdmin, isDemo, isDemoExpired, isGerencia, isJefeObra, isTecnico, isOperario, isControlHorario, isControlHorarioOnly, isClienteObra, isContabilidad, isAdministracion, canAccess, isLoading: isLoadingAuth, isSimulating, simulatedRole };
 }
