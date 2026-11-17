@@ -49,7 +49,7 @@ function DiaCell({ date, fichajesDia = [], ausenciasDia = [], canSeeAll, canForc
     if (!personasMap[k]) personasMap[k] = { id: k, name: f.operario_name || '—', mins: 0 };
     personasMap[k].mins += calcularMinutosFichaje(f);
   });
-  const personas = Object.values(personasMap).sort((a, b) => b.mins - a.mins);
+  const personas = Object.values(personasMap).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
   // Máximo de nombres que caben en la casilla (el resto se agrupa en "+N más")
   const MAX_NOMBRES = 8;
 
