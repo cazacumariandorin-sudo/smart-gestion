@@ -50,7 +50,8 @@ function DiaCell({ date, fichajesDia = [], ausenciasDia = [], canSeeAll, canForc
     personasMap[k].mins += calcularMinutosFichaje(f);
   });
   const personas = Object.values(personasMap).sort((a, b) => b.mins - a.mins);
-  const MAX_NOMBRES = 2;
+  // Máximo de nombres que caben en la casilla (el resto se agrupa en "+N más")
+  const MAX_NOMBRES = 5;
 
   return (
     <div
@@ -64,7 +65,7 @@ function DiaCell({ date, fichajesDia = [], ausenciasDia = [], canSeeAll, canForc
         }
       }}
       className={cn(
-        'relative flex flex-col rounded-lg border transition-all duration-100 select-none p-1.5 min-h-[80px] text-left',
+        'relative flex flex-col rounded-lg border transition-all duration-100 select-none p-1.5 min-h-[100px] text-left',
         !isCurrentMonth ? 'border-transparent opacity-30 pointer-events-none' :
         !hasFichajes && hasAusencias ? 'border-dashed border-border bg-background hover:bg-muted/30 active:scale-[0.97] cursor-pointer pl-2.5' :
         !hasFichajes && !canForce && esFinSemana ? 'border-border/30 bg-muted/20 cursor-default' :
@@ -86,7 +87,7 @@ function DiaCell({ date, fichajesDia = [], ausenciasDia = [], canSeeAll, canForc
           </span>
           <div className="hidden sm:flex flex-col gap-px overflow-hidden">
             {personas.slice(0, MAX_NOMBRES).map(p => (
-              <span key={p.id} className="text-[8px] leading-tight truncate text-foreground/80">{p.name}</span>
+              <span key={p.id} className="text-[8px] leading-[1.15] truncate text-foreground/80">{p.name}</span>
             ))}
             {personas.length > MAX_NOMBRES && (
               <PersonasDiaPopover personas={personas} ocultas={personas.length - MAX_NOMBRES} dateLabel={format(date, 'd MMM')} />
