@@ -51,7 +51,7 @@ function DiaCell({ date, fichajesDia = [], ausenciasDia = [], canSeeAll, canForc
   });
   const personas = Object.values(personasMap).sort((a, b) => b.mins - a.mins);
   // Máximo de nombres que caben en la casilla (el resto se agrupa en "+N más")
-  const MAX_NOMBRES = 5;
+  const MAX_NOMBRES = 8;
 
   return (
     <div
@@ -65,7 +65,7 @@ function DiaCell({ date, fichajesDia = [], ausenciasDia = [], canSeeAll, canForc
         }
       }}
       className={cn(
-        'relative flex flex-col rounded-lg border transition-all duration-100 select-none p-1.5 min-h-[100px] text-left',
+        'relative flex flex-col rounded-lg border transition-all duration-100 select-none p-1.5 min-h-[130px] text-left',
         !isCurrentMonth ? 'border-transparent opacity-30 pointer-events-none' :
         !hasFichajes && hasAusencias ? 'border-dashed border-border bg-background hover:bg-muted/30 active:scale-[0.97] cursor-pointer pl-2.5' :
         !hasFichajes && !canForce && esFinSemana ? 'border-border/30 bg-muted/20 cursor-default' :
