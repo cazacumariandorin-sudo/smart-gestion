@@ -25,3 +25,44 @@ export async function corregirTextoIA(text) {
 
 // Umbral mínimo para lanzar corrección automática (evita coste en textos cortos tipo tags)
 export const MIN_LEN_AUTOCORRECCION = 12;
+
+const CAMPOS_SCHEMA = {
+  type: 'object',
+  properties: {
+    textos: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Identificador del campo, tal cual se ha recibido' },
+          texto: { type: 'string', description: 'Texto corregido' },
+        },
+      },
+    },
+  },
+};
+
+/**
+ * Corrige de una vez todos los textos de un formulario (una sola llamada a la IA).
+ * campos: [{ id, texto }] → devuelve { [id]: textoCorregido }
+ */
+export async function corregirCamposIA(campos = []) {
+  const lista = campos.filter(c => String(c.texto || '').trim());
+  if (!lista.length) return {};
+  const res = await base44.integrations.Core.InvokeLLM({
+    prompt:
+      "Eres un corrector ortográfico y gramatical de español técnico (instalaciones eléctricas y construcción). " +
+      "Corrige ortografía, tildes, mayúsculas y gramática de CADA texto del JSON que se adjunta. " +
+      "Devuelve un objeto {textos:[{id, texto}]} con el MISMO id y el MISMO orden, sin omitir ninguno y sin explicaciones. " +
+      "No cambies cifras, importes, unidades, siglas ni referencias técnicas (A, mA, kW, V, IP, 2P, 4P, curva C, mm²...). " +
+      "Normaliza nombres comerciales aproximados de material eléctrico o de construcción a la nomenclatura técnica más probable, " +
+      "sin inventar datos ni añadir marcas.\n\n" +
+      JSON.stringify(lista.map(c => ({ id: c.id, texto: c.texto }))),
+    response_json_schema: CAMPOS_SCHEMA,
+  });
+  const salida = {};
+  (res?.textos || []).forEach(t => {
+    if (t?.id && typeof t.texto === 'string' && t.texto.trim()) salida[t.id] = t.texto.trim();
+  });
+  return salida;
+}

@@ -18,7 +18,8 @@ import { extraerConceptosDesdeTexto } from "@/lib/conceptosExtractor";
 import { calcularDocumento } from "@/lib/presupuestoCalculo";
 import { lineasDeParte, lineasDeExtras, lineaManoDeObra, lineaAlojamiento, quitarLineasDeOrigen, resolverTarifa } from "@/lib/lineasDesdeObra";
 import SimantecLogo from "@/components/SimantecLogo";
-import CorrectorOrtograficoButton from "@/components/CorrectorOrtograficoButton";
+import CompletarDesdeDocumento from "@/components/presupuestos/CompletarDesdeDocumento";
+import CorregirFormularioButton from "@/components/presupuestos/CorregirFormularioButton";
 import AutoCorrectTextarea from "@/components/ui/AutoCorrectTextarea";
 import AutoCorrectInput from "@/components/ui/AutoCorrectInput";
 
@@ -228,6 +229,38 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
         setFormData(prev => ({ ...prev, conceptos: prev.conceptos.filter((_, i) => i !== index) }));
     };
 
+    // Todos los textos del formulario: el corrector ortográfico revisa el presupuesto completo
+    const camposCorregibles = useMemo(() => {
+        const campos = [
+            { id: "titulo", texto: formData.titulo },
+            { id: "referencia_cliente", texto: formData.referencia_cliente },
+            { id: "descripcion", texto: formData.descripcion },
+            { id: "forma_pago", texto: formData.forma_pago },
+            { id: "notas", texto: formData.notas },
+        ];
+        formData.conceptos.forEach((c, i) => {
+            campos.push({ id: `c${i}.descripcion`, texto: c.descripcion });
+            campos.push({ id: `c${i}.detalle`, texto: c.detalle });
+        });
+        return campos;
+    }, [formData]);
+
+    const aplicarCorreccionFormulario = (cambios) => {
+        setFormData(prev => ({
+            ...prev,
+            titulo: cambios.titulo ?? prev.titulo,
+            referencia_cliente: cambios.referencia_cliente ?? prev.referencia_cliente,
+            descripcion: cambios.descripcion ?? prev.descripcion,
+            forma_pago: cambios.forma_pago ?? prev.forma_pago,
+            notas: cambios.notas ?? prev.notas,
+            conceptos: prev.conceptos.map((c, i) => ({
+                ...c,
+                descripcion: cambios[`c${i}.descripcion`] ?? c.descripcion,
+                detalle: cambios[`c${i}.detalle`] ?? c.detalle,
+            })),
+        }));
+    };
+
     // Aplica al presupuesto los precios propuestos en el análisis interno (siguen siendo editables)
     const aplicarPreciosPropuestos = (precios) => {
         setFormData(prev => ({
@@ -381,9 +414,12 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                             <SimantecLogo variant="icon" size={34} />
                             <CardTitle>{edicion ? `Editar presupuesto ${presupuestoInicial.codigo_registro || ""}` : "Nuevo Presupuesto"}</CardTitle>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={onCancel}>
-                            <X className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <CorregirFormularioButton campos={camposCorregibles} onCorregido={aplicarCorreccionFormulario} />
+                            <Button variant="ghost" size="icon" onClick={onCancel}>
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
@@ -448,14 +484,7 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
 
                         {/* Descripcion autocompletada */}
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between gap-2">
-                                <Label htmlFor="descripcion">Descripción (autocompletada)</Label>
-                                <CorrectorOrtograficoButton
-                                    text={formData.descripcion}
-                                    onCorrected={(t) => set("descripcion", t)}
-                                    label="Corregir ortografía"
-                                />
-                            </div>
+                            <Label htmlFor="descripcion">Descripción (autocompletada)</Label>
                             <AutoCorrectTextarea
                                 id="descripcion"
                                 value={formData.descripcion}
@@ -484,6 +513,13 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                                 obraId={formData.obra_id}
                                 obraName={formData.obra_name}
                                 presupuestoCodigo={presupuestoInicial?.codigo_registro}
+                            />
+                            <CompletarDesdeDocumento
+                                documentos={formData.documentos_origen}
+                                conceptos={formData.conceptos}
+                                clienteName={formData.cliente_name}
+                                obraName={formData.obra_name}
+                                onAgregar={anadirLineas}
                             />
                         </div>
 

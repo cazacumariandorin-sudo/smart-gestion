@@ -5,6 +5,7 @@ import { Upload, Loader2, AlertCircle, FileText, ExternalLink, Info } from 'luci
 import { cn } from '@/lib/utils';
 import { analizarPartidasDocumento } from '@/lib/partidasDesdeDocumento';
 import RevisionPartidasPropuestas from './RevisionPartidasPropuestas';
+import DocumentoOrigenViewer from './DocumentoOrigenViewer';
 
 /**
  * Fase 1 — Partidas desde documentación de obra.
@@ -20,6 +21,7 @@ export default function ImportarPartidasDocumento({
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
   const [resultado, setResultado] = useState(null); // { archivo, datos }
+  const [docAbierto, setDocAbierto] = useState(null); // documento que se está viendo
   const inputRef = useRef(null);
 
   const vincularDocumento = async (archivo, datos) => {
@@ -133,9 +135,9 @@ export default function ImportarPartidasDocumento({
               <span className="truncate flex-1">{d.nombre}</span>
               {d.partidas_detectadas > 0 && <span>{d.partidas_detectadas} partidas</span>}
               {d.url && (
-                <a href={d.url} target="_blank" rel="noreferrer" className="text-primary hover:underline shrink-0" title="Abrir documento original">
+                <button type="button" onClick={() => setDocAbierto(d)} className="text-primary hover:underline shrink-0 inline-flex items-center gap-1" title="Abrir documento original">
                   <ExternalLink className="w-3 h-3" />
-                </a>
+                </button>
               )}
             </div>
           ))}
@@ -145,6 +147,8 @@ export default function ImportarPartidasDocumento({
           </p>
         </div>
       )}
+
+      {docAbierto && <DocumentoOrigenViewer doc={docAbierto} onClose={() => setDocAbierto(null)} />}
     </div>
   );
 }
