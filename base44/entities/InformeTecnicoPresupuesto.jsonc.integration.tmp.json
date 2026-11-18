@@ -1,0 +1,31 @@
+      {
+        "name": "InformeTecnicoPresupuesto",
+        "description": "Informe técnico interno de presupuesto",
+        "type": "object",
+        "properties": {
+          "presupuesto_id": { "type": "string", "description": "ID del presupuesto analizado" },
+          "presupuesto_codigo": { "type": "string", "description": "Código PRE-AAAA-NNNNN" },
+          "obra_id": { "type": "string", "description": "Proyecto/obra asociado" },
+          "obra_name": { "type": "string" },
+          "cliente_name": { "type": "string" },
+          "alcance": { "type": "string" },
+          "mediciones": { "type": "array", "items": { "type": "string" } },
+          "materiales_agrupados": { "type": "array", "items": { "type": "object" } },
+          "partidas": { "type": "array", "items": { "type": "object" } },
+          "desglose": { "type": "object" },
+          "totales": { "type": "object" },
+          "horas_totales": { "type": "number" },
+          "coste_hora_interno": { "type": "number" },
+          "coste_diario_aprobado": { "type": "number" },
+          "fuente_coste_hora": { "type": "string", "enum": ["coste_interno", "tarifa_cliente", "sin_datos"] },
+          "supuestos": { "type": "array", "items": { "type": "string" } },
+          "datos_no_disponibles": { "type": "array", "items": { "type": "string" } },
+          "confianza": { "type": "number" },
+          "generado_por": { "type": "string" },
+          "generado_en": { "type": "string", "format": "date-time" },
+          "version": { "type": "number", "default": 1 },
+          "estado": { "type": "string", "enum": ["borrador", "revisado", "archivado"] },
+          "uso_cliente_prohibido": { "type": "boolean", "default": true }
+        },
+        "required": ["presupuesto_id", "obra_id", "alcance", "generado_en"]
+      }
