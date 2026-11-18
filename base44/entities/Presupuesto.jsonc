@@ -95,6 +95,38 @@
       },
       "type": "array"
     },
+    "documentos_origen": {
+      "description": "Documentos de obra (Word, Excel, PDF) de los que se propusieron las partidas. Se conserva el original para poder comprobar de d\u00f3nde sale cada l\u00ednea.",
+      "items": {
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "url": {
+            "description": "URL del documento original",
+            "type": "string"
+          },
+          "tipo": {
+            "description": "Tipo MIME del archivo",
+            "type": "string"
+          },
+          "fecha_subida": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "partidas_detectadas": {
+            "description": "N\u00famero de partidas propuestas al analizar el documento",
+            "type": "number"
+          },
+          "resumen": {
+            "description": "Resumen del alcance de los trabajos detectado en el documento",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
     "es_duplicado_confirmado": {
       "default": false,
       "description": "Si es true, el usuario confirm\u00f3 que es duplicado autorizado",

@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import OcrUploader from "@/components/gastos/OcrUploader";
 import ParteSelector from "@/components/presupuestos/ParteSelector";
+import ImportarPartidasDocumento from "@/components/presupuestos/ImportarPartidasDocumento";
 import { extraerConceptosDesdeTexto } from "@/lib/conceptosExtractor";
 import { calcularDocumento } from "@/lib/presupuestoCalculo";
 import { lineasDeParte, lineasDeExtras, lineaManoDeObra, lineaAlojamiento, quitarLineasDeOrigen, resolverTarifa } from "@/lib/lineasDesdeObra";
@@ -75,6 +76,7 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
             obra_name: p?.obra_name || "",
             descripcion: p?.descripcion || "",
             notas: p?.notas || "",
+            documentos_origen: p?.documentos_origen || [],
         };
     });
     const [validoManual, setValidoManual] = useState(!!presupuestoInicial?.valido_hasta);
@@ -346,6 +348,7 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
             forma_pago: formData.forma_pago,
             descripcion: formData.descripcion,
             notas: formData.notas,
+            documentos_origen: formData.documentos_origen || [],
             partes_trabajo_ids: formData.partes_trabajo_ids,
             conceptos: formData.conceptos.map(c => ({
                 tipo: c.tipo, descripcion: c.descripcion, detalle: c.detalle, cantidad: c.cantidad, unidad: c.unidad,
@@ -454,11 +457,28 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                             </p>
                         </div>
 
+                        {/* Fase 1: partidas propuestas desde la documentación de obra */}
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-2">
+                                <FileText className="w-4 h-4" />
+                                Partidas desde documentación de obra
+                            </Label>
+                            <ImportarPartidasDocumento
+                                documentos={formData.documentos_origen}
+                                onDocumentosChange={(docs) => set("documentos_origen", docs)}
+                                onIncorporar={anadirLineas}
+                                clienteName={formData.cliente_name}
+                                obraId={formData.obra_id}
+                                obraName={formData.obra_name}
+                                presupuestoCodigo={presupuestoInicial?.codigo_registro}
+                            />
+                        </div>
+
                         {/* Subida de documento fuente con OCR */}
                         <div className="space-y-2">
                             <Label className="flex items-center gap-2">
                                 <Upload className="w-4 h-4" />
-                                Documento Fuente (opcional)
+                                Ticket o factura (opcional)
                             </Label>
                             <OcrUploader
                                 onDatosExtraidos={handleDatosOcrExtraidos}

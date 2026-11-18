@@ -82,7 +82,7 @@ export function conflictoExtras(conceptos: any[], existentes: any[], excluirId?:
 
 /** Solo estos campos pueden venir del cliente (nunca estado, código, historial ni importes calculados). */
 export const CAMPOS_EDITABLES = ['titulo', 'cliente_id', 'cliente_name', 'fecha', 'descripcion', 'notas', 'forma_pago', 'referencia_cliente',
-  'valido_hasta', 'obra_id', 'obra_name', 'conceptos', 'partes_trabajo_ids', 'file_url'];
+  'valido_hasta', 'obra_id', 'obra_name', 'conceptos', 'partes_trabajo_ids', 'file_url', 'documentos_origen'];
 export function soloCamposEditables(body: Record<string, any>): Record<string, any> {
   const out: Record<string, any> = {};
   for (const k of CAMPOS_EDITABLES) if (body && body[k] !== undefined) out[k] = body[k];
