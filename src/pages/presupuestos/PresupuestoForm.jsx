@@ -6,13 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Trash2, FileText, Upload, Type, Wrench, BedDouble, Save } from "lucide-react";
+import { X, Plus, Trash2, FileText, Upload, Type, Wrench, BedDouble, Save, Calculator } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import OcrUploader from "@/components/gastos/OcrUploader";
 import ParteSelector from "@/components/presupuestos/ParteSelector";
 import ImportarPartidasDocumento from "@/components/presupuestos/ImportarPartidasDocumento";
+import AnalisisTecnicoPresupuesto from "@/components/presupuestos/AnalisisTecnicoPresupuesto";
 import { extraerConceptosDesdeTexto } from "@/lib/conceptosExtractor";
 import { calcularDocumento } from "@/lib/presupuestoCalculo";
 import { lineasDeParte, lineasDeExtras, lineaManoDeObra, lineaAlojamiento, quitarLineasDeOrigen, resolverTarifa } from "@/lib/lineasDesdeObra";
@@ -89,6 +90,7 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
     const [alojDias, setAlojDias] = useState("");
     const [tarifaEdit, setTarifaEdit] = useState(null);             // precios editados a mano en este documento
     const [guardandoTarifa, setGuardandoTarifa] = useState(false);
+    const [showAnalisis, setShowAnalisis] = useState(false);        // análisis interno de precios e informe técnico
 
     // Totales en vivo: mismas reglas que el servidor (IVA por línea, redondeo por línea)
     const calculo = useMemo(() => calcularDocumento(formData.conceptos), [formData.conceptos]);
@@ -224,6 +226,17 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
 
     const handleRemoveConcepto = (index) => {
         setFormData(prev => ({ ...prev, conceptos: prev.conceptos.filter((_, i) => i !== index) }));
+    };
+
+    // Aplica al presupuesto los precios propuestos en el análisis interno (siguen siendo editables)
+    const aplicarPreciosPropuestos = (precios) => {
+        setFormData(prev => ({
+            ...prev,
+            conceptos: prev.conceptos.map((c, i) => {
+                const p = precios.find(x => x.indice === i);
+                return p ? { ...c, precio_unitario: p.precio_unitario } : c;
+            }),
+        }));
     };
 
     const handleToggleParteTrabajo = (parte) => {
@@ -493,9 +506,14 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
 
                         {/* Líneas */}
                         <div className="space-y-3">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-2">
                                 <Label>Líneas</Label>
-                                <Badge variant="outline">{formData.conceptos.length} líneas</Badge>
+                                <div className="flex items-center gap-2">
+                                    <Button type="button" size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={() => setShowAnalisis(true)}>
+                                        <Calculator className="w-3 h-3" /> Análisis interno
+                                    </Button>
+                                    <Badge variant="outline">{formData.conceptos.length} líneas</Badge>
+                                </div>
                             </div>
 
                             {formData.conceptos.length > 0 && (
@@ -720,6 +738,18 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                     </form>
                 </CardContent>
             </Card>
+
+            <AnalisisTecnicoPresupuesto
+                open={showAnalisis}
+                onClose={() => setShowAnalisis(false)}
+                clienteId={formData.cliente_id}
+                clienteName={formData.cliente_name}
+                obraId={formData.obra_id}
+                obraName={formData.obra_name}
+                presupuesto={presupuestoInicial}
+                conceptos={formData.conceptos}
+                onAplicarPrecios={aplicarPreciosPropuestos}
+            />
         </div>
     );
 }

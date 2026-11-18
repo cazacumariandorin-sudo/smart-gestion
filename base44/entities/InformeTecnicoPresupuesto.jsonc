@@ -1,0 +1,308 @@
+{
+  "name": "InformeTecnicoPresupuesto",
+  "description": "Informe t\u00e9cnico interno de un presupuesto: alcance, mediciones, materiales agrupados y desglose de materiales, mano de obra, dietas y desplazamiento, con la propuesta de precios. Es documentaci\u00f3n de apoyo a la direcci\u00f3n y NUNCA forma parte del documento entregado al cliente.",
+  "type": "object",
+  "properties": {
+    "presupuesto_id": {
+      "type": "string",
+      "description": "ID del presupuesto analizado"
+    },
+    "presupuesto_codigo": {
+      "type": "string",
+      "description": "C\u00f3digo del presupuesto (PRE-AAAA-NNNNN)"
+    },
+    "cliente_name": {
+      "type": "string"
+    },
+    "obra_name": {
+      "type": "string"
+    },
+    "alcance": {
+      "type": "string",
+      "description": "Alcance de los trabajos presupuestados seg\u00fan la documentaci\u00f3n analizada"
+    },
+    "mediciones": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Mediciones y c\u00e1lculos detectados en la documentaci\u00f3n"
+    },
+    "materiales_agrupados": {
+      "type": "array",
+      "description": "Materiales agrupados por tipo o maquinaria",
+      "items": {
+        "type": "object",
+        "properties": {
+          "grupo": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "descripcion": {
+                  "type": "string"
+                },
+                "cantidad": {
+                  "type": "number"
+                },
+                "unidad": {
+                  "type": "string"
+                },
+                "coste_estimado": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "partidas": {
+      "type": "array",
+      "description": "Desglose interno por partida del presupuesto",
+      "items": {
+        "type": "object",
+        "properties": {
+          "indice": {
+            "type": "number",
+            "description": "Posici\u00f3n de la l\u00ednea en el presupuesto"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "cantidad": {
+            "type": "number"
+          },
+          "unidad": {
+            "type": "string"
+          },
+          "horas_estimadas": {
+            "type": "number"
+          },
+          "coste_materiales": {
+            "type": "number"
+          },
+          "coste_mano_obra": {
+            "type": "number"
+          },
+          "dietas": {
+            "type": "number"
+          },
+          "desplazamiento": {
+            "type": "number"
+          },
+          "coste_total": {
+            "type": "number"
+          },
+          "precio_sugerido": {
+            "type": "number"
+          },
+          "supuesto": {
+            "type": "string",
+            "description": "Supuesto aplicado al valorar esta partida"
+          }
+        }
+      }
+    },
+    "desglose": {
+      "type": "object",
+      "properties": {
+        "materiales": {
+          "type": "number"
+        },
+        "mano_obra": {
+          "type": "number"
+        },
+        "dietas": {
+          "type": "number"
+        },
+        "desplazamiento": {
+          "type": "number"
+        },
+        "coste_total": {
+          "type": "number"
+        }
+      }
+    },
+    "totales": {
+      "type": "object",
+      "properties": {
+        "coste_interno": {
+          "type": "number"
+        },
+        "precio_propuesto": {
+          "type": "number"
+        },
+        "margen_importe": {
+          "type": "number"
+        },
+        "margen_pct": {
+          "type": "number"
+        }
+      }
+    },
+    "horas_totales": {
+      "type": "number"
+    },
+    "coste_hora_interno": {
+      "type": "number"
+    },
+    "coste_diario_aprobado": {
+      "type": "number"
+    },
+    "fuente_coste_hora": {
+      "type": "string",
+      "enum": [
+        "coste_interno",
+        "tarifa_cliente",
+        "sin_datos"
+      ],
+      "description": "De d\u00f3nde sale el valor de la hora: coste interno aprobado, tarifa acordada con el cliente o sin datos."
+    },
+    "supuestos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "datos_no_disponibles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confianza": {
+      "type": "number"
+    },
+    "generado_por": {
+      "type": "string"
+    },
+    "generado_en": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "version": {
+      "type": "number",
+      "default": 1
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "revisado",
+        "archivado"
+      ],
+      "enumColors": [
+        "gray",
+        "blue",
+        "green"
+      ],
+      "default": "borrador"
+    }
+  },
+  "required": [
+    "alcance",
+    "generado_en"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}
