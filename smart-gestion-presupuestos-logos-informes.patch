@@ -1,0 +1,716 @@
+From 06ac2da7a7a51c81c15594eada173d16756f18c4 Mon Sep 17 00:00:00 2001
+From: Patch Presupuestos <patch@smart-gestion.local>
+Date: Thu, 19 Nov 2026 20:02:42 +0000
+Subject: [PATCH 1/3] =?UTF-8?q?feat(presupuestos):=20campo=20logo=5Fid=20c?=
+ =?UTF-8?q?on=20validaci=C3=B3n=20y=20obra=5Fid=20en=20informe=20t=C3=A9cn?=
+ =?UTF-8?q?ico?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ base44/entities/InformeTecnicoPresupuesto.jsonc |   4 ++++
+ base44/entities/Presupuesto.jsonc               |   4 ++++
+ base44/shared/presupuesto.test.mjs              |   3 +++
+ base44/shared/presupuestoReglas.ts              |   5 ++++-
+ public/logos/logo-2.png                         | Bin 0 -> 5969 bytes
+ 5 files changed, 15 insertions(+), 1 deletion(-)
+ create mode 100644 public/logos/logo-2.png
+
+diff --git a/base44/entities/InformeTecnicoPresupuesto.jsonc b/base44/entities/InformeTecnicoPresupuesto.jsonc
+index 0c64a42..75d5f59 100644
+--- a/base44/entities/InformeTecnicoPresupuesto.jsonc
++++ b/base44/entities/InformeTecnicoPresupuesto.jsonc
+@@ -14,6 +14,10 @@
+     "cliente_name": {
+       "type": "string"
+     },
++    "obra_id": {
++      "type": "string",
++      "description": "ID de la obra/proyecto (para listarlo en Ingenier\u00eda). Opcional: un presupuesto puede no tener obra."
++    },
+     "obra_name": {
+       "type": "string"
+     },
+diff --git a/base44/entities/Presupuesto.jsonc b/base44/entities/Presupuesto.jsonc
+index 23d7882..3610baf 100644
+--- a/base44/entities/Presupuesto.jsonc
++++ b/base44/entities/Presupuesto.jsonc
+@@ -198,6 +198,10 @@
+       "description": "Nombre de la obra (opcional)",
+       "type": "string"
+     },
++    "logo_id": {
++      "description": "Logotipo elegido para el PDF: principal | alternativo. Vac\u00edo = principal",
++      "type": "string"
++    },
+     "partes_trabajo_ids": {
+       "description": "IDs de partes de trabajo consolidados",
+       "items": {
+diff --git a/base44/shared/presupuesto.test.mjs b/base44/shared/presupuesto.test.mjs
+index 6b543f2..81964c0 100644
+--- a/base44/shared/presupuesto.test.mjs
++++ b/base44/shared/presupuesto.test.mjs
+@@ -70,6 +70,9 @@ const ex = [{ id: 'a', estado: 'borrador', partes_trabajo_ids: ['p1'], conceptos
+ t('partes: ocupado en borrador, libre si rechazado, el propio no cuenta', R.conflictoPartes(['p1'], ex)?.id === 'a' && R.conflictoPartes(['p3'], ex) === null && R.conflictoPartes(['p1'], ex, 'a') === null);
+ t('extras: ocupado en borrador, libre si rechazado, el propio no cuenta', R.conflictoExtras([{ extra_id: 'e1' }], ex)?.id === 'a' && R.conflictoExtras([{ extra_id: 'e3' }], ex) === null && R.conflictoExtras([{ extra_id: 'e1' }], ex, 'a') === null);
+ t('solo campos editables (no estado, código, importe ni historial)', JSON.stringify(Object.keys(R.soloCamposEditables({ cliente_id: 'c', estado: 'aceptado', codigo_registro: 'X', importe: 1, notas: 'n', conceptos: [] })).sort()) === JSON.stringify(['cliente_id', 'conceptos', 'notas']));
++t('logo_id: se conserva uno válido', R.soloCamposEditables({ logo_id: 'alternativo' }).logo_id === 'alternativo');
++t('logo_id: uno desconocido vuelve a principal', R.soloCamposEditables({ logo_id: 'hackeado' }).logo_id === 'principal');
++t('logo_id: si no viene, no se inventa', !('logo_id' in R.soloCamposEditables({ notas: 'n' })));
+ 
+ // ═══ 3) FUNCIONES con base de datos simulada ═════════════════════════════════
+ const llamar = async (fn, user, body) => { globalThis.__ctx.user = user; const rs = await handlers[fn](new Request('http://x/', { method: 'POST', body: JSON.stringify(body) })); return { s: rs.status, j: await rs.json() }; };
+diff --git a/base44/shared/presupuestoReglas.ts b/base44/shared/presupuestoReglas.ts
+index 156e610..8c97c79 100644
+--- a/base44/shared/presupuestoReglas.ts
++++ b/base44/shared/presupuestoReglas.ts
+@@ -82,9 +82,12 @@ export function conflictoExtras(conceptos: any[], existentes: any[], excluirId?:
+ 
+ /** Solo estos campos pueden venir del cliente (nunca estado, código, historial ni importes calculados). */
+ export const CAMPOS_EDITABLES = ['titulo', 'cliente_id', 'cliente_name', 'fecha', 'descripcion', 'notas', 'forma_pago', 'referencia_cliente',
+-  'valido_hasta', 'obra_id', 'obra_name', 'conceptos', 'partes_trabajo_ids', 'file_url', 'documentos_origen'];
++  'valido_hasta', 'obra_id', 'obra_name', 'conceptos', 'partes_trabajo_ids', 'file_url', 'documentos_origen', 'logo_id'];
++/** Logotipos disponibles para el PDF. Debe coincidir con src/lib/presupuestoLogos.js (el frontend no puede importar de base44/shared). */
++export const LOGOS_VALIDOS = ['principal', 'alternativo'];
+ export function soloCamposEditables(body: Record<string, any>): Record<string, any> {
+   const out: Record<string, any> = {};
+   for (const k of CAMPOS_EDITABLES) if (body && body[k] !== undefined) out[k] = body[k];
++  if (out.logo_id !== undefined && !LOGOS_VALIDOS.includes(out.logo_id)) out.logo_id = 'principal';
+   return out;
+ }
+\ No newline at end of file
+diff --git a/public/logos/logo-2.png b/public/logos/logo-2.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..fe53675ffe9b29b0c8666c74266bcdd2bf20765c
+GIT binary patch
+literal 5969
+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
+
+literal 0
+HcmV?d00001
+
+-- 
+2.43.0
+
+
+From 1397ace8cb8d43951691eba62284eaba4c460766 Mon Sep 17 00:00:00 2001
+From: Patch Presupuestos <patch@smart-gestion.local>
+Date: Thu, 19 Nov 2026 20:02:42 +0000
+Subject: [PATCH 2/3] =?UTF-8?q?feat(presupuestos):=20cat=C3=A1logo=20de=20?=
+ =?UTF-8?q?logos,=20saneado=20por=20lista=20blanca=20y=20PDF=20con=20el=20?=
+ =?UTF-8?q?logo=20elegido?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ src/lib/presupuestoLogos.js       | 51 +++++++++++++++++++++++++++++++
+ src/lib/presupuestoPdf.js         | 10 +++++-
+ src/lib/presupuestoPdfDescarga.js | 13 +++++---
+ src/lib/presupuestoPublico.js     | 17 +++++++++++
+ 4 files changed, 86 insertions(+), 5 deletions(-)
+ create mode 100644 src/lib/presupuestoLogos.js
+ create mode 100644 src/lib/presupuestoPublico.js
+
+diff --git a/src/lib/presupuestoLogos.js b/src/lib/presupuestoLogos.js
+new file mode 100644
+index 0000000..e5f58ea
+--- /dev/null
++++ b/src/lib/presupuestoLogos.js
+@@ -0,0 +1,51 @@
++/**
++ * presupuestoLogos — logotipos disponibles para los presupuestos.
++ * El logo elegido se guarda en el presupuesto (campo `logo_id`) y es el que se usa al exportar el PDF.
++ *
++ * Para cambiar el segundo logo: sustituir public/logos/logo-2.png (PNG o JPEG) y, si se quiere, el nombre aquí.
++ * IMPORTANTE: los ids deben coincidir con LOGOS_VALIDOS de base44/shared/presupuestoReglas.ts
++ * (el frontend no puede importar de base44/shared).
++ */
++import { SIMANTEC_LOGO_PNG_BASE64 } from '@/lib/simantecLogoData';
++
++export const LOGO_POR_DEFECTO = 'principal';
++
++export const LOGOS_PRESUPUESTO = [
++  { id: 'principal', nombre: 'Logo 1', vista: '/simantec-icon-192.png', dataUrl: SIMANTEC_LOGO_PNG_BASE64 },
++  { id: 'alternativo', nombre: 'Logo 2', vista: '/logos/logo-2.png', dataUrl: null },
++];
++
++const CLAVE_PREFERIDO = 'presupuesto_logo_preferido';
++
++export const logoPorId = (id) => LOGOS_PRESUPUESTO.find((l) => l.id === id) || LOGOS_PRESUPUESTO[0];
++
++/** Último logo que eligió este usuario en este navegador (comodidad: se propone en presupuestos nuevos). */
++export function getLogoPreferido() {
++  try {
++    const v = localStorage.getItem(CLAVE_PREFERIDO);
++    return LOGOS_PRESUPUESTO.some((l) => l.id === v) ? v : LOGO_POR_DEFECTO;
++  } catch (_) { return LOGO_POR_DEFECTO; }
++}
++export function setLogoPreferido(id) {
++  try { localStorage.setItem(CLAVE_PREFERIDO, id); } catch (_) { /* sin almacenamiento */ }
++}
++
++const aDataUrl = (blob) => new Promise((resolve, reject) => {
++  const r = new FileReader();
++  r.onload = () => resolve(r.result);
++  r.onerror = () => reject(r.error);
++  r.readAsDataURL(blob);
++});
++
++/** data URL del logo para jsPDF. Si el logo elegido no se puede cargar, usa el principal (nunca deja el PDF sin logo). */
++export async function logoParaPdf(id) {
++  const logo = logoPorId(id);
++  if (logo.dataUrl) return logo.dataUrl;
++  try {
++    const resp = await fetch(logo.vista);
++    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
++    return await aDataUrl(await resp.blob());
++  } catch (_) {
++    return LOGOS_PRESUPUESTO[0].dataUrl;
++  }
++}
+diff --git a/src/lib/presupuestoPdf.js b/src/lib/presupuestoPdf.js
+index 6c09cc2..570e2cf 100644
+--- a/src/lib/presupuestoPdf.js
++++ b/src/lib/presupuestoPdf.js
+@@ -70,7 +70,15 @@ export function construirPresupuestoPdf({ presupuesto, empresa = {}, cliente = {
+   const hayTexto = calculo.lineas.some((l) => l.tipo === 'texto');
+ 
+   // ── Cabecera: logo, emisor, cliente ────────────────────────────────────────
+-  if (logo) { try { doc.addImage(logo, 'PNG', ML, 14, 42, 42); } catch (_) { /* sin logo */ } }
++  if (logo) {
++    try {
++      // Formato según el data URL y proporción original (un logo rectangular no se deforma), dentro de 42×42 mm
++      const fmt = /^data:image\/jpe?g/i.test(logo) ? 'JPEG' : 'PNG';
++      const { width: iw, height: ih } = doc.getImageProperties(logo);
++      const esc = Math.min(42 / iw, 42 / ih);
++      doc.addImage(logo, fmt, ML, 14, iw * esc, ih * esc);
++    } catch (_) { /* sin logo */ }
++  }
+   const cpEmp = [empresa.codigo_postal, mayus(empresa.localidad)].filter(Boolean).join(' ');
+   bloqueDatos(doc, ML, 66, 92, [
+     { texto: empresa.razon_social || empresa.nombre, negrita: true },
+diff --git a/src/lib/presupuestoPdfDescarga.js b/src/lib/presupuestoPdfDescarga.js
+index 82961d0..e5fd352 100644
+--- a/src/lib/presupuestoPdfDescarga.js
++++ b/src/lib/presupuestoPdfDescarga.js
+@@ -1,22 +1,27 @@
+ /**
+  * presupuestoPdfDescarga — carga empresa, cliente y logo y genera/descarga el PDF de un presupuesto.
+  * La construcción del PDF (presupuestoPdf.js) es pura y está probada aparte.
++ * - Se sanea el presupuesto (lista blanca): el PDF nunca lleva datos internos.
++ * - El logo es el elegido al guardar el presupuesto (`logo_id`).
+  */
+ import { base44 } from '@/api/base44Client';
+ import { getEmpresaPrincipalPdf } from '@/lib/simantecEmpresaPdf';
+-import { SIMANTEC_LOGO_PNG_BASE64 } from '@/lib/simantecLogoData';
+ import { construirPresupuestoPdf } from '@/lib/presupuestoPdf';
++import { stripInternalBudgetFields } from '@/lib/presupuestoPublico';
++import { logoParaPdf } from '@/lib/presupuestoLogos';
+ 
+-export async function generarPdfPresupuesto(presupuesto, { tipo = 'presupuesto', marcaAgua } = {}) {
+-  const [empresa, cliente] = await Promise.all([
++export async function generarPdfPresupuesto(presupuestoOriginal, { tipo = 'presupuesto', marcaAgua } = {}) {
++  const presupuesto = stripInternalBudgetFields(presupuestoOriginal);
++  const [empresa, cliente, logo] = await Promise.all([
+     getEmpresaPrincipalPdf(),
+     presupuesto.cliente_id ? base44.entities.Client.get(presupuesto.cliente_id).catch(() => null) : null,
++    logoParaPdf(presupuesto.logo_id),
+   ]);
+   return construirPresupuestoPdf({
+     presupuesto,
+     empresa,
+     cliente: cliente || { name: presupuesto.cliente_name },
+-    logo: SIMANTEC_LOGO_PNG_BASE64,
++    logo,
+     tipo,
+     marcaAgua,
+   });
+diff --git a/src/lib/presupuestoPublico.js b/src/lib/presupuestoPublico.js
+new file mode 100644
+index 0000000..49a7e9d
+--- /dev/null
++++ b/src/lib/presupuestoPublico.js
+@@ -0,0 +1,17 @@
++/**
++ * presupuestoPublico — deja solo los campos que pueden salir al cliente (PDF, envío).
++ * LISTA BLANCA: un campo interno nuevo (costes, márgenes, informes, horas…) no se cuela aunque se añada al presupuesto.
++ * Si el PDF necesita un campo nuevo, hay que añadirlo aquí.
++ */
++const CAMPOS_PUBLICOS = ['id', 'codigo_registro', 'titulo', 'cliente_id', 'cliente_name', 'fecha', 'valido_hasta',
++  'referencia_cliente', 'forma_pago', 'descripcion', 'notas', 'obra_name', 'logo_id', 'conceptos'];
++const CAMPOS_LINEA_PUBLICOS = ['tipo', 'descripcion', 'detalle', 'cantidad', 'unidad', 'precio_unitario', 'iva_pct'];
++
++export function stripInternalBudgetFields(presupuesto) {
++  if (!presupuesto || typeof presupuesto !== 'object') return presupuesto;
++  const out = {};
++  for (const k of CAMPOS_PUBLICOS) if (presupuesto[k] !== undefined) out[k] = presupuesto[k];
++  out.conceptos = (presupuesto.conceptos || []).map((l) =>
++    Object.fromEntries(CAMPOS_LINEA_PUBLICOS.filter((k) => l && l[k] !== undefined).map((k) => [k, l[k]])));
++  return out;
++}
+-- 
+2.43.0
+
+
+From 360d9b9b4339fecf9b0820c6ff1d31a37bd58dbe Mon Sep 17 00:00:00 2001
+From: Patch Presupuestos <patch@smart-gestion.local>
+Date: Thu, 19 Nov 2026 20:06:12 +0000
+Subject: [PATCH 3/3] =?UTF-8?q?feat(presupuestos):=20selector=20de=20logo,?=
+ =?UTF-8?q?=20ampliar/minimizar=20en=20formulario=20y=20an=C3=A1lisis?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Selector de logo guardado en el presupuesto (logo_id), ventanas ampliables a pantalla completa.
+---
+ .../AnalisisTecnicoPresupuesto.jsx            | 41 ++++++-----
+ .../InformesTecnicosPresupuesto.jsx           | 72 +++++++++++++++++++
+ src/pages/IngenieriaDocumentos.jsx            |  7 ++
+ src/pages/Presupuestos.jsx                    | 22 ++++++
+ src/pages/presupuestos/PresupuestoForm.jsx    | 31 ++++++--
+ 5 files changed, 150 insertions(+), 23 deletions(-)
+ create mode 100644 src/components/presupuestos/InformesTecnicosPresupuesto.jsx
+
+diff --git a/src/components/presupuestos/AnalisisTecnicoPresupuesto.jsx b/src/components/presupuestos/AnalisisTecnicoPresupuesto.jsx
+index 5cada4e..029d459 100644
+--- a/src/components/presupuestos/AnalisisTecnicoPresupuesto.jsx
++++ b/src/components/presupuestos/AnalisisTecnicoPresupuesto.jsx
+@@ -3,10 +3,10 @@ import { base44 } from '@/api/base44Client';
+ import { Button } from '@/components/ui/button';
+ import { Input } from '@/components/ui/input';
+ import { Label } from '@/components/ui/label';
+-import { Badge } from '@/components/ui/badge';
+-import { X, Loader2, Sparkles, CheckCircle2, AlertCircle, Save, FileText, Calculator } from 'lucide-react';
++import { X, Loader2, Sparkles, CheckCircle2, AlertCircle, Save, FileText, Calculator, Maximize2, Minimize2 } from 'lucide-react';
+ import { toast } from 'sonner';
+ import InformeTecnicoResumen from './InformeTecnicoResumen';
++import InformesTecnicosPresupuesto from './InformesTecnicosPresupuesto';
+ 
+ const eur = (n) => (Number(n) || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+ const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
+@@ -27,6 +27,7 @@ export default function AnalisisTecnicoPresupuesto({
+   const [tab, setTab] = useState('precios');
+   const [guardando, setGuardando] = useState(false);
+   const [guardados, setGuardados] = useState([]);
++  const [maximizado, setMaximizado] = useState(false);
+ 
+   useEffect(() => {
+     if (!open) return;
+@@ -93,6 +94,11 @@ export default function AnalisisTecnicoPresupuesto({
+       const partidas = informe.partidas.map((p) => ({ ...p, precio_sugerido: Number(precios[p.indice]) || 0 }));
+       const creado = await base44.entities.InformeTecnicoPresupuesto.create({
+         ...informe,
++        presupuesto_id: presupuesto.id,
++        presupuesto_codigo: presupuesto.codigo_registro || informe.presupuesto_codigo || '',
++        obra_id: presupuesto.obra_id || obraId || '',          // permite listarlo en Ingeniería
++        obra_name: presupuesto.obra_name || obraName || informe.obra_name || '',
++        cliente_name: presupuesto.cliente_name || clienteName || informe.cliente_name || '',
+         partidas,
+         totales: {
+           ...informe.totales,
+@@ -115,9 +121,9 @@ export default function AnalisisTecnicoPresupuesto({
+   if (!open) return null;
+ 
+   return (
+-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-3 overflow-y-auto">
+-      <div className="bg-card border border-border rounded-xl w-full max-w-5xl max-h-[92vh] overflow-y-auto shadow-xl">
+-        <div className="sticky top-0 bg-background border-b px-4 py-3 flex items-center justify-between gap-2 z-10">
++    <div className={`fixed inset-0 bg-black/50 flex items-center justify-center z-[60] ${maximizado ? 'p-0' : 'p-2 sm:p-4'}`}>
++      <div className={`flex flex-col overflow-hidden bg-card border border-border shadow-xl ${maximizado ? 'h-screen w-screen rounded-none' : 'h-[94vh] w-[96vw] max-w-[1600px] rounded-xl'}`}>
++        <div className="bg-background border-b px-4 py-3 flex items-center justify-between gap-2 shrink-0">
+           <div className="flex items-center gap-2 min-w-0">
+             <Calculator className="w-4 h-4 text-primary shrink-0" />
+             <div className="min-w-0">
+@@ -125,10 +131,16 @@ export default function AnalisisTecnicoPresupuesto({
+               <p className="text-[11px] text-muted-foreground truncate">Documento de dirección · no se envía al cliente</p>
+             </div>
+           </div>
+-          <Button variant="ghost" size="icon" onClick={onClose}><X className="w-4 h-4" /></Button>
++          <div className="flex items-center gap-1">
++            <Button type="button" variant="ghost" size="icon" onClick={() => setMaximizado((v) => !v)}
++              title={maximizado ? 'Reducir ventana' : 'Ampliar a pantalla completa'}>
++              {maximizado ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
++            </Button>
++            <Button type="button" variant="ghost" size="icon" onClick={onClose}><X className="w-4 h-4" /></Button>
++          </div>
+         </div>
+ 
+-        <div className="p-4 space-y-4">
++        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+           {estado === 'idle' && (
+             <div className="space-y-3">
+               <p className="text-xs text-muted-foreground">
+@@ -232,7 +244,8 @@ export default function AnalisisTecnicoPresupuesto({
+                 <div className="space-y-4">
+                   <InformeTecnicoResumen informe={resultado.informe} />
+                   <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+-                    <Button size="sm" variant="outline" className="gap-1.5" onClick={guardarInforme} disabled={guardando || !presupuesto?.id}>
++                    <Button size="sm" variant="outline" className="gap-1.5" onClick={guardarInforme} disabled={guardando || !presupuesto?.id}
++                      title={presupuesto?.id ? 'Archiva este informe con el presupuesto y la obra' : 'Guarda primero el presupuesto para poder archivar el informe'}>
+                       {guardando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Guardar informe
+                     </Button>
+                     {!presupuesto?.id && <span className="text-[11px] text-muted-foreground">Guarda el presupuesto para poder archivar el informe.</span>}
+@@ -240,16 +253,10 @@ export default function AnalisisTecnicoPresupuesto({
+                 </div>
+               )}
+ 
+-              {guardados.length > 0 && (
+-                <div className="space-y-1 border-t pt-3">
++              {presupuesto?.id && (
++                <div className="space-y-2 border-t pt-3">
+                   <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Informes archivados</p>
+-                  {guardados.slice(0, 5).map((g) => (
+-                    <div key={g.id} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+-                      <Badge variant="outline" className="text-[9px]">v{g.version || 1}</Badge>
+-                      <span>{new Date(g.generado_en || g.created_date).toLocaleString('es-ES')}</span>
+-                      <span className="ml-auto font-medium text-foreground">{eur(g.totales?.precio_propuesto)}</span>
+-                    </div>
+-                  ))}
++                  <InformesTecnicosPresupuesto key={guardados.length} presupuestoId={presupuesto.id} />
+                 </div>
+               )}
+             </>
+diff --git a/src/components/presupuestos/InformesTecnicosPresupuesto.jsx b/src/components/presupuestos/InformesTecnicosPresupuesto.jsx
+new file mode 100644
+index 0000000..667e667
+--- /dev/null
++++ b/src/components/presupuestos/InformesTecnicosPresupuesto.jsx
+@@ -0,0 +1,72 @@
++import { useState } from 'react';
++import { useQuery } from '@tanstack/react-query';
++import { base44 } from '@/api/base44Client';
++import { Badge } from '@/components/ui/badge';
++import { Button } from '@/components/ui/button';
++import { FileText, Eye, Loader2, X, Maximize2, Minimize2 } from 'lucide-react';
++import InformeTecnicoResumen from './InformeTecnicoResumen';
++import { useUserRole } from '@/lib/useUserRole';
++
++// Mismos roles que la RLS de lectura de InformeTecnicoPresupuesto (el informe lleva costes y márgenes)
++export const ROLES_INFORMES_INTERNOS = ['admin', 'propietario', 'gerencia', 'director_comercial', 'administracion'];
++const eur = (n) => (Number(n) || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
++
++/**
++ * Lista y abre los informes técnicos internos archivados.
++ *  - presupuestoId → informes de ese presupuesto (modal de análisis, lista de Presupuestos)
++ *  - obraId        → informes de todos los presupuestos de la obra (Ingeniería → Documentos)
++ * Devuelve null para roles sin permiso (p. ej. ingeniero): no ven costes ni márgenes.
++ */
++export default function InformesTecnicosPresupuesto({ presupuestoId, obraId }) {
++  const { role } = useUserRole();
++  const autorizado = ROLES_INFORMES_INTERNOS.includes(role);
++  const [abierto, setAbierto] = useState(null);
++  const [maximizado, setMaximizado] = useState(false);
++
++  const { data: informes = [], isLoading } = useQuery({
++    queryKey: ['informes_tecnicos', presupuestoId || null, obraId || null],
++    enabled: autorizado && !!(presupuestoId || obraId),
++    retry: false,
++    queryFn: () => base44.entities.InformeTecnicoPresupuesto.filter(
++      presupuestoId ? { presupuesto_id: presupuestoId } : { obra_id: obraId }, '-generado_en', 100),
++  });
++
++  if (!autorizado) return null;
++  if (isLoading) return <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" />Cargando informes internos…</div>;
++  if (!informes.length) return <p className="text-xs text-muted-foreground">Sin informes internos archivados.</p>;
++
++  return (
++    <div className="space-y-2">
++      {informes.map((i) => (
++        <div key={i.id} className="flex flex-wrap items-center gap-2 rounded-lg border p-2 text-xs">
++          <FileText className="h-4 w-4 shrink-0 text-primary" />
++          <span className="font-medium">{i.presupuesto_codigo || 'Presupuesto'}</span>
++          <Badge variant="outline" className="text-[10px]">v{i.version || 1}</Badge>
++          <span className="text-muted-foreground">{new Date(i.generado_en || i.created_date).toLocaleString('es-ES')}</span>
++          <span className="ml-auto font-medium">{eur(i.totales?.precio_propuesto)}</span>
++          <Button type="button" size="sm" variant="outline" className="h-7 gap-1" onClick={() => setAbierto(i)}>
++            <Eye className="h-3 w-3" />Abrir
++          </Button>
++        </div>
++      ))}
++      <p className="text-[11px] text-muted-foreground">Documento interno: no se incluye en el PDF ni en el envío al cliente.</p>
++
++      {abierto && (
++        <div className={`fixed inset-0 z-[70] flex items-center justify-center bg-black/50 ${maximizado ? 'p-0' : 'p-2 sm:p-4'}`}>
++          <div className={`flex flex-col overflow-hidden border bg-card shadow-xl ${maximizado ? 'h-screen w-screen rounded-none' : 'h-[92vh] w-[96vw] max-w-[1400px] rounded-xl'}`}>
++            <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
++              <p className="text-sm font-bold">Informe técnico interno · v{abierto.version || 1}{abierto.presupuesto_codigo ? ` · ${abierto.presupuesto_codigo}` : ''}</p>
++              <div className="flex items-center gap-1">
++                <Button type="button" size="sm" variant="ghost" onClick={() => setMaximizado((v) => !v)} title={maximizado ? 'Reducir ventana' : 'Ampliar a pantalla completa'}>
++                  {maximizado ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
++                </Button>
++                <Button type="button" size="sm" variant="ghost" onClick={() => setAbierto(null)}><X className="h-4 w-4" /></Button>
++              </div>
++            </div>
++            <div className="flex-1 overflow-y-auto p-4"><InformeTecnicoResumen informe={abierto} /></div>
++          </div>
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/src/pages/IngenieriaDocumentos.jsx b/src/pages/IngenieriaDocumentos.jsx
+index e16ac58..41ad901 100644
+--- a/src/pages/IngenieriaDocumentos.jsx
++++ b/src/pages/IngenieriaDocumentos.jsx
+@@ -9,6 +9,7 @@ import PageHeader from '@/components/layout/PageHeader';
+ import { detectRevision, matchObra, detectTipo } from '@/lib/ingenieriaFilename';
+ import { calcularHash, detectarDuplicado, diffDatos, DiffList } from '@/lib/ingenieriaDiff.jsx';
+ import DocumentoCard from '@/components/ingenieria/DocumentoCard';
++import InformesTecnicosPresupuesto from '@/components/presupuestos/InformesTecnicosPresupuesto';
+ import { manualToIngDocShape } from '@/lib/documentosUnificados';
+ import { Eye, Download, BookOpen } from 'lucide-react';
+ 
+@@ -405,6 +406,12 @@ export default function IngenieriaDocumentos() {
+                 ))}
+               </div>
+             )}
++            {effectiveObraId && (
++              <div className="px-3 py-3 space-y-2">
++                <p className="text-xs font-semibold">Informes internos de presupuesto</p>
++                <InformesTecnicosPresupuesto obraId={effectiveObraId} />
++              </div>
++            )}
+             {documentos.map(d => (
+               <DocumentoCard key={d.id} doc={d} onReprocesar={() => reprocesar(d)} reprocesando={precisionId === d.id} />
+             ))}
+diff --git a/src/pages/Presupuestos.jsx b/src/pages/Presupuestos.jsx
+index 87144b6..ce339d7 100644
+--- a/src/pages/Presupuestos.jsx
++++ b/src/pages/Presupuestos.jsx
+@@ -9,6 +9,8 @@ import { format } from "date-fns";
+ import { es } from "date-fns/locale";
+ import PresupuestoForm from "@/pages/presupuestos/PresupuestoForm";
+ import { toast } from "sonner";
++import InformesTecnicosPresupuesto, { ROLES_INFORMES_INTERNOS } from "@/components/presupuestos/InformesTecnicosPresupuesto";
++import { useUserRole } from "@/lib/useUserRole";
+ 
+ const eur = (n) => (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR" });
+ 
+@@ -46,6 +48,9 @@ export default function Presupuestos() {
+     const [editando, setEditando] = useState(null);
+     const [duplicadoConfirm, setDuplicadoConfirm] = useState(null);
+     const [pdfCargando, setPdfCargando] = useState(null);
++    const [informesDe, setInformesDe] = useState(null);      // presupuesto cuyos informes internos se están viendo
++    const { role } = useUserRole();
++    const verInformes = ROLES_INFORMES_INTERNOS.includes(role);
+ 
+     const { data: presupuestos = [], isLoading } = useQuery({
+         queryKey: ['presupuestos'],
+@@ -226,6 +231,11 @@ export default function Presupuestos() {
+                                         <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => descargarPdf(presupuesto)} disabled={pdfCargando === presupuesto.id}>
+                                             {pdfCargando === presupuesto.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />} PDF
+                                         </Button>
++                                        {verInformes && (
++                                            <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setInformesDe(presupuesto)}>
++                                                <FileText className="w-3 h-3" /> Informes
++                                            </Button>
++                                        )}
+                                         {estado === 'borrador' && (
+                                             <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => { setEditando(presupuesto); setShowForm(true); }}>
+                                                 <Pencil className="w-3 h-3" /> Editar
+@@ -246,6 +256,18 @@ export default function Presupuestos() {
+             </div>
+ 
+             {/* Formulario de creación / edición */}
++            {informesDe && (
++                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
++                    <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
++                        <CardHeader className="flex flex-row items-center justify-between space-y-0">
++                            <CardTitle className="text-base">Informes internos · {informesDe.codigo_registro || informesDe.titulo}</CardTitle>
++                            <Button variant="ghost" size="icon" onClick={() => setInformesDe(null)}><X className="w-4 h-4" /></Button>
++                        </CardHeader>
++                        <CardContent><InformesTecnicosPresupuesto presupuestoId={informesDe.id} /></CardContent>
++                    </Card>
++                </div>
++            )}
++
+             {showForm && (
+                 <PresupuestoForm
+                     key={editando?.id || 'nuevo'}
+diff --git a/src/pages/presupuestos/PresupuestoForm.jsx b/src/pages/presupuestos/PresupuestoForm.jsx
+index 33c9854..6826ddb 100644
+--- a/src/pages/presupuestos/PresupuestoForm.jsx
++++ b/src/pages/presupuestos/PresupuestoForm.jsx
+@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
+ import { Label } from "@/components/ui/label";
+ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+ import { Badge } from "@/components/ui/badge";
+-import { X, Plus, Trash2, FileText, Upload, Type, Wrench, BedDouble, Save, Calculator } from "lucide-react";
++import { X, Plus, Trash2, FileText, Upload, Type, Wrench, BedDouble, Save, Calculator, Maximize2, Minimize2 } from "lucide-react";
+ import { format, parseISO } from "date-fns";
+ import { toast } from "sonner";
+ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+@@ -17,7 +17,7 @@ import AnalisisTecnicoPresupuesto from "@/components/presupuestos/AnalisisTecnic
+ import { extraerConceptosDesdeTexto } from "@/lib/conceptosExtractor";
+ import { calcularDocumento } from "@/lib/presupuestoCalculo";
+ import { lineasDeParte, lineasDeExtras, lineaManoDeObra, lineaAlojamiento, quitarLineasDeOrigen, resolverTarifa } from "@/lib/lineasDesdeObra";
+-import SimantecLogo from "@/components/SimantecLogo";
++import { LOGOS_PRESUPUESTO, getLogoPreferido, setLogoPreferido } from "@/lib/presupuestoLogos";
+ import CompletarDesdeDocumento from "@/components/presupuestos/CompletarDesdeDocumento";
+ import CorregirFormularioButton from "@/components/presupuestos/CorregirFormularioButton";
+ import AutoCorrectTextarea from "@/components/ui/AutoCorrectTextarea";
+@@ -91,6 +91,9 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
+     const [alojDias, setAlojDias] = useState("");
+     const [tarifaEdit, setTarifaEdit] = useState(null);             // precios editados a mano en este documento
+     const [guardandoTarifa, setGuardandoTarifa] = useState(false);
++    const [maximizado, setMaximizado] = useState(false);          // formulario a pantalla completa
++    // Logo del PDF: el guardado en el presupuesto; si es nuevo, el último que eligió el usuario
++    const [logoId, setLogoId] = useState(() => presupuestoInicial?.logo_id || getLogoPreferido());
+     const [showAnalisis, setShowAnalisis] = useState(false);        // análisis interno de precios e informe técnico
+ 
+     // Totales en vivo: mismas reglas que el servidor (IVA por línea, redondeo por línea)
+@@ -381,8 +384,10 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
+         if (!formData.cliente_id) { toast.error("Selecciona un cliente"); return; }
+         if (formData.conceptos.length === 0) { toast.error("Añade al menos una línea al presupuesto"); return; }
+         // Los importes los calcula el servidor; aquí solo se envían las líneas
++        setLogoPreferido(logoId);
+         onSubmit({
+             ...(edicion ? { id: presupuestoInicial.id } : {}),
++            logo_id: logoId,
+             titulo: formData.titulo,
+             cliente_id: formData.cliente_id,
+             cliente_name: formData.cliente_name,
+@@ -406,17 +411,31 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
+     const textoNuevo = nuevoConcepto.tipo === "texto";
+ 
+     return (
+-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+-            <Card className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
++        <div className={`fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto ${maximizado ? "p-0" : "p-2 sm:p-4"}`}>
++            <Card className={maximizado ? "w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto" : "w-full max-w-5xl max-h-[94vh] overflow-y-auto"}>
+                 <CardHeader className="sticky top-0 bg-background border-b z-10">
+                     <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+-                            <SimantecLogo variant="icon" size={34} />
++                            <div className="flex items-center gap-1 rounded-lg border p-1" role="tablist" aria-label="Logotipo del presupuesto">
++                                {LOGOS_PRESUPUESTO.map((l) => (
++                                    <button key={l.id} type="button" role="tab" aria-selected={logoId === l.id}
++                                        title={`${l.nombre}: es el logo que saldrá en el PDF`}
++                                        onClick={() => { setLogoId(l.id); setLogoPreferido(l.id); }}
++                                        className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors ${logoId === l.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
++                                        <img src={l.vista} alt="" className="h-6 w-6 rounded bg-white object-contain" />
++                                        <span className="hidden sm:inline">{l.nombre}</span>
++                                    </button>
++                                ))}
++                            </div>
+                             <CardTitle>{edicion ? `Editar presupuesto ${presupuestoInicial.codigo_registro || ""}` : "Nuevo Presupuesto"}</CardTitle>
+                         </div>
+                         <div className="flex items-center gap-2">
+                             <CorregirFormularioButton campos={camposCorregibles} onCorregido={aplicarCorreccionFormulario} />
+-                            <Button variant="ghost" size="icon" onClick={onCancel}>
++                            <Button type="button" variant="ghost" size="icon" onClick={() => setMaximizado((v) => !v)}
++                                title={maximizado ? "Reducir ventana" : "Ampliar a pantalla completa"}>
++                                {maximizado ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
++                            </Button>
++                            <Button type="button" variant="ghost" size="icon" onClick={onCancel}>
+                                 <X className="w-4 h-4" />
+                             </Button>
+                         </div>
+-- 
+2.43.0
+
