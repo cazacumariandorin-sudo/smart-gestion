@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 function getConnection() {
   if (typeof navigator === 'undefined') return null;
@@ -30,28 +30,57 @@ function buildInfo(prevRtt) {
   return { effectiveType, downlink, rtt, connectionType: connection?.type || 'unknown', isSlowNetwork, isVoLTECall, isDegraded, timeout };
 }
 
+/* ── Estado único compartido ────────────────────────────────────────────────
+   Antes cada componente que usaba el hook abría su propio setInterval de 3 s
+   (hasta 9 sondeos simultáneos del mismo dato). Ahora hay un solo sondeo y un
+   solo listener de 'change', y los componentes se suscriben a él. */
+let currentInfo = buildInfo(null);
+let prevRtt = currentInfo.rtt;
+let timer = null;
+let listenerAttached = false;
+const subscribers = new Set();
+
+function emit() {
+  currentInfo = buildInfo(prevRtt);
+  prevRtt = currentInfo.rtt;
+  subscribers.forEach(fn => fn(currentInfo));
+}
+
+function startPolling() {
+  if (timer) return;
+  const connection = getConnection();
+  if (connection && !listenerAttached) {
+    connection.addEventListener?.('change', emit);
+    listenerAttached = true;
+  }
+  timer = setInterval(emit, 3000);
+}
+
+function stopPolling() {
+  if (subscribers.size > 0 || !timer) return;
+  clearInterval(timer);
+  timer = null;
+  if (listenerAttached) {
+    getConnection()?.removeEventListener?.('change', emit);
+    listenerAttached = false;
+  }
+}
+
 /**
  * Detecta el tipo de conexión de red (Network Information API), incluyendo
  * degradación por VoLTE (llamada activa en 4G), y expone timeouts recomendados.
- * Se actualiza en tiempo real (evento 'change' + sondeo periódico del RTT).
+ * Un único sondeo compartido por toda la app (singleton).
  */
 export function useNetworkInfo() {
-  const [info, setInfo] = useState(() => buildInfo(null));
-  const prevRttRef = useRef(info.rtt);
+  const [info, setInfo] = useState(currentInfo);
 
   useEffect(() => {
-    const connection = getConnection();
-    const update = () => {
-      const next = buildInfo(prevRttRef.current);
-      prevRttRef.current = next.rtt;
-      setInfo(next);
-    };
-    connection?.addEventListener?.('change', update);
-    // El evento 'change' no siempre dispara con variaciones de RTT (p.ej. VoLTE) — sondeo cada 3s
-    const interval = setInterval(update, 3000);
+    subscribers.add(setInfo);
+    startPolling();
+    setInfo(currentInfo); // sincroniza al montar por si el estado cambió
     return () => {
-      connection?.removeEventListener?.('change', update);
-      clearInterval(interval);
+      subscribers.delete(setInfo);
+      stopPolling();
     };
   }, []);
 

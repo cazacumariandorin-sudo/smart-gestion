@@ -202,9 +202,18 @@ a:not(.badge):not(.status-dot) {
     @apply bg-background text-foreground font-inter;
     overscroll-behavior: none;
   }
-  button, a, nav, [role="navigation"] {
+  button, a, nav, [role="navigation"], [role="tab"], [role="tablist"],
+  [role="button"], [role="menuitem"], [role="option"], label, svg {
     user-select: none;
     -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  /* El texto que se lee o se copia debe seguir siendo seleccionable */
+  input, textarea, select, [contenteditable="true"],
+  .selectable-text, .chat-message, .mensaje-contenido, .prosa-seleccionable {
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
   }
 }
 
@@ -213,14 +222,20 @@ a:not(.badge):not(.status-dot) {
   input, textarea, select, button {
     font-size: max(16px, 1em);
   }
-  /* Ensure readable body copy — floor text-xs at 14px on mobile */
+  /* Texto mínimo legible en móvil: 14px también en badges y etiquetas */
   .text-xs {
     font-size: 0.875rem; /* 14px */
     line-height: 1.25rem;
   }
-  .text-\[10px\], .text-\[9px\] {
-    font-size: 0.75rem; /* 12px floor */
-    line-height: 1rem;
+  .text-\[11px\], .text-\[10px\], .text-\[9px\] {
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.15rem;
+  }
+  /* Objetivos táctiles de 44×44 px como mínimo */
+  [role="tab"], [role="button"], [role="menuitem"], [role="option"],
+  nav button, nav a {
+    min-height: var(--sg-touch-target);
+    min-width: var(--sg-touch-target);
   }
 }
 
@@ -251,4 +266,47 @@ textarea.ing-input { height: auto; padding: 0.5rem 0.75rem; }
 }
 @media (min-width: 768px) {
   .main-with-bottom-nav { padding-bottom: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BLOQUE 7 — APP ANDROID: áreas seguras, overscroll y flotantes
+   ═══════════════════════════════════════════════════════════ */
+
+/* El documento no rebota; el scroll queda contenido en cada contenedor interno */
+html, body {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+}
+
+/* Scrollers internos: no encadenan el scroll al documento (cabeceras sticky estables) */
+.overflow-y-auto,
+.overflow-auto,
+.overflow-y-scroll,
+[data-radix-scroll-area-viewport],
+[data-radix-scroll-area-viewport] > div,
+.overscroll-contain-y {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Utilidades de área segura (notch y barra de gestos) */
+.safe-top { padding-top: env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-left { padding-left: env(safe-area-inset-left, 0px); }
+.safe-right { padding-right: env(safe-area-inset-right, 0px); }
+.safe-x {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Botón flotante del asistente: por encima de la barra de pestañas y del gesto inferior */
+.fab-asistente {
+  bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  right: calc(1rem + env(safe-area-inset-right, 0px));
+}
+@media (min-width: 768px) {
+  .fab-asistente {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    right: calc(1.5rem + env(safe-area-inset-right, 0px));
+  }
 }

@@ -1,0 +1,320 @@
+{
+  "description": "Factura BORRADOR NO OFICIAL preparada en la app con el formato de Contasimple. No es una factura ante la AEAT y nunca entra en el libro de IVA ni en el 303 (regla DOC-01). La factura oficial se emite en Contasimple, que asigna siempre su n\u00famero (DOC-02).",
+  "name": "FacturaBorrador",
+  "properties": {
+    "base_imponible": {
+      "description": "Base imponible total (calculada en el servidor)",
+      "type": "number"
+    },
+    "cliente_id": {
+      "description": "ID del cliente",
+      "type": "string"
+    },
+    "cliente_name": {
+      "description": "Nombre del cliente",
+      "type": "string"
+    },
+    "codigo_registro": {
+      "description": "N\u00famero propio del borrador: FBR-AAAA-NNNNN (no es el n\u00famero oficial de la factura)",
+      "type": "string"
+    },
+    "conceptos": {
+      "description": "L\u00edneas de la factura (con importe o de solo texto)",
+      "items": {
+        "properties": {
+          "cantidad": {
+            "type": "number"
+          },
+          "cuota_iva": {
+            "description": "Cuota de IVA de la l\u00ednea (calculado)",
+            "type": "number"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "detalle": {
+            "type": "string"
+          },
+          "extra_id": {
+            "description": "Trabajo extra del que procede la l\u00ednea",
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string"
+          },
+          "iva_pct": {
+            "description": "Tipo de IVA de la l\u00ednea (21, 10, 4 o 0)",
+            "type": "number"
+          },
+          "parte_id": {
+            "description": "Parte de trabajo del que procede la l\u00ednea",
+            "type": "string"
+          },
+          "precio_unitario": {
+            "type": "number"
+          },
+          "tipo": {
+            "enum": [
+              "linea",
+              "texto"
+            ],
+            "type": "string"
+          },
+          "total": {
+            "description": "Base de la l\u00ednea (calculado)",
+            "type": "number"
+          },
+          "unidad": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "desglose_iva": {
+      "description": "Desglose por tipo de IVA (calculado)",
+      "items": {
+        "properties": {
+          "base": {
+            "type": "number"
+          },
+          "cuota": {
+            "type": "number"
+          },
+          "tipo": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "estado": {
+      "default": "borrador",
+      "description": "borrador = en preparaci\u00f3n; preparada = Excel de importaci\u00f3n generado; emitida = ya existe la factura oficial en Contasimple (fase posterior); anulada",
+      "enum": [
+        "borrador",
+        "preparada",
+        "emitida",
+        "anulada"
+      ],
+      "type": "string"
+    },
+    "fecha": {
+      "description": "Fecha de la factura",
+      "format": "date",
+      "type": "string"
+    },
+    "forma_pago": {
+      "description": "Forma de pago (texto del pie)",
+      "type": "string"
+    },
+    "historial_estados": {
+      "description": "Registro de cambios de estado",
+      "items": {
+        "properties": {
+          "estado": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string"
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "por": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "importe": {
+      "description": "Importe SIN IVA (base imponible)",
+      "type": "number"
+    },
+    "iva_total": {
+      "description": "Cuota de IVA total",
+      "type": "number"
+    },
+    "notas": {
+      "description": "Observaciones (salen en el pie)",
+      "type": "string"
+    },
+    "numero_oficial": {
+      "description": "N\u00famero oficial de la factura en Contasimple (lo confirma una persona al preparar el Excel; nunca lo inventa la app)",
+      "type": "string"
+    },
+    "obra_id": {
+      "type": "string"
+    },
+    "obra_name": {
+      "type": "string"
+    },
+    "partes_trabajo_ids": {
+      "description": "IDs de partes de trabajo incluidos",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "preparada_fecha": {
+      "description": "Fecha en que se gener\u00f3 el Excel de importaci\u00f3n",
+      "type": "string"
+    },
+    "presupuesto_codigo": {
+      "description": "C\u00f3digo del presupuesto de origen",
+      "type": "string"
+    },
+    "presupuesto_id": {
+      "description": "Presupuesto aceptado del que procede (opcional)",
+      "type": "string"
+    },
+    "referencia_cliente": {
+      "description": "Pedido, orden de trabajo o c\u00f3digo de obra del cliente",
+      "type": "string"
+    },
+    "tipo_ingreso": {
+      "default": "705",
+      "description": "Tipo de ingreso en Contasimple: 705 prestaciones de servicios, 700 ventas de mercader\u00edas",
+      "enum": [
+        "705",
+        "700"
+      ],
+      "type": "string"
+    },
+    "titulo": {
+      "description": "T\u00edtulo descriptivo (opcional)",
+      "type": "string"
+    },
+    "total_con_iva": {
+      "description": "Total con IVA",
+      "type": "number"
+    },
+    "valido_hasta": {
+      "description": "Fecha hasta la que es v\u00e1lido el borrador; se usa como vencimiento al preparar el Excel",
+      "format": "date",
+      "type": "string"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "fecha"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        }
+      ]
+    }
+  },
+  "type": "object"
+}

@@ -1,100 +1,99 @@
-import { useState, useCallback } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, UserCircle, X } from 'lucide-react';
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, UserCircle, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useUserRole } from '@/lib/useUserRole';
 import { HUBS, isHubVisible } from '@/lib/hubs';
+
+/**
+ * Barra de pestañas fija (móvil).
+ *
+ * Sustituye al antiguo bottom sheet por hub: cada pestaña navega directamente a
+ * su hub y guarda su propia pila de navegación en sessionStorage, de modo que al
+ * cambiar de pestaña y volver se recupera la última pantalla visitada. Volver a
+ * pulsar la pestaña activa la devuelve a su raíz.
+ */
+const STACKS_KEY = 'sg_tab_stacks_v1';
+const MAX_PINNED_HUBS = 3;
 
 function haptic(ms = 8) {
   if (navigator?.vibrate) navigator.vibrate(ms);
 }
 
+function pathOnly(p) {
+  return (p || '').split('?')[0];
+}
+
 // Mismo criterio que Sidebar.jsx: un item cuyo `path` lleva query string
 // (p. ej. '/notas-gastos?vista=admin') debe compararse contra pathname+search
-// completo, no solo el pathname — si no, el item hermano sin query (p. ej.
-// 'Mis Gastos') siempre gana el resaltado activo.
+// completo, no solo el pathname.
 function matchNavItem(item, pathname, search) {
   if (item.path.includes('?')) return (pathname + (search || '')) === item.path;
   return pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
 }
 
-function BottomSheet({ hub, onClose, saveTabPath }) {
-  const location = useLocation();
-  const { canAccess } = useUserRole();
-  const items = hub.items.filter(i => i.module === null || canAccess(i.module));
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-50 flex flex-col justify-end"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      onClick={onClose}
-    >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
-      <motion.div
-        className="relative bg-card border-t border-border rounded-t-3xl pt-3 pb-8 px-4"
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
-        <div className={cn('flex items-center gap-2 mb-4 px-1')}>
-          <hub.icon className={cn('w-4 h-4', hub.color)} />
-          <p className={cn('text-sm font-bold', hub.color)}>{hub.label}</p>
-        </div>
-        <div className="grid grid-cols-3 gap-2.5">
-          {items.map(item => {
-            const isActive = matchNavItem(item, location.pathname, location.search);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => { haptic(); saveTabPath(item.path, item.path); onClose(); }}
-                className={cn(
-                  'flex flex-col items-center gap-1.5 py-3.5 px-2 rounded-2xl transition-all active:scale-95',
-                  isActive ? cn(hub.activeBg, hub.color, 'font-semibold') : 'bg-muted/60 text-muted-foreground hover:bg-muted'
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="text-[10px] font-semibold text-center leading-tight">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-        <button
-          onClick={onClose}
-          className="w-full mt-4 flex items-center justify-center gap-1.5 py-2.5 text-xs text-muted-foreground rounded-xl hover:bg-muted transition-colors"
-        >
-          <X className="w-3.5 h-3.5" /> Cerrar
-        </button>
-      </motion.div>
-    </motion.div>
-  );
+function readStacks() {
+  try {
+    return JSON.parse(sessionStorage.getItem(STACKS_KEY) || '{}') || {};
+  } catch {
+    return {};
+  }
 }
 
-function NavTab({ icon: Icon, label, isActive, isOpen, onClick, color }) {
+function pushStack(tabId, fullPath) {
+  const stacks = readStacks();
+  const list = (stacks[tabId] || []).filter(p => p !== fullPath);
+  list.push(fullPath);
+  stacks[tabId] = list.slice(-8);
+  try {
+    sessionStorage.setItem(STACKS_KEY, JSON.stringify(stacks));
+  } catch {
+    /* almacenamiento no disponible: se pierde solo la memoria de pestaña */
+  }
+}
+
+function lastPathOf(tabId) {
+  const list = readStacks()[tabId] || [];
+  return list.length ? list[list.length - 1] : null;
+}
+
+function TabButton({ tab, isActive, onPress }) {
+  const Icon = tab.icon;
   return (
     <button
-      onClick={() => { haptic(); onClick(); }}
-      className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all relative min-w-[44px]"
+      type="button"
+      onClick={() => onPress(tab)}
+      aria-label={tab.ariaLabel}
+      aria-current={isActive ? 'page' : undefined}
+      className={cn(
+        'flex flex-1 flex-col items-center justify-center gap-1 px-1 py-1.5 rounded-xl transition-colors relative',
+        'min-h-[48px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+      )}
     >
-      <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center">
-        {(isActive || isOpen) && (
+      <motion.div whileTap={{ scale: 0.85 }} className="relative flex items-center justify-center">
+        {isActive && (
           <motion.div
-            layoutId={`nav-pill-${label}`}
+            layoutId="mobile-tab-pill"
             className="absolute -inset-1.5 bg-primary/10 rounded-xl"
             transition={{ type: 'spring', damping: 26, stiffness: 350 }}
           />
         )}
-        <Icon className={cn('w-5 h-5 relative z-10 transition-all', (isActive || isOpen) ? (color || 'text-primary') + ' stroke-[2.5]' : 'text-muted-foreground')} />
+        <Icon
+          className={cn(
+            'w-5 h-5 relative z-10 transition-all',
+            isActive ? cn(tab.color || 'text-primary', 'stroke-[2.5]') : 'text-muted-foreground'
+          )}
+          aria-hidden="true"
+        />
       </motion.div>
-      <span className={cn('text-[9px] font-semibold transition-colors', (isActive || isOpen) ? (color || 'text-primary') : 'text-muted-foreground')}>
-        {label}
+      <span
+        className={cn(
+          'text-[10px] font-semibold leading-none max-w-full truncate',
+          isActive ? (tab.color || 'text-primary') : 'text-muted-foreground'
+        )}
+      >
+        {tab.label}
       </span>
     </button>
   );
@@ -103,95 +102,88 @@ function NavTab({ icon: Icon, label, isActive, isOpen, onClick, color }) {
 export default function MobileNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { canAccess, isAdmin, role } = useUserRole();
-  const isGerencia = role === 'gerencia';
-
-  const [openHub, setOpenHub] = useState(null);
-
-  const getTabKey = (tabPath) => `tab_last_path_${tabPath}`;
-  const saveTabPath = useCallback((tabPath, fullPath) => {
-    if (tabPath && fullPath.startsWith(tabPath)) {
-      sessionStorage.setItem(getTabKey(tabPath), fullPath);
-    }
-  }, []);
-
-  const closeAll = useCallback(() => setOpenHub(null), []);
-
+  const { canAccess, role } = useUserRole();
   const isDemo = role === 'usuario_demo';
-  const visibleHubs = HUBS.filter(hub => {
-    if (hub.id === 'sistema') return false;
-    if (!isHubVisible(hub, { role, isDemo })) return false;
-    return hub.items.some(i => i.module === null || canAccess(i.module));
-  });
 
-  // Show at most 4 hubs in the bottom bar + profile; the rest are in "Más"
-  const MAX_TABS = 4;
-  const pinnedHubs = visibleHubs.slice(0, MAX_TABS);
+  const visibleHubs = HUBS
+    .filter(hub => hub.id !== 'sistema')
+    .filter(hub => isHubVisible(hub, { role, isDemo }))
+    .map(hub => {
+      const items = hub.items.filter(i => i.module === null || canAccess(i.module));
+      return { ...hub, items, root: items[0]?.path || null };
+    })
+    .filter(hub => hub.root);
+
+  const pinnedHubs = visibleHubs.slice(0, MAX_PINNED_HUBS);
+
+  const tabs = [
+    { id: 'panel', label: 'Panel', ariaLabel: 'Panel de inicio', icon: LayoutDashboard, root: '/', color: 'text-primary' },
+    ...pinnedHubs.map(hub => ({
+      id: hub.id,
+      label: hub.label.split(' ')[0],
+      ariaLabel: hub.label,
+      icon: hub.icon,
+      root: hub.root,
+      color: hub.color,
+      items: hub.items,
+    })),
+    { id: 'mas', label: 'Más', ariaLabel: 'Todos los módulos', icon: MoreHorizontal, root: '/mas', color: 'text-primary' },
+    { id: 'perfil', label: 'Perfil', ariaLabel: 'Mi perfil', icon: UserCircle, root: '/profile', color: 'text-primary' },
+  ];
+
+  // Pestaña propietaria de una ruta. Lo que no es de un hub fijado cuelga de "Más".
+  const ownerOf = (pathname, search) => {
+    if (pathname === '/') return 'panel';
+    if (pathname.startsWith('/mas')) return 'mas';
+    if (pathname.startsWith('/profile')) return 'perfil';
+    const hub = visibleHubs.find(h => h.items.some(i => matchNavItem(i, pathname, search)));
+    return hub ? hub.id : 'mas';
+  };
+
+  // Guarda la pantalla actual en la pila de su pestaña
+  useEffect(() => {
+    pushStack(ownerOf(location.pathname, location.search), location.pathname + location.search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search]);
+
+  const belongsToTab = (tab, saved) => {
+    if (!saved) return false;
+    const path = pathOnly(saved);
+    const search = saved.includes('?') ? '?' + saved.split('?').slice(1).join('?') : '';
+    if (tab.id === 'panel') return path === '/';
+    if (tab.id === 'perfil') return path.startsWith('/profile');
+    // "Más" recupera cualquier módulo que no pertenezca a otra pestaña
+    if (tab.id === 'mas') return ownerOf(path, search) === 'mas';
+    return (tab.items || []).some(i => matchNavItem(i, path, search));
+  };
+
+  const handlePress = (tab) => {
+    haptic();
+    const activeTabId = ownerOf(location.pathname, location.search);
+
+    // Re-pulsar la pestaña activa: vuelve a su raíz
+    if (activeTabId === tab.id) {
+      if (location.pathname + location.search !== tab.root) navigate(tab.root);
+      return;
+    }
+
+    // Cambiar de pestaña: recupera su última pantalla (su "pila"), o su raíz
+    const saved = lastPathOf(tab.id);
+    navigate(belongsToTab(tab, saved) ? saved : tab.root);
+  };
+
+  const activeTabId = ownerOf(location.pathname, location.search);
 
   return (
-    <>
-      <AnimatePresence>
-        {openHub && (
-          <BottomSheet
-            key={openHub.id}
-            hub={openHub}
-            onClose={closeAll}
-            saveTabPath={saveTabPath}
-          />
-        )}
-      </AnimatePresence>
-
-      <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-md border-t border-border"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-      >
-        <div className="flex justify-around items-center h-16 px-1">
-          {/* Dashboard tab */}
-          <button
-            onClick={() => { haptic(); closeAll(); navigate('/'); }}
-            className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all relative min-w-[44px]"
-          >
-            <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center">
-              {location.pathname === '/' && (
-                <motion.div layoutId="nav-pill-dash" className="absolute -inset-1.5 bg-primary/10 rounded-xl" transition={{ type: 'spring', damping: 26, stiffness: 350 }} />
-              )}
-              <LayoutDashboard className={cn('w-5 h-5 relative z-10', location.pathname === '/' ? 'text-primary stroke-[2.5]' : 'text-muted-foreground')} />
-            </motion.div>
-            <span className={cn('text-[9px] font-semibold', location.pathname === '/' ? 'text-primary' : 'text-muted-foreground')}>Panel</span>
-          </button>
-
-          {/* Hub tabs */}
-          {pinnedHubs.map(hub => {
-            const isActive = hub.items.some(i => matchNavItem(i, location.pathname, location.search));
-            const isOpen = openHub?.id === hub.id;
-            return (
-              <NavTab
-                key={hub.id}
-                icon={hub.icon}
-                label={hub.label}
-                isActive={isActive}
-                isOpen={isOpen}
-                color={hub.color}
-                onClick={() => setOpenHub(isOpen ? null : hub)}
-              />
-            );
-          })}
-
-          {/* Profile */}
-          <button
-            onClick={() => { haptic(); closeAll(); navigate('/profile'); }}
-            className="flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all relative min-w-[44px]"
-          >
-            <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center">
-              {location.pathname === '/profile' && (
-                <motion.div layoutId="nav-pill-profile" className="absolute -inset-1.5 bg-primary/10 rounded-xl" transition={{ type: 'spring', damping: 26, stiffness: 350 }} />
-              )}
-              <UserCircle className={cn('w-5 h-5 relative z-10', location.pathname === '/profile' ? 'text-primary stroke-[2.5]' : 'text-muted-foreground')} />
-            </motion.div>
-            <span className={cn('text-[9px] font-semibold', location.pathname === '/profile' ? 'text-primary' : 'text-muted-foreground')}>Perfil</span>
-          </button>
-        </div>
-      </nav>
-    </>
+    <nav
+      aria-label="Navegación principal"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-md border-t border-border safe-bottom"
+    >
+      <div className="flex items-stretch justify-around h-16 px-1 safe-x">
+        {tabs.map(tab => (
+          <TabButton key={tab.id} tab={tab} isActive={activeTabId === tab.id} onPress={handlePress} />
+        ))}
+      </div>
+    </nav>
   );
 }

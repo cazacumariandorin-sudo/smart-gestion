@@ -486,17 +486,31 @@ export default function Profile() {
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5 shrink-0">
-                  <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label="Eliminar mi cuenta"
+                  className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5 shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" aria-hidden="true" /> Eliminar
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>¿Eliminar tu cuenta?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta acción es permanente. Todos tus datos serán eliminados y no podrás recuperar el acceso.
+                    Esta acción es permanente e irreversible. Se cerrará tu sesión inmediatamente.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5 my-2">
+                  <li>Se borra tu acceso a la app: no podrás volver a entrar con este email.</li>
+                  <li>Tu ficha de técnico u operario se desvincula, no se borra.</li>
+                  <li>Los registros laborales (fichajes, partes, nóminas) se conservan por obligación legal.</li>
+                  <li>Si eres la única cuenta de administrador, el sistema impedirá el borrado.</li>
+                </ul>
+                <p className="text-xs text-muted-foreground">
+                  Si solo quieres dejar de usar la app, usa «Cerrar sesión» en lugar de eliminar la cuenta.
+                </p>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction

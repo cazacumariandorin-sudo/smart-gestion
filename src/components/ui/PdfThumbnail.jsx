@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// PDF.js se carga solo cuando hace falta pintar una miniatura (import dinámico),
+// para no arrastrarlo al bundle inicial de la app.
+let pdfjsPromise = null;
+async function cargarPdfjs() {
+  if (!pdfjsPromise) {
+    pdfjsPromise = import('pdfjs-dist').then(lib => {
+      lib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${lib.version}/pdf.worker.min.js`;
+      return lib;
+    });
+  }
+  return pdfjsPromise;
+}
 
 /**
  * Miniatura real de la primera página de un PDF, renderizada en cliente con
@@ -26,6 +36,7 @@ export default function PdfThumbnail({ url, width = 200, height = 250, onError }
 
     (async () => {
       try {
+        const pdfjsLib = await cargarPdfjs();
         const pdf = await pdfjsLib.getDocument(url).promise;
         const page = await pdf.getPage(1);
         const viewport = page.getViewport({ scale: 1 });

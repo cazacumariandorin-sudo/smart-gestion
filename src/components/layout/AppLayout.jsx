@@ -175,10 +175,11 @@ export default function AppLayout() {
       {/* Botón flotante Asistente IA — condicionado a BD */}
       {asistenteConfig?.asistente_activo !== false && <button
         onClick={handleAsistenteClick}
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 rounded-full bg-gradient-to-br from-slate-800 to-blue-700 shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
+        aria-label={voiceActive ? 'Abrir asistente SMART IA (di "hola compañero" para activar)' : 'Abrir asistente SMART IA'}
+        className="fab-asistente fixed z-30 w-12 h-12 rounded-full bg-gradient-to-br from-slate-800 to-blue-700 shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
         title={voiceActive ? 'Asistente SMART IA · Di "hola compañero" para activar' : 'Asistente SMART IA'}
       >
-        <Bot className="w-5 h-5 text-white" />
+        <Bot className="w-5 h-5 text-white" aria-hidden="true" />
         {voiceActive && !isMicDisabled && (
           <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-background flex items-center justify-center">
             <Mic className="w-2 h-2 text-white" />

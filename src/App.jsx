@@ -34,6 +34,7 @@ import OAuthConsent from './pages/OAuthConsent';
 
 // Lazy load pages for performance
 const Clients = lazy(() => import('./pages/Clients'));
+const MasMenu = lazy(() => import('./pages/MasMenu'));
 const WorkOrders = lazy(() => import('./pages/WorkOrders'));
 const CreateWorkOrder = lazy(() => import('./pages/CreateWorkOrder'));
 const WorkOrderDetail = lazy(() => import('./pages/WorkOrderDetail'));
@@ -231,6 +232,8 @@ function AnimatedRoutes() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            {/* Índice completo de módulos para la barra de pestañas móvil */}
+            <Route path="/mas" element={<ProtectedRoute><Suspense fallback={<PageLoader />}><MasMenu /></Suspense></ProtectedRoute>} />
 
             <Route path="/work-orders" element={<ProtectedRoute module="work-orders"><Suspense fallback={<PageLoader />}><WorkOrders /></Suspense></ProtectedRoute>} />
             <Route path="/work-orders/new" element={<ProtectedRoute module="work-orders"><Suspense fallback={<PageLoader />}><CreateWorkOrder /></Suspense></ProtectedRoute>} />
