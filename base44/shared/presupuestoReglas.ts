@@ -55,11 +55,11 @@ export function sumarDias(fecha: string, dias: number): string {
 }
 
 /** Si un presupuesto ya contiene alguno de los partes pedidos, devuelve el presupuesto en conflicto (DOC-04). */
-export function conflictoPartes(partesNuevos: string[], existentes: any[], excluirId?: string): { id: string; codigo_registro?: string; estado: string; parte_id: string } | null {
+export function conflictoPartes(partesNuevos: string[], existentes: any[], excluirId?: string, activos: string[] = ESTADOS_ACTIVOS): { id: string; codigo_registro?: string; estado: string; parte_id: string } | null {
   const pedidos = new Set((partesNuevos || []).filter(Boolean));
   if (pedidos.size === 0) return null;
   for (const p of existentes || []) {
-    if (!p || p.id === excluirId || !ESTADOS_ACTIVOS.includes(p.estado)) continue;
+    if (!p || p.id === excluirId || !activos.includes(p.estado)) continue;
     for (const id of p.partes_trabajo_ids || []) {
       if (pedidos.has(id)) return { id: p.id, codigo_registro: p.codigo_registro, estado: p.estado, parte_id: id };
     }
@@ -68,11 +68,11 @@ export function conflictoPartes(partesNuevos: string[], existentes: any[], exclu
 }
 
 /** Trabajo extra que ya está en otro presupuesto activo (DOC-04). `conceptos` son las líneas del presupuesto que se guarda. */
-export function conflictoExtras(conceptos: any[], existentes: any[], excluirId?: string): { id: string; codigo_registro?: string; estado: string; extra_id: string } | null {
+export function conflictoExtras(conceptos: any[], existentes: any[], excluirId?: string, activos: string[] = ESTADOS_ACTIVOS): { id: string; codigo_registro?: string; estado: string; extra_id: string } | null {
   const pedidos = new Set((conceptos || []).map((c: any) => c && c.extra_id).filter(Boolean));
   if (pedidos.size === 0) return null;
   for (const p of existentes || []) {
-    if (!p || p.id === excluirId || !ESTADOS_ACTIVOS.includes(p.estado || 'borrador')) continue;
+    if (!p || p.id === excluirId || !activos.includes(p.estado || 'borrador')) continue;
     for (const c of p.conceptos || []) {
       if (c && c.extra_id && pedidos.has(c.extra_id)) return { id: p.id, codigo_registro: p.codigo_registro, estado: p.estado, extra_id: c.extra_id };
     }
@@ -87,4 +87,53 @@ export function soloCamposEditables(body: Record<string, any>): Record<string, a
   const out: Record<string, any> = {};
   for (const k of CAMPOS_EDITABLES) if (body && body[k] !== undefined) out[k] = body[k];
   return out;
+}
+// ═══ Facturas borrador (Fase 3) ══════════════════════════════════════════════
+/** Decisión de Dirección (DOC-08): propietario, gerencia, administración y dirección comercial; admin como rol técnico. */
+export const ROLES_FACTURA_BORRADOR = ['admin', 'propietario', 'gerencia', 'administracion', 'director_comercial'];
+export const ESTADOS_FACTURA = ['borrador', 'preparada', 'emitida', 'anulada'] as const;
+// 'emitida' se habilitará al vincular la factura oficial que vuelve de Contasimple (fase posterior)
+export const TRANSICIONES_FACTURA: Record<string, string[]> = {
+  borrador: ['preparada', 'anulada'],
+  preparada: ['borrador', 'anulada'],
+  anulada: ['borrador'],
+  emitida: [],
+};
+export const transicionFacturaPermitida = (de: string, a: string): boolean => (TRANSICIONES_FACTURA[de] || []).includes(a);
+/** Una factura anulada libera sus partes y extras. */
+export const ESTADOS_ACTIVOS_FACTURA = ['borrador', 'preparada', 'emitida'];
+
+export const CAMPOS_EDITABLES_FACTURA = [...CAMPOS_EDITABLES, 'tipo_ingreso'];
+export function soloCamposEditablesFactura(body: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const k of CAMPOS_EDITABLES_FACTURA) if (body && body[k] !== undefined) out[k] = body[k];
+  if (out.tipo_ingreso !== undefined && !['705', '700'].includes(String(out.tipo_ingreso))) delete out.tipo_ingreso;
+  else if (out.tipo_ingreso !== undefined) out.tipo_ingreso = String(out.tipo_ingreso);
+  return out;
+}
+
+/** Compara números de factura ignorando mayúsculas, espacios y signos: "2026-0104" == "2026 0104". */
+export const normalizarNumero = (n: any): string => String(n ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+/** DOC-02: el número oficial lo confirma una persona. Devuelve el motivo de rechazo, o null si es aceptable. */
+export function validarNumeroOficial(n: any): string | null {
+  const v = String(n ?? '').trim();
+  if (!v) return 'Indica el número oficial de la factura en Contasimple.';
+  if (v.length < 3 || v.length > 40) return 'El número oficial debe tener entre 3 y 40 caracteres.';
+  if (!/^[A-Za-z0-9][A-Za-z0-9\-_/. ]*$/.test(v)) return 'El número oficial solo puede llevar letras, números y - _ / .';
+  if (/^(BOR|FBR|PRB|PRE|TEST|PRUEBA)[-_ ]/i.test(v)) return 'Ese prefijo es de borrador o de prueba: usa el número oficial de la serie de Contasimple.';
+  return null;
+}
+
+/** ¿Ya existe ese número en una lista de facturas (libro de IVA u otros borradores)? */
+export function numeroOcupado(numero: string, existentes: any[], campo = 'numero_factura', excluirId?: string): any | null {
+  const n = normalizarNumero(numero);
+  if (!n) return null;
+  return (existentes || []).find((f) => f && f.id !== excluirId && normalizarNumero(f[campo]) === n) || null;
+}
+
+/** NIF provisional de relleno (p. ej. 00000001M): 9 caracteres con al menos 6 ceros entre los dígitos. */
+export function nifProvisional(nif: any): boolean {
+  const s = String(nif ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return s.length === 9 && (s.replace(/\D/g, '').match(/0/g) || []).length >= 6;
 }
