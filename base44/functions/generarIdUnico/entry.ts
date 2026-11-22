@@ -29,8 +29,12 @@ const PREFIJOS = {
   Vehiculo:    'VEH',
   User:        'USR',
   Presupuesto: 'PRE',
+  FacturaBorrador: 'FBR',
   Drawing:     'PLN',
 };
+
+// Entidades cuyo código lleva el año completo: PREFIJO-AAAA-SSSSS (ej: PRE-2026-00001, FBR-2026-00001)
+const CON_ANIO_COMPLETO = ['Presupuesto', 'FacturaBorrador'];
 
 /**
  * Genera un código de registro estandarizado.
@@ -40,8 +44,8 @@ const PREFIJOS = {
  * @param entidad Nombre de la entidad para formatos especiales
  */
 function formatearId(prefijo, secuencial, anio, entidad) {
-  // Presupuesto usa formato interno: PRE-AAAA-SSSSS (ej: PRE-2026-00001)
-  if (entidad === 'Presupuesto') {
+  // Presupuesto y factura borrador usan PREFIJO-AAAA-SSSSS (ej: PRE-2026-00001, FBR-2026-00001)
+  if (CON_ANIO_COMPLETO.includes(entidad)) {
     const seq5 = String(secuencial).padStart(5, '0');
     return `${prefijo.toUpperCase()}-${anio}-${seq5}`;
   }
@@ -63,8 +67,8 @@ function calcularSiguienteSecuencial(registros, campo, prefijo, anio, entidad) {
     const val = r[campo];
     if (!val) continue;
     const partes = val.split('-');
-    // Presupuesto nuevo: PRE-AAAA-SSSSS
-    if (entidad === 'Presupuesto' && partes.length === 3 && partes[0] === prefijo && partes[1] === anioFull) {
+    // Presupuesto / factura borrador: PREFIJO-AAAA-SSSSS
+    if (CON_ANIO_COMPLETO.includes(entidad) && partes.length === 3 && partes[0] === prefijo && partes[1] === anioFull) {
       const n = parseInt(partes[2], 10);
       if (!isNaN(n) && n > max) max = n;
     }
