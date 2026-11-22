@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { ROLES_PRESUPUESTO, ESTADOS, transicionPermitida, conflictoPartes, conflictoExtras } from '../../shared/presupuestoReglas.ts';
+import { ROLES_PRESUPUESTO, ESTADOS, ESTADOS_ACTIVOS_FACTURA, transicionPermitida, conflictoPartes, conflictoExtras } from '../../shared/presupuestoReglas.ts';
 
 /**
  * cambiarEstadoPresupuesto — cambia el estado respetando las transiciones permitidas y deja registro.
@@ -38,6 +38,14 @@ Deno.serve(async (req) => {
       const conflictoExtra = conflictoExtras(p.conceptos || [], todos, id);
       if (conflictoExtra) {
         return Response.json({ error: `Un trabajo extra ya está en el presupuesto ${conflictoExtra.codigo_registro || conflictoExtra.id} (${conflictoExtra.estado})`, code: 'EXTRA_YA_PRESUPUESTADO', conflicto: conflictoExtra }, { status: 409 });
+      }
+    }
+
+    if (de === 'rechazado' && estado === 'borrador') {
+      const facturas = await base44.asServiceRole.entities.FacturaBorrador.list('-created_date', 1000);
+      const enFactura = conflictoPartes(p.partes_trabajo_ids || [], facturas, undefined, ESTADOS_ACTIVOS_FACTURA) || conflictoExtras(p.conceptos || [], facturas, undefined, ESTADOS_ACTIVOS_FACTURA);
+      if (enFactura) {
+        return Response.json({ error: `Un parte o trabajo extra ya está en la factura borrador ${enFactura.codigo_registro || enFactura.id} (${enFactura.estado})`, code: 'YA_EN_FACTURA_BORRADOR', conflicto: enFactura }, { status: 409 });
       }
     }
 

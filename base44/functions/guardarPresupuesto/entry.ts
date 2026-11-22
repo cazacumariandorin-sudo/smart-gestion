@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { calcularDocumento } from '../../shared/presupuestoCalculo.ts';
-import { ROLES_PRESUPUESTO, validarConceptos, sumarDias, conflictoPartes, conflictoExtras, soloCamposEditables } from '../../shared/presupuestoReglas.ts';
+import { ROLES_PRESUPUESTO, ESTADOS_ACTIVOS_FACTURA, validarConceptos, sumarDias, conflictoPartes, conflictoExtras, soloCamposEditables } from '../../shared/presupuestoReglas.ts';
 
 /**
  * guardarPresupuesto — crea o edita un presupuesto.
@@ -61,6 +61,11 @@ Deno.serve(async (req) => {
       if (conflictoExtra) {
         return Response.json({ error: `Un trabajo extra ya está en el presupuesto ${conflictoExtra.codigo_registro || conflictoExtra.id} (${conflictoExtra.estado})`, code: 'EXTRA_YA_PRESUPUESTADO', conflicto: conflictoExtra }, { status: 409 });
       }
+      const facturasE = await base44.asServiceRole.entities.FacturaBorrador.list('-created_date', 1000);
+      const enFacturaE = conflictoPartes(partes, facturasE, undefined, ESTADOS_ACTIVOS_FACTURA) || conflictoExtras(conceptosEntrada, facturasE, undefined, ESTADOS_ACTIVOS_FACTURA);
+      if (enFacturaE) {
+        return Response.json({ error: `Un parte o trabajo extra ya está en la factura borrador ${enFacturaE.codigo_registro || enFacturaE.id} (${enFacturaE.estado})`, code: 'YA_EN_FACTURA_BORRADOR', conflicto: enFacturaE }, { status: 409 });
+      }
       const cambios = { ...datos, ...totales, cliente_id, fecha, valido_hasta: datos.valido_hasta || actual.valido_hasta || sumarDias(fecha, 30) };
       const actualizado = await base44.entities.Presupuesto.update(id, cambios);
       return Response.json({ success: true, data: { ...actual, ...cambios, ...(actualizado || {}) }, codigo_registro: actual.codigo_registro, mensaje: 'Presupuesto actualizado' });
@@ -82,6 +87,12 @@ Deno.serve(async (req) => {
     const conflictoExtra = conflictoExtras(conceptosEntrada, existentes);
     if (conflictoExtra) {
       return Response.json({ error: `Un trabajo extra ya está en el presupuesto ${conflictoExtra.codigo_registro || conflictoExtra.id} (${conflictoExtra.estado})`, code: 'EXTRA_YA_PRESUPUESTADO', conflicto: conflictoExtra }, { status: 409 });
+    }
+
+    const facturasC = await base44.asServiceRole.entities.FacturaBorrador.list('-created_date', 1000);
+    const enFacturaC = conflictoPartes(datos.partes_trabajo_ids || [], facturasC, undefined, ESTADOS_ACTIVOS_FACTURA) || conflictoExtras(conceptosEntrada, facturasC, undefined, ESTADOS_ACTIVOS_FACTURA);
+    if (enFacturaC) {
+      return Response.json({ error: `Un parte o trabajo extra ya está en la factura borrador ${enFacturaC.codigo_registro || enFacturaC.id} (${enFacturaC.estado})`, code: 'YA_EN_FACTURA_BORRADOR', conflicto: enFacturaC }, { status: 409 });
     }
 
     // Detección de duplicados (mismo cliente, fecha, importe y al menos una línea igual), salvo confirmación manual
