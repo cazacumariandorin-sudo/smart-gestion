@@ -20,6 +20,7 @@ import { base44 } from '@/api/base44Client';
 import { useMicrophonePreference } from '@/hooks/useMicrophonePreference';
 import { useNetworkInfo } from '@/hooks/useNetworkInfo';
 import { useBackButton } from '@/hooks/useBackButton';
+import { useAndroidBack } from '@/hooks/useAndroidBack';
 import MicrophoneBanner from '@/components/layout/MicrophoneBanner';
 import ActiveRoleIndicator from '@/components/layout/ActiveRoleIndicator';
 import { useToast } from '@/components/ui/use-toast';
@@ -51,6 +52,7 @@ export default function AppLayout() {
   const { toast } = useToast();
   const { isVoLTECall } = useNetworkInfo();
   useBackButton(); // ESC vuelve atrás en cualquier pantalla
+  useAndroidBack(); // botón físico de Android: cierra capa → padre lógico → salir
   const volteAlertedRef = useRef(false);
 
   // Alerta puntual de degradación por llamada VoLTE (desaparece cuando el RTT vuelve a la normalidad)

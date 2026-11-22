@@ -133,9 +133,13 @@ export default function Profile() {
   const role = me?.role || 'operario';
   const roleCfg = ROLE_LABELS[role] || { label: role, className: 'bg-gray-100 text-gray-700 border-gray-200' };
 
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+
   const deleteMutation = useMutation({
     mutationFn: () => base44.functions.invoke('requestAccountDeletion', {}),
     onSuccess: () => {
+      toast.success('Cuenta eliminada. Cerrando sesión...');
       base44.auth.logout();
     },
     onError: (err) => {
@@ -484,7 +488,10 @@ export default function Profile() {
               <p className="text-sm font-medium">Eliminar cuenta</p>
               <p className="text-xs text-muted-foreground mt-0.5">Esta acción es permanente e irreversible</p>
             </div>
-            <AlertDialog>
+            <AlertDialog
+              open={confirmDeleteOpen}
+              onOpenChange={(o) => { setConfirmDeleteOpen(o); if (!o) setConfirmText(''); }}
+            >
               <AlertDialogTrigger asChild>
                 <Button
                   variant="outline"
@@ -511,13 +518,39 @@ export default function Profile() {
                 <p className="text-xs text-muted-foreground">
                   Si solo quieres dejar de usar la app, usa «Cerrar sesión» en lugar de eliminar la cuenta.
                 </p>
+
+                <div className="space-y-1.5 pt-1">
+                  <Label htmlFor="confirmar-borrado" className="text-xs">
+                    Escribe <strong>ELIMINAR</strong> para confirmar
+                  </Label>
+                  <Input
+                    id="confirmar-borrado"
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="ELIMINAR"
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    aria-describedby="confirmar-borrado-ayuda"
+                  />
+                  <p id="confirmar-borrado-ayuda" className="text-xs text-muted-foreground">
+                    Segundo paso de confirmación. No se puede deshacer.
+                  </p>
+                </div>
+
+                {deleteMutation.isError && (
+                  <p className="text-xs text-destructive">
+                    No se pudo eliminar la cuenta. Revisa el aviso y vuelve a intentarlo.
+                  </p>
+                )}
+
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
                   <AlertDialogAction
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault();
                       deleteMutation.mutate();
                     }}
-                    disabled={deleteMutation.isPending}
+                    disabled={deleteMutation.isPending || confirmText.trim().toUpperCase() !== 'ELIMINAR'}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
                   >
                     {deleteMutation.isPending ? 'Eliminando...' : 'Sí, eliminar mi cuenta'}
