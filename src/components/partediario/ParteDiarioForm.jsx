@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import AutoCorrectTextarea from '@/components/ui/AutoCorrectTextarea';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
@@ -184,15 +185,15 @@ export default function ParteDiarioForm({ editing, onSuccess, onCancel }) {
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs">Cliente <span className="text-muted-foreground font-normal">(filtra las obras)</span></Label>
-        <select
-          value={clienteFiltro}
-          onChange={e => setClienteFiltro(e.target.value)}
+        <MobileSelect
+          value={clienteFiltro || '__all'}
+          onValueChange={(v) => setClienteFiltro(v === '__all' ? '' : v)}
           disabled={!!editing}
-          className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm min-h-[44px] disabled:opacity-50"
+          placeholder="Cliente"
         >
-          <option value="">Todos los clientes</option>
-          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+          <MobileSelectItem value="__all">Todos los clientes</MobileSelectItem>
+          {clients.map(c => <MobileSelectItem key={c.id} value={c.id}>{c.name}</MobileSelectItem>)}
+        </MobileSelect>
       </div>
 
       <div className="space-y-1.5">

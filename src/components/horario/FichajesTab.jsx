@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { useOptimisticMutation } from '@/hooks/useOptimisticMutation';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import NetworkStatusBanner from '@/components/layout/NetworkStatusBanner';
 import { calcularHoras } from '@/lib/horasUtils';
 import { recalcularPrevision } from '@/hooks/useRecalcularPrevision';
@@ -51,6 +53,11 @@ export default function FichajesTab() {
   const { data: fichajes = [], isLoading, isError, error, refetch } = useQuery({ queryKey: ['fichajes'], queryFn: () => base44.entities.Fichaje.list('-date', 500) });
   const { data: operarios = [] } = useQuery({ queryKey: ['operarios'], queryFn: () => base44.entities.Operario.list('name', 200) });
   const { data: allApuntes = [] } = useQuery({ queryKey: ['apuntes'], queryFn: () => base44.entities.ApunteHorario.list('-date', 1000) });
+
+  const { pullDistance, refreshing } = usePullToRefresh(() => {
+    qc.invalidateQueries({ queryKey: ['fichajes'] });
+    qc.invalidateQueries({ queryKey: ['apuntes'] });
+  });
 
   // Consolidar fichajes con apuntes usando el hook de anclaje virtual
   const { jornadasConsolidadas } = useConsolidarJornada(fichajes, allApuntes);
@@ -202,6 +209,7 @@ export default function FichajesTab() {
   return (
     <div className="flex flex-col gap-0">
       <NetworkStatusBanner />
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex flex-col gap-4 p-4">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">

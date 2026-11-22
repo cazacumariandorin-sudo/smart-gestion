@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { useToast } from '@/components/ui/use-toast';
 import { ShieldCheck, RefreshCw, Download, CheckCircle2, XCircle, Eye } from 'lucide-react';
 import { useUserRole } from '@/lib/useUserRole';
@@ -115,30 +116,34 @@ export default function RegistroLegalTab() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        <select
-          value={anio}
-          onChange={(e) => resetFiltro(setAnio, Number(e.target.value))}
-          className="min-h-[44px] w-full rounded-md border border-input bg-background px-3 text-sm"
+        <MobileSelect
+          value={String(anio)}
+          onValueChange={(v) => resetFiltro(setAnio, Number(v))}
+          placeholder="Año"
         >
-          {[anioActual - 1, anioActual, anioActual + 1].map((y) => <option key={y} value={y}>{y}</option>)}
-        </select>
-        <select
-          value={mes}
-          onChange={(e) => resetFiltro(setMes, e.target.value === '' ? '' : Number(e.target.value))}
-          className="min-h-[44px] w-full rounded-md border border-input bg-background px-3 text-sm"
+          {[anioActual - 1, anioActual, anioActual + 1].map((y) => (
+            <MobileSelectItem key={y} value={String(y)}>{y}</MobileSelectItem>
+          ))}
+        </MobileSelect>
+        <MobileSelect
+          value={mes === '' ? '__all' : String(mes)}
+          onValueChange={(v) => resetFiltro(setMes, v === '__all' ? '' : Number(v))}
+          placeholder="Periodo"
         >
-          <option value="">Año completo</option>
-          {MESES_OPCIONES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-        </select>
+          <MobileSelectItem value="__all">Año completo</MobileSelectItem>
+          {MESES_OPCIONES.map((m) => <MobileSelectItem key={m.value} value={String(m.value)}>{m.label}</MobileSelectItem>)}
+        </MobileSelect>
         {canManage && (
-          <select
-            value={trabajadorId}
-            onChange={(e) => resetFiltro(setTrabajadorId, e.target.value)}
-            className="min-h-[44px] w-full rounded-md border border-input bg-background px-3 text-sm col-span-2 sm:col-span-1"
-          >
-            <option value="">Todos los trabajadores</option>
-            {operarios.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-          </select>
+          <div className="col-span-2 sm:col-span-1">
+            <MobileSelect
+              value={trabajadorId || '__all'}
+              onValueChange={(v) => resetFiltro(setTrabajadorId, v === '__all' ? '' : v)}
+              placeholder="Trabajador"
+            >
+              <MobileSelectItem value="__all">Todos los trabajadores</MobileSelectItem>
+              {operarios.map((o) => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
+            </MobileSelect>
+          </div>
         )}
       </div>
 

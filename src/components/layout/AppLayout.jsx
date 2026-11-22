@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
+import FloatingBackButton from '@/components/FloatingBackButton';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
 import RoleSimulatorBanner from '@/components/RoleSimulatorBanner';
@@ -32,7 +33,11 @@ function ScrollRestorer() {
 
 const VOICE_COMMAND = 'hola compañero';
 
+// Raíces de la barra de pestañas: no muestran botón de volver
+const RAICES_TAB = ['/', '/mas', '/profile'];
+
 export default function AppLayout() {
+  const location = useLocation();
   const { isSimulating, isDemo } = useUserRole();
   const { user: authUser } = useAuth();
   const hasTopBanner = isSimulating || isDemo;
@@ -171,6 +176,10 @@ export default function AppLayout() {
       <DemoWatermark />
       <ActiveRoleIndicator />
       <MobileNav />
+
+      {/* Salida consistente en móvil para cualquier pantalla hija (las raíces de
+          pestaña no la muestran). En escritorio se navega con el menú lateral. */}
+      <FloatingBackButton show={!RAICES_TAB.includes(location.pathname)} enableEsc={false} className="md:hidden" />
 
       {/* Botón flotante Asistente IA — condicionado a BD */}
       {asistenteConfig?.asistente_activo !== false && <button

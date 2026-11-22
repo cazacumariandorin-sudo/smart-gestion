@@ -30,7 +30,9 @@ Deno.serve(async (req) => {
     try {
       const fichas = await svc.Operario.filter({ user_id: user.id });
       for (const f of fichas) {
-        await svc.Operario.update(f.id, { user_id: '', user_email: '' });
+        // Se vacían los datos de contacto personal; nombre y DNI se conservan
+        // porque figuran en los registros laborales de obligada conservación.
+        await svc.Operario.update(f.id, { user_id: '', user_email: '', email: '' });
       }
     } catch (e) {
       console.error('No se pudo desvincular la ficha de operario', e);

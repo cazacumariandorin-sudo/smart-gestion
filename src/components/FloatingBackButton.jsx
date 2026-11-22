@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils';
  * FloatingBackButton — botón flotante siempre visible para salir de una pantalla
  * bloqueada (carga larga o error). Uso: <FloatingBackButton show={isLoading || !!error} />
  */
-export default function FloatingBackButton({ show, backTo, className }) {
-  const { handleBack } = useBackButton({ backTo });
+export default function FloatingBackButton({ show, backTo, className, enableEsc = true }) {
+  const { handleBack } = useBackButton({ backTo, enabled: enableEsc });
 
   if (!show) return null;
 

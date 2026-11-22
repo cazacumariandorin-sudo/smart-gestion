@@ -8,6 +8,8 @@ import { Plus, FileText, AlertTriangle, Download, Pencil, Send, Check, X, Rotate
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import PresupuestoForm from "@/pages/presupuestos/PresupuestoForm";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { toast } from "sonner";
 
 const eur = (n) => (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR" });
@@ -51,6 +53,7 @@ export default function Presupuestos() {
         queryKey: ['presupuestos'],
         queryFn: () => base44.entities.Presupuesto.list('-fecha', 300),
     });
+    const { pullDistance, refreshing } = usePullToRefresh(() => queryClient.invalidateQueries({ queryKey: ['presupuestos'] }));
 
     // Partes ya usados por otro presupuesto activo (se excluye el que se está editando)
     const ocupados = useMemo(() => {
@@ -133,6 +136,7 @@ export default function Presupuestos() {
 
     return (
         <div className="p-4 lg:p-6 max-w-6xl mx-auto">
+            <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Loader2 } from 'lucide-react';
 
 const TIPOS_AVERIA = [
@@ -38,23 +39,19 @@ export default function ReportarAveriaDialog({ vehiculo, open, onOpenChange, onS
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <Label className="text-xs">Tipo de incidencia</Label>
-            <select
-              value={tipo}
-              onChange={e => setTipo(e.target.value)}
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm"
-            >
-              {TIPOS_AVERIA.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
+            <MobileSelect value={tipo} onValueChange={setTipo} placeholder="Tipo de incidencia">
+              {TIPOS_AVERIA.map(t => <MobileSelectItem key={t.value} value={t.value}>{t.label}</MobileSelectItem>)}
+            </MobileSelect>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Urgencia</Label>
-            <select
-              value={urgencia}
-              onChange={e => setUrgencia(e.target.value)}
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm capitalize"
-            >
-              {URGENCIAS.map(u => <option key={u} value={u}>{u}</option>)}
-            </select>
+            <MobileSelect value={urgencia} onValueChange={setUrgencia} placeholder="Urgencia">
+              {URGENCIAS.map(u => (
+                <MobileSelectItem key={u} value={u}>
+                  <span className="capitalize">{u}</span>
+                </MobileSelectItem>
+              ))}
+            </MobileSelect>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Descripción *</Label>

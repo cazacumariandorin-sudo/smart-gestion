@@ -12,6 +12,7 @@ import {
 import { es } from 'date-fns/locale';
 import { X, Plus, Save, Pencil, ChevronLeft, ChevronRight, CalendarDays, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -63,24 +64,15 @@ function FormularioApunte({ fecha, obras, onSave, onCancel }) {
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1 col-span-2 sm:col-span-1">
           <Label className="text-xs">Tipo de apunte</Label>
-          <select
-            className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-            value={form.tipo}
-            onChange={e => set('tipo', e.target.value)}
-          >
-            {Object.entries(TIPO_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-          </select>
+          <MobileSelect value={form.tipo} onValueChange={v => set('tipo', v)} placeholder="Tipo de apunte">
+            {Object.entries(TIPO_CFG).map(([k, v]) => <MobileSelectItem key={k} value={k}>{v.label}</MobileSelectItem>)}
+          </MobileSelect>
         </div>
         <div className="space-y-1 col-span-2 sm:col-span-1">
           <Label className="text-xs">Obra asociada *</Label>
-          <select
-            className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-            value={form.obra_id}
-            onChange={e => set('obra_id', e.target.value)}
-          >
-            <option value="">— Seleccionar obra —</option>
-            {obras.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-          </select>
+          <MobileSelect value={form.obra_id} onValueChange={v => set('obra_id', v)} placeholder="— Seleccionar obra —">
+            {obras.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
+          </MobileSelect>
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Responsable</Label>
@@ -173,15 +165,11 @@ function FormularioEdicion({ prevision, onSave, onCancel, isSaving, onDelete, is
         {/* Estado */}
         <div className="space-y-1">
           <Label className="text-xs">Estado</Label>
-          <select
-            className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-            value={form.status}
-            onChange={e => set('status', e.target.value)}
-          >
+          <MobileSelect value={form.status} onValueChange={v => set('status', v)} placeholder="Estado">
             {STATUS_OPTIONS.map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <MobileSelectItem key={o.value} value={o.value}>{o.label}</MobileSelectItem>
             ))}
-          </select>
+          </MobileSelect>
         </div>
 
         {/* Horas previstas */}

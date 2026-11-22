@@ -22,6 +22,8 @@ import ClientObraTree from '@/components/documentos/ClientObraTree';
 import { useObrasActivasMap, esItemVisible } from '@/hooks/useObrasActivasMap';
 import ObraPickerInput from '@/components/fotos/ObraPickerInput';
 import ImageLightbox from '@/components/ui/ImageLightbox';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 
 const CATEGORIAS = ['parte_trabajo', 'obra', 'nota_gastos', 'presupuesto', 'averia'];
 const CAT_LABELS = {
@@ -108,6 +110,7 @@ export default function GaleriaFotos() {
     queryKey: ['fotos-proyecto'],
     queryFn: () => base44.entities.FotoProyecto.list('-fecha_foto', 200),
   });
+  const { pullDistance, refreshing } = usePullToRefresh(() => qc.invalidateQueries({ queryKey: ['fotos-proyecto'] }));
 
   const fotosVisibles = fotos.filter(f => !f.eliminada);
 
@@ -250,6 +253,7 @@ export default function GaleriaFotos() {
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           <Image className="w-6 h-6 text-primary" />
