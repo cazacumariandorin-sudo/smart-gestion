@@ -53,7 +53,7 @@ function startPolling() {
     connection.addEventListener?.('change', emit);
     listenerAttached = true;
   }
-  timer = setInterval(emit, 3000);
+  timer = setInterval(emit, 5000);
 }
 
 function stopPolling() {

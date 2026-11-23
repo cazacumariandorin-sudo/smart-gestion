@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 
 const TIPO_LABEL = {
   error_auto: 'Auto',
@@ -110,34 +111,37 @@ export default function ListaSesionesDiagnostico({ sesiones, loading, onSelect, 
 
       {/* Filtros */}
       <div className="flex gap-2 flex-wrap">
-        <select
-          value={filtroUsuario}
-          onChange={(e) => setFiltroUsuario(e.target.value)}
-          className="text-xs h-8 rounded-md border border-input bg-background px-2 flex-1 min-w-[140px]"
+        <MobileSelect
+          value={filtroUsuario || '__todos'}
+          onValueChange={(v) => setFiltroUsuario(v === '__todos' ? '' : v)}
+          placeholder="Todos los usuarios"
+          triggerClassName="text-xs flex-1 min-w-[140px]"
         >
-          <option value="">Todos los usuarios ({totalPendientes} pend.)</option>
+          <MobileSelectItem value="__todos">Todos los usuarios ({totalPendientes} pend.)</MobileSelectItem>
           {usuariosConErrores.map(u => (
-            <option key={u.email} value={u.email}>
+            <MobileSelectItem key={u.email} value={u.email}>
               {u.email} ({u.pendientes} pend.)
-            </option>
+            </MobileSelectItem>
           ))}
-        </select>
-        <select
-          value={filtroTipo}
-          onChange={(e) => setFiltroTipo(e.target.value)}
-          className="text-xs h-8 rounded-md border border-input bg-background px-2"
+        </MobileSelect>
+        <MobileSelect
+          value={filtroTipo || '__todos'}
+          onValueChange={(v) => setFiltroTipo(v === '__todos' ? '' : v)}
+          placeholder="Todos los tipos"
+          triggerClassName="text-xs"
         >
-          <option value="">Todos los tipos</option>
-          {tipos.map(t => <option key={t} value={t}>{TIPO_LABEL[t] || t}</option>)}
-        </select>
-        <select
-          value={filtroEstado}
-          onChange={(e) => setFiltroEstado(e.target.value)}
-          className="text-xs h-8 rounded-md border border-input bg-background px-2"
+          <MobileSelectItem value="__todos">Todos los tipos</MobileSelectItem>
+          {tipos.map(t => <MobileSelectItem key={t} value={t}>{TIPO_LABEL[t] || t}</MobileSelectItem>)}
+        </MobileSelect>
+        <MobileSelect
+          value={filtroEstado || '__todos'}
+          onValueChange={(v) => setFiltroEstado(v === '__todos' ? '' : v)}
+          placeholder="Todos los estados"
+          triggerClassName="text-xs"
         >
-          <option value="">Todos los estados</option>
-          {estados.map(e => <option key={e} value={e}>{e}</option>)}
-        </select>
+          <MobileSelectItem value="__todos">Todos los estados</MobileSelectItem>
+          {estados.map(e => <MobileSelectItem key={e} value={e}>{e}</MobileSelectItem>)}
+        </MobileSelect>
       </div>
 
       <p className="text-xs text-muted-foreground">{filtradas.length} de {sesiones.length} incidentes</p>

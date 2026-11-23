@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { CalendarClock, CalendarDays, AlertTriangle, History, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 
 const MESES_ES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
@@ -175,17 +176,17 @@ export default function BannerCicloActivo({
         {mostrarSelector && (
           <div className="mt-2 flex items-center gap-2">
             <label className="text-xs font-medium opacity-70">Ver ciclo:</label>
-            <select
+            <MobileSelect
               value={valorSelector}
-              onChange={e => onCicloChange?.(e.target.value)}
-              className="text-xs rounded-md border border-current/20 bg-white/80 px-2 py-1 font-medium focus:outline-none focus:ring-1 focus:ring-ring min-h-0"
+              onValueChange={v => onCicloChange?.(v)}
+              triggerClassName="text-xs w-auto min-w-[140px]"
             >
-              <option value={activo.cicloMes}>{activo.cicloMes} (activo)</option>
-              <option value="todos">Todos los ciclos</option>
+              <MobileSelectItem value={activo.cicloMes}>{activo.cicloMes} (activo)</MobileSelectItem>
+              <MobileSelectItem value="todos">Todos los ciclos</MobileSelectItem>
               {ciclosDisponibles.filter(c => c !== activo.cicloMes).map(c => (
-                <option key={c} value={c}>{c}</option>
+                <MobileSelectItem key={c} value={c}>{c}</MobileSelectItem>
               ))}
-            </select>
+            </MobileSelect>
           </div>
         )}
       </div>

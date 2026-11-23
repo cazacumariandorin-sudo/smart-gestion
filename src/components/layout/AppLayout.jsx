@@ -167,7 +167,7 @@ export default function AppLayout() {
       <div className="flex flex-1 min-w-0">
         <Sidebar />
         <main
-          className="flex-1 overflow-x-hidden main-with-bottom-nav"
+          className="flex-1 overflow-x-hidden main-with-bottom-nav sg-scroll"
           style={{
             paddingTop: (!hasTopBanner) ? 'env(safe-area-inset-top, 0px)' : undefined,
           }}

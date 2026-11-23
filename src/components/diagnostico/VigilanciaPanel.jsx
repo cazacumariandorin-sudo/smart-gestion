@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Eye, Square, Play, Clock, User, FileSearch, GitCompare, AlertCircle, CheckCircle2, XCircle, CalendarRange } from 'lucide-react';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import VigilanciaEventosView from '@/components/diagnostico/VigilanciaEventosView';
 import VigilanciaComparativa from '@/components/diagnostico/VigilanciaComparativa';
 import VigilanciaInformePeriodoDialog from '@/components/diagnostico/VigilanciaInformePeriodoDialog';
@@ -164,18 +165,17 @@ export default function VigilanciaPanel({ esGerencia }) {
               <div className="space-y-1">
                 <Label className="text-xs">Usuario objetivo</Label>
                 {usuariosFiltrados.length > 0 ? (
-                  <select
-                    className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm"
+                  <MobileSelect
                     value={userEmail}
-                    onChange={e => setUserEmail(e.target.value)}
+                    onValueChange={setUserEmail}
+                    placeholder="— Selecciona —"
                   >
-                    <option value="">— Selecciona —</option>
                     {usuariosFiltrados.map(u => (
-                      <option key={u.id} value={u.email}>
+                      <MobileSelectItem key={u.id} value={u.email}>
                         {u.full_name || u.email} ({u.role || 'sin rol'}) — {u.email}
-                      </option>
+                      </MobileSelectItem>
                     ))}
-                  </select>
+                  </MobileSelect>
                 ) : (
                   <Input value={userEmail} onChange={e => setUserEmail(e.target.value)} placeholder="email@simantec.es" />
                 )}
@@ -201,18 +201,17 @@ export default function VigilanciaPanel({ esGerencia }) {
               {esComparativa && (
                 <div className="space-y-1">
                   <Label className="text-xs">Comparar con (vigilancia activa)</Label>
-                  <select
-                    className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm"
+                  <MobileSelect
                     value={compararConVigId}
-                    onChange={e => setCompararConVigId(e.target.value)}
+                    onValueChange={setCompararConVigId}
+                    placeholder="— Selecciona —"
                   >
-                    <option value="">— Selecciona —</option>
                     {activas.filter(v => v.user_role_snapshot).map(v => (
-                      <option key={v.id} value={v.id}>
+                      <MobileSelectItem key={v.id} value={v.id}>
                         {v.user_full_name || v.user_email} (rol: {v.user_role_snapshot})
-                      </option>
+                      </MobileSelectItem>
                     ))}
-                  </select>
+                  </MobileSelect>
                 </div>
               )}
 

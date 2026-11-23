@@ -227,7 +227,7 @@ a:not(.badge):not(.status-dot) {
     font-size: 0.875rem; /* 14px */
     line-height: 1.25rem;
   }
-  .text-\[11px\], .text-\[10px\], .text-\[9px\] {
+  .text-\[11px\], .text-\[10px\], .text-\[9px\], .text-\[8px\] {
     font-size: 0.875rem; /* 14px */
     line-height: 1.15rem;
   }
@@ -276,6 +276,7 @@ textarea.ing-input { height: auto; padding: 0.5rem 0.75rem; }
 html, body {
   overscroll-behavior: none;
   overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
 }
 
 /* Scrollers internos: no encadenan el scroll al documento (cabeceras sticky estables) */
@@ -284,8 +285,10 @@ html, body {
 .overflow-y-scroll,
 [data-radix-scroll-area-viewport],
 [data-radix-scroll-area-viewport] > div,
-.overscroll-contain-y {
+.overscroll-contain-y,
+.sg-scroll {
   overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
   -webkit-overflow-scrolling: touch;
 }
 

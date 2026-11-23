@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { parseNum, parseFecha } from '@/lib/ivaImport';
 import ImportadorFacturasIVA from '@/components/contabilidad/ImportadorFacturasIVA';
+import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Calculator, Plus, Trash2, Save, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 
 const fmt = (n) => (n ?? 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
@@ -201,9 +202,9 @@ export default function IVA303Panel() {
       <div className="flex flex-wrap items-end gap-2">
         <div className="w-40">
           <Label className="text-xs">Trimestre</Label>
-          <select className={selectCls} value={trimestre} onChange={(e) => { setTrimestre(e.target.value); setCalculo(null); }}>
-            {opciones.map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
+          <MobileSelect value={trimestre} onValueChange={(v) => { setTrimestre(v); setCalculo(null); }}>
+            {opciones.map((o) => <MobileSelectItem key={o} value={o}>{o}</MobileSelectItem>)}
+          </MobileSelect>
         </div>
         <Button onClick={calcular} disabled={calculando} className="gap-1.5">
           <Calculator className="w-4 h-4" /> {calculando ? 'Calculando…' : 'Calcular 303'}
@@ -315,24 +316,27 @@ export default function IVA303Panel() {
             <div className="space-y-2 rounded-md border p-2">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div><Label className="text-xs">Tipo</Label>
-                  <select className={selectCls} value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}>
-                    <option value="recibida">Recibida (compra)</option><option value="emitida">Emitida (venta)</option>
-                  </select></div>
+                  <MobileSelect value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
+                    <MobileSelectItem value="recibida">Recibida (compra)</MobileSelectItem>
+                    <MobileSelectItem value="emitida">Emitida (venta)</MobileSelectItem>
+                  </MobileSelect></div>
                 <div><Label className="text-xs">Fecha</Label><Input type="date" value={form.fecha_factura} onChange={(e) => setForm({ ...form, fecha_factura: e.target.value })} /></div>
                 <div><Label className="text-xs">Nº factura</Label><Input value={form.numero_factura} onChange={(e) => setForm({ ...form, numero_factura: e.target.value })} /></div>
                 <div><Label className="text-xs">NIF</Label><Input value={form.nif_contraparte} onChange={(e) => setForm({ ...form, nif_contraparte: e.target.value })} /></div>
                 <div className="col-span-2"><Label className="text-xs">Cliente / proveedor</Label><Input value={form.nombre_contraparte} onChange={(e) => setForm({ ...form, nombre_contraparte: e.target.value })} /></div>
                 <div><Label className="text-xs">Base imponible</Label><Input value={form.base_imponible} onChange={(e) => setForm({ ...form, base_imponible: e.target.value })} /></div>
                 <div><Label className="text-xs">Tipo IVA %</Label>
-                  <select className={selectCls} value={form.tipo_iva} onChange={(e) => setForm({ ...form, tipo_iva: e.target.value })}>
-                    {['21', '10', '4', '0'].map((t) => <option key={t} value={t}>{t}%</option>)}
-                  </select></div>
+                  <MobileSelect value={form.tipo_iva} onValueChange={(v) => setForm({ ...form, tipo_iva: v })}>
+                    {['21', '10', '4', '0'].map((t) => <MobileSelectItem key={t} value={t}>{t}%</MobileSelectItem>)}
+                  </MobileSelect></div>
                 {form.tipo === 'recibida' && (
                   <>
                     <div><Label className="text-xs">Justificante</Label>
-                      <select className={selectCls} value={form.tipo_justificante} onChange={(e) => setForm({ ...form, tipo_justificante: e.target.value })}>
-                        <option value="completa">Factura completa</option><option value="simplificada">Simplificada</option><option value="otro">Otro</option>
-                      </select></div>
+                      <MobileSelect value={form.tipo_justificante} onValueChange={(v) => setForm({ ...form, tipo_justificante: v })}>
+                        <MobileSelectItem value="completa">Factura completa</MobileSelectItem>
+                        <MobileSelectItem value="simplificada">Simplificada</MobileSelectItem>
+                        <MobileSelectItem value="otro">Otro</MobileSelectItem>
+                      </MobileSelect></div>
                     <div><Label className="text-xs">% deducible</Label><Input value={form.deducible_pct} onChange={(e) => setForm({ ...form, deducible_pct: e.target.value })} /></div>
                     <label className="flex items-center gap-2 text-xs col-span-2 pt-5">
                       <input type="checkbox" checked={form.inversion_sujeto_pasivo} onChange={(e) => setForm({ ...form, inversion_sujeto_pasivo: e.target.checked })} />
