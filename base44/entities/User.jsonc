@@ -121,6 +121,10 @@
       "description": "El usuario ha completado el modal de bienvenida y tiene nombre configurado"
     }
   },
+  "required": [
+    "role",
+    "tipo_cuenta"
+  ],
   "rls": {
     "read": {
       "$or": [
