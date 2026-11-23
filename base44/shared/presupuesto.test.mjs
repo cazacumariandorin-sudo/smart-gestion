@@ -22,7 +22,8 @@ export function createClientFromRequest(_req) {
     create: async (o) => { const r = { id: 'id' + (ctx.db.length + 1), ...rec(o) }; ctx.db.push(r); return rec(r); },
     update: async (id, patch) => { const r = ctx.db.find((x) => x.id === id); Object.assign(r, rec(patch)); return rec(r); },
   };
-  return { auth: { me: async () => ctx.user }, entities: { Presupuesto: ent },
+  const facturas = { list: async () => [] };   // las facturas borrador se prueban en facturaBorrador.test.mjs
+  return { auth: { me: async () => ctx.user }, entities: { Presupuesto: ent }, asServiceRole: { entities: { FacturaBorrador: facturas } },
     functions: { invoke: async (_n, p) => { const n = ctx.db.filter((x) => x.codigo_registro).length + 1; const cod = 'PRE-' + p.anio_override + '-' + String(n).padStart(5, '0'); ctx.db.find((x) => x.id === p.record_id).codigo_registro = cod; return { data: { id_generado: cod } }; } } };
 }`);
 for (const n of ['guardarPresupuesto', 'cambiarEstadoPresupuesto']) {
