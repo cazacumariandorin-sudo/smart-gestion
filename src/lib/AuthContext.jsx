@@ -117,6 +117,7 @@ export const AuthProvider = ({ children }) => {
 
       setUser(currentUser);
       setIsAuthenticated(true);
+      try { window.sessionStorage.removeItem('base44_auth_reintento'); } catch { /* sin-op */ }
       // Captura de sesión para diagnóstico (timestamp de login + identidad)
       try {
         registrarLoginSesion({ ...currentUser, metodo_login: 'session_token' });
@@ -124,6 +125,21 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       clearTimeout(timeoutId);
       console.error('User auth check failed:', error);
+      // Auto-reparación: un token guardado que ya no vale deja la app en bucle
+      // (se inicia sesión y se vuelve a la pantalla de acceso). Se descarta UNA vez
+      // y se recarga, para que la sesión nueva de la plataforma se use sin el token viejo.
+      const tokenViejo = !!appParams.token;
+      let yaReintentado = false;
+      try { yaReintentado = window.sessionStorage.getItem('base44_auth_reintento') === '1'; } catch { /* sin-op */ }
+      if (tokenViejo && !yaReintentado) {
+        try {
+          window.sessionStorage.setItem('base44_auth_reintento', '1');
+          window.localStorage.removeItem('base44_access_token');
+          window.localStorage.removeItem('token');
+        } catch { /* sin-op */ }
+        window.location.reload();
+        return;
+      }
       setIsAuthenticated(false);
       setAuthError({ type: 'auth_required', message: 'Authentication required' });
     } finally {
