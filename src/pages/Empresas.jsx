@@ -21,7 +21,7 @@ const GASTOS_KEYS = [
 ];
 const EMPTY = {
   nombre: '', cif: '', domicilio: '', localidad: '', provincia: '', codigo_postal: '', telefono: '', email: '', web: '',
-  logo_url: '', actividad_principal: '', iban: '', registro_mercantil: '', fecha_constitucion: '', activa: true,
+  logo_url: '', logo_2_url: '', actividad_principal: '', iban: '', registro_mercantil: '', fecha_constitucion: '', activa: true,
   es_principal: false, notas: '', organizacion_gerencia_personas: 1, organizacion_gerencia_neto_mensual: 2400,
   organizacion_director_comercial_personas: 1, organizacion_director_comercial_neto_mensual: 2400,
   organizacion_administracion_personas: 1, organizacion_administracion_nomina_referencia: '', organizacion_observaciones: '',
@@ -54,6 +54,7 @@ export default function Empresas() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [logo2Uploading, setLogo2Uploading] = useState(false);
   const [historialAbierto, setHistorialAbierto] = useState(null);
 
   const { data: empresas = [], isLoading } = useQuery({
@@ -106,15 +107,15 @@ export default function Empresas() {
     setOpen(true);
   };
   const openEdit = (empresa) => { setEditing(empresa); setForm({ ...EMPTY, ...empresa }); setOpen(true); };
-  const subirLogo = async (file) => {
+  const subirLogo = async (file, campo = 'logo_url', setCargando = setLogoUploading) => {
     if (!file) return;
-    setLogoUploading(true);
+    setCargando(true);
     try {
       const res = await base44.integrations.Core.UploadFile({ file });
-      set('logo_url', res.file_url);
+      set(campo, res.file_url);
     } catch (e) {
       toast({ title: 'Error al subir logo', description: e?.message, variant: 'destructive' });
-    } finally { setLogoUploading(false); }
+    } finally { setCargando(false); }
   };
   const submit = () => {
     if (!form.nombre || !form.cif) return toast({ title: 'Nombre y CIF son obligatorios', variant: 'destructive' });
@@ -175,10 +176,15 @@ export default function Empresas() {
       <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-w-3xl">
         <DialogHeader><DialogTitle>{editing ? 'Editar empresa' : 'Nueva empresa'}</DialogTitle></DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2 max-h-[70vh] overflow-y-auto pr-1">
-          <div className="sm:col-span-2"><Label>Logotipo corporativo</Label><div className="flex items-center gap-3">
-            {form.logo_url ? <img src={form.logo_url} alt="Logo" className="h-16 w-16 rounded-lg object-contain bg-white border" /> : <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center"><ImagePlus className="h-6 w-6 text-muted-foreground" /></div>}
+          <div><Label>Logotipo corporativo (Logo 1)</Label><div className="flex items-center gap-3">
+            {form.logo_url ? <img src={form.logo_url} alt="Logo 1" className="h-16 w-16 rounded-lg object-contain bg-white border" /> : <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center"><ImagePlus className="h-6 w-6 text-muted-foreground" /></div>}
             <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border text-sm cursor-pointer hover:bg-accent">{logoUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}{logoUploading ? 'Subiendo...' : form.logo_url ? 'Cambiar logo' : 'Subir logo'}<input type="file" accept="image/*" className="hidden" onChange={(e) => subirLogo(e.target.files?.[0])} disabled={logoUploading} /></label>
             {form.logo_url && <Button variant="ghost" size="sm" onClick={() => set('logo_url', '')}>Quitar</Button>}</div></div>
+          <div><Label>Logo 2 (presupuestos)</Label><div className="flex items-center gap-3">
+            {form.logo_2_url ? <img src={form.logo_2_url} alt="Logo 2" className="h-16 w-16 rounded-lg object-contain bg-white border" /> : <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center"><ImagePlus className="h-6 w-6 text-muted-foreground" /></div>}
+            <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border text-sm cursor-pointer hover:bg-accent">{logo2Uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}{logo2Uploading ? 'Subiendo...' : form.logo_2_url ? 'Cambiar logo 2' : 'Subir logo 2'}<input type="file" accept="image/*" className="hidden" onChange={(e) => subirLogo(e.target.files?.[0], 'logo_2_url', setLogo2Uploading)} disabled={logo2Uploading} /></label>
+            {form.logo_2_url && <Button variant="ghost" size="sm" onClick={() => set('logo_2_url', '')}>Quitar</Button>}</div>
+            <p className="text-[11px] text-muted-foreground mt-1">Se ofrece como logotipo alternativo en los presupuestos y sale en su PDF.</p></div>
           <div className="sm:col-span-2"><Label>Nombre / Razón social *</Label><Input value={form.nombre} onChange={(e) => set('nombre', e.target.value)} /></div>
           <div><Label>CIF / NIF *</Label><Input value={form.cif} onChange={(e) => set('cif', e.target.value)} /></div>
           <div><Label>Actividad principal</Label><Input value={form.actividad_principal} onChange={(e) => set('actividad_principal', e.target.value)} /></div>

@@ -12,10 +12,10 @@ import { logoParaPdf } from '@/lib/presupuestoLogos';
 
 export async function generarPdfPresupuesto(presupuestoOriginal, { tipo = 'presupuesto', marcaAgua } = {}) {
   const presupuesto = stripInternalBudgetFields(presupuestoOriginal);
-  const [empresa, cliente, logo] = await Promise.all([
-    getEmpresaPrincipalPdf(),
+  const empresa = await getEmpresaPrincipalPdf();
+  const [cliente, logo] = await Promise.all([
     presupuesto.cliente_id ? base44.entities.Client.get(presupuesto.cliente_id).catch(() => null) : null,
-    logoParaPdf(presupuesto.logo_id),
+    logoParaPdf(presupuesto.logo_id, empresa),
   ]);
   return construirPresupuestoPdf({
     presupuesto,

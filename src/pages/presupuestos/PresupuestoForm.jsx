@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import AnalisisTecnicoPresupuesto from "@/components/presupuestos/AnalisisTecnic
 import { extraerConceptosDesdeTexto } from "@/lib/conceptosExtractor";
 import { calcularDocumento } from "@/lib/presupuestoCalculo";
 import { lineasDeParte, lineasDeExtras, lineaManoDeObra, lineaAlojamiento, quitarLineasDeOrigen, resolverTarifa } from "@/lib/lineasDesdeObra";
-import { LOGOS_PRESUPUESTO, getLogoPreferido, setLogoPreferido } from "@/lib/presupuestoLogos";
+import { LOGOS_PRESUPUESTO, LOGO_POR_DEFECTO, cargarLogosPresupuesto, getLogoPreferido, setLogoPreferido } from "@/lib/presupuestoLogos";
 import CompletarDesdeDocumento from "@/components/presupuestos/CompletarDesdeDocumento";
 import CorregirFormularioButton from "@/components/presupuestos/CorregirFormularioButton";
 import AutoCorrectTextarea from "@/components/ui/AutoCorrectTextarea";
@@ -106,6 +106,18 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
         queryKey: ['clientes_presupuesto'],
         queryFn: () => base44.entities.Client.list('name', 500),
     });
+
+    // Logos del PDF: el Logo 2 sale de los datos de la empresa principal (Sistema > Empresas)
+    const { data: logosDisponibles = LOGOS_PRESUPUESTO } = useQuery({
+        queryKey: ['logos_presupuesto'],
+        queryFn: cargarLogosPresupuesto,
+        staleTime: 5 * 60 * 1000,
+    });
+
+    // Si el logo propuesto ya no está disponible (p. ej. se quitó el Logo 2), se vuelve al principal
+    useEffect(() => {
+        if (!logosDisponibles.some(l => l.id === logoId)) setLogoId(LOGO_POR_DEFECTO);
+    }, [logosDisponibles, logoId]);
 
     // Condiciones económicas acordadas (la de la obra prevalece sobre la del cliente; si no hay, 40 €/h y 100 €/día)
     const { data: condiciones = [], refetch: refetchCondiciones } = useQuery({
@@ -419,7 +431,7 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-1 rounded-lg border p-1" role="tablist" aria-label="Logotipo del presupuesto">
-                                {LOGOS_PRESUPUESTO.map((l) => (
+                                {logosDisponibles.map((l) => (
                                     <button key={l.id} type="button" role="tab" aria-selected={logoId === l.id}
                                         title={`${l.nombre}: es el logo que saldrá en el PDF`}
                                         onClick={() => { setLogoId(l.id); setLogoPreferido(l.id); }}

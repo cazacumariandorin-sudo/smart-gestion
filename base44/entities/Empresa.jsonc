@@ -46,6 +46,10 @@
       "description": "URL del logotipo corporativo de la empresa (subido a CDN Base44)",
       "type": "string"
     },
+    "logo_2_url": {
+      "description": "URL del Logo 2 de la empresa (subido a CDN Base44). Es el logotipo alternativo que se puede elegir en los presupuestos y sale en su PDF.",
+      "type": "string"
+    },
     "nombre": {
       "description": "Nombre o raz\u00f3n social de la empresa",
       "type": "string"
