@@ -155,9 +155,9 @@ r = await llamar('estado', U('gerencia'), { id: idA, estado: 'borrador' });
 t('reactivar la anulada con el parte ya ocupado → 409', r.s === 409 && r.j.code === 'PARTE_YA_EN_DOCUMENTO', JSON.stringify(r.j));
 // El número oficial de una factura anulada queda libre
 nuevoCtx();
-const mk = async (cid) => (await llamar('guardar', U('gerencia'), base({ cliente_id: cid, conceptos: [L('trabajo ' + cid, 1, 100)] }))).j.data.id;
-const nA = await mk('cl1'); await llamar('estado', U('gerencia'), { id: nA, estado: 'preparada', numero_oficial: '2026-0200' });
-const nB = await mk('cl1');
+const mk = async (cid, n) => (await llamar('guardar', U('gerencia'), base({ cliente_id: cid, conceptos: [L('trabajo ' + n, 1, 100 + n)] }))).j.data.id;
+const nA = await mk('cl1', 1); await llamar('estado', U('gerencia'), { id: nA, estado: 'preparada', numero_oficial: '2026-0200' });
+const nB = await mk('cl1', 2);
 t('con la factura A preparada, B no puede usar su número oficial', (await llamar('estado', U('gerencia'), { id: nB, estado: 'preparada', numero_oficial: '2026-0200' })).j.code === 'NUMERO_OFICIAL_REPETIDO');
 await llamar('estado', U('gerencia'), { id: nA, estado: 'anulada' });
 t('el número oficial de una factura anulada queda libre para otra', (await llamar('estado', U('gerencia'), { id: nB, estado: 'preparada', numero_oficial: '2026-0200' })).s === 200);
