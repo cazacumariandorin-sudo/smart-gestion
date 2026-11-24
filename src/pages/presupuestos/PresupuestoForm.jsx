@@ -22,9 +22,9 @@ import CompletarDesdeDocumento from "@/components/presupuestos/CompletarDesdeDoc
 import CorregirFormularioButton from "@/components/presupuestos/CorregirFormularioButton";
 import AutoCorrectTextarea from "@/components/ui/AutoCorrectTextarea";
 import AutoCorrectInput from "@/components/ui/AutoCorrectInput";
+import AutoSizeInput from "@/components/ui/AutoSizeInput";
 
 const IVA_OPCIONES = [21, 10, 4, 0];
-const selectCls = "h-7 w-full rounded-md border border-input bg-background px-1 text-xs";
 const eur = (n) => (Number(n) || 0).toLocaleString("es-ES", { style: "currency", currency: "EUR" });
 
 // fecha 'AAAA-MM-DD' + días (sin depender de la zona horaria)
@@ -581,11 +581,14 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                                         const esTexto = concepto.tipo === "texto";
                                         return (
                                             <div key={index} className="p-2 border rounded-lg bg-card space-y-1.5">
-                                                <div className="grid grid-cols-12 gap-2 text-xs items-center">
-                                                    <div className={esTexto ? "col-span-10" : "col-span-4"}>
+                                                <div className="flex items-start gap-2 text-xs">
+                                                    <span className="w-5 shrink-0 pt-1.5 text-right text-[11px] font-semibold text-muted-foreground" title={`Línea ${index + 1}`}>
+                                                        {index + 1}
+                                                    </span>
+                                                    <div className="flex-1 min-w-0">
                                                         <AutoCorrectTextarea
-                                                            className="text-xs min-h-[32px]"
-                                                            rows={Math.min(6, Math.max(1, String(concepto.descripcion || "").split("\n").length))}
+                                                            autoGrow
+                                                            className="text-xs min-h-[32px] leading-snug"
                                                             value={concepto.descripcion}
                                                             onChange={(e) => handleEditConcepto(index, "descripcion", e.target.value)}
                                                             placeholder={esTexto ? "Línea de texto (cabecera, obra, pedido…)" : "Descripción"}
@@ -595,33 +598,39 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                                                     </div>
                                                     {!esTexto && (
                                                         <>
-                                                            <Input className="col-span-1 h-7 text-xs text-center px-1" type="number" step="any" value={concepto.cantidad}
-                                                                onChange={(e) => handleEditConcepto(index, "cantidad", parseFloat(e.target.value) || 0)} />
-                                                            <Input className="col-span-1 h-7 text-xs text-center px-1" value={concepto.unidad}
-                                                                onChange={(e) => handleEditConcepto(index, "unidad", e.target.value)} />
-                                                            <Input className="col-span-2 h-7 text-xs text-right" type="number" step="0.01" value={concepto.precio_unitario}
-                                                                onChange={(e) => handleEditConcepto(index, "precio_unitario", parseFloat(e.target.value) || 0)} placeholder="0,00" />
-                                                            <select className={`${selectCls} col-span-1`} value={concepto.iva_pct}
+                                                            <AutoSizeInput className="h-7 shrink-0 text-xs text-center" type="number" step="any" minCh={4} value={concepto.cantidad}
+                                                                title="Cantidad" onChange={(e) => handleEditConcepto(index, "cantidad", parseFloat(e.target.value) || 0)} />
+                                                            <AutoSizeInput className="h-7 shrink-0 text-xs text-center" minCh={4} value={concepto.unidad}
+                                                                title="Unidad" onChange={(e) => handleEditConcepto(index, "unidad", e.target.value)} />
+                                                            <AutoSizeInput className="h-7 shrink-0 text-xs text-right" type="number" step="0.01" minCh={7} value={concepto.precio_unitario}
+                                                                title="Precio unitario" onChange={(e) => handleEditConcepto(index, "precio_unitario", parseFloat(e.target.value) || 0)} placeholder="0,00" />
+                                                            <select className="h-7 shrink-0 rounded-md border border-input bg-background px-1 text-xs" value={concepto.iva_pct}
                                                                 onChange={(e) => handleEditConcepto(index, "iva_pct", Number(e.target.value))} title="IVA de la línea">
                                                                 {IVA_OPCIONES.map(v => <option key={v} value={v}>{v}%</option>)}
                                                             </select>
-                                                            <span className="col-span-2 text-right font-bold">{eur(calc.total)}</span>
+                                                            <span className="w-20 shrink-0 text-right font-bold leading-7">{eur(calc.total)}</span>
                                                         </>
                                                     )}
                                                     <button type="button" onClick={() => handleRemoveConcepto(index)}
-                                                        className="col-span-1 text-destructive hover:text-destructive/80 flex justify-end" title="Quitar línea">
+                                                        className="shrink-0 pt-1.5 text-destructive hover:text-destructive/80" title="Quitar línea">
                                                         <Trash2 className="w-3 h-3" />
                                                     </button>
                                                 </div>
                                                 {!esTexto && (
-                                                    <AutoCorrectInput
-                                                        className="h-7 text-[11px]"
-                                                        value={concepto.detalle || ""}
-                                                        onChange={(e) => handleEditConcepto(index, "detalle", e.target.value)}
-                                                        placeholder="Detalle opcional bajo la línea (operarios, horas, materiales…)"
-                                                        spellCheck
-                                                        lang="es"
-                                                    />
+                                                    <div className="flex items-start gap-2">
+                                                        <span className="w-5 shrink-0" aria-hidden="true" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <AutoCorrectTextarea
+                                                                autoGrow
+                                                                className="text-[11px] min-h-[28px] leading-snug"
+                                                                value={concepto.detalle || ""}
+                                                                onChange={(e) => handleEditConcepto(index, "detalle", e.target.value)}
+                                                                placeholder="Detalle opcional bajo la línea (operarios, horas, materiales…)"
+                                                                spellCheck
+                                                                lang="es"
+                                                            />
+                                                        </div>
+                                                    </div>
                                                 )}
                                             </div>
                                         );
