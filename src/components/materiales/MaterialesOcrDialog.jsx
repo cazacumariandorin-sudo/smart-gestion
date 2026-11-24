@@ -313,6 +313,7 @@ export default function MaterialesOcrDialog({ open, onClose, onSaved, operario =
           open={notasOpen}
           onClose={() => setNotasOpen(false)}
           onSelect={handleSelectFromNotaGasto}
+          onSaved={onSaved}
         />
       </DialogContent>
     </Dialog>

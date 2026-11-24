@@ -90,7 +90,7 @@ export default function MaterialesOcr() {
       </div>
 
       <MaterialesOcrDialog open={dialogOpen} onClose={handleDialogClose} onSaved={onSaved} presetFile={presetFile} />
-      <NotasGastosSourceDialog open={notasOpen} onClose={() => setNotasOpen(false)} onSelect={handleSelectFromNota} />
+      <NotasGastosSourceDialog open={notasOpen} onClose={() => setNotasOpen(false)} onSelect={handleSelectFromNota} onSaved={onSaved} />
       <MaterialLineaDetalleDialog open={lineaDetalle.open} onClose={() => setLineaDetalle({ open: false, line: null, doc: null })} line={lineaDetalle.line} doc={lineaDetalle.doc} />
     </div>
   );
