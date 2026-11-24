@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Trash2, FileText, Upload, Type, Wrench, BedDouble, Save, Calculator } from "lucide-react";
+import { X, Plus, Trash2, FileText, Upload, Type, Wrench, BedDouble, Save, Calculator, Maximize2, Minimize2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,7 +17,7 @@ import AnalisisTecnicoPresupuesto from "@/components/presupuestos/AnalisisTecnic
 import { extraerConceptosDesdeTexto } from "@/lib/conceptosExtractor";
 import { calcularDocumento } from "@/lib/presupuestoCalculo";
 import { lineasDeParte, lineasDeExtras, lineaManoDeObra, lineaAlojamiento, quitarLineasDeOrigen, resolverTarifa } from "@/lib/lineasDesdeObra";
-import SimantecLogo from "@/components/SimantecLogo";
+import { LOGOS_PRESUPUESTO, getLogoPreferido, setLogoPreferido } from "@/lib/presupuestoLogos";
 import CompletarDesdeDocumento from "@/components/presupuestos/CompletarDesdeDocumento";
 import CorregirFormularioButton from "@/components/presupuestos/CorregirFormularioButton";
 import AutoCorrectTextarea from "@/components/ui/AutoCorrectTextarea";
@@ -91,6 +91,9 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
     const [alojDias, setAlojDias] = useState("");
     const [tarifaEdit, setTarifaEdit] = useState(null);             // precios editados a mano en este documento
     const [guardandoTarifa, setGuardandoTarifa] = useState(false);
+    const [maximizado, setMaximizado] = useState(false);          // formulario a pantalla completa
+    // Logo del PDF: el guardado en el presupuesto; si es nuevo, el último que eligió el usuario
+    const [logoId, setLogoId] = useState(() => presupuestoInicial?.logo_id || getLogoPreferido());
     const [showAnalisis, setShowAnalisis] = useState(false);        // análisis interno de precios e informe técnico
     const [motivo, setMotivo] = useState("");                       // motivo del cambio (queda en el historial de versiones)
 
@@ -383,8 +386,10 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
         if (formData.conceptos.length === 0) { toast.error("Añade al menos una línea al presupuesto"); return; }
         if (edicion && !motivo.trim()) { toast.error("Indica el motivo del cambio"); return; }
         // Los importes los calcula el servidor; aquí solo se envían las líneas
+        setLogoPreferido(logoId);
         onSubmit({
             ...(edicion ? { id: presupuestoInicial.id, motivo: motivo.trim() } : {}),
+            logo_id: logoId,
             titulo: formData.titulo,
             cliente_id: formData.cliente_id,
             cliente_name: formData.cliente_name,
@@ -408,17 +413,32 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
     const textoNuevo = nuevoConcepto.tipo === "texto";
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <Card className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className={`fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto ${maximizado ? "p-0" : "p-2 sm:p-4"}`}>
+            <Card className={maximizado ? "w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto" : "w-full max-w-5xl max-h-[94vh] overflow-y-auto"}>
                 <CardHeader className="sticky top-0 bg-background border-b z-10">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <SimantecLogo variant="icon" size={34} />
+                            <div className="flex items-center gap-1 rounded-lg border p-1" role="tablist" aria-label="Logotipo del presupuesto">
+                                {LOGOS_PRESUPUESTO.map((l) => (
+                                    <button key={l.id} type="button" role="tab" aria-selected={logoId === l.id}
+                                        title={`${l.nombre}: es el logo que saldrá en el PDF`}
+                                        onClick={() => { setLogoId(l.id); setLogoPreferido(l.id); }}
+                                        className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors ${logoId === l.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                                        <img src={l.vista} alt="" className="h-6 w-6 rounded bg-white object-contain"
+                                            onError={(e) => { e.currentTarget.src = "/simantec-icon-192.png"; }} />
+                                        <span className="hidden sm:inline">{l.nombre}</span>
+                                    </button>
+                                ))}
+                            </div>
                             <CardTitle>{edicion ? `Editar presupuesto ${presupuestoInicial.codigo_registro || ""}` : "Nuevo Presupuesto"}</CardTitle>
                         </div>
                         <div className="flex items-center gap-2">
                             <CorregirFormularioButton campos={camposCorregibles} onCorregido={aplicarCorreccionFormulario} />
-                            <Button variant="ghost" size="icon" onClick={onCancel}>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => setMaximizado((v) => !v)}
+                                title={maximizado ? "Reducir ventana" : "Ampliar a pantalla completa"}>
+                                {maximizado ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                            </Button>
+                            <Button type="button" variant="ghost" size="icon" onClick={onCancel}>
                                 <X className="w-4 h-4" />
                             </Button>
                         </div>

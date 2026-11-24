@@ -186,6 +186,10 @@
       "description": "Cuota de IVA total (suma de las cuotas por l\u00ednea)",
       "type": "number"
     },
+    "logo_id": {
+      "description": "Logotipo elegido para el PDF: principal | alternativo. Vac\u00edo = principal",
+      "type": "string"
+    },
     "modificado_en": {
       "description": "Fecha y hora del \u00faltimo cambio de contenido (interno; no sale en el PDF del cliente)",
       "format": "date-time",

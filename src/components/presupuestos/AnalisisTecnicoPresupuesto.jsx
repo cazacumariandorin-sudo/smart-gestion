@@ -3,10 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { X, Loader2, Sparkles, CheckCircle2, AlertCircle, Save, FileText, Calculator } from 'lucide-react';
+import { X, Loader2, Sparkles, CheckCircle2, AlertCircle, Save, FileText, Calculator, Maximize2, Minimize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import InformeTecnicoResumen from './InformeTecnicoResumen';
+import InformesTecnicosPresupuesto from './InformesTecnicosPresupuesto';
 
 const eur = (n) => (Number(n) || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 const r2 = (v) => Math.round((Number(v) || 0) * 100) / 100;
@@ -27,6 +27,7 @@ export default function AnalisisTecnicoPresupuesto({
   const [tab, setTab] = useState('precios');
   const [guardando, setGuardando] = useState(false);
   const [guardados, setGuardados] = useState([]);
+  const [maximizado, setMaximizado] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -93,6 +94,11 @@ export default function AnalisisTecnicoPresupuesto({
       const partidas = informe.partidas.map((p) => ({ ...p, precio_sugerido: Number(precios[p.indice]) || 0 }));
       const creado = await base44.entities.InformeTecnicoPresupuesto.create({
         ...informe,
+        presupuesto_id: presupuesto.id,
+        presupuesto_codigo: presupuesto.codigo_registro || informe.presupuesto_codigo || '',
+        obra_id: presupuesto.obra_id || obraId || '',          // permite listarlo en Ingeniería
+        obra_name: presupuesto.obra_name || obraName || informe.obra_name || '',
+        cliente_name: presupuesto.cliente_name || clienteName || informe.cliente_name || '',
         partidas,
         totales: {
           ...informe.totales,
@@ -115,9 +121,9 @@ export default function AnalisisTecnicoPresupuesto({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-3 overflow-y-auto">
-      <div className="bg-card border border-border rounded-xl w-full max-w-5xl max-h-[92vh] overflow-y-auto shadow-xl">
-        <div className="sticky top-0 bg-background border-b px-4 py-3 flex items-center justify-between gap-2 z-10">
+    <div className={`fixed inset-0 bg-black/50 flex items-center justify-center z-[60] ${maximizado ? 'p-0' : 'p-2 sm:p-4'}`}>
+      <div className={`flex flex-col overflow-hidden bg-card border border-border shadow-xl ${maximizado ? 'h-screen w-screen rounded-none' : 'h-[94vh] w-[96vw] max-w-[1600px] rounded-xl'}`}>
+        <div className="bg-background border-b px-4 py-3 flex items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <Calculator className="w-4 h-4 text-primary shrink-0" />
             <div className="min-w-0">
@@ -125,10 +131,16 @@ export default function AnalisisTecnicoPresupuesto({
               <p className="text-[11px] text-muted-foreground truncate">Documento de dirección · no se envía al cliente</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}><X className="w-4 h-4" /></Button>
+          <div className="flex items-center gap-1">
+            <Button type="button" variant="ghost" size="icon" onClick={() => setMaximizado((v) => !v)}
+              title={maximizado ? 'Reducir ventana' : 'Ampliar a pantalla completa'}>
+              {maximizado ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </Button>
+            <Button type="button" variant="ghost" size="icon" onClick={onClose}><X className="w-4 h-4" /></Button>
+          </div>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {estado === 'idle' && (
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
@@ -232,7 +244,8 @@ export default function AnalisisTecnicoPresupuesto({
                 <div className="space-y-4">
                   <InformeTecnicoResumen informe={resultado.informe} />
                   <div className="flex flex-wrap items-center gap-2 border-t pt-3">
-                    <Button size="sm" variant="outline" className="gap-1.5" onClick={guardarInforme} disabled={guardando || !presupuesto?.id}>
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={guardarInforme} disabled={guardando || !presupuesto?.id}
+                      title={presupuesto?.id ? 'Archiva este informe con el presupuesto y la obra' : 'Guarda primero el presupuesto para poder archivar el informe'}>
                       {guardando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Guardar informe
                     </Button>
                     {!presupuesto?.id && <span className="text-[11px] text-muted-foreground">Guarda el presupuesto para poder archivar el informe.</span>}
@@ -240,16 +253,10 @@ export default function AnalisisTecnicoPresupuesto({
                 </div>
               )}
 
-              {guardados.length > 0 && (
-                <div className="space-y-1 border-t pt-3">
+              {presupuesto?.id && (
+                <div className="space-y-2 border-t pt-3">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Informes archivados</p>
-                  {guardados.slice(0, 5).map((g) => (
-                    <div key={g.id} className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <Badge variant="outline" className="text-[9px]">v{g.version || 1}</Badge>
-                      <span>{new Date(g.generado_en || g.created_date).toLocaleString('es-ES')}</span>
-                      <span className="ml-auto font-medium text-foreground">{eur(g.totales?.precio_propuesto)}</span>
-                    </div>
-                  ))}
+                  <InformesTecnicosPresupuesto key={guardados.length} presupuestoId={presupuesto.id} />
                 </div>
               )}
             </>

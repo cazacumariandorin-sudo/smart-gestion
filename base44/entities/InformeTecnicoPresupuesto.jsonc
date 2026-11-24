@@ -14,6 +14,10 @@
     "cliente_name": {
       "type": "string"
     },
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra/proyecto (para listarlo en Ingenier\u00eda). Opcional: un presupuesto puede no tener obra."
+    },
     "obra_name": {
       "type": "string"
     },

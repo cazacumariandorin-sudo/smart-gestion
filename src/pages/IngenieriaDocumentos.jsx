@@ -9,6 +9,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import { detectRevision, matchObra, detectTipo } from '@/lib/ingenieriaFilename';
 import { calcularHash, detectarDuplicado, diffDatos, DiffList } from '@/lib/ingenieriaDiff.jsx';
 import DocumentoCard from '@/components/ingenieria/DocumentoCard';
+import InformesTecnicosPresupuesto from '@/components/presupuestos/InformesTecnicosPresupuesto';
 import { manualToIngDocShape } from '@/lib/documentosUnificados';
 import { Eye, Download, BookOpen } from 'lucide-react';
 
@@ -403,6 +404,12 @@ export default function IngenieriaDocumentos() {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+            {effectiveObraId && (
+              <div className="px-3 py-3 space-y-2">
+                <p className="text-xs font-semibold">Informes internos de presupuesto</p>
+                <InformesTecnicosPresupuesto obraId={effectiveObraId} />
               </div>
             )}
             {documentos.map(d => (

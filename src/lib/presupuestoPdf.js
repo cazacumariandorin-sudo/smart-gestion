@@ -70,7 +70,15 @@ export function construirPresupuestoPdf({ presupuesto, empresa = {}, cliente = {
   const hayTexto = calculo.lineas.some((l) => l.tipo === 'texto');
 
   // ── Cabecera: logo, emisor, cliente ────────────────────────────────────────
-  if (logo) { try { doc.addImage(logo, 'PNG', ML, 14, 42, 42); } catch (_) { /* sin logo */ } }
+  if (logo) {
+    try {
+      // Formato según el data URL y proporción original (un logo rectangular no se deforma), dentro de 42×42 mm
+      const fmt = /^data:image\/jpe?g/i.test(logo) ? 'JPEG' : 'PNG';
+      const { width: iw, height: ih } = doc.getImageProperties(logo);
+      const esc = Math.min(42 / iw, 42 / ih);
+      doc.addImage(logo, fmt, ML, 14, iw * esc, ih * esc);
+    } catch (_) { /* sin logo */ }
+  }
   const cpEmp = [empresa.codigo_postal, mayus(empresa.localidad)].filter(Boolean).join(' ');
   bloqueDatos(doc, ML, 66, 92, [
     { texto: empresa.razon_social || empresa.nombre, negrita: true },

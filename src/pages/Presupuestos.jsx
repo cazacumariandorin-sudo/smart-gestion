@@ -9,6 +9,8 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import PresupuestoForm from "@/pages/presupuestos/PresupuestoForm";
 import HistorialVersionesPresupuesto from "@/components/presupuestos/HistorialVersionesPresupuesto";
+import InformesTecnicosPresupuesto, { ROLES_INFORMES_INTERNOS } from "@/components/presupuestos/InformesTecnicosPresupuesto";
+import { useUserRole } from "@/lib/useUserRole";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { toast } from "sonner";
@@ -50,6 +52,9 @@ export default function Presupuestos() {
     const [duplicadoConfirm, setDuplicadoConfirm] = useState(null);
     const [pdfCargando, setPdfCargando] = useState(null);
     const [historial, setHistorial] = useState(null);
+    const [informesDe, setInformesDe] = useState(null);      // presupuesto cuyos informes internos se están viendo
+    const { role } = useUserRole();
+    const verInformes = ROLES_INFORMES_INTERNOS.includes(role);
 
     const { data: presupuestos = [], isLoading } = useQuery({
         queryKey: ['presupuestos'],
@@ -240,6 +245,11 @@ export default function Presupuestos() {
                                                 </span>
                                             )}
                                         </Button>
+                                        {verInformes && (
+                                            <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setInformesDe(presupuesto)}>
+                                                <FileText className="w-3 h-3" /> Informes
+                                            </Button>
+                                        )}
                                         {estado === 'borrador' && (
                                             <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => { setEditando(presupuesto); setShowForm(true); }}>
                                                 <Pencil className="w-3 h-3" /> Editar
@@ -277,6 +287,19 @@ export default function Presupuestos() {
                 presupuesto={historial}
                 onClose={() => setHistorial(null)}
             />
+
+            {/* Informes técnicos internos del presupuesto */}
+            {informesDe && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
+                    <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                            <CardTitle className="text-base">Informes internos · {informesDe.codigo_registro || informesDe.titulo}</CardTitle>
+                            <Button variant="ghost" size="icon" onClick={() => setInformesDe(null)}><X className="w-4 h-4" /></Button>
+                        </CardHeader>
+                        <CardContent><InformesTecnicosPresupuesto presupuestoId={informesDe.id} /></CardContent>
+                    </Card>
+                </div>
+            )}
 
             {/* Modal de Confirmación de Duplicado */}
             {duplicadoConfirm && (
