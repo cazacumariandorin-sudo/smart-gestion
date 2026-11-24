@@ -102,10 +102,13 @@ r = await llamar('guardar', U('gerencia'), base({ cliente_id: 'cx', partes_traba
 t('un parte que ya está en una factura borrador no se repite → 409', r.s === 409 && r.j.code === 'PARTE_YA_EN_DOCUMENTO');
 r = await llamar('guardar', U('gerencia'), base({ cliente_id: 'cy', conceptos: [L('mismo extra', 1, 5, 21, { extra_id: 'x1' })] }));
 t('un extra que ya está en una factura borrador no se repite → 409', r.s === 409 && r.j.code === 'EXTRA_YA_EN_DOCUMENTO');
-r = await llamar('guardarP', U('gerencia'), { cliente_id: 'cz', fecha: '2026-11-04', partes_trabajo_ids: ['pt1'], conceptos: [L('x', 1, 100)] });
+// Al revés: un parte y un extra que SOLO están en una factura borrador (sin presupuesto) tampoco pueden usarse en un presupuesto
+await llamar('guardar', U('gerencia'), base({ cliente_id: 'cF', partes_trabajo_ids: ['ptF'], conceptos: [L('trabajo F', 1, 100, 21, { extra_id: 'xF' })] }));
+r = await llamar('guardarP', U('gerencia'), { cliente_id: 'cz', fecha: '2026-11-04', partes_trabajo_ids: ['ptF'], conceptos: [L('x', 1, 100)] });
 t('y al revés: un presupuesto no puede usar un parte que ya está en una factura borrador → 409', r.s === 409 && r.j.code === 'YA_EN_FACTURA_BORRADOR', JSON.stringify(r.j));
-r = await llamar('guardarP', U('gerencia'), { cliente_id: 'cz', fecha: '2026-11-04', conceptos: [L('x', 1, 100, 21, { extra_id: 'x1' })] });
-t('ni un extra que ya está en una factura borrador → 409', r.s === 409 && r.j.code === 'YA_EN_FACTURA_BORRADOR');
+r = await llamar('guardarP', U('gerencia'), { cliente_id: 'cz', fecha: '2026-11-04', conceptos: [L('x', 1, 100, 21, { extra_id: 'xF' })] });
+t('ni un extra que ya está en una factura borrador → 409', r.s === 409 && r.j.code === 'YA_EN_FACTURA_BORRADOR', JSON.stringify(r.j));
+t('un parte libre sí se puede presupuestar', (await llamar('guardarP', U('gerencia'), { cliente_id: 'cz', fecha: '2026-11-04', partes_trabajo_ids: ['ptLibre'], conceptos: [L('x', 1, 100)] })).s === 200);
 
 // ═══ Editar ══════════════════════════════════════════════════════════════════
 nuevoCtx();
@@ -150,7 +153,14 @@ t('anular una factura borrador (borrador → anulada)', (await llamar('estado', 
 t('anulada libera el parte para otra factura', (await llamar('guardar', U('gerencia'), base({ cliente_id: 'c2', partes_trabajo_ids: ['pA'] }))).s === 200);
 r = await llamar('estado', U('gerencia'), { id: idA, estado: 'borrador' });
 t('reactivar la anulada con el parte ya ocupado → 409', r.s === 409 && r.j.code === 'PARTE_YA_EN_DOCUMENTO', JSON.stringify(r.j));
-t('el número oficial de una factura anulada queda libre para otra', (async () => true)());
+// El número oficial de una factura anulada queda libre
+nuevoCtx();
+const mk = async (cid) => (await llamar('guardar', U('gerencia'), base({ cliente_id: cid, conceptos: [L('trabajo ' + cid, 1, 100)] }))).j.data.id;
+const nA = await mk('cl1'); await llamar('estado', U('gerencia'), { id: nA, estado: 'preparada', numero_oficial: '2026-0200' });
+const nB = await mk('cl1');
+t('con la factura A preparada, B no puede usar su número oficial', (await llamar('estado', U('gerencia'), { id: nB, estado: 'preparada', numero_oficial: '2026-0200' })).j.code === 'NUMERO_OFICIAL_REPETIDO');
+await llamar('estado', U('gerencia'), { id: nA, estado: 'anulada' });
+t('el número oficial de una factura anulada queda libre para otra', (await llamar('estado', U('gerencia'), { id: nB, estado: 'preparada', numero_oficial: '2026-0200' })).s === 200);
 
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`facturas borrador: ${ok} OK, ${fail} fallos`); process.exit(fail ? 1 : 0);
