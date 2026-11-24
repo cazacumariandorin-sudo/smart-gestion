@@ -92,6 +92,7 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
     const [tarifaEdit, setTarifaEdit] = useState(null);             // precios editados a mano en este documento
     const [guardandoTarifa, setGuardandoTarifa] = useState(false);
     const [showAnalisis, setShowAnalisis] = useState(false);        // análisis interno de precios e informe técnico
+    const [motivo, setMotivo] = useState("");                       // motivo del cambio (queda en el historial de versiones)
 
     // Totales en vivo: mismas reglas que el servidor (IVA por línea, redondeo por línea)
     const calculo = useMemo(() => calcularDocumento(formData.conceptos), [formData.conceptos]);
@@ -380,9 +381,10 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
         e.preventDefault();
         if (!formData.cliente_id) { toast.error("Selecciona un cliente"); return; }
         if (formData.conceptos.length === 0) { toast.error("Añade al menos una línea al presupuesto"); return; }
+        if (edicion && !motivo.trim()) { toast.error("Indica el motivo del cambio"); return; }
         // Los importes los calcula el servidor; aquí solo se envían las líneas
         onSubmit({
-            ...(edicion ? { id: presupuestoInicial.id } : {}),
+            ...(edicion ? { id: presupuestoInicial.id, motivo: motivo.trim() } : {}),
             titulo: formData.titulo,
             cliente_id: formData.cliente_id,
             cliente_name: formData.cliente_name,
@@ -761,6 +763,22 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                                 className="min-h-[80px]"
                             />
                         </div>
+
+                        {/* Motivo del cambio: queda en el historial interno de versiones */}
+                        {edicion && (
+                            <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900 dark:bg-amber-950/20">
+                                <Label htmlFor="motivo">Motivo del cambio *</Label>
+                                <Input
+                                    id="motivo"
+                                    value={motivo}
+                                    onChange={(e) => setMotivo(e.target.value)}
+                                    placeholder="Ej.: el cliente cambia la ubicación de los equipos"
+                                />
+                                <p className="text-[11px] text-muted-foreground">
+                                    Se guardará una copia de la versión actual en el historial interno antes de aplicar los cambios.
+                                </p>
+                            </div>
+                        )}
 
                         {/* Botones de accion */}
                         <div className="flex gap-3 pt-4 border-t">

@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { calcularDocumento } from '../../shared/presupuestoCalculo.ts';
 import { ROLES_PRESUPUESTO, ESTADOS_ACTIVOS_FACTURA, validarConceptos, sumarDias, conflictoPartes, conflictoExtras, soloCamposEditables } from '../../shared/presupuestoReglas.ts';
+import { compararPresupuesto } from '../../shared/presupuestoVersiones.ts';
 
 /**
  * guardarPresupuesto — crea o edita un presupuesto.
@@ -67,8 +68,50 @@ Deno.serve(async (req) => {
         return Response.json({ error: `Un parte o trabajo extra ya está en la factura borrador ${enFacturaE.codigo_registro || enFacturaE.id} (${enFacturaE.estado})`, code: 'YA_EN_FACTURA_BORRADOR', conflicto: enFacturaE }, { status: 409 });
       }
       const cambios = { ...datos, ...totales, cliente_id, fecha, valido_hasta: datos.valido_hasta || actual.valido_hasta || sumarDias(fecha, 30) };
-      const actualizado = await base44.entities.Presupuesto.update(id, cambios);
-      return Response.json({ success: true, data: { ...actual, ...cambios, ...(actualizado || {}) }, codigo_registro: actual.codigo_registro, mensaje: 'Presupuesto actualizado' });
+
+      // ── Historial interno de versiones ────────────────────────────────────
+      // Antes de aplicar el cambio se archiva el estado anterior (copia inmutable)
+      // con el motivo y la comparativa completa de campos, líneas y precios.
+      const versionAnterior = Number(actual.version_actual || 1);
+      const versionNueva = versionAnterior + 1;
+      const motivo = String(body.motivo || '').trim();
+      const diff = compararPresupuesto(actual, { ...actual, ...cambios });
+      try {
+        await base44.asServiceRole.entities.PresupuestoVersion.create({
+          presupuesto_id: id,
+          presupuesto_codigo: actual.codigo_registro || '',
+          numero: versionAnterior,
+          fecha_modificacion: new Date().toISOString(),
+          modificado_por: user.email,
+          modificado_por_nombre: user.full_name || user.email,
+          motivo: motivo || 'Sin motivo indicado',
+          estado_presupuesto: actual.estado || 'borrador',
+          resumen_cambios: diff.resumen,
+          campos_modificados: diff.campos_modificados,
+          lineas_modificadas: diff.lineas_modificadas,
+          totales_antes: diff.totales_antes,
+          totales_despues: diff.totales_despues,
+          snapshot: actual,
+        });
+      } catch (error) {
+        console.error('No se pudo archivar la versión anterior del presupuesto:', error);
+      }
+
+      const actualizado = await base44.entities.Presupuesto.update(id, {
+        ...cambios,
+        version_actual: versionNueva,
+        modificado_en: new Date().toISOString(),
+        modificado_por: user.email,
+        motivo_ultima_modificacion: motivo,
+      });
+      return Response.json({
+        success: true,
+        data: { ...actual, ...cambios, ...(actualizado || {}) },
+        codigo_registro: actual.codigo_registro,
+        version: versionNueva,
+        resumen_cambios: diff.resumen,
+        mensaje: `Presupuesto actualizado (versión interna v${versionNueva})`,
+      });
     }
 
     // ── CREAR ────────────────────────────────────────────────────────────────

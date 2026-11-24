@@ -4,10 +4,11 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, AlertTriangle, Download, Pencil, Send, Check, X, RotateCcw, Loader2 } from "lucide-react";
+import { Plus, FileText, AlertTriangle, Download, Pencil, Send, Check, X, RotateCcw, Loader2, History } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import PresupuestoForm from "@/pages/presupuestos/PresupuestoForm";
+import HistorialVersionesPresupuesto from "@/components/presupuestos/HistorialVersionesPresupuesto";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { toast } from "sonner";
@@ -48,6 +49,7 @@ export default function Presupuestos() {
     const [editando, setEditando] = useState(null);
     const [duplicadoConfirm, setDuplicadoConfirm] = useState(null);
     const [pdfCargando, setPdfCargando] = useState(null);
+    const [historial, setHistorial] = useState(null);
 
     const { data: presupuestos = [], isLoading } = useQuery({
         queryKey: ['presupuestos'],
@@ -230,6 +232,14 @@ export default function Presupuestos() {
                                         <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => descargarPdf(presupuesto)} disabled={pdfCargando === presupuesto.id}>
                                             {pdfCargando === presupuesto.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />} PDF
                                         </Button>
+                                        <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setHistorial(presupuesto)}>
+                                            <History className="w-3 h-3" /> Historial
+                                            {Number(presupuesto.version_actual || 1) > 1 && (
+                                                <span className="ml-0.5 rounded bg-primary/10 px-1 text-[10px] font-semibold text-primary">
+                                                    v{presupuesto.version_actual}
+                                                </span>
+                                            )}
+                                        </Button>
                                         {estado === 'borrador' && (
                                             <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => { setEditando(presupuesto); setShowForm(true); }}>
                                                 <Pencil className="w-3 h-3" /> Editar
@@ -260,6 +270,13 @@ export default function Presupuestos() {
                     onSubmit={(data) => guardarMutation.mutate(data)}
                 />
             )}
+
+            {/* Historial interno de versiones */}
+            <HistorialVersionesPresupuesto
+                open={!!historial}
+                presupuesto={historial}
+                onClose={() => setHistorial(null)}
+            />
 
             {/* Modal de Confirmación de Duplicado */}
             {duplicadoConfirm && (

@@ -1,0 +1,248 @@
+{
+  "name": "PresupuestoVersion",
+  "type": "object",
+  "description": "Historial interno de versiones de un presupuesto. Cada registro es una copia INMUTABLE del estado que ten\u00eda el presupuesto antes de una modificaci\u00f3n, con el motivo indicado y la comparativa completa de cambios (cabecera, l\u00edneas, precios y totales). Es documentaci\u00f3n interna: el cliente solo recibe la versi\u00f3n vigente y el documento no muestra numeraci\u00f3n de versi\u00f3n.",
+  "properties": {
+    "presupuesto_id": {
+      "type": "string",
+      "description": "ID del presupuesto versionado."
+    },
+    "presupuesto_codigo": {
+      "type": "string",
+      "description": "C\u00f3digo del presupuesto (PRE-AAAA-NNNNN) para listados r\u00e1pidos."
+    },
+    "numero": {
+      "type": "number",
+      "description": "N\u00famero INTERNO de la versi\u00f3n archivada (1 = estado original). No se muestra nunca al cliente."
+    },
+    "fecha_modificacion": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que se archiv\u00f3 esta versi\u00f3n (justo antes de aplicar el cambio)."
+    },
+    "modificado_por": {
+      "type": "string",
+      "description": "Email del usuario que modific\u00f3 el presupuesto."
+    },
+    "modificado_por_nombre": {
+      "type": "string",
+      "description": "Nombre del usuario que modific\u00f3 el presupuesto."
+    },
+    "motivo": {
+      "type": "string",
+      "description": "Motivo del cambio indicado por el usuario."
+    },
+    "estado_presupuesto": {
+      "type": "string",
+      "description": "Estado del presupuesto en el momento de archivar la versi\u00f3n."
+    },
+    "resumen_cambios": {
+      "type": "array",
+      "description": "Resumen legible de los cambios: l\u00edneas a\u00f1adidas/eliminadas/modificadas, variaciones de precio y de totales.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "campos_modificados": {
+      "type": "array",
+      "description": "Campos de cabecera que cambiaron, con su valor anterior y el nuevo.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "campo": {
+            "type": "string"
+          },
+          "etiqueta": {
+            "type": "string"
+          },
+          "antes": {
+            "type": "string"
+          },
+          "despues": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "lineas_modificadas": {
+      "type": "array",
+      "description": "Diferencias l\u00ednea a l\u00ednea: partidas a\u00f1adidas, eliminadas o modificadas con sus importes antes y despu\u00e9s.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "indice": {
+            "type": "number"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "anadida",
+              "eliminada",
+              "modificada"
+            ],
+            "enumColors": [
+              "green",
+              "red",
+              "yellow"
+            ]
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "campos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "antes": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "despues": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "totales_antes": {
+      "type": "object",
+      "description": "Totales de la versi\u00f3n archivada.",
+      "properties": {
+        "base_imponible": {
+          "type": "number"
+        },
+        "iva_total": {
+          "type": "number"
+        },
+        "total_con_iva": {
+          "type": "number"
+        }
+      }
+    },
+    "totales_despues": {
+      "type": "object",
+      "description": "Totales resultantes despu\u00e9s del cambio.",
+      "properties": {
+        "base_imponible": {
+          "type": "number"
+        },
+        "iva_total": {
+          "type": "number"
+        },
+        "total_con_iva": {
+          "type": "number"
+        }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Estado completo del presupuesto en esa versi\u00f3n (cabecera, l\u00edneas, documentos de origen). Copia inmutable para poder reconstruirla tal cual."
+    }
+  },
+  "required": [
+    "presupuesto_id",
+    "numero",
+    "fecha_modificacion"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

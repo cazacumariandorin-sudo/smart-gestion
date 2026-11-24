@@ -186,6 +186,19 @@
       "description": "Cuota de IVA total (suma de las cuotas por l\u00ednea)",
       "type": "number"
     },
+    "modificado_en": {
+      "description": "Fecha y hora del \u00faltimo cambio de contenido (interno; no sale en el PDF del cliente)",
+      "format": "date-time",
+      "type": "string"
+    },
+    "modificado_por": {
+      "description": "Email del usuario que realiz\u00f3 el \u00faltimo cambio de contenido (interno)",
+      "type": "string"
+    },
+    "motivo_ultima_modificacion": {
+      "description": "Motivo indicado en la \u00faltima modificaci\u00f3n (interno)",
+      "type": "string"
+    },
     "notas": {
       "description": "Observaciones (salen en el pie del PDF)",
       "type": "string"
@@ -221,6 +234,11 @@
       "description": "Fecha hasta la que es v\u00e1lido el presupuesto",
       "format": "date",
       "type": "string"
+    },
+    "version_actual": {
+      "default": 1,
+      "description": "Versi\u00f3n interna vigente del presupuesto (1 = original). Solo se usa dentro de la app: el documento enviado al cliente no muestra numeraci\u00f3n de versi\u00f3n.",
+      "type": "number"
     }
   },
   "required": [
