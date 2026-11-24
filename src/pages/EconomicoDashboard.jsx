@@ -5,9 +5,10 @@ import PageHeader from '@/components/layout/PageHeader';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useUserRole } from '@/lib/useUserRole';
-import { Wallet, TrendingUp, FileText, Banknote, AlertTriangle, PieChart, RotateCcw, CreditCard, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
+import { Wallet, TrendingUp, FileText, Banknote, AlertTriangle, PieChart, RotateCcw, CreditCard, ChevronLeft, ChevronRight, Copy, Truck } from 'lucide-react';
 import EconomicoObrasChart from '@/components/economico/EconomicoObrasChart';
 import ContabilidadAnalitica from '@/components/economico/ContabilidadAnalitica';
+import ContabilidadIntegral from '@/components/economico/ContabilidadIntegral';
 import AdelantosPanel from '@/components/adelantos/AdelantosPanel';
 import DetectorDuplicadosPanel from '@/components/economico/DetectorDuplicadosPanel';
 
@@ -44,6 +45,7 @@ export default function EconomicoDashboard() {
   const puedeDuplicados = isAdmin || isGerencia || isAdministracion;
   const [tab, setTab] = useState('resumen');
   const [filtroOrigen, setFiltroOrigen] = useState('todos');
+  const [baseTemporal, setBaseTemporal] = useState('documento'); // documento | pago
 
   const { data: registros = [] } = useQuery({ queryKey: ['eco-registros'], queryFn: () => base44.entities.RegistroGasto.list('-fecha_documento', 500) });
   const { data: presupuestos = [] } = useQuery({ queryKey: ['eco-presupuestos'], queryFn: () => base44.entities.Presupuesto.list('-fecha', 300) });
@@ -56,6 +58,19 @@ export default function EconomicoDashboard() {
   const anioActual = now.getFullYear();
   const mesActualStr = `${anioActual}-${String(mesActual).padStart(2, '0')}`;
   const [mesFiltro, setMesFiltro] = useState(mesActualStr);
+  const [anioMes, mesMes] = mesFiltro.split('-').map(Number);
+
+  // Cobertura del módulo Contabilidad del mes (misma función que la contabilidad analítica)
+  const { data: analisisContab } = useQuery({
+    queryKey: ['eco-analisis-mes', mesFiltro, baseTemporal],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('calcularAnalisisEconomico', {
+        periodo: 'mes', subPeriodo: mesMes, anio: anioMes, baseTemporal,
+      });
+      return res.data;
+    },
+  });
+  const contabilidad = analisisContab?.contabilidad;
 
   const cambiarMes = (delta) => {
     const [y, m] = mesFiltro.split('-').map(Number);
@@ -69,9 +84,10 @@ export default function EconomicoDashboard() {
   const esReembolsable = (r) => !r.origen_pago || r.origen_pago === 'medios_propios';
   const esEmpresa = (r) => r.origen_pago === 'medio_empresa' || r.origen_pago === 'credito_proveedor';
 
+  // Solo importes validados: los justificantes de empresa aún sin aprobar se
+  // muestran aparte, en el bloque de Contabilidad, para no contarlos dos veces.
   const gastosAprobados = useMemo(() => registros.filter(r =>
-    ['aprobado_gerencia', 'en_administracion', 'pagada'].includes(r.estado) ||
-    (esEmpresa(r) && ['borrador', 'registrado'].includes(r.estado))
+    ['aprobado_gerencia', 'en_administracion', 'pagada'].includes(r.estado)
   ), [registros]);
   const gastosAprobadosMes = useMemo(() => gastosAprobados.filter(r => r.fecha_documento?.startsWith(mesFiltro)), [gastosAprobados, mesFiltro]);
 
@@ -166,7 +182,24 @@ export default function EconomicoDashboard() {
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Periodo</p>
           <p className="text-lg font-bold leading-tight">{mesFiltro}</p>
         </div>
-        {MesSelector}
+        <div className="flex flex-col items-end gap-2">
+          {MesSelector}
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] text-muted-foreground mr-1">Base:</span>
+            <button
+              onClick={() => setBaseTemporal('documento')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors ${baseTemporal === 'documento' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border text-muted-foreground hover:bg-muted'}`}
+            >
+              Fecha documento
+            </button>
+            <button
+              onClick={() => setBaseTemporal('pago')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors ${baseTemporal === 'pago' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border text-muted-foreground hover:bg-muted'}`}
+            >
+              Fecha pago / cobro
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* KPIs interactivos */}
@@ -182,6 +215,8 @@ export default function EconomicoDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard icon={Banknote} label="Coste nóminas (mes)" value={eur(costeNominasMes)} color="bg-emerald-100 text-emerald-600" />
         <KpiCard icon={AlertTriangle} label="Obras con sobrecoste" value={obrasConSobrecoste.length} color="bg-red-100 text-red-600" />
+        <KpiCard icon={Truck} label="Coste proveedores" value={eur(contabilidad?.proveedores?.total_contabilizado || 0)} color="bg-indigo-100 text-indigo-600" />
+        <KpiCard icon={TrendingUp} label="Facturado emitido" value={eur(contabilidad?.emitidas?.facturado?.total || 0)} color="bg-sky-100 text-sky-700" />
       </div>
 
       {/* Gráfico destacado — junto below the tabs/KPIs */}
@@ -257,6 +292,9 @@ export default function EconomicoDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Módulo Contabilidad del mes: proveedores, facturas emitidas, pendientes e impuestos */}
+      <ContabilidadIntegral data={contabilidad} />
 
       {obrasConSobrecoste.length > 0 && (
         <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-2xl p-4">

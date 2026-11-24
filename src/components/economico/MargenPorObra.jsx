@@ -52,6 +52,7 @@ export default function MargenPorObra({ data, isLoading }) {
                 <th className="text-right font-medium py-2 px-2 hidden md:table-cell">Mat.</th>
                 <th className="text-right font-medium py-2 px-2 hidden md:table-cell">Flota</th>
                 <th className="text-right font-medium py-2 px-2 hidden md:table-cell">Nómina</th>
+                <th className="text-right font-medium py-2 px-2 hidden lg:table-cell" title="Facturas de proveedor vinculadas a la obra (informativo, no suma al coste)">Prov.</th>
                 <th className="text-right font-medium py-2 px-2">Coste</th>
                 <th className="text-right font-medium py-2 px-2">Margen €</th>
                 <th className="text-right font-medium py-2 px-2">Margen %</th>
@@ -71,6 +72,7 @@ export default function MargenPorObra({ data, isLoading }) {
                     <td className="py-2 px-2 text-right text-muted-foreground hidden md:table-cell">{eur(o.materiales)}</td>
                     <td className="py-2 px-2 text-right text-muted-foreground hidden md:table-cell">{eur(o.flota)}</td>
                     <td className="py-2 px-2 text-right text-muted-foreground hidden md:table-cell">{eur(o.nominas_imputadas)}</td>
+                    <td className="py-2 px-2 text-right text-indigo-600 hidden lg:table-cell">{eur(o.proveedores)}</td>
                     <td className="py-2 px-2 text-right font-medium">{eur(o.coste_total)}</td>
                     <td className={`py-2 px-2 text-right font-semibold ${neg ? 'text-red-600' : 'text-emerald-600'}`}>
                       <span className="inline-flex items-center gap-1 justify-end">

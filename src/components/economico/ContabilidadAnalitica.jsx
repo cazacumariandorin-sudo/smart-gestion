@@ -8,15 +8,17 @@ import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { cn } from '@/lib/utils';
 import {
   Wallet, Banknote, Scale, Clock, Download, ChevronDown, ChevronRight, PieChart, Loader2, BarChart3,
-  FileText, AlertTriangle,
+  FileText, AlertTriangle, Truck, TrendingUp,
 } from 'lucide-react';
 import RegularizacionPeriodo from '@/components/economico/RegularizacionPeriodo';
 import MargenPorObra from '@/components/economico/MargenPorObra';
+import ContabilidadIntegral from '@/components/economico/ContabilidadIntegral';
 import {
   PERIODOS, subPeriodosDe, enPeriodo, etiquetaPeriodo,
 } from '@/lib/periodosRegularizacion';
 
 const eur = (n) => `${(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+const round2Csv = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
 const ESTADOS_JUSTIFICADOS = ['aprobado_gerencia', 'en_administracion', 'pagada'];
 
@@ -78,6 +80,7 @@ export default function ContabilidadAnalitica() {
   const [periodo, setPeriodo] = useState('trimestre');
   const [subPeriodo, setSubPeriodo] = useState(Math.floor((now.getMonth() / 3)) + 1);
   const [anio, setAnio] = useState(now.getFullYear());
+  const [baseTemporal, setBaseTemporal] = useState('documento'); // documento | pago
   const [dimension, setDimension] = useState('operario');
   const [expanded, setExpanded] = useState(null);
   const [verRegularizacion, setVerRegularizacion] = useState(false);
@@ -102,12 +105,13 @@ export default function ContabilidadAnalitica() {
 
   // Análisis económico agregado por backend (KPIs + margen por obra del periodo)
   const { data: analisis, isLoading: analisisLoading } = useQuery({
-    queryKey: ['eco-analisis', periodo, subPeriodo, anio],
+    queryKey: ['eco-analisis', periodo, subPeriodo, anio, baseTemporal],
     queryFn: async () => {
-      const res = await base44.functions.invoke('calcularAnalisisEconomico', { periodo, subPeriodo: Number(subPeriodo), anio });
+      const res = await base44.functions.invoke('calcularAnalisisEconomico', { periodo, subPeriodo: Number(subPeriodo), anio, baseTemporal });
       return res.data;
     },
   });
+  const contabilidad = analisis?.contabilidad;
 
   const kpis = analisis?.kpis || {};
   const subNomina = useMemo(() => {
@@ -135,11 +139,13 @@ export default function ContabilidadAnalitica() {
     return m;
   }, [obras, solarObras]);
 
-  // Filtrar registros del periodo seleccionado
-  const registrosPeriodo = useMemo(
-    () => registros.filter(r => enPeriodo(r.ciclo_mes, anio, periodo, subPeriodo)),
-    [registros, anio, periodo, subPeriodo],
-  );
+  // Filtrar registros del periodo seleccionado (por ciclo o por fecha de pago)
+  const registrosPeriodo = useMemo(() => {
+    if (baseTemporal === 'pago') {
+      return registros.filter(r => r.fecha_pago && enPeriodo(String(r.fecha_pago).slice(0, 7), anio, periodo, subPeriodo));
+    }
+    return registros.filter(r => enPeriodo(r.ciclo_mes, anio, periodo, subPeriodo));
+  }, [registros, anio, periodo, subPeriodo, baseTemporal]);
 
   const justificados = useMemo(
     () => registrosPeriodo.filter(r => ESTADOS_JUSTIFICADOS.includes(r.estado)),
@@ -234,6 +240,28 @@ export default function ContabilidadAnalitica() {
         lines.push(['Desglose', g.key, r.operario_name || '', r.obra_name || '', obraClientMap[r.obra_id] || '', r.categoria || '', r.concepto || '', r.importe || 0, r.estado === 'pagada' ? (r.importe_pagado_real || r.importe || 0) : 0, r.estado, r.es_gasto_tardio ? 'Sí' : 'No', r.ciclo_mes || '', r.fecha_documento || ''].map(csvEscape).join(','));
       }
     }
+    // Bloque 3 — Módulo Contabilidad (proveedores, facturas emitidas, pendientes e impuestos)
+    const c = analisis?.contabilidad;
+    if (c) {
+      lines.push('');
+      lines.push('Seccion,Concepto,Estado,Fuente,Importe');
+      const fila = (concepto, estado, fuente, importe) => lines.push(['Contabilidad', concepto, estado, fuente, round2Csv(importe)].map(csvEscape).join(','));
+      fila('Proveedores contabilizado (base)', 'contabilizado', 'Libro IVA + autónomos', c.proveedores?.total_contabilizado);
+      fila('Proveedores pendiente (base)', 'pendiente', 'Libro IVA + autónomos + justificantes', c.proveedores?.total_pendiente);
+      for (const p of (c.proveedores?.por_proveedor || [])) {
+        fila(p.nombre, 'contabilizado', 'proveedor', p.contabilizado);
+        if (p.pendiente) fila(p.nombre, 'pendiente', 'proveedor', p.pendiente);
+      }
+      fila('Facturado emitido (con IVA)', 'facturado', 'Libro IVA emitidas', c.emitidas?.facturado?.total);
+      fila('Cobrado', 'cobrado', 'conciliación bancaria', c.emitidas?.cobrado?.total);
+      fila('Pendiente de cobro', 'pendiente', 'Libro IVA emitidas', c.emitidas?.pendiente?.total);
+      fila('Vencido sin cobrar', 'vencido', 'Libro IVA emitidas', c.emitidas?.vencido?.total);
+      fila('Borradores de factura', 'borrador', 'FacturaBorrador', c.borradores_factura?.total);
+      for (const imp of (c.impuestos || [])) {
+        fila(`Modelo ${imp.modelo} ${imp.periodo}`, imp.estado, 'declaración', imp.presentado || imp.calculado);
+      }
+    }
+
     const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -318,7 +346,7 @@ export default function ContabilidadAnalitica() {
             {verRegularizacion ? 'Volver al desglose' : 'Ver regularización'}
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Periodo</label>
             <MobileSelect value={periodo} onValueChange={(v) => { setPeriodo(v); setSubPeriodo(1); }}>
@@ -337,18 +365,32 @@ export default function ContabilidadAnalitica() {
               {anios.map(a => <MobileSelectItem key={a} value={String(a)}>{a}</MobileSelectItem>)}
             </MobileSelect>
           </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Base temporal</label>
+            <MobileSelect value={baseTemporal} onValueChange={setBaseTemporal}>
+              <MobileSelectItem value="documento">Fecha del documento</MobileSelectItem>
+              <MobileSelectItem value="pago">Fecha de pago / cobro</MobileSelectItem>
+            </MobileSelect>
+          </div>
         </div>
       </div>
 
       {/* KPIs económicos del periodo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard icon={Wallet} label="Gastos aprobados" value={filtroSobrecoste ? eur(totalFiltrado) : eur(kpis.gastos_aprobados || 0)} sub={filtroSobrecoste ? 'filtrado por sobrecoste' : 'del periodo (por ciclo)'} color="bg-orange-100 text-orange-600"
+        <KpiCard icon={Wallet} label="Gastos aprobados" value={filtroSobrecoste ? eur(totalFiltrado) : eur(kpis.gastos_aprobados || 0)} sub={filtroSobrecoste ? 'filtrado por sobrecoste' : baseTemporal === 'pago' ? 'del periodo (por fecha de pago)' : 'del periodo (por ciclo)'} color="bg-orange-100 text-orange-600"
           active={!filtroSobrecoste} onClick={() => setFiltroSobrecoste(false)} />
         <KpiCard icon={FileText} label="Presupuestos activos" value={eur(kpis.presupuestos_activos || 0)} sub="enviados + aceptados" color="bg-purple-100 text-purple-600" />
         <KpiCard icon={Banknote} label="Coste nóminas" value={eur(kpis.coste_nominas || 0)} sub={subNomina} color="bg-teal-100 text-teal-600" />
         <KpiCard icon={AlertTriangle} label="Obras con sobrecoste" value={String(kpis.obras_sobrecoste || 0)} sub={`${kpis.obras_sin_presupuesto || 0} sin presupuesto`} color="bg-red-100 text-red-600"
           active={filtroSobrecoste} onClick={() => { setDimension('obra'); setFiltroSobrecoste(v => !v); setExpanded(null); }} />
+        <KpiCard icon={Truck} label="Coste proveedores" value={eur(contabilidad?.proveedores?.total_contabilizado || 0)}
+          sub={`+ ${eur(contabilidad?.proveedores?.total_pendiente || 0)} pendiente`} color="bg-indigo-100 text-indigo-600" />
+        <KpiCard icon={TrendingUp} label="Facturado emitido" value={eur(contabilidad?.emitidas?.facturado?.total || 0)}
+          sub={`${eur(contabilidad?.emitidas?.cobrado?.total || 0)} cobrado`} color="bg-emerald-100 text-emerald-600" />
       </div>
+
+      {/* Cobertura integral del módulo Contabilidad */}
+      <ContabilidadIntegral data={contabilidad} />
 
       {/* Desglose por dimensión */}
       <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
