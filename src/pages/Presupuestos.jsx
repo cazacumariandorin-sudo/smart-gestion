@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, AlertTriangle, Download, Pencil, Send, Check, X, RotateCcw, Loader2, History } from "lucide-react";
+import { Plus, FileText, AlertTriangle, Download, Pencil, Send, Check, X, RotateCcw, Loader2, History, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import PresupuestoForm from "@/pages/presupuestos/PresupuestoForm";
@@ -53,8 +53,11 @@ export default function Presupuestos() {
     const [pdfCargando, setPdfCargando] = useState(null);
     const [historial, setHistorial] = useState(null);
     const [informesDe, setInformesDe] = useState(null);      // presupuesto cuyos informes internos se están viendo
+    const [borrar, setBorrar] = useState(null);              // presupuesto que se va a eliminar (pide confirmación)
     const { role } = useUserRole();
     const verInformes = ROLES_INFORMES_INTERNOS.includes(role);
+    // Mismos roles que el servidor para borrar (RLS de Presupuesto)
+    const puedeBorrar = ['admin', 'propietario', 'gerencia', 'administracion', 'director_comercial'].includes(role);
 
     const { data: presupuestos = [], isLoading } = useQuery({
         queryKey: ['presupuestos'],
@@ -113,6 +116,16 @@ export default function Presupuestos() {
             toast.success(result?.mensaje || 'Estado actualizado');
         },
         onError: (err) => toast.error(mensajeError(err)),
+    });
+
+    const borrarMutation = useMutation({
+        mutationFn: (presupuesto) => base44.entities.Presupuesto.delete(presupuesto.id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
+            setBorrar(null);
+            toast.success('Presupuesto eliminado');
+        },
+        onError: (err) => toast.error('No se pudo eliminar el presupuesto: ' + mensajeError(err)),
     });
 
     const confirmarDuplicado = () => {
@@ -261,6 +274,12 @@ export default function Presupuestos() {
                                                 <accion.icon className="w-3 h-3" /> {accion.label}
                                             </Button>
                                         ))}
+                                        {puedeBorrar && (
+                                            <Button size="sm" variant="outline" className="h-7 gap-1 text-xs text-destructive hover:text-destructive"
+                                                onClick={() => setBorrar(presupuesto)}>
+                                                <Trash2 className="w-3 h-3" /> Eliminar
+                                            </Button>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -297,6 +316,40 @@ export default function Presupuestos() {
                             <Button variant="ghost" size="icon" onClick={() => setInformesDe(null)}><X className="w-4 h-4" /></Button>
                         </CardHeader>
                         <CardContent><InformesTecnicosPresupuesto presupuestoId={informesDe.id} /></CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Confirmación de borrado */}
+            {borrar && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <Card className="max-w-md w-full">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-destructive">
+                                <Trash2 className="w-5 h-5" />
+                                Eliminar presupuesto
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-sm">
+                                ¿Seguro que quieres eliminar <strong>{borrar.codigo_registro || borrar.titulo}</strong>
+                                {borrar.cliente_name ? ` de ${borrar.cliente_name}` : ''}?
+                            </p>
+                            {(borrar.estado || 'borrador') !== 'borrador' && (
+                                <p className="text-xs text-destructive flex items-start gap-1.5">
+                                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                    Este presupuesto está en estado «{borrar.estado}»: confirma que quieres eliminarlo igualmente.
+                                </p>
+                            )}
+                            <p className="text-xs text-muted-foreground">Esta acción no se puede deshacer.</p>
+                            <div className="flex gap-2">
+                                <Button variant="outline" onClick={() => setBorrar(null)} className="flex-1">Cancelar</Button>
+                                <Button variant="destructive" className="flex-1" disabled={borrarMutation.isPending}
+                                    onClick={() => borrarMutation.mutate(borrar)}>
+                                    {borrarMutation.isPending ? 'Eliminando…' : 'Eliminar'}
+                                </Button>
+                            </div>
+                        </CardContent>
                     </Card>
                 </div>
             )}
