@@ -64,7 +64,7 @@ export default function SubidaMasivaPanel() {
 
   // Pre-seleccionar el operario vinculado al usuario actual
   const vinculado = useMemo(() => operarios.find(o => o.user_email === user?.email), [operarios, user?.email]);
-  if (!operarioId && vinculado && destino === 'propios') setOperarioId(vinculado.id);
+  if (!operarioId && vinculado) setOperarioId(vinculado.id);
 
   const onPick = (e) => { setArchivos(Array.from(e.target.files || [])); setResultados([]); };
   const onDrop = (e) => { e.preventDefault(); setArchivos(Array.from(e.dataTransfer.files || [])); setResultados([]); };
@@ -276,6 +276,9 @@ export default function SubidaMasivaPanel() {
           <MobileSelect value={operarioId} onValueChange={setOperarioId} placeholder="Seleccionar operario" triggerClassName="w-full sm:w-64">
             {operarios.map(o => <MobileSelectItem key={o.id} value={o.id}>{o.name}</MobileSelectItem>)}
           </MobileSelect>
+          {!operarioId && (
+            <p className="text-xs text-amber-600">Obligatorio: elige un operario para poder procesar los archivos.</p>
+          )}
         </div>
       </Card>
 
@@ -293,7 +296,7 @@ export default function SubidaMasivaPanel() {
           Destino: <span className="font-medium">{destino === 'propios' ? 'Mis gastos (reembolso)' : `Recibidos empresa (${origenEmpresa === 'medio_empresa' ? 'medio empresa' : 'crédito proveedor'})`}</span>.
           {' '}Los duplicados no se crean automáticamente; puedes confirmarlos.
         </p>
-        <Button onClick={procesar} disabled={procesando || !archivos.length || !operarioId} className="gap-2">
+        <Button onClick={procesar} disabled={procesando} className="gap-2">
           {procesando ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
           {procesando ? 'Procesando…' : `Procesar ${archivos.length || ''} archivo(s)`}
         </Button>
