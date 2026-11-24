@@ -12,18 +12,21 @@ const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const FUNCIONES = path.resolve(AQUI, '../functions');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'presupuesto-test-'));
 fs.mkdirSync(path.join(tmp, 'shared'));
-for (const f of ['presupuestoCalculo.ts', 'presupuestoReglas.ts']) fs.copyFileSync(path.join(AQUI, f), path.join(tmp, 'shared', f));
+for (const f of fs.readdirSync(AQUI).filter((x) => x.endsWith('.ts') && !x.endsWith('.test.ts'))) fs.copyFileSync(path.join(AQUI, f), path.join(tmp, 'shared', f));
 fs.writeFileSync(path.join(tmp, 'mock-sdk.mjs'), `
 export function createClientFromRequest(_req) {
   const ctx = globalThis.__ctx; const rec = (v) => JSON.parse(JSON.stringify(v));
-  const ent = {
-    list: async () => ctx.db.map(rec).reverse(),
-    get: async (id) => { const r = ctx.db.find((x) => x.id === id); if (!r) throw new Error('not found'); return rec(r); },
-    create: async (o) => { const r = { id: 'id' + (ctx.db.length + 1), ...rec(o) }; ctx.db.push(r); return rec(r); },
-    update: async (id, patch) => { const r = ctx.db.find((x) => x.id === id); Object.assign(r, rec(patch)); return rec(r); },
-  };
-  const facturas = { list: async () => [] };   // las facturas borrador se prueban en facturaBorrador.test.mjs
-  return { auth: { me: async () => ctx.user }, entities: { Presupuesto: ent }, asServiceRole: { entities: { FacturaBorrador: facturas } },
+  const tabla = (n) => (n === 'Presupuesto' ? ctx.db : ((ctx.otros ||= {})[n] ||= []));
+  const entidad = (n) => ({
+    list: async () => tabla(n).map(rec).reverse(),
+    filter: async (q = {}) => tabla(n).filter((r) => Object.entries(q).every(([k, v]) => r[k] === v)).map(rec),
+    get: async (id) => { const r = tabla(n).find((x) => x.id === id); if (!r) throw new Error('not found'); return rec(r); },
+    create: async (o) => { const r = { id: n[0] + (tabla(n).length + 1), ...rec(o) }; tabla(n).push(r); return rec(r); },
+    update: async (id, patch) => { const r = tabla(n).find((x) => x.id === id); Object.assign(r, rec(patch)); return rec(r); },
+    delete: async (id) => { const i = tabla(n).findIndex((x) => x.id === id); if (i < 0) throw new Error('not found'); tabla(n).splice(i, 1); return {}; },
+  });
+  const entities = new Proxy({}, { get: (_t, n) => entidad(n) });
+  return { auth: { me: async () => ctx.user }, entities, asServiceRole: { entities },
     functions: { invoke: async (_n, p) => { const n = ctx.db.filter((x) => x.codigo_registro).length + 1; const cod = 'PRE-' + p.anio_override + '-' + String(n).padStart(5, '0'); ctx.db.find((x) => x.id === p.record_id).codigo_registro = cod; return { data: { id_generado: cod } }; } } };
 }`);
 for (const n of ['guardarPresupuesto', 'cambiarEstadoPresupuesto']) {
