@@ -279,16 +279,23 @@ html, body {
   overscroll-behavior-x: none;
 }
 
-/* Scrollers internos: no encadenan el scroll al documento (cabeceras sticky estables) */
+/* Scrollers internos reales (solo estos encadenan su scroll al documento).
+   IMPORTANTE: no aplicar `overscroll-behavior: contain` a contenedores que no
+   scrollean ni a clases genéricas de layout: en Chrome/Android y en escritorio,
+   un contenedor que no puede scrollear con contain bloquea la rueda y el dedo,
+   y la página deja de moverse (solo se puede arrastrar la barra). */
+[data-radix-scroll-area-viewport],
+[data-radix-scroll-area-viewport] > div,
+.overscroll-contain-y {
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
+}
+
+/* Inercia suave en móvil para cualquier contenedor con scroll */
 .overflow-y-auto,
 .overflow-auto,
 .overflow-y-scroll,
-[data-radix-scroll-area-viewport],
-[data-radix-scroll-area-viewport] > div,
-.overscroll-contain-y,
 .sg-scroll {
-  overscroll-behavior-y: contain;
-  overscroll-behavior-x: none;
   -webkit-overflow-scrolling: touch;
 }
 
