@@ -11,9 +11,10 @@ export function usePullToRefresh(onRefresh, threshold = 70) {
     const el = containerRef.current || window;
 
     const handleTouchStart = (e) => {
+      const shell = document.querySelector('.sg-main');
       const scrollTop = containerRef.current
         ? containerRef.current.scrollTop
-        : window.scrollY;
+        : (shell ? shell.scrollTop : window.scrollY);
       if (scrollTop === 0) {
         startY.current = e.touches[0].clientY;
       }

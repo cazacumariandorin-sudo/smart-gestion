@@ -299,6 +299,27 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   BLOQUE 8 — SHELL: el scroll vertical pertenece al área de contenido
+   El documento no scrollea (height fijo). Así el dedo y la rueda siempre
+   mueven la página, también cuando la app se muestra embebida.
+   ═══════════════════════════════════════════════════════════ */
+.sg-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+.sg-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Utilidades de área segura (notch y barra de gestos) */
 .safe-top { padding-top: env(safe-area-inset-top, 0px); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }

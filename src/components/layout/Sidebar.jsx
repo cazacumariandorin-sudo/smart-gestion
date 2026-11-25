@@ -106,7 +106,7 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <aside className="hidden md:flex flex-col border-r border-border bg-card h-screen sticky top-0 shrink-0
+    <aside className="hidden md:flex flex-col border-r border-border bg-card h-full sticky top-0 shrink-0
       w-14 lg:w-60 overflow-hidden
       transition-all duration-200 ease-in-out
       hover:w-60 hover:shadow-[2px_0_12px_rgba(0,0,0,0.08)]

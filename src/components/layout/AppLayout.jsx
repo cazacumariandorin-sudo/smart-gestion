@@ -157,17 +157,17 @@ export default function AppLayout() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="sg-shell bg-background">
       <ScrollRestorer />
       <SystemHealthBanner />
       <DriveStatusBanner />
       <ConnectivityBanner />
       <RoleSimulatorBanner />
       <DemoBanner />
-      <div className="flex flex-1 min-w-0">
+      <div className="flex flex-1 min-h-0 min-w-0">
         <Sidebar />
         <main
-          className="flex-1 overflow-x-hidden main-with-bottom-nav sg-scroll"
+          className="sg-main flex-1 min-w-0 main-with-bottom-nav"
           style={{
             paddingTop: (!hasTopBanner) ? 'env(safe-area-inset-top, 0px)' : undefined,
           }}
