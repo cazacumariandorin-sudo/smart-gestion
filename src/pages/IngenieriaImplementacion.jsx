@@ -12,6 +12,7 @@ import ImplementacionInformes from '@/components/ingenieria/implementacion/Imple
 import ImplementacionFotos from '@/components/ingenieria/implementacion/ImplementacionFotos';
 import ImplementacionHoras from '@/components/ingenieria/implementacion/ImplementacionHoras';
 import ImplementacionDiscrepancias from '@/components/ingenieria/implementacion/ImplementacionDiscrepancias';
+import ComprobarCambios from '@/components/ingenieria/implementacion/ComprobarCambios';
 
 const TABS = [
   { id: 'resumen', label: 'Resumen' },
@@ -71,6 +72,11 @@ export default function IngenieriaImplementacion() {
     queryFn: () => base44.entities.MaterialDocumentoOrigen.filter({ proyecto_ingenieria_id: obraId }, '-created_date', 200),
     enabled: !!obraId,
   });
+  const { data: manuales = [] } = useQuery({
+    queryKey: ['impl-manuales', obraId],
+    queryFn: () => base44.entities.Manual.filter({ obra_id: obraId }, '-date', 200),
+    enabled: !!obraId,
+  });
 
   const fotos = useMemo(() => fotosRaw.filter((f) => !f.eliminada), [fotosRaw]);
 
@@ -88,6 +94,20 @@ export default function IngenieriaImplementacion() {
           <Link to="/ingenieria" className="inline-flex items-center gap-1 text-xs text-primary">
             <ChevronLeft className="w-3 h-3" /> Volver a ObraCheck
           </Link>
+          {obra && (
+            <ComprobarCambios
+              obraId={obraId}
+              documentos={documentos}
+              manuales={manuales}
+              partes={partes}
+              materiales={materiales}
+              fotos={fotos}
+              fichajes={fichajes}
+              presupuestos={presupuestos}
+              discrepancias={discrepancias}
+              onIrA={setTab}
+            />
+          )}
           {obra && (
             <span className="text-xs text-muted-foreground ml-auto">
               {obra._tipo === 'solar' ? '☀ Solar' : '🏗 Civil'} · {obra.numero_proyecto || obra.code || 's/n'}
