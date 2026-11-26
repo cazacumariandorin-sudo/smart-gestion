@@ -147,14 +147,14 @@ export default function NuevaSolicitudDirecta({ open, onOpenChange, tipo }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={enDocumento ? 'max-w-2xl' : 'max-w-lg'}>
-        <DialogHeader>
+      <DialogContent className={`flex max-h-[90dvh] flex-col ${enDocumento ? 'max-w-2xl' : 'max-w-lg'}`}>
+        <DialogHeader className="shrink-0">
           <DialogTitle>
             {esTrabajo ? 'Nueva solicitud de trabajo extra' : 'Nueva solicitud de material pendiente'}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain-y pr-1">
           {!esTrabajo && (
             <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
               <button
@@ -245,7 +245,7 @@ export default function NuevaSolicitudDirecta({ open, onOpenChange, tipo }) {
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={crearMut.isPending}>
             Cancelar
           </Button>
