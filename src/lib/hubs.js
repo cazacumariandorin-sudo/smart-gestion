@@ -185,6 +185,7 @@ export const HUBS = [
     roleRestricted: ['admin', 'gerencia', 'propietario', 'ingeniero'],
     items: [
       { label: 'Dashboard Proyecto', path: '/ingenieria', icon: LayoutDashboard, module: 'ingenieria' },
+      { label: 'Implementación proyectos', path: '/ingenieria/implementacion', icon: HardHat, module: 'ingenieria' },
       { label: 'Carga Documentos', path: '/ingenieria/documentos', icon: Upload, module: 'ingenieria' },
       { label: 'Listado de Ítems', path: '/ingenieria/items', icon: ListChecks, module: 'ingenieria' },
       { label: 'Conciliación Pd/Pr', path: '/ingenieria/conciliacion', icon: GitCompare, module: 'ingenieria' },
