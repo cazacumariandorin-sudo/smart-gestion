@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import AutoCorrectTextarea from '@/components/ui/AutoCorrectTextarea';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import ObraSelectorObras from '@/components/obras/ObraSelectorObras';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PenLine, FileUp } from 'lucide-react';
+import ImportarMaterialesDocumento from '@/components/materiales/ImportarMaterialesDocumento';
 
 const PRIORIDADES = [
   { value: 'baja', label: 'Baja' },
@@ -36,6 +37,7 @@ export default function NuevaSolicitudDirecta({ open, onOpenChange, tipo }) {
   const [descripcion, setDescripcion] = useState('');
   const [prioridad, setPrioridad] = useState('media');
   const [importeEstimado, setImporteEstimado] = useState('');
+  const [modo, setModo] = useState('manual'); // manual | documento
 
   const reset = () => {
     setObra({ obra_id: null, obra_name: '', obra_tipo: 'otro' });
@@ -43,6 +45,7 @@ export default function NuevaSolicitudDirecta({ open, onOpenChange, tipo }) {
     setDescripcion('');
     setPrioridad('media');
     setImporteEstimado('');
+    setModo('manual');
   };
 
   const resolverCliente = async () => {
@@ -102,11 +105,49 @@ export default function NuevaSolicitudDirecta({ open, onOpenChange, tipo }) {
     },
   });
 
+  // Alta masiva desde documento: un MaterialPendiente por material detectado
+  const crearDocumentoMut = useMutation({
+    mutationFn: async (items) => {
+      const d = new Date(`${fecha}T00:00:00`);
+      const anio = d.getFullYear();
+      const mesNum = d.getMonth() + 1;
+      const mesKey = `${anio}-${String(mesNum).padStart(2, '0')}`;
+      const { client_id, client_name } = await resolverCliente();
+      const registros = items.map((it) => ({
+        obra_id: obra.obra_id,
+        obra_name: obra.obra_name,
+        obra_tipo: obra.obra_tipo,
+        client_id,
+        client_name,
+        parte_id: null,
+        fecha_solicitud: fecha,
+        solicitado_por_email: user?.email,
+        solicitado_por_nombre: user?.full_name || user?.email,
+        solicitado_por_rol: user?.role,
+        descripcion: it.referencia
+          ? `${it.descripcion.trim()} (ref. ${it.referencia})`
+          : it.descripcion.trim(),
+        prioridad: it.prioridad || prioridad,
+        estado: 'pendiente',
+        mes: mesKey,
+        anio,
+        mes_numero: mesNum,
+      }));
+      return base44.entities.MaterialPendiente.bulkCreate(registros);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['materiales-pendientes'] });
+      reset();
+      onOpenChange(false);
+    },
+  });
+
   const puedeCrear = descripcion.trim() && obra.obra_name.trim() && fecha;
+  const enDocumento = !esTrabajo && modo === 'documento';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className={enDocumento ? 'max-w-2xl' : 'max-w-lg'}>
         <DialogHeader>
           <DialogTitle>
             {esTrabajo ? 'Nueva solicitud de trabajo extra' : 'Nueva solicitud de material pendiente'}
@@ -114,6 +155,28 @@ export default function NuevaSolicitudDirecta({ open, onOpenChange, tipo }) {
         </DialogHeader>
 
         <div className="space-y-3">
+          {!esTrabajo && (
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+              <button
+                type="button"
+                onClick={() => setModo('manual')}
+                className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                  !enDocumento ? 'bg-background shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                <PenLine className="w-3.5 h-3.5" /> Manual
+              </button>
+              <button
+                type="button"
+                onClick={() => setModo('documento')}
+                className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                  enDocumento ? 'bg-background shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                <FileUp className="w-3.5 h-3.5" /> Importar documento
+              </button>
+            </div>
+          )}
           <div className="space-y-1">
             <Label className="text-xs">Obra / Lugar *</Label>
             <ObraSelectorObras
@@ -129,56 +192,73 @@ export default function NuevaSolicitudDirecta({ open, onOpenChange, tipo }) {
             <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">{esTrabajo ? 'Descripción del trabajo extra *' : 'Detalle del material necesario *'}</Label>
-            <AutoCorrectTextarea
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              rows={3}
-              placeholder={esTrabajo ? 'Describe el trabajo extra solicitado por el cliente...' : 'Describe el material pendiente solicitado...'}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <Label className="text-xs">Prioridad</Label>
-              <MobileSelect value={prioridad} onValueChange={setPrioridad} triggerClassName="h-10">
-                {PRIORIDADES.map((p) => (
-                  <MobileSelectItem key={p.value} value={p.value}>{p.label}</MobileSelectItem>
-                ))}
-              </MobileSelect>
-            </div>
-            {esTrabajo && (
+          {enDocumento ? (
+            <>
+              <ImportarMaterialesDocumento
+                obra={obra}
+                onCrear={(items) => crearDocumentoMut.mutate(items)}
+                creando={crearDocumentoMut.isPending}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Se creará una solicitud de material por cada material marcado, en la obra seleccionada arriba.
+              </p>
+            </>
+          ) : (
+            <>
               <div className="space-y-1">
-                <Label className="text-xs">Importe estimado (€)</Label>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={importeEstimado}
-                  onChange={(e) => setImporteEstimado(e.target.value)}
-                  placeholder="Opcional"
+                <Label className="text-xs">{esTrabajo ? 'Descripción del trabajo extra *' : 'Detalle del material necesario *'}</Label>
+                <AutoCorrectTextarea
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                  rows={3}
+                  placeholder={esTrabajo ? 'Describe el trabajo extra solicitado por el cliente...' : 'Describe el material pendiente solicitado...'}
                 />
               </div>
-            )}
-          </div>
 
-          <p className="text-[10px] text-muted-foreground">
-            Registro directo desde visita/seguimiento de obra — no se creará ningún parte diario asociado.
-          </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Prioridad</Label>
+                  <MobileSelect value={prioridad} onValueChange={setPrioridad} triggerClassName="h-10">
+                    {PRIORIDADES.map((p) => (
+                      <MobileSelectItem key={p.value} value={p.value}>{p.label}</MobileSelectItem>
+                    ))}
+                  </MobileSelect>
+                </div>
+                {esTrabajo && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Importe estimado (€)</Label>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      value={importeEstimado}
+                      onChange={(e) => setImporteEstimado(e.target.value)}
+                      placeholder="Opcional"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <p className="text-[10px] text-muted-foreground">
+                Registro directo desde visita/seguimiento de obra — no se creará ningún parte diario asociado.
+              </p>
+            </>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={crearMut.isPending}>
             Cancelar
           </Button>
-          <Button onClick={() => crearMut.mutate()} disabled={!puedeCrear || crearMut.isPending}>
-            {crearMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            Crear solicitud
-          </Button>
+          {!enDocumento && (
+            <Button onClick={() => crearMut.mutate()} disabled={!puedeCrear || crearMut.isPending}>
+              {crearMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              Crear solicitud
+            </Button>
+          )}
         </DialogFooter>
-        {crearMut.isError && (
+        {(crearMut.isError || crearDocumentoMut.isError) && (
           <p className="text-xs text-destructive">
-            Error al crear: {crearMut.error?.message || 'inténtalo de nuevo'}
+            Error al crear: {(crearMut.error || crearDocumentoMut.error)?.message || 'inténtalo de nuevo'}
           </p>
         )}
       </DialogContent>
