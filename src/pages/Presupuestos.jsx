@@ -4,12 +4,13 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, AlertTriangle, Download, Pencil, Send, Check, X, RotateCcw, Loader2, History, Trash2 } from "lucide-react";
+import { Plus, FileText, AlertTriangle, Download, Pencil, Send, Check, X, RotateCcw, Loader2, History, Trash2, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import PresupuestoForm from "@/pages/presupuestos/PresupuestoForm";
 import HistorialVersionesPresupuesto from "@/components/presupuestos/HistorialVersionesPresupuesto";
 import InformesTecnicosPresupuesto, { ROLES_INFORMES_INTERNOS } from "@/components/presupuestos/InformesTecnicosPresupuesto";
+import ImportarPresupuestosDialog from "@/components/presupuestos/ImportarPresupuestosDialog";
 import { useUserRole } from "@/lib/useUserRole";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
@@ -54,8 +55,11 @@ export default function Presupuestos() {
     const [historial, setHistorial] = useState(null);
     const [informesDe, setInformesDe] = useState(null);      // presupuesto cuyos informes internos se están viendo
     const [borrar, setBorrar] = useState(null);              // presupuesto que se va a eliminar (pide confirmación)
+    const [showImportar, setShowImportar] = useState(false);
     const { role } = useUserRole();
     const verInformes = ROLES_INFORMES_INTERNOS.includes(role);
+    // Mismos roles que el servidor para crear presupuestos
+    const puedeImportar = ['admin', 'propietario', 'gerencia', 'administracion', 'director_comercial', 'ingeniero'].includes(role);
     // Mismos roles que el servidor para borrar (RLS de Presupuesto)
     const puedeBorrar = ['admin', 'propietario', 'gerencia', 'administracion', 'director_comercial'].includes(role);
 
@@ -158,15 +162,23 @@ export default function Presupuestos() {
         <div className="p-4 lg:p-6 max-w-6xl mx-auto">
             <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
                 <div>
                     <h1 className="text-2xl font-bold">Presupuestos</h1>
                     <p className="text-sm text-muted-foreground">Gestión y consolidación desde partes de trabajo</p>
                 </div>
-                <Button onClick={() => { setEditando(null); setShowForm(true); }} className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Nuevo Presupuesto
-                </Button>
+                <div className="flex gap-2">
+                    {puedeImportar && (
+                        <Button variant="outline" onClick={() => setShowImportar(true)} className="gap-2">
+                            <Upload className="w-4 h-4" />
+                            Importar
+                        </Button>
+                    )}
+                    <Button onClick={() => { setEditando(null); setShowForm(true); }} className="gap-2">
+                        <Plus className="w-4 h-4" />
+                        Nuevo Presupuesto
+                    </Button>
+                </div>
             </div>
 
             {/* Lista de Presupuestos */}
@@ -299,6 +311,13 @@ export default function Presupuestos() {
                     onSubmit={(data) => guardarMutation.mutate(data)}
                 />
             )}
+
+            {/* Importar presupuestos y facturas externas (Excel o PDF) */}
+            <ImportarPresupuestosDialog
+                open={showImportar}
+                onClose={() => setShowImportar(false)}
+                onImported={() => queryClient.invalidateQueries({ queryKey: ['presupuestos'] })}
+            />
 
             {/* Historial interno de versiones */}
             <HistorialVersionesPresupuesto
