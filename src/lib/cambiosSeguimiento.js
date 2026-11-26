@@ -164,7 +164,7 @@ export function fuentesSeguimiento({
       registros: presupuestos,
       pestana: 'materiales',
       titulo: (p) => p.titulo || p.codigo_registro || 'Presupuesto',
-      detalle: (p) => limpiar(p.estado),
+      detalle: (p) => [limpiar(p.estado), !p.obra_id && 'sin obra asignada'].filter(Boolean).join(' · '),
     },
     {
       tipo: 'discrepancia',

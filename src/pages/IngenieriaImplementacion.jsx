@@ -58,8 +58,16 @@ export default function IngenieriaImplementacion() {
     enabled: !!obraId,
   });
   const { data: presupuestos = [] } = useQuery({
-    queryKey: ['impl-presupuestos', obraId],
-    queryFn: () => base44.entities.Presupuesto.filter({ obra_id: obraId }, '-fecha', 100),
+    queryKey: ['impl-presupuestos', obraId, obra?.client_name],
+    queryFn: async () => {
+      const propios = await base44.entities.Presupuesto.filter({ obra_id: obraId }, '-fecha', 100);
+      const cliente = (obra?.client_name || '').trim();
+      if (!cliente) return propios;
+      // Presupuestos del mismo cliente todavía sin obra asignada: son de este proyecto
+      const delCliente = await base44.entities.Presupuesto.filter({ cliente_name: cliente }, '-fecha', 100);
+      const vistos = new Set(propios.map((p) => p.id));
+      return [...propios, ...delCliente.filter((p) => !vistos.has(p.id) && !p.obra_id)];
+    },
     enabled: !!obraId,
   });
   const { data: discrepancias = [] } = useQuery({
