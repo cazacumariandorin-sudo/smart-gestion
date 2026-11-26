@@ -65,6 +65,9 @@ export default function Presupuestos() {
     const puedeImportar = ['admin', 'propietario', 'gerencia', 'administracion', 'director_comercial', 'ingeniero'].includes(role);
     // Mismos roles que el servidor para borrar (RLS de Presupuesto)
     const puedeBorrar = ['admin', 'propietario', 'gerencia', 'administracion', 'director_comercial'].includes(role);
+    // Mismos roles que el servidor para crear facturas borrador (DOC-08): el ingeniero no
+    const puedeFacturar = ['admin', 'propietario', 'gerencia', 'administracion', 'director_comercial'].includes(role);
+    const [creandoFactura, setCreandoFactura] = useState(null);
 
     const { data: presupuestos = [], isLoading } = useQuery({
         queryKey: ['presupuestos'],
@@ -151,6 +154,19 @@ export default function Presupuestos() {
     const cambiarEstado = (presupuesto, accion) => {
         if (accion.confirmar && !window.confirm(`¿Marcar el presupuesto ${presupuesto.codigo_registro || presupuesto.titulo} como "${accion.a}"?`)) return;
         estadoMutation.mutate({ id: presupuesto.id, estado: accion.a });
+    };
+
+    // Crea la factura borrador (NO oficial) a partir de un presupuesto aceptado; el servidor copia sus líneas
+    const crearFacturaBorrador = async (presupuesto) => {
+        setCreandoFactura(presupuesto.id);
+        try {
+            const r = await base44.functions.invoke('guardarFacturaBorrador', { desde_presupuesto_id: presupuesto.id });
+            toast.success(`Factura borrador ${r.data?.codigo_registro || ''} creada. Ábrela en Facturas borrador.`);
+        } catch (err) {
+            toast.error(err?.response?.data?.error || err?.message || 'No se pudo crear la factura borrador');
+        } finally {
+            setCreandoFactura(null);
+        }
     };
 
     const descargarPdf = async (presupuesto) => {
@@ -308,6 +324,11 @@ export default function Presupuestos() {
                                         {estado === 'borrador' && (
                                             <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => { setEditando(presupuesto); setShowForm(true); }}>
                                                 <Pencil className="w-3 h-3" /> Editar
+                                            </Button>
+                                        )}
+                                        {estado === 'aceptado' && puedeFacturar && (
+                                            <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => crearFacturaBorrador(presupuesto)} disabled={creandoFactura === presupuesto.id}>
+                                                {creandoFactura === presupuesto.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />} Crear factura borrador
                                             </Button>
                                         )}
                                         {(ACCIONES[estado] || []).map((accion) => (
