@@ -163,6 +163,7 @@ export default function IngenieriaImplementacion() {
                 previsiones={previsiones}
                 presupuestos={presupuestos}
                 discrepancias={discrepancias}
+                onIrA={setTab}
               />
             )}
             {tab === 'avance' && <ImplementacionAvance partes={partes} previsiones={previsiones} fichajes={fichajes} />}

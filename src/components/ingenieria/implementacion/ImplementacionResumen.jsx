@@ -1,32 +1,72 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { PackageOpen, ClipboardList, Images, Clock, FileText, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { PackageOpen, ClipboardList, Images, Clock, FileText, AlertTriangle, ChevronRight, ArrowRight } from 'lucide-react';
 import KpiCard from './KpiCard';
 import { fechaCorta, euros, horas } from '@/lib/fechaCorta';
 
-export default function ImplementacionResumen({ obra, materiales, partes, fotos, fichajes, previsiones, presupuestos, discrepancias }) {
+export default function ImplementacionResumen({ obra, materiales, partes, fotos, fichajes, previsiones, presupuestos, discrepancias, onIrA }) {
+  const navigate = useNavigate();
   const abiertos = materiales.filter((m) => m.estado !== 'recibido');
   const totalHoras = fichajes.reduce((s, f) => s + (Number(f.horas_trabajadas) || 0), 0);
   const importePresupuesto = presupuestos.reduce((s, p) => s + (Number(p.importe) || 0), 0);
   const abiertas = discrepancias.filter((d) => d.estado === 'abierta');
   const ultimoParte = partes[0];
 
-  const faltantes = [];
-  if (!presupuestos.length) faltantes.push('Presupuesto de la obra');
-  if (!partes.length) faltantes.push('Partes diarios');
-  if (!fotos.length) faltantes.push('Fotos de obra');
-  if (!fichajes.length) faltantes.push('Fichajes');
-  if (!previsiones.length) faltantes.push('Previsión de obra');
-  if (!materiales.length) faltantes.push('Material pendiente');
+  // Si el proyecto ya tiene datos se abre su pestaña; si no, el módulo donde se añaden
+  const irA = (hayDatos, tab, modulo) => {
+    if (hayDatos && onIrA) return onIrA(tab);
+    navigate(modulo);
+  };
+
+  const faltantes = [
+    !presupuestos.length && { label: 'Presupuesto de la obra', to: '/presupuestos' },
+    !partes.length && { label: 'Partes diarios', to: '/parte-diario' },
+    !fotos.length && { label: 'Fotos de obra', to: '/galeria-fotos' },
+    !fichajes.length && { label: 'Fichajes', to: '/control-horario' },
+    !previsiones.length && { label: 'Previsión de obra', to: '/prevision-obras' },
+    !materiales.length && { label: 'Material pendiente', to: '/material-pendiente' },
+  ].filter(Boolean);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <KpiCard icon={PackageOpen} label="Material abierto" value={abiertos.length} hint={`${materiales.length} registrados`} tone={abiertos.length ? 'alerta' : 'vacio'} />
-        <KpiCard icon={ClipboardList} label="Partes diarios" value={partes.length} hint={ultimoParte ? `Último: ${fechaCorta(ultimoParte.fecha)}` : 'Sin partes'} />
-        <KpiCard icon={Images} label="Fotos" value={fotos.length} hint={`${fotos.filter((f) => f.validada).length} validadas`} />
-        <KpiCard icon={Clock} label="Horas fichadas" value={horas(totalHoras)} hint={`${fichajes.length} fichajes`} />
-        <KpiCard icon={FileText} label="Presupuesto" value={presupuestos.length ? euros(importePresupuesto) : '—'} hint={presupuestos.length ? `${presupuestos.length} documento(s)` : 'No cargado'} tone={presupuestos.length ? 'default' : 'vacio'} />
+        <KpiCard
+          icon={PackageOpen}
+          label="Material abierto"
+          value={abiertos.length}
+          hint={`${materiales.length} registrados`}
+          tone={abiertos.length ? 'alerta' : 'vacio'}
+          onClick={() => irA(materiales.length, 'materiales', '/material-pendiente')}
+        />
+        <KpiCard
+          icon={ClipboardList}
+          label="Partes diarios"
+          value={partes.length}
+          hint={ultimoParte ? `Último: ${fechaCorta(ultimoParte.fecha)}` : 'Sin partes'}
+          onClick={() => irA(partes.length, 'informes', '/parte-diario')}
+        />
+        <KpiCard
+          icon={Images}
+          label="Fotos"
+          value={fotos.length}
+          hint={`${fotos.filter((f) => f.validada).length} validadas`}
+          onClick={() => irA(fotos.length, 'fotos', '/galeria-fotos')}
+        />
+        <KpiCard
+          icon={Clock}
+          label="Horas fichadas"
+          value={horas(totalHoras)}
+          hint={`${fichajes.length} fichajes`}
+          onClick={() => irA(fichajes.length, 'horas', '/control-horario')}
+        />
+        <KpiCard
+          icon={FileText}
+          label="Presupuesto"
+          value={presupuestos.length ? euros(importePresupuesto) : '—'}
+          hint={presupuestos.length ? `${presupuestos.length} documento(s)` : 'No cargado · ir a Presupuestos'}
+          tone={presupuestos.length ? 'default' : 'vacio'}
+          onClick={() => navigate(presupuestos.length ? `/presupuestos?obra_id=${obra.id}` : '/presupuestos')}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -48,10 +88,20 @@ export default function ImplementacionResumen({ obra, materiales, partes, fotos,
             <p className="text-sm text-emerald-700 dark:text-emerald-400">Todos los módulos tienen datos para esta obra.</p>
           ) : (
             <>
-              <p className="text-xs text-muted-foreground mb-2">Estos bloques aparecen vacíos porque no hay registros vinculados, no porque el trabajo no exista:</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                Estos bloques aparecen vacíos porque no hay registros vinculados, no porque el trabajo no exista. Toca uno para abrir su módulo y añadir los datos:
+              </p>
               <div className="flex flex-wrap gap-2">
                 {faltantes.map((f) => (
-                  <span key={f} className="text-xs px-2 py-1 rounded border border-slate-200 bg-slate-50 text-slate-600 dark:bg-slate-900 dark:text-slate-400">{f}</span>
+                  <button
+                    key={f.label}
+                    type="button"
+                    onClick={() => navigate(f.to)}
+                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-500 hover:text-teal-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-teal-400 transition-colors"
+                  >
+                    {f.label}
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
                 ))}
               </div>
             </>

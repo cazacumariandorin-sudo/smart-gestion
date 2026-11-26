@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +49,8 @@ const codigoError = (err) => err?.response?.data?.code;
 
 export default function Presupuestos() {
     const queryClient = useQueryClient();
+    const [params, setParams] = useSearchParams();
+    const obraFiltro = params.get("obra_id") || "";
     const [showForm, setShowForm] = useState(false);
     const [editando, setEditando] = useState(null);
     const [duplicadoConfirm, setDuplicadoConfirm] = useState(null);
@@ -68,6 +71,12 @@ export default function Presupuestos() {
         queryFn: () => base44.entities.Presupuesto.list('-fecha', 300),
     });
     const { pullDistance, refreshing } = usePullToRefresh(() => queryClient.invalidateQueries({ queryKey: ['presupuestos'] }));
+
+    // Filtro por obra cuando se llega desde el seguimiento de un proyecto
+    const visibles = useMemo(
+        () => (obraFiltro ? presupuestos.filter((p) => p.obra_id === obraFiltro) : presupuestos),
+        [presupuestos, obraFiltro]
+    );
 
     // Partes ya usados por otro presupuesto activo (se excluye el que se está editando)
     const ocupados = useMemo(() => {
@@ -181,21 +190,34 @@ export default function Presupuestos() {
                 </div>
             </div>
 
+            {/* Filtro activo por obra */}
+            {obraFiltro && (
+                <div className="flex items-center gap-2 mb-4 text-xs">
+                    <Badge variant="outline">Solo presupuestos de esta obra</Badge>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setParams({})}>
+                        Ver todos
+                    </Button>
+                </div>
+            )}
+
             {/* Lista de Presupuestos */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {isLoading ? (
                     <div className="col-span-full flex justify-center py-12">
                         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
                     </div>
-                ) : presupuestos.length === 0 ? (
+                ) : visibles.length === 0 ? (
                     <Card className="col-span-full">
                         <CardContent className="py-12 text-center text-muted-foreground">
                             <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                            <p>No hay presupuestos creados</p>
+                            <p>{obraFiltro ? "Esta obra no tiene presupuestos vinculados" : "No hay presupuestos creados"}</p>
+                            {obraFiltro && (
+                                <p className="text-xs mt-2">Crea uno nuevo o asigna la obra a un presupuesto existente desde «Editar».</p>
+                            )}
                         </CardContent>
                     </Card>
                 ) : (
-                    presupuestos.map((presupuesto) => {
+                    visibles.map((presupuesto) => {
                         const estado = presupuesto.estado || 'borrador';
                         const caducado = estado === 'enviado' && presupuesto.valido_hasta && String(presupuesto.valido_hasta).slice(0, 10) < hoy;
                         const ultimo = (presupuesto.historial_estados || []).slice(-1)[0];
