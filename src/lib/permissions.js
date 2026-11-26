@@ -29,6 +29,7 @@ export const ALL_MODULES = [
   'apuntes-horario', 'nominas', 'presupuestos', 'parte-diario',
   'economico-dashboard', 'trabajos-extras', 'material-pendiente',
   'conciliacion', 'contabilidad', 'ingenieria', 'expedientes',
+  'facturas-borrador',
 ];
 
 /**
@@ -50,6 +51,7 @@ export const ROLE_MODULE_PERMISSIONS = {
     'presupuestos', 'parte-diario', 'economico-dashboard', 'trabajos-extras',
     'material-pendiente', 'conciliacion', 'contabilidad', 'ingenieria',
     'expedientes',
+    'facturas-borrador',
   ],
 
   // ingeniero = rol operativo del módulo Ingeniería/ObraCheck. Alcance de
@@ -109,6 +111,7 @@ export const ROLE_MODULE_PERMISSIONS = {
     'inventario', 'fabricantes', 'demo-users', 'admin-backup', 'nominas',
     'presupuestos', 'parte-diario', 'economico-dashboard', 'trabajos-extras',
     'material-pendiente', 'conciliacion', 'contabilidad', 'expedientes',
+    'facturas-borrador',
   ],
 
   // Antes DEMO_MODULES — módulos visibles para cuentas de demostración.

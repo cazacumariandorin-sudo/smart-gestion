@@ -108,7 +108,6 @@ export function filasContasimple({ factura, cliente = {}, opciones = {} }) {
     const [primera, ...resto] = [...lineasDeTexto(c.descripcion)];
     f[COL['Concepto - Descripción']] = primera || '';
     if (resto.length) f[COL['Concepto - Descripción detallada']] = resto.join(' ');
-    Object.assign(f, {});
     f[COL['Concepto - Base imponible unitaria']] = importeCS(0); f[COL['Concepto - Cantidad']] = '0'; f[COL['Concepto - % descuento']] = '0';
     f[COL['Concepto - Total base imponible']] = importeCS(0); f[COL['Concepto - % IVA']] = '0'; f[COL['Concepto - Cuota IVA']] = importeCS(0);
     f[COL['Concepto - % RE']] = '0'; f[COL['Concepto - Cuota RE']] = '0'; f[COL['Concepto - % Retención']] = '0'; f[COL['Concepto - Cuota Retención']] = '0';

@@ -74,6 +74,7 @@ const VinculacionPage = lazy(() => import('./pages/Vinculacion'));
 const AnalisisSeguridad = lazy(() => import('./pages/AnalisysSeguridad'));
 const Nominas = lazy(() => import('./pages/Nominas'));
 const Presupuestos = lazy(() => import('./pages/Presupuestos'));
+const FacturasBorrador = lazy(() => import('./pages/FacturasBorrador'));
 const ReglasDeOro = lazy(() => import('./pages/ReglasDeOro'));
 const ParteDiario = lazy(() => import('./pages/ParteDiario'));
 const EconomicoDashboard = lazy(() => import('./pages/EconomicoDashboard'));
@@ -282,6 +283,7 @@ function AnimatedRoutes() {
             <Route path="/analisis-seguridad" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><AnalisisSeguridad /></Suspense></ProtectedRoute>} />
             <Route path="/nominas" element={<ProtectedRoute module="nominas"><Suspense fallback={<PageLoader />}><Nominas /></Suspense></ProtectedRoute>} />
             <Route path="/presupuestos" element={<ProtectedRoute module="presupuestos"><Suspense fallback={<PageLoader />}><Presupuestos /></Suspense></ProtectedRoute>} />
+            <Route path="/facturas-borrador" element={<ProtectedRoute module="facturas-borrador"><Suspense fallback={<PageLoader />}><FacturasBorrador /></Suspense></ProtectedRoute>} />
             <Route path="/sistema/reglas-de-oro" element={<ProtectedRoute module="users"><Suspense fallback={<PageLoader />}><ReglasDeOro /></Suspense></ProtectedRoute>} />
             <Route path="/parte-diario" element={<ProtectedRoute module="parte-diario"><Suspense fallback={<PageLoader />}><ParteDiario /></Suspense></ProtectedRoute>} />
             <Route path="/economico-dashboard" element={<ProtectedRoute module="economico-dashboard"><Suspense fallback={<PageLoader />}><EconomicoDashboard /></Suspense></ProtectedRoute>} />

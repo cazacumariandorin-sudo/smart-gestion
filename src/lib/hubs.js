@@ -124,6 +124,7 @@ export const HUBS = [
       { label: 'Pedidos', path: '/orders', icon: CreditCard, module: 'orders' },
       { label: 'Nóminas', path: '/nominas', icon: Banknote, module: 'nominas' },
       { label: 'Presupuestos', path: '/presupuestos', icon: FileText, module: 'presupuestos' },
+      { label: 'Facturas borrador', path: '/facturas-borrador', icon: FileText, module: 'facturas-borrador' },
       { label: 'Alta Materiales (OCR)', path: '/materiales-ocr', icon: PackageOpen, module: 'notas-gastos' },
       { label: 'Contabilidad', path: '/contabilidad', icon: ClipboardCheck, module: 'contabilidad' },
       { label: 'Datos sensibles', path: '/datos-sensibles', icon: Lock, module: 'users' },
