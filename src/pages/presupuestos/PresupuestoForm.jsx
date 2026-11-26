@@ -76,6 +76,7 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
             partes_trabajo_ids: p?.partes_trabajo_ids || [],
             obra_id: p?.obra_id || "",
             obra_name: p?.obra_name || "",
+            codigo_obra: p?.codigo_obra || "",
             descripcion: p?.descripcion || "",
             notas: p?.notas || "",
             documentos_origen: p?.documentos_origen || [],
@@ -106,6 +107,36 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
         queryKey: ['clientes_presupuesto'],
         queryFn: () => base44.entities.Client.list('name', 500),
     });
+
+    // Obras / proyectos del cliente: al vincular una, se trae el código que asigna Ingeniería
+    const { data: obrasCliente = [] } = useQuery({
+        queryKey: ['obras_presupuesto', formData.cliente_id],
+        queryFn: async () => {
+            const [civiles, solar] = await Promise.all([
+                base44.entities.Obra.filter({ client_id: formData.cliente_id }, 'name', 300),
+                base44.entities.SolarObra.filter({ client_id: formData.cliente_id }, 'name', 300),
+            ]);
+            return [...civiles, ...solar].map(o => ({
+                id: o.id,
+                name: o.name,
+                codigo: o.numero_proyecto || o.code || '',
+            }));
+        },
+        enabled: !!formData.cliente_id,
+        staleTime: 0,
+        refetchOnMount: 'always',
+    });
+
+    const seleccionarObra = (obraId) => {
+        const obra = obrasCliente.find(o => o.id === obraId);
+        setTarifaEdit(null);
+        setFormData(prev => ({
+            ...prev,
+            obra_id: obra?.id || '',
+            obra_name: obra?.name || '',
+            codigo_obra: obra?.codigo || '',
+        }));
+    };
 
     // Logos del PDF: el Logo 2 sale de los datos de la empresa principal (Sistema > Empresas)
     const { data: logosDisponibles = LOGOS_PRESUPUESTO } = useQuery({
@@ -410,6 +441,7 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
             referencia_cliente: formData.referencia_cliente,
             obra_id: formData.obra_id,
             obra_name: formData.obra_name,
+            codigo_obra: formData.codigo_obra,
             forma_pago: formData.forma_pago,
             descripcion: formData.descripcion,
             notas: formData.notas,
@@ -476,7 +508,7 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                                     onValueChange={(value) => {
                                         const cliente = clientes.find(c => c.id === value);
                                         setTarifaEdit(null);
-                                        setFormData(prev => ({ ...prev, cliente_id: value, cliente_name: cliente?.name || '', obra_id: '', obra_name: '' }));
+                                        setFormData(prev => ({ ...prev, cliente_id: value, cliente_name: cliente?.name || '', obra_id: '', obra_name: '', codigo_obra: '' }));
                                     }}
                                 >
                                     <SelectTrigger>
@@ -490,6 +522,33 @@ export default function PresupuestoForm({ onSubmit, onCancel, presupuestoInicial
                                         ))}
                                     </SelectContent>
                                 </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Obra / proyecto</Label>
+                                <Select
+                                    value={formData.obra_id || "sin_obra"}
+                                    onValueChange={(value) => seleccionarObra(value === "sin_obra" ? "" : value)}
+                                    disabled={!formData.cliente_id}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Seleccionar obra" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="sin_obra">Sin obra asignada</SelectItem>
+                                        {obrasCliente.map(obra => (
+                                            <SelectItem key={obra.id} value={obra.id}>
+                                                {obra.name}{obra.codigo ? ` · ${obra.codigo}` : ''}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-[11px] text-muted-foreground">
+                                    {!formData.cliente_id
+                                        ? 'Elige primero el cliente para ver sus obras.'
+                                        : formData.codigo_obra
+                                            ? `Código de obra (Ingeniería): ${formData.codigo_obra}`
+                                            : 'Al vincular una obra se rellena su código de Ingeniería, si lo tiene.'}
+                                </p>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="fecha">Fecha *</Label>

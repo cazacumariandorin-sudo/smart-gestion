@@ -13,6 +13,10 @@
       "description": "Nombre del cliente",
       "type": "string"
     },
+    "codigo_obra": {
+      "description": "C\u00f3digo de obra / n\u00famero de proyecto que asigna el m\u00f3dulo Ingenier\u00eda. Se rellena autom\u00e1ticamente al vincular el presupuesto con una obra.",
+      "type": "string"
+    },
     "codigo_registro": {
       "description": "N\u00famero \u00fanico del presupuesto: PRE-AAAA-NNNNN (ej: PRE-2026-00001)",
       "type": "string"

@@ -218,6 +218,14 @@ export default function Presupuestos() {
                                     <p className="text-xs text-muted-foreground">
                                         {presupuesto.cliente_name}
                                     </p>
+                                    {presupuesto.obra_name ? (
+                                        <p className="text-xs text-muted-foreground">
+                                            {presupuesto.obra_name}
+                                            {presupuesto.codigo_obra ? ` · ${presupuesto.codigo_obra}` : ''}
+                                        </p>
+                                    ) : (
+                                        <p className="text-xs text-amber-600">Sin obra asignada</p>
+                                    )}
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     <div className="flex items-center justify-between">
