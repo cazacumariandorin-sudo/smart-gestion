@@ -14,6 +14,9 @@ const hoy = () => new Date().toISOString().slice(0, 10);
 const aPayload = (p, cliente_id) => ({
   cliente_id,
   cliente_name: p.cliente_nombre || '',
+  obra_id: p.obra_id || undefined,
+  obra_name: p.obra_name || undefined,
+  codigo_obra: p.codigo_obra || undefined,
   fecha: p.fecha || hoy(),
   titulo: p.titulo || p.archivo?.nombre || 'Presupuesto importado',
   referencia_cliente: p.numero_documento || '',
@@ -54,6 +57,25 @@ export default function ImportarPresupuestosDialog({ open, onClose, onImported }
     queryKey: ['clientes_presupuesto'],
     queryFn: () => base44.entities.Client.list('name', 500),
     enabled: open,
+  });
+
+  // Obras y proyectos (civiles y solares) para vincularlos ya en la importación
+  const { data: obras = [] } = useQuery({
+    queryKey: ['obras_importar_presupuesto'],
+    queryFn: async () => {
+      const [civiles, solar] = await Promise.all([
+        base44.entities.Obra.list('name', 500),
+        base44.entities.SolarObra.list('name', 500),
+      ]);
+      return [...civiles, ...solar].map((o) => ({
+        id: o.id,
+        name: o.name,
+        client_id: o.client_id || '',
+        codigo: o.numero_proyecto || o.code || '',
+      }));
+    },
+    enabled: open,
+    staleTime: 0,
   });
 
   if (!open) return null;
@@ -232,6 +254,9 @@ export default function ImportarPresupuestosDialog({ open, onClose, onImported }
                       key={p.tempId}
                       propuesta={p}
                       clientes={clientes}
+                      obras={p.cliente_id && p.cliente_id !== NUEVO_CLIENTE
+                        ? obras.filter((o) => o.client_id === p.cliente_id)
+                        : []}
                       onChange={(patch) => setPropuestas((prev) => prev.map((x) => (x.tempId === p.tempId ? { ...x, ...patch } : x)))}
                       onRemove={() => setPropuestas((prev) => prev.filter((x) => x.tempId !== p.tempId))}
                       onVerDocumento={() => setDocAbierto(p.archivo)}

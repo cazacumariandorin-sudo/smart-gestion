@@ -12,7 +12,7 @@ const eur = (n) => (Number(n) || 0).toLocaleString('es-ES', { style: 'currency',
 const ETIQUETA_TIPO = { presupuesto: 'Presupuesto externo', factura: 'Factura externa', otro: 'Documento' };
 
 /** Revisión de un documento importado antes de crear el presupuesto. */
-export default function PropuestaImportada({ propuesta, clientes = [], onChange, onRemove, onVerDocumento }) {
+export default function PropuestaImportada({ propuesta, clientes = [], obras = [], onChange, onRemove, onVerDocumento }) {
   const p = propuesta;
 
   const totales = useMemo(() => {
@@ -29,12 +29,24 @@ export default function PropuestaImportada({ propuesta, clientes = [], onChange,
   const descuadre = p.total_documento > 0 && Math.abs(p.total_documento - total) > 0.05;
 
   const cambiarCliente = (value) => {
+    // Al cambiar de cliente, la obra vinculada deja de valer
+    const limpiarObra = { obra_id: '', obra_name: '', codigo_obra: '' };
     if (value === NUEVO_CLIENTE) {
-      onChange({ cliente_id: NUEVO_CLIENTE });
+      onChange({ cliente_id: NUEVO_CLIENTE, ...limpiarObra });
       return;
     }
     const cliente = clientes.find((c) => c.id === value);
-    onChange({ cliente_id: value, cliente_nombre: cliente?.name || p.cliente_nombre });
+    onChange({ cliente_id: value, cliente_nombre: cliente?.name || p.cliente_nombre, ...limpiarObra });
+  };
+
+  // Vincular la obra/proyecto ya en la importación: trae el código que asigna Ingeniería
+  const cambiarObra = (value) => {
+    const obra = obras.find((o) => o.id === value);
+    onChange({
+      obra_id: obra?.id || '',
+      obra_name: obra?.name || '',
+      codigo_obra: obra?.codigo || '',
+    });
   };
 
   return (
@@ -85,6 +97,29 @@ export default function PropuestaImportada({ propuesta, clientes = [], onChange,
         <div>
           <label className="text-[11px] font-medium text-muted-foreground">Fecha</label>
           <Input type="date" value={p.fecha} onChange={(e) => onChange({ fecha: e.target.value })} className="h-9 text-sm" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-[11px] font-medium text-muted-foreground">Obra / Proyecto</label>
+          <Select value={p.obra_id || 'sin_obra'} onValueChange={(v) => cambiarObra(v === 'sin_obra' ? '' : v)}>
+            <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Sin obra asignada" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sin_obra">Sin obra asignada</SelectItem>
+              {obras.map((o) => (
+                <SelectItem key={o.id} value={o.id}>
+                  {o.name}{o.codigo ? ` · ${o.codigo}` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {!p.cliente_id || p.cliente_id === NUEVO_CLIENTE
+              ? 'Elige primero el cliente para ver sus obras.'
+              : obras.length === 0
+                ? 'Este cliente no tiene obras en Ingeniería.'
+                : p.codigo_obra
+                  ? `Código de obra (Ingeniería): ${p.codigo_obra}`
+                  : 'Puedes dejarlo sin obra y vincularla más adelante.'}
+          </p>
         </div>
       </div>
 
