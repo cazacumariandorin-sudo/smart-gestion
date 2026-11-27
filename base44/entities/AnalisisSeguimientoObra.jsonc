@@ -1,0 +1,367 @@
+{
+  "name": "AnalisisSeguimientoObra",
+  "type": "object",
+  "description": "An\u00e1lisis asistido por IA del seguimiento de una obra (Implementaci\u00f3n proyectos). Re\u00fane las fuentes operativas de la obra (fotos, partes, documentos, materiales, fichajes, previsiones, presupuestos y discrepancias), propone observaciones de avance, posibles incidencias y posibles trabajos extra, y conserva la evidencia exacta de cada observaci\u00f3n. Es material de apoyo: ninguna conclusi\u00f3n se considera confirmada hasta que una persona la revisa.",
+  "properties": {
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra / proyecto analizado (Obra o SolarObra)."
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra (desnormalizado)."
+    },
+    "obra_tipo": {
+      "type": "string",
+      "enum": [
+        "obra_civil",
+        "solar",
+        "oficina",
+        "almacen",
+        "otro"
+      ],
+      "enumColors": [
+        "blue",
+        "yellow",
+        "purple",
+        "gray",
+        "gray"
+      ],
+      "default": "otro"
+    },
+    "codigo_obra": {
+      "type": "string",
+      "description": "N\u00famero de proyecto / c\u00f3digo de obra que asigna Ingenier\u00eda."
+    },
+    "resumen": {
+      "type": "string",
+      "description": "Resumen del estado del seguimiento seg\u00fan la informaci\u00f3n disponible."
+    },
+    "hallazgos": {
+      "type": "array",
+      "description": "Observaciones propuestas, cada una con su evidencia y su estado de revisi\u00f3n humana.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Clave estable de la observaci\u00f3n dentro del an\u00e1lisis."
+          },
+          "seccion": {
+            "type": "string",
+            "enum": [
+              "avance",
+              "incidencia",
+              "trabajo_extra"
+            ],
+            "enumColors": [
+              "green",
+              "yellow",
+              "blue"
+            ],
+            "description": "avance = progreso observado; incidencia = posible fallo o desviaci\u00f3n; trabajo_extra = posible trabajo no previsto."
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "detalle": {
+            "type": "string",
+            "description": "Explicaci\u00f3n de la observaci\u00f3n y de lo que la respalda."
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "hecho",
+              "inferencia",
+              "pendiente"
+            ],
+            "enumColors": [
+              "green",
+              "yellow",
+              "gray"
+            ],
+            "description": "hecho = consta en un registro; inferencia = deducci\u00f3n razonada sobre datos; pendiente = no hay datos suficientes para afirmarlo."
+          },
+          "confianza": {
+            "type": "number",
+            "description": "Confianza de la observaci\u00f3n (0-1)."
+          },
+          "sin_evidencia": {
+            "type": "boolean",
+            "default": false,
+            "description": "True cuando la observaci\u00f3n no pudo vincularse a ning\u00fan registro concreto."
+          },
+          "evidencias": {
+            "type": "array",
+            "description": "Registros concretos que respaldan la observaci\u00f3n (entidad, id, fecha y enlace si existe).",
+            "items": {
+              "type": "object",
+              "properties": {
+                "entidad": {
+                  "type": "string",
+                  "description": "parte | documento | material | presupuesto | foto | fichaje | prevision | discrepancia"
+                },
+                "registro_id": {
+                  "type": "string"
+                },
+                "etiqueta": {
+                  "type": "string"
+                },
+                "fecha": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Enlace directo al archivo o imagen, cuando existe."
+                },
+                "pestana": {
+                  "type": "string",
+                  "description": "Pesta\u00f1a de Implementaci\u00f3n donde se consulta el registro."
+                }
+              }
+            }
+          },
+          "estado_revision": {
+            "type": "string",
+            "enum": [
+              "pendiente",
+              "confirmada",
+              "descartada",
+              "corregida"
+            ],
+            "enumColors": [
+              "gray",
+              "green",
+              "red",
+              "yellow"
+            ],
+            "default": "pendiente"
+          },
+          "nota_revision": {
+            "type": "string",
+            "description": "Matiz o correcci\u00f3n indicada por la persona que revisa."
+          },
+          "revisado_por": {
+            "type": "string"
+          },
+          "revisado_en": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "datos_no_disponibles": {
+      "type": "array",
+      "description": "Informaci\u00f3n que falta para poder concluir algo con seguridad.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recomendaciones": {
+      "type": "array",
+      "description": "Siguientes comprobaciones sugeridas antes de dar algo por confirmado.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "fuentes": {
+      "type": "array",
+      "description": "Fuentes consultadas y n\u00famero de registros le\u00eddos en cada una.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "entidad": {
+            "type": "string"
+          },
+          "etiqueta": {
+            "type": "string"
+          },
+          "registros": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "fotos_analizadas": {
+      "type": "number",
+      "description": "N\u00famero de fotos enviadas al an\u00e1lisis visual."
+    },
+    "confianza": {
+      "type": "number",
+      "description": "Confianza global del an\u00e1lisis (0-1)."
+    },
+    "generado_por": {
+      "type": "string",
+      "description": "Email del usuario que lanz\u00f3 el an\u00e1lisis."
+    },
+    "generado_por_nombre": {
+      "type": "string"
+    },
+    "generado_en": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del an\u00e1lisis."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "revisado",
+        "archivado"
+      ],
+      "enumColors": [
+        "gray",
+        "green",
+        "gray"
+      ],
+      "default": "borrador",
+      "description": "borrador = observaciones sin revisar; revisado = todas las observaciones tienen decisi\u00f3n humana."
+    },
+    "revisado_por": {
+      "type": "string"
+    },
+    "revisado_en": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "obra_id",
+    "resumen",
+    "generado_en"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director_comercial"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "ingeniero"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "jefe_obra"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { HardHat, ChevronLeft } from 'lucide-react';
@@ -13,6 +13,7 @@ import ImplementacionFotos from '@/components/ingenieria/implementacion/Implemen
 import ImplementacionHoras from '@/components/ingenieria/implementacion/ImplementacionHoras';
 import ImplementacionDiscrepancias from '@/components/ingenieria/implementacion/ImplementacionDiscrepancias';
 import ComprobarCambios from '@/components/ingenieria/implementacion/ComprobarCambios';
+import ImplementacionAnalisisIA from '@/components/ingenieria/implementacion/analisis/ImplementacionAnalisisIA';
 
 const TABS = [
   { id: 'resumen', label: 'Resumen' },
@@ -22,6 +23,7 @@ const TABS = [
   { id: 'fotos', label: 'Fotos y verificaciones' },
   { id: 'horas', label: 'Horas y actividad' },
   { id: 'discrepancias', label: 'Discrepancias' },
+  { id: 'analisis', label: 'Análisis IA' },
 ];
 
 export default function IngenieriaImplementacion() {
@@ -29,6 +31,13 @@ export default function IngenieriaImplementacion() {
   const obraId = params.get('obra_id') || '';
   const [tab, setTab] = useState('resumen');
   const { obras, isLoading: cargandoObras } = useIngenieriaProyectos();
+  const qc = useQueryClient();
+
+  // Relanza las consultas del seguimiento para incluir registros creados en otros módulos
+  const refrescar = () =>
+    qc.invalidateQueries({
+      predicate: (q) => Array.isArray(q.queryKey) && String(q.queryKey[0]).startsWith('impl-'),
+    });
 
   const obra = obras.find((o) => o.id === obraId) || null;
 
@@ -114,6 +123,7 @@ export default function IngenieriaImplementacion() {
               presupuestos={presupuestos}
               discrepancias={discrepancias}
               onIrA={setTab}
+              onRefrescar={refrescar}
             />
           )}
           {obra && (
@@ -172,6 +182,7 @@ export default function IngenieriaImplementacion() {
             {tab === 'fotos' && <ImplementacionFotos fotos={fotos} />}
             {tab === 'horas' && <ImplementacionHoras fichajes={fichajes} previsiones={previsiones} />}
             {tab === 'discrepancias' && <ImplementacionDiscrepancias discrepancias={discrepancias} obra={obra} />}
+            {tab === 'analisis' && <ImplementacionAnalisisIA obra={obra} onIrA={setTab} />}
           </>
         )}
       </div>

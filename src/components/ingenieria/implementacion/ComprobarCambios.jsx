@@ -7,7 +7,7 @@ import { leerUltimaRevision, guardarUltimaRevision, detectarCambios, fuentesSegu
 import { fechaHoraES } from '@/lib/fechaES';
 
 export default function ComprobarCambios({
-  obraId, documentos, manuales, partes, materiales, fotos, fichajes, presupuestos, discrepancias, onIrA,
+  obraId, documentos, manuales, partes, materiales, fotos, fichajes, presupuestos, discrepancias, onIrA, onRefrescar,
 }) {
   const [revision, setRevision] = useState(() => leerUltimaRevision(obraId));
   const [abierto, setAbierto] = useState(false);
@@ -37,7 +37,15 @@ export default function ComprobarCambios({
 
   return (
     <>
-      <Button variant="outline" onClick={() => setAbierto(true)} className="gap-2">
+      <Button
+        variant="outline"
+        onClick={() => {
+          // Relee las fuentes antes de comparar: incluye registros creados en otros módulos
+          if (onRefrescar) onRefrescar();
+          setAbierto(true);
+        }}
+        className="gap-2"
+      >
         <BellDot className="w-4 h-4" />
         Comprobar cambios
         {revision && cambios.length > 0 && (
