@@ -547,7 +547,10 @@ export default function Chat() {
                     msg={msg}
                     isOwn={isOwn}
                     textoMostrar={textoMostrar}
-                    onReply={(m, previewText) => setReplyMsg({ ...m, _previewText: previewText })}
+                    onReply={(m, previewText) => setReplyMsg({
+                      ...m,
+                      _previewText: previewText || (m.adjuntos?.length ? '📷 Imagen' : ''),
+                    })}
                     mensajesDescifrados={mensajesDescifrados}
                   />
                 );

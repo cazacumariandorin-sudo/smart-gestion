@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Lock, Reply, Check, CheckCheck, Paperclip, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { safeTimeFormat } from '@/lib/chatDateUtils';
+import ImageLightbox from '@/components/ui/ImageLightbox';
 
 function TickEstado({ msg, isOwn, currentUser }) {
   if (!isOwn) return null;
@@ -14,6 +15,7 @@ function TickEstado({ msg, isOwn, currentUser }) {
 
 export default function ChatMessageBubble({ msg, isOwn, textoMostrar, onReply, mensajesDescifrados }) {
   const [hovered, setHovered] = useState(false);
+  const [imagenAbierta, setImagenAbierta] = useState(null);
 
   const tieneAdjuntos = msg.adjuntos && msg.adjuntos.length > 0;
   const esImagen = (adj) => adj.tipo && adj.tipo.startsWith('image/');
@@ -69,14 +71,20 @@ export default function ChatMessageBubble({ msg, isOwn, textoMostrar, onReply, m
             <div className="mt-1 space-y-1">
               {msg.adjuntos.map((adj, i) => (
                 esImagen(adj) ? (
-                  <a key={i} href={adj.url} target="_blank" rel="noopener noreferrer">
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setImagenAbierta(adj)}
+                    className="block"
+                    title="Ver imagen"
+                  >
                     <img
                       src={adj.url}
                       alt={adj.nombre || 'imagen'}
-                      className="max-w-[200px] max-h-[200px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                      className="max-w-[220px] max-h-[220px] rounded-lg object-cover cursor-zoom-in hover:opacity-90 transition-opacity"
                       loading="lazy"
                     />
-                  </a>
+                  </button>
                 ) : (
                   <a
                     key={i}
@@ -118,6 +126,15 @@ export default function ChatMessageBubble({ msg, isOwn, textoMostrar, onReply, m
         >
           <Reply className="w-3.5 h-3.5 text-muted-foreground" />
         </button>
+      )}
+
+      {imagenAbierta && (
+        <ImageLightbox
+          url={imagenAbierta.url}
+          nombre={imagenAbierta.nombre}
+          subtitulo={`${msg.autor_nombre || msg.autor_email || ''} · ${safeTimeFormat(msg.fecha_envio)}`}
+          onClose={() => setImagenAbierta(null)}
+        />
       )}
     </div>
   );

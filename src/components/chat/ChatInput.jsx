@@ -1,11 +1,14 @@
 import { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Paperclip, X, Reply } from 'lucide-react';
+import { Send, Paperclip, X, Reply, ImagePlus, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { corregirTextoIA, MIN_LEN_AUTOCORRECCION } from '@/lib/correction';
 import { base44 } from '@/api/base44Client';
 import { subirArchivo } from '@/lib/subirArchivo';
+import { compressImageToWebP } from '@/utils/imageCompressor';
 import { toast } from 'sonner';
+
+const esImagen = (adj) => (adj?.tipo || '').startsWith('image/');
 
 export default function ChatInput({ onSend, disabled, replyMsg, onCancelReply }) {
   const [text, setText] = useState('');
@@ -13,6 +16,7 @@ export default function ChatInput({ onSend, disabled, replyMsg, onCancelReply })
   const [uploading, setUploading] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+  const imageInputRef = useRef(null);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -51,10 +55,15 @@ export default function ChatInput({ onSend, disabled, replyMsg, onCancelReply })
     setUploading(true);
     try {
       const uploaded = [];
-      for (const file of files) {
+      for (const original of files) {
+        // Las fotos hechas con el móvil pesan varios MB: se optimizan antes de subir
+        const file = esImagen(original)
+          ? (await compressImageToWebP(original, 1600, 0.82)).file
+          : original;
         const uploadRes = await subirArchivo(file, { ruta_drive: 'Chat/Adjuntos', entidad_tipo: 'ChatMensaje', entidad_id: null });
         const file_url = uploadRes?.cdn_url_para_llm || uploadRes?.file_url;
-        uploaded.push({ nombre: file.name, url: file_url, tipo: file.type, size_bytes: file.size });
+        if (!file_url) throw new Error(`No se pudo subir ${original.name}`);
+        uploaded.push({ nombre: original.name, url: file_url, tipo: file.type || original.type, size_bytes: file.size });
       }
       setAdjuntos(prev => [...prev, ...uploaded]);
     } catch (err) {
@@ -81,20 +90,44 @@ export default function ChatInput({ onSend, disabled, replyMsg, onCancelReply })
       )}
 
       {/* Adjuntos preview */}
-      {adjuntos.length > 0 && (
-        <div className="flex flex-wrap gap-2 px-1">
+      {(adjuntos.length > 0 || uploading) && (
+        <div className="flex flex-wrap items-center gap-2 px-1">
           {adjuntos.map((adj, i) => (
-            <div key={i} className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-xs">
-              <Paperclip className="w-3 h-3" />
-              <span className="max-w-[120px] truncate">{adj.nombre}</span>
-              <button
-                onClick={() => setAdjuntos(prev => prev.filter((_, j) => j !== i))}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
+            esImagen(adj) ? (
+              <div key={i} className="relative">
+                <img
+                  src={adj.url}
+                  alt={adj.nombre || 'imagen'}
+                  className="h-16 w-16 rounded-md object-cover border border-border"
+                />
+                <button
+                  type="button"
+                  onClick={() => setAdjuntos(prev => prev.filter((_, j) => j !== i))}
+                  className="absolute -top-1.5 -right-1.5 h-5 w-5 flex items-center justify-center rounded-full bg-background border border-border shadow-sm text-muted-foreground hover:text-destructive"
+                  title="Quitar imagen"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <div key={i} className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-xs">
+                <Paperclip className="w-3 h-3" />
+                <span className="max-w-[120px] truncate">{adj.nombre}</span>
+                <button
+                  type="button"
+                  onClick={() => setAdjuntos(prev => prev.filter((_, j) => j !== i))}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )
           ))}
+          {uploading && (
+            <div className="h-16 w-16 rounded-md border border-dashed border-border flex items-center justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
         </div>
       )}
 
@@ -108,6 +141,25 @@ export default function ChatInput({ onSend, disabled, replyMsg, onCancelReply })
           onChange={handleFileChange}
           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
         />
+        <input
+          ref={imageInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleFileChange}
+          accept="image/*"
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-9 w-9 shrink-0"
+          onClick={() => imageInputRef.current?.click()}
+          disabled={uploading}
+          title="Enviar imagen"
+        >
+          <ImagePlus className={cn('w-4 h-4', uploading && 'animate-pulse')} />
+        </Button>
         <Button
           type="button"
           size="icon"
@@ -115,6 +167,7 @@ export default function ChatInput({ onSend, disabled, replyMsg, onCancelReply })
           className="h-9 w-9 shrink-0"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
+          title="Adjuntar archivo"
         >
           <Paperclip className={cn('w-4 h-4', uploading && 'animate-pulse')} />
         </Button>
