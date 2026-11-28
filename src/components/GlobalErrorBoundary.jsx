@@ -38,6 +38,15 @@ export default class GlobalErrorBoundary extends React.Component {
     return { error };
   }
 
+  componentDidMount() {
+    // Si la app ha montado bien, olvidamos el intento de recarga anterior para
+    // que un fallo puntual futuro (nueva publicación, cobertura débil) pueda
+    // volver a recargarse en silencio en lugar de quedarse bloqueado.
+    if (!this.state.error) {
+      try { sessionStorage.removeItem(RELOAD_FLAG_KEY); } catch { /* sin-op */ }
+    }
+  }
+
   componentDidCatch(error, info) {
     console.error('[GlobalErrorBoundary] Error no capturado:', error, info);
 
@@ -62,14 +71,9 @@ export default class GlobalErrorBoundary extends React.Component {
     const { error } = this.state;
 
     if (error) {
-      // Si es un error de carga de módulo y aún no hemos intentado recargar,
-      // no mostrar nada (la recarga ya está en marcha desde componentDidCatch).
-      let yaRecargo = false;
-      try { yaRecargo = sessionStorage.getItem(RELOAD_FLAG_KEY) === '1'; } catch { /* sin-op */ }
-      if (esErrorDeCarga(error) && yaRecargo) {
-        return null;
-      }
-
+      // Nunca devolvemos null: una pantalla en blanco no explica nada. Si la
+      // recarga automática ya se intentó y el fallo persiste, mostramos el
+      // aviso con el botón "Recargar".
       return (
         <div className="fixed inset-0 flex items-center justify-center bg-background p-6">
           <div className="max-w-sm w-full text-center space-y-4">
