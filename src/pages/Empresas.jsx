@@ -14,7 +14,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Building2, Plus, Pencil, Star, CheckCircle2, XCircle, ImagePlus, Loader2, Landmark, CreditCard, Briefcase, Calendar, History, ShieldCheck } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Building2, Plus, Pencil, Star, CheckCircle2, XCircle, ImagePlus, Loader2, Landmark, CreditCard, Briefcase, Calendar, History, ShieldCheck, Trash2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 const GASTOS_KEYS = [
@@ -52,6 +56,8 @@ export default function Empresas() {
   const { user } = useAuth();
   const { isGerencia } = useUserRole();
   const puedeEditarGastos = isGerencia;
+  // Borrar una empresa queda reservado al propietario global de la app.
+  const esPropietario = user?.es_propietario_global === true || user?.role === 'propietario';
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -59,6 +65,7 @@ export default function Empresas() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [logo2Uploading, setLogo2Uploading] = useState(false);
   const [historialAbierto, setHistorialAbierto] = useState(null);
+  const [borrando, setBorrando] = useState(null);
 
   const { data: empresas = [], isLoading } = useQuery({
     queryKey: ['empresas'], queryFn: () => base44.entities.Empresa.list('-created_date', 100),
@@ -103,6 +110,16 @@ export default function Empresas() {
       setOpen(false);
     },
     onError: (e) => toast({ title: 'Error', description: e?.message, variant: 'destructive' }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (empresa) => base44.entities.Empresa.delete(empresa.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['empresas'] });
+      toast({ title: 'Empresa borrada' });
+      setBorrando(null);
+    },
+    onError: (e) => toast({ title: 'Error al borrar', description: e?.message, variant: 'destructive' }),
   });
 
   const set = (key, value) => setForm((current) => ({ ...current, [key]: value }));
@@ -176,7 +193,14 @@ export default function Empresas() {
           </div>}
           <div className="flex items-center justify-between mt-2">
             <span className="inline-flex items-center gap-1 text-xs">{emp.activa ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> : <XCircle className="h-3.5 w-3.5 text-slate-400" />}{emp.activa ? 'Activa' : 'Inactiva'}</span>
-            <Button variant="ghost" size="sm" onClick={() => openEdit(emp)}><Pencil className="h-4 w-4" /> Editar</Button>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => openEdit(emp)}><Pencil className="h-4 w-4" /> Editar</Button>
+              {esPropietario && (
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setBorrando(emp)}>
+                  <Trash2 className="h-4 w-4" /> Borrar
+                </Button>
+              )}
+            </div>
           </div>
         </div>)}
       </div>}
@@ -216,6 +240,27 @@ export default function Empresas() {
         </div>
         <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button><Button onClick={submit} disabled={saveMutation.isPending || logoUploading}>{saveMutation.isPending ? 'Guardando...' : 'Guardar'}</Button></DialogFooter>
       </DialogContent></Dialog>
+
+      <AlertDialog open={!!borrando} onOpenChange={(v) => { if (!v) setBorrando(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Borrar {borrando?.nombre || 'empresa'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se elimina la ficha de la empresa del listado. No se borran sus datos operativos (obras, fichajes, gastos) ni su espacio, y la acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+              onClick={(e) => { e.preventDefault(); deleteMutation.mutate(borrando); }}
+            >
+              {deleteMutation.isPending ? 'Borrando...' : 'Borrar empresa'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
