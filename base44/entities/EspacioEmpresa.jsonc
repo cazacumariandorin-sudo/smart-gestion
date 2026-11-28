@@ -1,11 +1,11 @@
 {
   "name": "EspacioEmpresa",
   "type": "object",
-  "description": "Registro del espacio Base44 independiente de cada empresa. Cada empresa (SIMANTEC incluida) trabaja en su propio espacio, con sus propios usuarios y sus propios datos: este registro guarda qui\u00e9n es el administrador local, en qu\u00e9 estado est\u00e1 el aprovisionamiento y qu\u00e9 pasos est\u00e1n completados. No comparte datos entre empresas: es la ficha de coordinaci\u00f3n que mantiene el propietario de la app.",
+  "description": "Registro del espacio de cada empresa: qui\u00e9n es su administrador local, en qu\u00e9 estado est\u00e1 el aprovisionamiento y qu\u00e9 pasos est\u00e1n completados. Aislado por empresa: cada empresa solo ve su propia ficha; el propietario ve todas.",
   "properties": {
     "empresa_id": {
       "type": "string",
-      "description": "ID de la Empresa a la que pertenece el espacio."
+      "description": "ID de la Empresa a la que pertenece el espacio. Frontera de aislamiento."
     },
     "empresa_nombre": {
       "type": "string",
@@ -30,11 +30,11 @@
     },
     "url_espacio": {
       "type": "string",
-      "description": "Direcci\u00f3n publicada del espacio de esa empresa (por ejemplo la URL base44.app de su copia de la app)."
+      "description": "Direcci\u00f3n publicada del espacio de esa empresa."
     },
     "admin_local_email": {
       "type": "string",
-      "description": "Email del usuario que administra esa empresa dentro de su espacio: invita a su plantilla y asigna roles. Solo \u00e9l y el propietario de la app pueden gestionar permisos en ese espacio."
+      "description": "Email del usuario que administra esa empresa: invita a su plantilla y asigna roles dentro de su \u00e1mbito. Solo \u00e9l y el propietario pueden gestionar permisos de esa empresa."
     },
     "admin_local_nombre": {
       "type": "string",
@@ -42,7 +42,7 @@
     },
     "admin_local_user_id": {
       "type": "string",
-      "description": "ID del usuario administrador local, cuando ya existe en ese espacio."
+      "description": "ID del usuario administrador local, cuando ya existe."
     },
     "plan": {
       "type": "string",
@@ -119,68 +119,152 @@
   ],
   "rls": {
     "create": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     },
     "read": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "gerencia"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "administracion"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "administracion"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     },
     "update": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     },
     "delete": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     }

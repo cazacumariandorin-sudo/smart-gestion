@@ -1,7 +1,16 @@
 {
   "name": "DatosSensiblesUsuario",
   "type": "object",
+  "description": "Datos personales y econ\u00f3micos del trabajador (DNI, IBAN, salario, contrato). Aislado por empresa: solo la empresa del trabajador, su propio usuario y el propietario pueden leerlo.",
   "properties": {
+    "empresa_id": {
+      "type": "string",
+      "description": "Empresa a la que pertenece el trabajador. Frontera de aislamiento de la ficha."
+    },
+    "empresa_nombre": {
+      "type": "string",
+      "description": "Nombre de la empresa (desnormalizado)."
+    },
     "user_email": {
       "type": "string",
       "description": "ANCLA \u00daNICA \u2014 Email del usuario de la app vinculado. Nunca debe duplicarse."
@@ -109,91 +118,175 @@
   ],
   "rls": {
     "create": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "gerencia"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "administracion"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "administracion"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     },
     "read": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "gerencia"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "administracion"
+              }
+            },
+            {
+              "data.user_email": "{{user.email}}"
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "administracion"
-          }
-        },
-        {
-          "data.user_email": "{{user.email}}"
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     },
     "update": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "gerencia"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "administracion"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "administracion"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     },
     "delete": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     }

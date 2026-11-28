@@ -1,6 +1,12 @@
 {
   "name": "Empresa",
+  "type": "object",
+  "description": "Empresa del grupo. Cada registro es el espacio de una empresa: sus datos fiscales, su plan y sus costes. El campo empresa_id (igual al propio id) es la frontera de aislamiento: una empresa solo puede leer y editar su propia ficha; el propietario de la app ve todas.",
   "properties": {
+    "empresa_id": {
+      "type": "string",
+      "description": "\u00c1mbito de la empresa: se rellena con su propio id al crearla. Las reglas de acceso comparan este valor con la empresa del usuario, de modo que nadie ve la ficha de otra empresa."
+    },
     "activa": {
       "default": true,
       "description": "Si la empresa est\u00e1 activa",
@@ -86,12 +92,17 @@
       "$or": [
         {
           "user_condition": {
-            "role": "admin"
+            "es_propietario_global": true
           }
         },
         {
           "user_condition": {
             "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
           }
         },
         {
@@ -102,20 +113,6 @@
         {
           "user_condition": {
             "role": "administracion"
-          }
-        }
-      ]
-    },
-    "delete": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "propietario"
           }
         }
       ]
@@ -124,7 +121,7 @@
       "$or": [
         {
           "user_condition": {
-            "role": "admin"
+            "es_propietario_global": true
           }
         },
         {
@@ -133,71 +130,73 @@
           }
         },
         {
-          "user_condition": {
-            "role": "gerencia"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "administracion"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "director_comercial"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "jefe_obra"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "t\u00e9cnico"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "operario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "contabilidad"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "ingeniero"
-          }
+          "data.empresa_id": "{{user.data.empresa_id}}"
         }
       ]
     },
     "update": {
+      "$and": [
+        {
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "gerencia"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "administracion"
+              }
+            }
+          ]
+        },
+        {
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
+        }
+      ]
+    },
+    "delete": {
       "$or": [
         {
           "user_condition": {
-            "role": "admin"
+            "es_propietario_global": true
           }
         },
         {
           "user_condition": {
             "role": "propietario"
           }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "administracion"
-          }
         }
       ]
     }
-  },
-  "type": "object"
+  }
 }

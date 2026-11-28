@@ -51,11 +51,43 @@
     },
     "empresa_id": {
       "type": "string",
-      "description": "ID de la empresa (entidad Empresa) a la que pertenece como empleado"
+      "description": "Empresa (entidad Empresa) a la que pertenece este acceso. Es la frontera de aislamiento: las reglas de acceso de empresas, perfiles, datos sensibles e invitaciones comparan este valor. Bloqueado: solo el propietario puede cambiarlo, y en la app se asigna desde Empresas > Espacios de empresa > Usuarios.",
+      "rls": {
+        "update": {
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            }
+          ]
+        }
+      }
     },
     "empresa_nombre": {
       "type": "string",
       "description": "Nombre de la empresa (desnormalizado)"
+    },
+    "es_propietario_global": {
+      "type": "boolean",
+      "default": false,
+      "description": "True solo para el propietario de la aplicaci\u00f3n: \u00fanica cuenta con visi\u00f3n de todas las empresas. Bloqueado para que nadie pueda conced\u00e9rselo desde la app; se ajusta desde el panel de Base44.",
+      "rls": {
+        "update": {
+          "$or": [
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            }
+          ]
+        }
+      }
     },
     "fecha_vinculacion_empresa": {
       "type": "string",

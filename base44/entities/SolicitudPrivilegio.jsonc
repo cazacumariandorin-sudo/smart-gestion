@@ -1,7 +1,7 @@
 {
   "name": "SolicitudPrivilegio",
   "type": "object",
-  "description": "Solicitud de privilegios que una empresa dirige al propietario de la app: un usuario con rol demo o con un rol insuficiente necesita m\u00e1s permisos en el espacio de esa empresa. Recoge qui\u00e9n lo pide, a qui\u00e9n afecta, el rol solicitado, el motivo y la decisi\u00f3n del propietario, con historial completo. La aprobaci\u00f3n autoriza el cambio: el rol se aplica en el espacio de la empresa solicitante y solo all\u00ed.",
+  "description": "Solicitud de privilegios que una empresa dirige al propietario de la app. Aislada por empresa: cada empresa solo ve sus propias solicitudes; el propietario ve y decide todas.",
   "properties": {
     "espacio_id": {
       "type": "string",
@@ -9,7 +9,7 @@
     },
     "empresa_id": {
       "type": "string",
-      "description": "ID de la empresa que solicita."
+      "description": "ID de la empresa que solicita. Frontera de aislamiento."
     },
     "empresa_nombre": {
       "type": "string",
@@ -60,7 +60,7 @@
         "gray"
       ],
       "default": "pendiente",
-      "description": "pendiente = espera decisi\u00f3n del propietario; aprobada = autorizada, pendiente de aplicar en el espacio; rechazada = denegada; aplicada = el rol ya se cambi\u00f3 en el espacio de la empresa; anulada = retirada antes de decidir."
+      "description": "pendiente = espera decisi\u00f3n del propietario; aprobada = autorizada, pendiente de aplicar; rechazada = denegada; aplicada = el rol ya se cambi\u00f3 en el espacio de la empresa; anulada = retirada antes de decidir."
     },
     "decidido_por": {
       "type": "string",
@@ -121,78 +121,162 @@
   ],
   "rls": {
     "create": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "gerencia"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "administracion"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "administracion"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     },
     "read": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "gerencia"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "administracion"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "administracion"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     },
     "update": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     },
     "delete": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     }

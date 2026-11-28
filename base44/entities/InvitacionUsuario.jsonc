@@ -1,14 +1,15 @@
 {
   "name": "InvitacionUsuario",
   "type": "object",
+  "description": "Invitaci\u00f3n de un usuario a una empresa concreta. Cada empresa gestiona sus propias invitaciones: nadie de otra empresa puede leerlas ni modificarlas. Al aceptarse, el usuario hereda el empresa_id de la invitaci\u00f3n.",
   "properties": {
     "email": {
       "type": "string",
-      "description": "Email del invitado — clave de coincidencia con el User cuando acepte"
+      "description": "Email del invitado \u2014 clave de coincidencia con el User cuando acepte"
     },
     "rol": {
       "type": "string",
-      "description": "Rol personalizado que se aplicará al User tras aceptar"
+      "description": "Rol personalizado que se aplicar\u00e1 al User tras aceptar"
     },
     "full_name": {
       "type": "string",
@@ -16,11 +17,11 @@
     },
     "cargo": {
       "type": "string",
-      "description": "Cargo / puesto que ocupará en la empresa"
+      "description": "Cargo / puesto que ocupar\u00e1 en la empresa"
     },
     "empresa_id": {
       "type": "string",
-      "description": "ID de la empresa (entidad Empresa) a la que se vincula como empleado"
+      "description": "ID de la empresa (entidad Empresa) a la que se vincula como empleado. Frontera de aislamiento de la invitaci\u00f3n."
     },
     "empresa_nombre": {
       "type": "string",
@@ -29,7 +30,7 @@
     "acceso_hasta": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha opcional de expiración del acceso"
+      "description": "Fecha opcional de expiraci\u00f3n del acceso"
     },
     "estado": {
       "type": "string",
@@ -40,42 +41,42 @@
         "suspendido"
       ],
       "default": "pendiente_activacion",
-      "description": "Estado del ciclo de vida de la invitación"
+      "description": "Estado del ciclo de vida de la invitaci\u00f3n"
     },
     "invitado_por": {
       "type": "string",
-      "description": "Email del gerente/admin que creó la invitación"
+      "description": "Email del gerente/admin que cre\u00f3 la invitaci\u00f3n"
     },
     "fecha_invitacion": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha en que se envió la invitación"
+      "description": "Fecha en que se envi\u00f3 la invitaci\u00f3n"
     },
     "user_id_registrado": {
       "type": "string",
-      "description": "ID del User una vez aceptada la invitación y activada la cuenta"
+      "description": "ID del User una vez aceptada la invitaci\u00f3n y activada la cuenta"
     },
     "fecha_aceptacion": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha en que el usuario aceptó la invitación y se activó"
+      "description": "Fecha en que el usuario acept\u00f3 la invitaci\u00f3n y se activ\u00f3"
     },
     "suspendido_por": {
       "type": "string",
-      "description": "Email del gerente/admin que suspendió la invitación"
+      "description": "Email del gerente/admin que suspendi\u00f3 la invitaci\u00f3n"
     },
     "fecha_suspension": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha de la suspensión"
+      "description": "Fecha de la suspensi\u00f3n"
     },
     "motivo_suspension": {
       "type": "string",
-      "description": "Motivo de la suspensión (si aplica)"
+      "description": "Motivo de la suspensi\u00f3n (si aplica)"
     },
     "notas": {
       "type": "string",
-      "description": "Notas internas sobre la invitación"
+      "description": "Notas internas sobre la invitaci\u00f3n"
     }
   },
   "required": [
@@ -84,76 +85,164 @@
   ],
   "rls": {
     "create": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "gerencia"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     },
     "read": {
       "$or": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "propietario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
-        },
-        {
           "data.email": "{{user.email}}"
+        },
+        {
+          "$and": [
+            {
+              "$or": [
+                {
+                  "user_condition": {
+                    "role": "admin"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "propietario"
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "gerencia"
+                  }
+                }
+              ]
+            },
+            {
+              "$or": [
+                {
+                  "user_condition": {
+                    "es_propietario_global": true
+                  }
+                },
+                {
+                  "user_condition": {
+                    "role": "propietario"
+                  }
+                },
+                {
+                  "data.empresa_id": "{{user.data.empresa_id}}"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
     "update": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "gerencia"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gerencia"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     },
     "delete": {
-      "$or": [
+      "$and": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            }
+          ]
         },
         {
-          "user_condition": {
-            "role": "propietario"
-          }
+          "$or": [
+            {
+              "user_condition": {
+                "es_propietario_global": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "propietario"
+              }
+            },
+            {
+              "data.empresa_id": "{{user.data.empresa_id}}"
+            }
+          ]
         }
       ]
     }
