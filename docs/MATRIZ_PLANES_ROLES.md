@@ -142,8 +142,8 @@ Esta tabla es la que impide el acceso cruzado. Resume el comportamiento **actual
 
 | Ámbito | Estado actual | Objetivo de la matriz |
 |---|---|---|
-| Obras civiles | El rol `cliente_obra` puede leer **todas** las obras | Solo las obras asignadas al cliente |
-| Obras solares | `cliente_obra` **no** tiene lectura | Solo las obras asignadas, con el mismo criterio |
+| Obras civiles | **Cerrado 2026-11-28:** `cliente_obra` solo lee obras cuyo campo `clientes_acceso` contiene su email | Solo las obras asignadas al cliente |
+| Obras solares | **Cerrado 2026-11-28:** misma regla que en obras civiles | Solo las obras asignadas, con el mismo criterio |
 | Fichajes | Cada trabajador ve los suyos; gestión ve los de su ámbito | Sin cambios |
 | Registro horario legal | El trabajador ve los suyos por email; validación y exportación solo administración | Sin cambios; añadir lectura para `admin_legal` y `auditor_externo` |
 | Nóminas | Cada trabajador ve la suya; gestión y administración ven todas | Sin cambios |
@@ -160,7 +160,7 @@ Esta tabla es la que impide el acceso cruzado. Resume el comportamiento **actual
 - Al **revocar** la asignación, el cliente pierde el acceso de inmediato, sin borrar historial.
 - La comprobación se hace en la **capa de datos**, no solo en la pantalla: un cliente sin asignación activa no puede leer la obra aunque conozca su identificador.
 - La rama de administración se mantiene siempre en las reglas de lectura y escritura.
-- Mecanismo concreto de la regla (campo de acceso en la propia obra frente a entidad de asignaciones consultada en servidor) se decide en la fase de implementación, porque exige verificar qué operadores admite el motor de reglas. La matriz fija el requisito, no la técnica.
+- **Mecanismo decidido e implementado (2026-11-28):** cada obra lleva el campo `clientes_acceso` con los emails autorizados, y la regla de lectura solo deja pasar al rol `cliente_obra` cuando su email está en ese campo. La entidad `AsignacionObraCliente` guarda el histórico de quién asignó y revocó. La gestión se hace en Usuarios → Obras asignadas. La regla falla cerrada.
 
 ---
 
@@ -178,7 +178,7 @@ Esta tabla es la que impide el acceso cruzado. Resume el comportamiento **actual
 
 | Prioridad | Brecha | Qué exige |
 |---|---|---|
-| **P0** | El cliente externo ve todas las obras | Modelo de asignación cliente–obra y regla de lectura por asignación, en obras civiles y solares |
+| **Cerrado** | El cliente externo veía todas las obras | **Resuelto 2026-11-28:** entidad `AsignacionObraCliente`, campo `clientes_acceso` y pantalla Usuarios → Obras asignadas |
 | **P0** | Demo sobre la base de datos de producción | Decidir aislamiento antes de abrir demo a terceros |
 | **P1** | Roles `direccion`, `admin_legal`, `auditor_externo` no existen | Enum de `User`, permisos de módulo y reglas de datos, en un solo cambio |
 | **P1** | Vista legal minimizada por campos | Capa de campos visibles por rol y entorno |

@@ -98,6 +98,13 @@
           }
         }
       }
+    },
+    "clientes_acceso": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails de usuarios con rol cliente_obra autorizados a leer esta obra solar. Lo mantiene la pantalla Usuarios > Obras asignadas y la regla de lectura lo usa para limitar el acceso del cliente a sus obras."
     }
   },
   "required": [
@@ -189,6 +196,18 @@
           "user_condition": {
             "role": "contabilidad"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "cliente_obra"
+              }
+            },
+            {
+              "data.clientes_acceso": "{{user.email}}"
+            }
+          ]
         },
         {
           "$and": [

@@ -509,5 +509,25 @@ propuesta de origen; ante cualquier discrepancia, prevalece la matriz.
 
 ---
 
+## 14. Seguimiento de implementación
+
+Visión aprobada por dirección el 2026-11-28: propuesta completa de ediciones y roles, con los
+clientes externos limitados a las obras que se les asignen explícitamente. Esta sección es el
+cuadro de mando de la implementación: cada punto se marca aquí al cerrarse.
+
+| # | Punto | Estado | Qué se hizo o qué falta |
+|---|---|---|---|
+| 1 | El cliente externo solo ve sus obras asignadas | **Cerrado 2026-11-28** | Entidad `AsignacionObraCliente` (histórico de asignación y revocación), campo `clientes_acceso` en `Obra` y `SolarObra`, regla de lectura que solo deja pasar al rol `cliente_obra` cuando su email está en la obra, y pantalla **Usuarios → Obras asignadas** para marcar y retirar obras. La revocación corta el acceso sin borrar registros. |
+| 2 | Implementar y verificar la matriz en rutas, acciones y datos | Pendiente | Contraste de los 23 criterios de aceptación de la matriz con la app en producción. |
+| 3 | Vista legal minimizada por campos y exportaciones identificadas | Pendiente | Capa de campos visibles por rol y entorno; marcar los archivos de demo como demo. |
+| 4 | Roles `direccion`, `admin_legal` y `auditor_externo` | Pendiente | Requiere valor en `User`, permisos de módulo y reglas de datos en el mismo cambio. |
+| 5 | Aislamiento de la demo | Pendiente y **bloqueante** | Hoy la demo comparte la base de datos de producción: no debe abrirse a terceros hasta resolverlo. |
+
+Verificación pendiente del punto 1: entrar con un usuario `cliente_obra` real y confirmar que
+solo aparecen sus obras asignadas. La regla falla cerrada: si la comprobación no se resuelve,
+el cliente no ve ninguna obra en lugar de verlas todas.
+
+---
+
 Proyecto: `cazacumariandorin-sudo/smart-gestion`
 Fecha: 2026-10-29

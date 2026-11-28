@@ -1,0 +1,163 @@
+{
+  "name": "AsignacionObraCliente",
+  "type": "object",
+  "description": "Asignaci\u00f3n expl\u00edcita de una obra (civil o solar) a un usuario con rol cliente_obra. Es el hist\u00f3rico de qui\u00e9n dio acceso, cu\u00e1ndo y a qu\u00e9 obra: al revocar se desactiva el registro y se conserva la traza. La regla de lectura de Obra y SolarObra se apoya en el campo clientes_acceso que esta pantalla mantiene.",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email del usuario cliente al que se da acceso."
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID del usuario cliente."
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nombre del usuario cliente (desnormalizado)."
+    },
+    "obra_id": {
+      "type": "string",
+      "description": "ID de la obra asignada."
+    },
+    "obra_tipo": {
+      "type": "string",
+      "enum": [
+        "obra_civil",
+        "solar"
+      ],
+      "enumColors": [
+        "blue",
+        "yellow"
+      ],
+      "default": "obra_civil",
+      "description": "Entidad de la obra: obra_civil (Obra) o solar (SolarObra)."
+    },
+    "obra_name": {
+      "type": "string",
+      "description": "Nombre de la obra (desnormalizado para listados)."
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true,
+      "description": "False cuando el acceso se revoca. El registro no se borra: queda como hist\u00f3rico."
+    },
+    "asignado_por": {
+      "type": "string",
+      "description": "Email del usuario que concedi\u00f3 el acceso."
+    },
+    "asignado_en": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que se concedi\u00f3 el acceso."
+    },
+    "revocado_por": {
+      "type": "string",
+      "description": "Email del usuario que retir\u00f3 el acceso."
+    },
+    "revocado_en": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que se retir\u00f3 el acceso."
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones internas sobre el acceso."
+    }
+  },
+  "required": [
+    "user_email",
+    "obra_id",
+    "obra_tipo"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        },
+        {
+          "data.user_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

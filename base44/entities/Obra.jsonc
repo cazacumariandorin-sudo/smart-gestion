@@ -97,6 +97,13 @@
       "type": "string",
       "description": "Alias expl\u00edcito del client_id cuando hay distinci\u00f3n contratante vs final. Se rellena solo si el flujo lo requiere."
     },
+    "clientes_acceso": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails de usuarios con rol cliente_obra autorizados a leer esta obra. Lo mantiene la pantalla Usuarios > Obras asignadas y la regla de lectura lo usa para limitar el acceso del cliente a sus obras."
+    },
     "disciplina_ingenieria": {
       "type": "string",
       "enum": [
@@ -213,9 +220,16 @@
           }
         },
         {
-          "user_condition": {
-            "role": "cliente_obra"
-          }
+          "$and": [
+            {
+              "user_condition": {
+                "role": "cliente_obra"
+              }
+            },
+            {
+              "data.clientes_acceso": "{{user.email}}"
+            }
+          ]
         },
         {
           "user_condition": {

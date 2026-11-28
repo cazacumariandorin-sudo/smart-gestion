@@ -3,12 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Users, Edit2, UserX, UserCheck, Power } from 'lucide-react';
+import { Loader2, Users, Edit2, UserX, UserCheck, Power, Building2 } from 'lucide-react';
 import { format, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
 import EditUserRoleDialog from '@/components/EditUserRoleDialog';
 import RealUsersModal from '@/pages/RealUsersModal';
 import VincularOperarioDialog from '@/components/users/VincularOperarioDialog';
+import AsignarObrasClienteDialog from '@/components/users/AsignarObrasClienteDialog';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 
@@ -55,6 +56,7 @@ export default function RealUsersTab() {
   const [addOpen, setAddOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [vinculandoUser, setVinculandoUser] = useState(null);
+  const [obrasUser, setObrasUser] = useState(null);
   const [cambiandoEstado, setCambiandoEstado] = useState(null);
 
   // ── Listado completo vía backend: gerencia/administración también lo ven ──
@@ -329,6 +331,17 @@ export default function RealUsersTab() {
                         >
                           <UserCheck className="w-3 h-3" />
                         </Button>
+                        {u.role === 'cliente_obra' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setObrasUser(u)}
+                            className="h-6 w-6 p-0"
+                            title="Obras asignadas"
+                          >
+                            <Building2 className="w-3 h-3" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -363,6 +376,14 @@ export default function RealUsersTab() {
         open={!!vinculandoUser}
         onOpenChange={(open) => !open && setVinculandoUser(null)}
         user={vinculandoUser}
+        onSuccess={handleRefresh}
+      />
+
+      {/* Obras asignadas al cliente */}
+      <AsignarObrasClienteDialog
+        open={!!obrasUser}
+        onOpenChange={(open) => !open && setObrasUser(null)}
+        user={obrasUser}
         onSuccess={handleRefresh}
       />
     </div>
