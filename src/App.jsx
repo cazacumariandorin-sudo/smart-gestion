@@ -31,6 +31,7 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import OAuthConsent from './pages/OAuthConsent';
+import AltaEmpresa from './pages/AltaEmpresa';
 
 // Lazy load pages for performance
 const Clients = lazy(() => import('./pages/Clients'));
@@ -313,6 +314,8 @@ function AnimatedRoutes() {
             <Route path="/ingenieria/cambios" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaCambios /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
+          {/* Alta de empresa: accesible sin empresa asignada (no pasa por AppLayout) */}
+          <Route path="/alta-empresa" element={<ProtectedRoute><AltaEmpresa /></ProtectedRoute>} />
 
           {/* Auth pages — public */}
           <Route path="/login" element={<Login />} />

@@ -1,15 +1,28 @@
 {
   "name": "InvitacionUsuario",
   "type": "object",
-  "description": "Invitaci\u00f3n de un usuario a una empresa concreta. Cada empresa gestiona sus propias invitaciones: nadie de otra empresa puede leerlas ni modificarlas. Al aceptarse, el usuario hereda el empresa_id de la invitaci\u00f3n.",
+  "description": "Invitaci\u00f3n de un usuario a una empresa concreta. Cada empresa gestiona las suyas: nadie de otra empresa puede leerlas ni modificarlas. La invitaci\u00f3n NO concede acceso por s\u00ed sola: la persona invitada debe confirmarla desde su sesi\u00f3n y solo entonces el backend le asigna el empresa_id y el rol.",
   "properties": {
     "email": {
       "type": "string",
-      "description": "Email del invitado \u2014 clave de coincidencia con el User cuando acepte"
+      "description": "Email del invitado \u2014 ancla de identidad de la invitaci\u00f3n."
     },
     "rol": {
       "type": "string",
-      "description": "Rol personalizado que se aplicar\u00e1 al User tras aceptar"
+      "description": "Rol que se aplicar\u00e1 al User cuando confirme la invitaci\u00f3n."
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "administrador_local",
+        "empleado"
+      ],
+      "enumColors": [
+        "purple",
+        "blue"
+      ],
+      "default": "empleado",
+      "description": "administrador_local = abre la empresa y la administra; empleado = se incorpora a la plantilla de una empresa existente."
     },
     "full_name": {
       "type": "string",
@@ -21,7 +34,7 @@
     },
     "empresa_id": {
       "type": "string",
-      "description": "ID de la empresa (entidad Empresa) a la que se vincula como empleado. Frontera de aislamiento de la invitaci\u00f3n."
+      "description": "ID de la empresa (entidad Empresa) a la que se vincula. Frontera de aislamiento de la invitaci\u00f3n."
     },
     "empresa_nombre": {
       "type": "string",
@@ -38,45 +51,96 @@
         "pendiente_activacion",
         "activado",
         "expirado",
-        "suspendido"
+        "suspendido",
+        "rechazada"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "gray",
+        "red",
+        "red"
       ],
       "default": "pendiente_activacion",
-      "description": "Estado del ciclo de vida de la invitaci\u00f3n"
+      "description": "pendiente_activacion = espera que la persona la confirme; activado = confirmada y acceso concedido; expirado = caducada; suspendido = revocada por la empresa; rechazada = la persona invitada la declin\u00f3."
+    },
+    "confirmada": {
+      "type": "boolean",
+      "default": false,
+      "description": "True solo cuando la persona invitada acept\u00f3 expl\u00edcitamente desde su sesi\u00f3n. Sin esto no hay acceso."
+    },
+    "confirmada_en": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "confirmada_por_email": {
+      "type": "string",
+      "description": "Email de la sesi\u00f3n que confirm\u00f3 (debe coincidir con el invitado)."
+    },
+    "registrado_en": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que se detect\u00f3 una cuenta con este email. Es solo informativo: no activa la invitaci\u00f3n."
+    },
+    "solicitud_empresa_id": {
+      "type": "string",
+      "description": "Solicitud de alta que origin\u00f3 esta invitaci\u00f3n (cuando la empresa nace de una solicitud)."
     },
     "invitado_por": {
       "type": "string",
-      "description": "Email del gerente/admin que cre\u00f3 la invitaci\u00f3n"
+      "description": "Email de quien cre\u00f3 la invitaci\u00f3n (administrador de la empresa o propietario)"
     },
     "fecha_invitacion": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha en que se envi\u00f3 la invitaci\u00f3n"
+      "description": "Fecha del \u00faltimo env\u00edo de la invitaci\u00f3n"
     },
     "user_id_registrado": {
       "type": "string",
-      "description": "ID del User una vez aceptada la invitaci\u00f3n y activada la cuenta"
+      "description": "ID del User una vez confirmada la invitaci\u00f3n"
     },
     "fecha_aceptacion": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha en que el usuario acept\u00f3 la invitaci\u00f3n y se activ\u00f3"
+      "description": "Fecha en que el usuario confirm\u00f3 la invitaci\u00f3n"
     },
     "suspendido_por": {
       "type": "string",
-      "description": "Email del gerente/admin que suspendi\u00f3 la invitaci\u00f3n"
+      "description": "Email de quien revoc\u00f3 la invitaci\u00f3n"
     },
     "fecha_suspension": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha de la suspensi\u00f3n"
+      "format": "date-time"
     },
     "motivo_suspension": {
       "type": "string",
-      "description": "Motivo de la suspensi\u00f3n (si aplica)"
+      "description": "Motivo de la revocaci\u00f3n o del rechazo"
     },
     "notas": {
       "type": "string",
       "description": "Notas internas sobre la invitaci\u00f3n"
+    },
+    "historial": {
+      "type": "array",
+      "description": "Trazabilidad de la invitaci\u00f3n: env\u00edo, reenv\u00edo, confirmaci\u00f3n, rechazo o revocaci\u00f3n.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usuario_email": {
+            "type": "string"
+          },
+          "accion": {
+            "type": "string"
+          },
+          "nota": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "required": [

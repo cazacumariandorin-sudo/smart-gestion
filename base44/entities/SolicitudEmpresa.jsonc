@@ -1,0 +1,213 @@
+{
+  "name": "SolicitudEmpresa",
+  "type": "object",
+  "description": "Petici\u00f3n de alta de una empresa. Puede nacer del registro de una persona que representa a esa empresa o de una invitaci\u00f3n del propietario. Mientras est\u00e1 pendiente no concede ning\u00fan acceso: no asigna empresa, ni rol, ni datos. Al aprobarla el propietario se crea la empresa y una invitaci\u00f3n de confirmaci\u00f3n para su administrador local; solo cuando esa persona confirma la invitaci\u00f3n obtiene acceso.",
+  "properties": {
+    "nombre_empresa": {
+      "type": "string",
+      "description": "Nombre o raz\u00f3n social de la empresa solicitada."
+    },
+    "cif": {
+      "type": "string",
+      "description": "CIF / NIF de la empresa solicitada."
+    },
+    "actividad_principal": {
+      "type": "string",
+      "description": "Actividad o sector de la empresa."
+    },
+    "telefono": {
+      "type": "string"
+    },
+    "email_empresa": {
+      "type": "string",
+      "description": "Email de contacto de la empresa (distinto del email del solicitante)."
+    },
+    "domicilio": {
+      "type": "string"
+    },
+    "localidad": {
+      "type": "string"
+    },
+    "provincia": {
+      "type": "string"
+    },
+    "codigo_postal": {
+      "type": "string"
+    },
+    "web": {
+      "type": "string"
+    },
+    "solicitante_email": {
+      "type": "string",
+      "description": "Email de la persona que solicita el alta (tomado de su sesi\u00f3n, nunca del cliente)."
+    },
+    "solicitante_nombre": {
+      "type": "string"
+    },
+    "solicitante_user_id": {
+      "type": "string"
+    },
+    "cargo": {
+      "type": "string",
+      "description": "Cargo que ocupar\u00e1 el solicitante en la empresa (administrador local propuesto)."
+    },
+    "admin_local_email": {
+      "type": "string",
+      "description": "Email de la persona que administrar\u00e1 la empresa. Por defecto el del solicitante; el propietario puede cambiarlo al aprobar."
+    },
+    "admin_local_nombre": {
+      "type": "string"
+    },
+    "origen": {
+      "type": "string",
+      "enum": [
+        "registro",
+        "propietario"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "default": "registro",
+      "description": "registro = la pidi\u00f3 la propia persona desde su registro; propietario = la registr\u00f3 el propietario de la app."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "aprobada",
+        "rechazada",
+        "confirmada",
+        "anulada"
+      ],
+      "enumColors": [
+        "yellow",
+        "blue",
+        "red",
+        "green",
+        "gray"
+      ],
+      "default": "pendiente",
+      "description": "pendiente = espera decisi\u00f3n del propietario; aprobada = empresa creada y esperando que su administrador confirme la invitaci\u00f3n; confirmada = el administrador ya acept\u00f3 y tiene acceso; rechazada = denegada; anulada = retirada."
+    },
+    "empresa_id": {
+      "type": "string",
+      "description": "Empresa creada al aprobar la solicitud. Vac\u00edo mientras est\u00e1 pendiente o rechazada."
+    },
+    "empresa_nombre": {
+      "type": "string",
+      "description": "Nombre de la empresa creada (desnormalizado)."
+    },
+    "invitacion_id": {
+      "type": "string",
+      "description": "Invitaci\u00f3n de confirmaci\u00f3n enviada al administrador local."
+    },
+    "decidido_por": {
+      "type": "string",
+      "description": "Email del propietario que aprob\u00f3 o rechaz\u00f3."
+    },
+    "decidido_en": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "comentario_decision": {
+      "type": "string",
+      "description": "Motivo o condiciones de la decisi\u00f3n."
+    },
+    "confirmada_en": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que el administrador confirm\u00f3 la invitaci\u00f3n."
+    },
+    "confirmada_por_email": {
+      "type": "string"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones del solicitante o del propietario."
+    },
+    "historial": {
+      "type": "array",
+      "description": "Trazabilidad: alta, decisi\u00f3n, invitaci\u00f3n y confirmaci\u00f3n.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usuario_email": {
+            "type": "string"
+          },
+          "accion": {
+            "type": "string"
+          },
+          "estado_anterior": {
+            "type": "string"
+          },
+          "estado_nuevo": {
+            "type": "string"
+          },
+          "nota": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "nombre_empresa",
+    "solicitante_email",
+    "estado"
+  ],
+  "rls": {
+    "create": {
+      "data.solicitante_email": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "data.solicitante_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "es_propietario_global": true
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "es_propietario_global": true
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "es_propietario_global": true
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}

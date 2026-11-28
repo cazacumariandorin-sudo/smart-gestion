@@ -90,6 +90,13 @@ export const AuthProvider = ({ children }) => {
           currentUser.operario_id = entityUser.operario_id || null;
           currentUser.operario_name = entityUser.operario_name || null;
           currentUser.user_entity_id = entityUser.user_entity_id || null;
+          // Empresa y propiedad global: gobiernan el aislamiento, así que se
+          // refrescan siempre desde la entidad y no solo del token.
+          if (entityUser.empresa_id !== undefined) currentUser.empresa_id = entityUser.empresa_id;
+          if (entityUser.empresa_nombre !== undefined) currentUser.empresa_nombre = entityUser.empresa_nombre;
+          if (entityUser.es_propietario_global !== undefined) {
+            currentUser.es_propietario_global = entityUser.es_propietario_global === true;
+          }
           if (entityUser.source === 'entity') {
             console.log(`[Auth] Identidad unificada: rol=${entityUser.role} operario_id=${entityUser.operario_id || 'none'} (${currentUser.email})`);
           }

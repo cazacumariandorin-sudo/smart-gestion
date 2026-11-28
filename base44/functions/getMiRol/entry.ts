@@ -55,6 +55,9 @@ Deno.serve(async (req) => {
       operario_id,
       operario_name,
       user_entity_id: entityUser.id,
+      empresa_id: entityUser.empresa_id || null,
+      empresa_nombre: entityUser.empresa_nombre || null,
+      es_propietario_global: entityUser.es_propietario_global === true,
       source: 'entity',
     });
   } catch (error) {

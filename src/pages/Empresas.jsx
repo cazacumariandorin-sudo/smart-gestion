@@ -7,6 +7,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import PlanEmpresaPanel from '@/components/empresas/PlanEmpresaPanel';
 import EspaciosEmpresaPanel from '@/components/empresas/EspaciosEmpresaPanel';
 import SolicitudesPrivilegioPanel from '@/components/empresas/SolicitudesPrivilegioPanel';
+import SolicitudesEmpresaPanel from '@/components/empresas/SolicitudesEmpresaPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -137,6 +138,7 @@ export default function Empresas() {
     <div className="p-4 space-y-4">
       <PageHeader title="Empresas" subtitle="Gestión de empresas del workspace" />
       <PlanEmpresaPanel />
+      <SolicitudesEmpresaPanel />
       <EspaciosEmpresaPanel />
       <SolicitudesPrivilegioPanel />
       <div className="flex justify-end"><Button onClick={openNew}><Plus className="h-4 w-4" /> Nueva empresa</Button></div>

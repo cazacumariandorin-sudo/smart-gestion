@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
+import { UserPlus, Mail, Lock, Loader2, Building2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
@@ -172,6 +172,28 @@ export default function Register() {
           </svg>
           Continue with Apple
         </Button>
+      </div>
+
+      <div className="rounded-lg border bg-muted/20 p-3 mb-6 space-y-2">
+        <p className="text-xs text-muted-foreground text-center">
+          ¿Vas a dar de alta tu empresa? No la crees desde aquí: entra con Google y envíanos la
+          solicitud. El propietario la aprueba y después confirmas tu acceso.
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full"
+          onClick={() => base44.auth.loginWithProvider("google", "/alta-empresa")}
+        >
+          <Building2 className="w-4 h-4 mr-2" />
+          Alta de empresa con Google
+        </Button>
+        <p className="text-[11px] text-muted-foreground text-center">
+          ¿Ya te han invitado a una empresa?{" "}
+          <Link to="/alta-empresa" className="text-primary font-medium hover:underline">
+            Confirma tu acceso
+          </Link>
+        </p>
       </div>
 
       <div className="relative mb-6">

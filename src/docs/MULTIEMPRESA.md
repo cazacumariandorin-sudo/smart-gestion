@@ -32,8 +32,16 @@ El propietario global es la excepción: ve todas las empresas y puede cambiar cu
 ## 4. Invitaciones
 
 - Las crea el administrador de cada empresa y nacen **selladas con su empresa** (`crearInvitacionUsuario` toma la empresa de quien invita; solo el propietario puede invitar en nombre de otra).
-- Al aceptarse, `aplicarInvitacionAceptada` copia el `empresa_id` de la invitación al usuario: el acceso queda creado dentro de esa empresa.
+- **Una invitación no concede acceso.** La persona invitada debe confirmarla desde su propia sesión (`gestionarInvitacionAcceso` → `confirmar`): el backend comprueba que el email de la sesión es el invitado, que la invitación sigue pendiente y que la empresa existe. Solo entonces se escribe `empresa_id` y el rol en su usuario.
+- El proceso periódico (`aplicarInvitacionAceptada`) **no activa nada**: solo anota que ya existe una cuenta con ese email para que el propietario lo vea en su bandeja.
 - Cada empresa ve únicamente sus invitaciones. Un invitado puede leer la suya por su email.
+
+### Alta de una empresa nueva
+
+1. **Solicitud**: la persona entra con Google y pide el alta (`SolicitudEmpresa`, estado `pendiente`). No recibe empresa, rol ni acceso a ningún dato.
+2. **Aprobación**: el propietario decide en Empresas → Altas de empresa. Aprobar crea la empresa, su espacio y una invitación `administrador_local` para el email indicado; la solicitud pasa a `aprobada`.
+3. **Confirmación**: el administrador entra con su cuenta, ve el nombre de la empresa y confirma. Solo ahí obtiene `empresa_id`, rol de administrador local y la solicitud pasa a `confirmada`.
+4. Si su email ya tenía acceso a otra empresa, la confirmación se bloquea: el traslado lo decide el propietario. Si declina, la invitación queda `rechazada` y la solicitud `anulada`.
 
 ## 5. Entidades aisladas
 

@@ -41,6 +41,8 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.InvitacionUsuario.create({
       email,
       rol: userRole,
+      tipo: 'empleado',
+      confirmada: false,
       full_name,
       cargo,
       empresa_id: empresaInvitacion,
@@ -49,7 +51,13 @@ Deno.serve(async (req) => {
       estado: 'pendiente_activacion',
       invitado_por: user.email,
       fecha_invitacion: new Date().toISOString(),
-      notas: notas || null
+      notas: notas || null,
+      historial: [{
+        fecha: new Date().toISOString(),
+        usuario_email: user.email,
+        accion: 'invitacion_creada',
+        nota: 'Invitación a la plantilla de la empresa'
+      }]
     });
 
     // Enviar invitación por email (plataforma). La API solo admite 'user' o 'admin'.
