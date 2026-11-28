@@ -22,6 +22,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 import { ROLE_LABELS } from '@/lib/roleLabels';
+import CambiarPasswordCard from '@/components/auth/CambiarPasswordCard';
 
 /** Genera iniciales desde el nombre completo (2 letras) */
 function buildInitials(fullName, email) {
@@ -327,6 +328,9 @@ export default function Profile() {
             </div>
           </div>
         </Card>
+
+        {/* Gestión de contraseña */}
+        <CambiarPasswordCard userId={me?.id} email={me?.email} />
 
         {/* Security info */}
         <Card className="mb-4 p-5">
