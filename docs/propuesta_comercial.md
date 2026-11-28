@@ -502,6 +502,11 @@ La ventaja es doble:
 **Pendiente (fases siguientes):** vista legal minimizada por campos, roles legales nuevos
 (`admin_legal`, `auditor_externo`), cuotas por plan y demo con datos aislados.
 
+**Matriz cerrada (2026-11-28):** la versión aprobada de planes, roles, módulos y acciones,
+con sus brechas priorizadas y criterios de aceptación, vive en
+[`docs/MATRIZ_PLANES_ROLES.md`](MATRIZ_PLANES_ROLES.md). Este documento queda como
+propuesta de origen; ante cualquier discrepancia, prevalece la matriz.
+
 ---
 
 Proyecto: `cazacumariandorin-sudo/smart-gestion`
