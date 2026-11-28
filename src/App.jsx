@@ -32,6 +32,11 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import OAuthConsent from './pages/OAuthConsent';
 import AltaEmpresa from './pages/AltaEmpresa';
+import ConsolaPropietario from './pages/ConsolaPropietario';
+import Presentacion from './pages/comercial/Presentacion';
+import Demo from './pages/comercial/Demo';
+import DemoEspacio from './pages/comercial/DemoEspacio';
+import SolicitarVersion from './pages/comercial/SolicitarVersion';
 
 // Lazy load pages for performance
 const Clients = lazy(() => import('./pages/Clients'));
@@ -234,6 +239,7 @@ function AnimatedRoutes() {
         <Routes location={location}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/consola" element={<ProtectedRoute><ConsolaPropietario /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             {/* Índice completo de módulos para la barra de pestañas móvil */}
             <Route path="/mas" element={<ProtectedRoute><Suspense fallback={<PageLoader />}><MasMenu /></Suspense></ProtectedRoute>} />
@@ -314,6 +320,12 @@ function AnimatedRoutes() {
             <Route path="/ingenieria/cambios" element={<ProtectedRoute module="ingenieria"><Suspense fallback={<PageLoader />}><IngenieriaCambios /></Suspense></ProtectedRoute>} />
           </Route>
           <Route path="/demo-join" element={<Suspense fallback={<PageLoader />}><DemoJoin /></Suspense>} />
+
+          {/* Páginas comerciales públicas: presentación, demo y solicitud de versión */}
+          <Route path="/presentacion" element={<Presentacion />} />
+          <Route path="/demo" element={<Demo />} />
+          <Route path="/demo/espacio" element={<DemoEspacio />} />
+          <Route path="/solicitar-version" element={<SolicitarVersion />} />
           {/* Alta de empresa: accesible sin empresa asignada (no pasa por AppLayout) */}
           <Route path="/alta-empresa" element={<ProtectedRoute><AltaEmpresa /></ProtectedRoute>} />
 

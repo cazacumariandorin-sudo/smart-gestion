@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { setEmpresaActiva, getEmpresaActiva, leerEmpresaRecordada } from '@/lib/empresaActiva';
+import {
+  setEmpresaActiva, getEmpresaActiva, leerEmpresaRecordada,
+  getModoConsola, setModoConsola, olvidarEmpresa,
+} from '@/lib/empresaActiva';
 
 const Ctx = createContext(null);
 
@@ -15,6 +18,7 @@ export function EmpresaActivaProvider({ children }) {
   const { user, isLoadingAuth } = useAuth();
   const [empresas, setEmpresas] = useState([]);
   const [activa, setActiva] = useState(getEmpresaActiva());
+  const [modoConsola, setModoConsolaState] = useState(getModoConsola());
 
   const esPropietario = user?.es_propietario_global === true || user?.role === 'propietario';
 
@@ -37,6 +41,16 @@ export function EmpresaActivaProvider({ children }) {
     }
     if (esPropietario) {
       const recordada = leerEmpresaRecordada();
+      // El propietario arranca en su consola: elige qué empresa abrir.
+      if (modoConsola || !recordada) {
+        if (!recordada && !modoConsola) {
+          setModoConsola(true);
+          setModoConsolaState(true);
+        }
+        setEmpresaActiva(null);
+        setActiva(null);
+        return;
+      }
       const elegida = empresas.find((e) => e.id === recordada)
         || empresas.find((e) => e.es_principal)
         || empresas[0]
@@ -49,13 +63,35 @@ export function EmpresaActivaProvider({ children }) {
       || (user.empresa_id ? { id: user.empresa_id, nombre: user.empresa_nombre || '' } : null);
     setEmpresaActiva(propia);
     setActiva(propia ? { id: propia.id, nombre: propia.nombre } : null);
-  }, [user?.email, user?.empresa_id, user?.empresa_nombre, empresas, esPropietario, isLoadingAuth]);
+  }, [user?.email, user?.empresa_id, user?.empresa_nombre, empresas, esPropietario, isLoadingAuth, modoConsola]);
 
   const cambiarEmpresa = useCallback((id) => {
     const elegida = empresas.find((e) => e.id === id) || null;
+    if (elegida) {
+      setModoConsola(false);
+      setModoConsolaState(false);
+    }
     setEmpresaActiva(elegida);
     setActiva(elegida ? { id: elegida.id, nombre: elegida.nombre } : null);
   }, [empresas]);
+
+  /** El propietario abre el espacio de una empresa sin cambiar su cuenta. */
+  const entrarEmpresa = useCallback((id) => {
+    const elegida = empresas.find((e) => e.id === id) || null;
+    if (!elegida) return;
+    setModoConsola(false);
+    setModoConsolaState(false);
+    setEmpresaActiva(elegida);
+    setActiva({ id: elegida.id, nombre: elegida.nombre });
+  }, [empresas]);
+
+  /** Vuelve a la consola: sin empresa abierta y sin recordar la anterior. */
+  const irAConsola = useCallback(() => {
+    setModoConsola(true);
+    setModoConsolaState(true);
+    olvidarEmpresa();
+    setActiva(null);
+  }, []);
 
   // Un administrador nunca se queda fuera de la app: el bloqueo es para accesos
   // de plantilla que aún no tienen empresa asignada.
@@ -69,6 +105,9 @@ export function EmpresaActivaProvider({ children }) {
       esPropietario,
       puedeCambiar: esPropietario && empresas.length > 1,
       cambiarEmpresa,
+      entrarEmpresa,
+      irAConsola,
+      modoConsola,
       sinEmpresa,
       cargando: isLoadingAuth,
     }}>
@@ -80,6 +119,7 @@ export function EmpresaActivaProvider({ children }) {
 export function useEmpresaActiva() {
   return useContext(Ctx) || {
     empresa: null, empresas: [], esPropietario: false, puedeCambiar: false,
-    cambiarEmpresa: () => {}, sinEmpresa: false, cargando: false,
+    cambiarEmpresa: () => {}, entrarEmpresa: () => {}, irAConsola: () => {},
+    modoConsola: false, sinEmpresa: false, cargando: false,
   };
 }

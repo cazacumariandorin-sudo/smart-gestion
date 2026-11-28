@@ -1,0 +1,160 @@
+{
+  "name": "SolicitudComercial",
+  "type": "object",
+  "description": "Petici\u00f3n de informaci\u00f3n o de versi\u00f3n comercial enviada desde la presentaci\u00f3n o la demo. Cualquier visitante puede crearla; solo el propietario global las lee y las gestiona. Convertir una solicitud crea la empresa y su invitaci\u00f3n, pero no concede acceso hasta que el administrador la confirme.",
+  "properties": {
+    "nombre": {
+      "type": "string",
+      "description": "Nombre de la persona que solicita informaci\u00f3n."
+    },
+    "email": {
+      "type": "string",
+      "description": "Email de contacto del solicitante."
+    },
+    "telefono": {
+      "type": "string"
+    },
+    "empresa": {
+      "type": "string",
+      "description": "Empresa o raz\u00f3n social que representa."
+    },
+    "cif": {
+      "type": "string"
+    },
+    "cargo": {
+      "type": "string"
+    },
+    "plan_interes": {
+      "type": "string",
+      "description": "Plan por el que pregunta: completo | control_horario | cliente_obra | legal"
+    },
+    "mensaje": {
+      "type": "string"
+    },
+    "origen": {
+      "type": "string",
+      "enum": [
+        "presentacion",
+        "demo",
+        "consola"
+      ],
+      "enumColors": [
+        "blue",
+        "purple",
+        "gray"
+      ],
+      "default": "presentacion",
+      "description": "Desde d\u00f3nde se envi\u00f3 la solicitud."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "nueva",
+        "contactada",
+        "aprobada",
+        "rechazada",
+        "convertida"
+      ],
+      "enumColors": [
+        "yellow",
+        "blue",
+        "green",
+        "red",
+        "purple"
+      ],
+      "default": "nueva",
+      "description": "nueva = sin revisar; contactada = ya se habl\u00f3 con la persona; aprobada = aceptada comercialmente; rechazada = descartada; convertida = empresa creada e invitaci\u00f3n enviada."
+    },
+    "empresa_id": {
+      "type": "string",
+      "description": "Empresa creada al convertir la solicitud."
+    },
+    "empresa_nombre": {
+      "type": "string"
+    },
+    "plan_asignado": {
+      "type": "string",
+      "description": "Plan comercial asignado a la empresa al convertir la solicitud."
+    },
+    "solicitud_empresa_id": {
+      "type": "string",
+      "description": "Alta de empresa originada por esta solicitud comercial."
+    },
+    "notas": {
+      "type": "string",
+      "description": "Seguimiento interno del propietario."
+    },
+    "historial": {
+      "type": "array",
+      "description": "Trazabilidad de la solicitud comercial.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usuario_email": {
+            "type": "string"
+          },
+          "accion": {
+            "type": "string"
+          },
+          "nota": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "nombre",
+    "email",
+    "estado"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "es_propietario_global": true
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "es_propietario_global": true
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "es_propietario_global": true
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,175 @@
+{
+  "name": "InfoComercial",
+  "type": "object",
+  "description": "Ficha comercial p\u00fablica de la app: titular, textos, m\u00f3dulos, planes y datos de contacto que se muestran en la presentaci\u00f3n y en la demo. Solo el propietario global la edita; cualquiera puede leerla.",
+  "properties": {
+    "clave": {
+      "type": "string",
+      "description": "Identificador de la ficha. La app usa siempre 'principal'."
+    },
+    "marca": {
+      "type": "string",
+      "description": "Nombre comercial que se muestra en la presentaci\u00f3n."
+    },
+    "titular": {
+      "type": "string",
+      "description": "Titular principal de la presentaci\u00f3n."
+    },
+    "subtitulo": {
+      "type": "string",
+      "description": "Frase de apoyo bajo el titular."
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n del producto para la secci\u00f3n de presentaci\u00f3n."
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Logotipo mostrado en la cabecera comercial."
+    },
+    "hero_url": {
+      "type": "string",
+      "description": "Imagen principal de la presentaci\u00f3n (opcional)."
+    },
+    "propuesta_valor": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ventajas destacadas que se listan bajo el titular."
+    },
+    "modulos": {
+      "type": "array",
+      "description": "M\u00f3dulos del producto que se presentan al posible cliente.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "icono": {
+            "type": "string",
+            "description": "Clave del icono: obras | solar | horario | nominas | presupuestos | materiales | flota | chat"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "planes": {
+      "type": "array",
+      "description": "Planes comerciales que se ofrecen en la presentaci\u00f3n.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "clave": {
+            "type": "string",
+            "description": "Clave del plan en el cat\u00e1logo de la app: completo | control_horario | cliente_obra | legal"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "precio": {
+            "type": "string",
+            "description": "Texto libre de precio (por ejemplo 'A consultar' o '149 \u20ac')."
+          },
+          "periodo": {
+            "type": "string",
+            "description": "Periodo del precio (mes, a\u00f1o, pago \u00fanico)."
+          },
+          "resumen": {
+            "type": "string"
+          },
+          "incluye": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "destacado": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "cta_titulo": {
+      "type": "string"
+    },
+    "cta_texto": {
+      "type": "string"
+    },
+    "cta_boton": {
+      "type": "string"
+    },
+    "contacto_email": {
+      "type": "string"
+    },
+    "contacto_telefono": {
+      "type": "string"
+    },
+    "web": {
+      "type": "string"
+    },
+    "nota_legal": {
+      "type": "string",
+      "description": "Aviso que se muestra al pie de la demo (por ejemplo, que los datos son ficticios)."
+    },
+    "actualizado_por": {
+      "type": "string"
+    },
+    "actualizado_en": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "clave"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "es_propietario_global": true
+          }
+        }
+      ]
+    },
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "es_propietario_global": true
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "es_propietario_global": true
+          }
+        }
+      ]
+    }
+  }
+}

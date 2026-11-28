@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import FloatingBackButton from '@/components/FloatingBackButton';
 import Sidebar from './Sidebar';
 import MobileNav from './MobileNav';
@@ -44,7 +44,7 @@ function AppLayoutInner() {
   const location = useLocation();
   const { isSimulating, isDemo } = useUserRole();
   const { user: authUser } = useAuth();
-  const { sinEmpresa } = useEmpresaActiva();
+  const { sinEmpresa, esPropietario, empresa } = useEmpresaActiva();
   const hasTopBanner = isSimulating || isDemo;
   const [asistenteOpen, setAsistenteOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -159,6 +159,11 @@ function AppLayoutInner() {
     }
     setAsistenteOpen(true);
   };
+
+  // El propietario sin empresa abierta trabaja desde su consola.
+  if (esPropietario && !empresa && location.pathname === '/') {
+    return <Navigate to="/consola" replace />;
+  }
 
   return (
     <div className="sg-shell bg-background">
