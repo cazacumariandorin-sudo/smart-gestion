@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { enviarPush, limpiarTexto, usuariosPorEmails } from '../../shared/pushNotificaciones.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -54,13 +55,48 @@ Deno.serve(async (req) => {
 
     // Notificaciones por email DESACTIVADAS a petición — el chat es en tiempo real
     // dentro de la app y no debe spamear el correo de los usuarios por cada mensaje.
-    // Se mantiene solo la actualización de la conversación (último mensaje) arriba.
+    // Se mantiene la actualización de la conversación y se envía un push nativo,
+    // que solo llega a la app instalada en el móvil (nunca al correo).
+
+    // El push nunca interrumpe el envío del mensaje: si falla, se registra y se sigue.
+    let push = { enviados: 0, omitidos: 0, errores: 0 };
+    try {
+      const participantes = (conversacion.participantes || []).filter(
+        (p) => p?.user_email && p.user_email !== user.email && !p.silenciado
+      );
+
+      if (mensaje_id && participantes.length > 0) {
+        const appUrl = req.headers.get('X-Base44-App-Url') || 'https://smart-gestion.base44.app';
+        const usuarios = await usuariosPorEmails(base44, participantes.map((p) => p.user_email));
+        const autor = limpiarTexto(mensaje?.autor_nombre || user.full_name || 'Un compañero', 60);
+
+        push = await enviarPush(base44, {
+          tipo: 'mensaje',
+          referenciaId: mensaje_id,
+          referenciaEtiqueta: conversacion.nombre || 'Chat',
+          destinatarios: participantes.map((p) => ({
+            user_id: usuarios[p.user_email]?.id || p.user_id || '',
+            user_email: p.user_email,
+          })),
+          titulo: 'Nuevo mensaje',
+          // El contenido del chat está cifrado: el push solo avisa, no lo reproduce.
+          contenido: conversacion.tipo === 'grupo'
+            ? limpiarTexto(`${conversacion.nombre || 'Grupo'}: nuevo mensaje`, 100)
+            : `${autor} te ha escrito`,
+          urlAccion: `${appUrl}/chat`,
+          appUrl,
+        });
+      }
+    } catch (error: any) {
+      push = { enviados: 0, omitidos: 0, errores: 1, error: limpiarTexto(error?.message || 'Error', 200) };
+    }
 
     return Response.json({
       success: true,
       conversacion_id,
       mensaje_id,
-      notificados: []
+      notificados: [],
+      push,
     });
 
   } catch (error) {

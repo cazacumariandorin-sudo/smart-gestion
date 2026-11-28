@@ -7,8 +7,9 @@ import ListaSesionesDiagnostico from '@/components/diagnostico/ListaSesionesDiag
 import DetalleSesionDiagnostico from '@/components/diagnostico/DetalleSesionDiagnostico';
 import GestionAccesosDiagnostico from '@/components/diagnostico/GestionAccesosDiagnostico';
 import VigilanciaPanel from '@/components/diagnostico/VigilanciaPanel';
+import PushDiagnosticoPanel from '@/components/diagnostico/PushDiagnosticoPanel';
 import { base44 } from '@/api/base44Client';
-import { Bug, Users, Activity, ShieldCheck, Eye, AlertTriangle } from 'lucide-react';
+import { Bug, Users, Activity, ShieldCheck, Eye, AlertTriangle, Bell } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import PageHeader from '@/components/layout/PageHeader';
@@ -147,7 +148,7 @@ export default function DiagnosticoApp() {
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className={`w-full grid ${esGerencia ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <TabsList className={`w-full grid ${esGerencia ? 'grid-cols-4' : 'grid-cols-2'}`}>
             <TabsTrigger value="sesiones" className="text-xs">
               <Bug className="w-3.5 h-3.5 mr-1.5" /> Incidentes
             </TabsTrigger>
@@ -159,6 +160,11 @@ export default function DiagnosticoApp() {
             {esGerencia && (
               <TabsTrigger value="vigilancia" className="text-xs">
                 <Eye className="w-3.5 h-3.5 mr-1.5" /> Vigilancia
+              </TabsTrigger>
+            )}
+            {esGerencia && (
+              <TabsTrigger value="push" className="text-xs">
+                <Bell className="w-3.5 h-3.5 mr-1.5" /> Push
               </TabsTrigger>
             )}
           </TabsList>
@@ -182,6 +188,12 @@ export default function DiagnosticoApp() {
           {esGerencia && (
             <TabsContent value="vigilancia" className="mt-3">
               <VigilanciaPanel esGerencia={esGerencia} />
+            </TabsContent>
+          )}
+
+          {esGerencia && (
+            <TabsContent value="push" className="mt-3">
+              <PushDiagnosticoPanel />
             </TabsContent>
           )}
         </Tabs>

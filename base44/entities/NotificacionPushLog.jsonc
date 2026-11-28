@@ -1,0 +1,137 @@
+{
+  "name": "NotificacionPushLog",
+  "type": "object",
+  "description": "Registro de cada intento de env\u00edo de notificaci\u00f3n push nativa (mensajes, avisos y solicitudes). Sirve para diagn\u00f3stico: qui\u00e9n recibi\u00f3 el aviso, qui\u00e9n se omiti\u00f3 y por qu\u00e9, y qu\u00e9 fall\u00f3. Lo escribe \u00fanicamente el backend.",
+  "properties": {
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "mensaje",
+        "aviso",
+        "solicitud",
+        "prueba"
+      ],
+      "enumColors": [
+        "blue",
+        "yellow",
+        "purple",
+        "gray"
+      ],
+      "description": "Origen del aviso: mensaje de chat, aviso del sistema, solicitud para Gerencia/Administraci\u00f3n o notificaci\u00f3n de prueba."
+    },
+    "referencia_id": {
+      "type": "string",
+      "description": "ID del registro que origin\u00f3 el aviso (mensaje o tarea). Vac\u00edo en las pruebas."
+    },
+    "referencia_etiqueta": {
+      "type": "string",
+      "description": "Etiqueta legible del origen (nombre de conversaci\u00f3n, t\u00edtulo de la tarea)."
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID del usuario destinatario."
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email del usuario destinatario."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "enviado",
+        "omitido",
+        "error"
+      ],
+      "enumColors": [
+        "green",
+        "gray",
+        "red"
+      ],
+      "description": "enviado = el servicio acept\u00f3 el aviso; omitido = no se envi\u00f3 (sin usuario vinculado o ya notificado); error = el env\u00edo fall\u00f3."
+    },
+    "motivo": {
+      "type": "string",
+      "description": "Motivo de la omisi\u00f3n o del error."
+    },
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo que llevaba la notificaci\u00f3n."
+    },
+    "url_accion": {
+      "type": "string",
+      "description": "Pantalla de la app que abre la notificaci\u00f3n."
+    },
+    "enviado_en": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento del intento de env\u00edo."
+    }
+  },
+  "required": [
+    "tipo",
+    "estado"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}
