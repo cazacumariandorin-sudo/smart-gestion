@@ -1,0 +1,188 @@
+{
+  "name": "EspacioEmpresa",
+  "type": "object",
+  "description": "Registro del espacio Base44 independiente de cada empresa. Cada empresa (SIMANTEC incluida) trabaja en su propio espacio, con sus propios usuarios y sus propios datos: este registro guarda qui\u00e9n es el administrador local, en qu\u00e9 estado est\u00e1 el aprovisionamiento y qu\u00e9 pasos est\u00e1n completados. No comparte datos entre empresas: es la ficha de coordinaci\u00f3n que mantiene el propietario de la app.",
+  "properties": {
+    "empresa_id": {
+      "type": "string",
+      "description": "ID de la Empresa a la que pertenece el espacio."
+    },
+    "empresa_nombre": {
+      "type": "string",
+      "description": "Nombre de la empresa (desnormalizado para listados)."
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "pendiente_configuracion",
+        "configurado",
+        "activo",
+        "suspendido"
+      ],
+      "enumColors": [
+        "yellow",
+        "blue",
+        "green",
+        "red"
+      ],
+      "default": "pendiente_configuracion",
+      "description": "pendiente_configuracion = espacio creado pero sin admin ni pruebas; configurado = listo pero a\u00fan sin uso real; activo = en producci\u00f3n; suspendido = sin acceso temporalmente."
+    },
+    "url_espacio": {
+      "type": "string",
+      "description": "Direcci\u00f3n publicada del espacio de esa empresa (por ejemplo la URL base44.app de su copia de la app)."
+    },
+    "admin_local_email": {
+      "type": "string",
+      "description": "Email del usuario que administra esa empresa dentro de su espacio: invita a su plantilla y asigna roles. Solo \u00e9l y el propietario de la app pueden gestionar permisos en ese espacio."
+    },
+    "admin_local_nombre": {
+      "type": "string",
+      "description": "Nombre del administrador local (desnormalizado)."
+    },
+    "admin_local_user_id": {
+      "type": "string",
+      "description": "ID del usuario administrador local, cuando ya existe en ese espacio."
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "completo",
+        "control_horario",
+        "cliente_obra",
+        "legal"
+      ],
+      "enumColors": [
+        "green",
+        "blue",
+        "purple",
+        "yellow"
+      ],
+      "default": "completo",
+      "description": "Plan comercial contratado por esa empresa. Recorta qu\u00e9 m\u00f3dulos ve su plantilla; no cambia los permisos por rol."
+    },
+    "fecha_alta": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en la que se dio de alta el espacio."
+    },
+    "version_app": {
+      "type": "string",
+      "description": "Versi\u00f3n o fecha de la copia de la app replicada en ese espacio, para controlar la sincronizaci\u00f3n de versiones."
+    },
+    "es_simantec": {
+      "type": "boolean",
+      "default": false,
+      "description": "True cuando el espacio corresponde a SIMANTEC. Se trata como una empresa m\u00e1s: no comparte datos con las dem\u00e1s."
+    },
+    "checklist": {
+      "type": "array",
+      "description": "Pasos de aprovisionamiento del espacio, con su estado.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "clave": {
+            "type": "string"
+          },
+          "etiqueta": {
+            "type": "string"
+          },
+          "hecho": {
+            "type": "boolean",
+            "default": false
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "notas": {
+      "type": "string",
+      "description": "Observaciones internas del propietario sobre ese espacio."
+    },
+    "actualizado_por": {
+      "type": "string",
+      "description": "Email del usuario que actualiz\u00f3 la ficha."
+    },
+    "actualizado_en": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp del \u00faltimo cambio."
+    }
+  },
+  "required": [
+    "empresa_id",
+    "empresa_nombre",
+    "estado"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gerencia"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administracion"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "propietario"
+          }
+        }
+      ]
+    }
+  }
+}
