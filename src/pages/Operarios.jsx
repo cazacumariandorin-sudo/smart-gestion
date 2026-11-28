@@ -5,6 +5,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
+import { sellarEmpresa } from '@/lib/empresaActiva';
 import { Plus, Search, Pencil, Trash2, User, Phone, Mail, CreditCard, Save, Loader2, FileText, Link2, CheckCircle2 } from 'lucide-react';
 import { MobileSelect, MobileSelectItem } from '@/components/ui/MobileSelect';
 import { Button } from '@/components/ui/button';
@@ -64,7 +65,7 @@ export default function Tecnicos() {
   });
 
   const createM = useMutation({
-    mutationFn: d => base44.entities.Operario.create(d),
+    mutationFn: d => base44.entities.Operario.create(sellarEmpresa(d)),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); close_(); },
   });
   const updateM = useMutation({

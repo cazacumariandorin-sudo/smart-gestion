@@ -47,6 +47,15 @@ Deno.serve(async (req) => {
 
     if (!name) return Response.json({ error: 'name es requerido' }, { status: 400 });
 
+    // La ficha nace dentro de la empresa del usuario; el propietario puede indicar otra.
+    const esPropietario = user.es_propietario_global === true || user.role === 'propietario';
+    const empresaId = (esPropietario && body.empresa_id) ? body.empresa_id : (user.empresa_id || '');
+    let empresaNombre = user.empresa_nombre || '';
+    if (empresaId) {
+      const emp = await base44.asServiceRole.entities.Empresa.get(empresaId).catch(() => null);
+      if (emp) empresaNombre = emp.nombre;
+    }
+
     const anio = new Date().getFullYear();
 
     // 1. Obtener todos los operarios para calcular num_empleado
@@ -64,6 +73,8 @@ Deno.serve(async (req) => {
       categoria,
       especialidad,
       active: true,
+      empresa_id: empresaId,
+      empresa_nombre: empresaNombre,
       vinculacion_tipo: 'sin_vincular',
     });
 
@@ -75,6 +86,8 @@ Deno.serve(async (req) => {
         user_email: email.toLowerCase().trim(),
         operario_id: operario.id,
         operario_name: name,
+        empresa_id: empresaId,
+        empresa_nombre: empresaNombre,
         coste_hora: coste_hora || undefined,
         salario_bruto_mensual: salario_bruto_mensual || undefined,
         num_afiliacion_ss: num_afiliacion_ss || undefined,

@@ -26,6 +26,9 @@ import ActiveRoleIndicator from '@/components/layout/ActiveRoleIndicator';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import ReportarFalloButton from '@/components/diagnostico/ReportarFalloButton';
+import { EmpresaActivaProvider, useEmpresaActiva } from '@/lib/EmpresaActivaContext';
+import EmpresaActivaBar from './EmpresaActivaBar';
+import EmpresaSinAsignar from '@/components/EmpresaSinAsignar';
 
 function ScrollRestorer() {
   useScrollRestoration();
@@ -37,10 +40,11 @@ const VOICE_COMMAND = 'hola compañero';
 // Raíces de la barra de pestañas: no muestran botón de volver
 const RAICES_TAB = ['/', '/mas', '/profile'];
 
-export default function AppLayout() {
+function AppLayoutInner() {
   const location = useLocation();
   const { isSimulating, isDemo } = useUserRole();
   const { user: authUser } = useAuth();
+  const { sinEmpresa } = useEmpresaActiva();
   const hasTopBanner = isSimulating || isDemo;
   const [asistenteOpen, setAsistenteOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -164,6 +168,7 @@ export default function AppLayout() {
       <ConnectivityBanner />
       <RoleSimulatorBanner />
       <DemoBanner />
+      <EmpresaActivaBar />
       <div className="flex flex-1 min-h-0 min-w-0">
         <Sidebar />
         <main
@@ -172,7 +177,7 @@ export default function AppLayout() {
             paddingTop: (!hasTopBanner) ? 'env(safe-area-inset-top, 0px)' : undefined,
           }}
         >
-          <Outlet />
+          {sinEmpresa ? <EmpresaSinAsignar /> : <Outlet />}
         </main>
       </div>
       <DemoWatermark />
@@ -221,5 +226,13 @@ export default function AppLayout() {
       {/* Botón global de reporte de fallos para cualquier usuario */}
       <ReportarFalloButton />
     </div>
+  );
+}
+
+export default function AppLayout() {
+  return (
+    <EmpresaActivaProvider>
+      <AppLayoutInner />
+    </EmpresaActivaProvider>
   );
 }

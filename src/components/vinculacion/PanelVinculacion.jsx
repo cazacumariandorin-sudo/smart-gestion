@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { sellarEmpresa } from '@/lib/empresaActiva';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -102,7 +103,7 @@ export default function PanelVinculacion() {
             tipoVinculo = 'operario';
           } else {
             // Crear operario temporal — role: 'operario' es solo del Operario, NUNCA del User
-            const nuevoOperario = await base44.entities.Operario.create({
+            const nuevoOperario = await base44.entities.Operario.create(sellarEmpresa({
               name: `Operario Temporal - ${usuario.email}`,
               email: usuario.email,
               user_id: usuario.id,
@@ -112,7 +113,7 @@ export default function PanelVinculacion() {
               vinculacion_tipo: 'automatico_7dias',
               vinculacion_fecha: now.toISOString(),
               role: 'operario', // campo del Operario, NO modifica el User.role
-            });
+            }));
             operarioId = nuevoOperario.id;
             operarioNombre = nuevoOperario.name;
             tipoVinculo = 'operario_temporal';

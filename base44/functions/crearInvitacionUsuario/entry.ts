@@ -15,6 +15,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Faltan campos obligatorios (email, full_name, cargo)' }, { status: 400 });
     }
 
+    // Cada empresa invita solo dentro de su ámbito. El propietario puede elegir empresa.
+    const esPropietario = user.es_propietario_global === true || user.role === 'propietario';
+    const empresaInvitacion = esPropietario && empresa_id ? empresa_id : (user.empresa_id || empresa_id || null);
+    if (!empresaInvitacion) {
+      return Response.json({ error: 'Tu usuario no tiene empresa asignada' }, { status: 400 });
+    }
+    let nombreEmpresa = empresa_nombre || user.empresa_nombre || null;
+    const empresa = await base44.asServiceRole.entities.Empresa.get(empresaInvitacion).catch(() => null);
+    if (empresa) nombreEmpresa = empresa.nombre;
+
     // Validación: no duplicar invitación pendiente
     const existentes = await base44.asServiceRole.entities.InvitacionUsuario.filter({
       email: email,
@@ -33,8 +43,8 @@ Deno.serve(async (req) => {
       rol: userRole,
       full_name,
       cargo,
-      empresa_id: empresa_id || null,
-      empresa_nombre: empresa_nombre || null,
+      empresa_id: empresaInvitacion,
+      empresa_nombre: nombreEmpresa,
       acceso_hasta: acceso_hasta || null,
       estado: 'pendiente_activacion',
       invitado_por: user.email,

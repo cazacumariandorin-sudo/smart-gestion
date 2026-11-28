@@ -92,7 +92,9 @@ export default function Empresas() {
         }
       }
       if (editing) return base44.entities.Empresa.update(editing.id, datos);
-      return base44.entities.Empresa.create(datos);
+      const creada = await base44.entities.Empresa.create({ ...datos, empresa_id: user?.empresa_id || '' });
+      await base44.entities.Empresa.update(creada.id, { empresa_id: creada.id });
+      return creada;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['empresas'] });

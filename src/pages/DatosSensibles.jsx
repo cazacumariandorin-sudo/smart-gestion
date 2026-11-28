@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { sellarEmpresa } from '@/lib/empresaActiva';
 import { Plus, Search, Edit, Trash2, Lock, Eye, EyeOff, Loader2, Play, AlertTriangle, CheckCircle2, RefreshCw, ShieldCheck, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,7 +64,7 @@ export default function DatosSensibles() {
   });
 
   const createM = useMutation({
-    mutationFn: d => tab === 'usuarios' ? base44.entities.DatosSensiblesUsuario.create(d) : base44.entities.DatosSensiblesCliente.create(d),
+    mutationFn: d => tab === 'usuarios' ? base44.entities.DatosSensiblesUsuario.create(sellarEmpresa(d)) : base44.entities.DatosSensiblesCliente.create(d),
     onSuccess: () => { qc.invalidateQueries({ queryKey: tab === 'usuarios' ? ['datos_sensibles_usuarios'] : ['datos_sensibles_clientes'] }); close_(); }
   });
 

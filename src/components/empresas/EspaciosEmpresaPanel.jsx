@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useUserRole } from '@/lib/useUserRole';
 import { Button } from '@/components/ui/button';
 import EspacioEmpresaDialog from './EspacioEmpresaDialog';
+import AsignarUsuariosEmpresaDialog from './AsignarUsuariosEmpresaDialog';
 import { ESTADOS_ESPACIO } from '@/lib/multiempresa';
 import { getPlan } from '@/lib/planes';
 import { Building2, ExternalLink, Network, Settings2, ShieldCheck, Star, UserCheck } from 'lucide-react';
@@ -13,8 +14,10 @@ import { Building2, ExternalLink, Network, Settings2, ShieldCheck, Star, UserChe
  * Aquí se registra quién lo administra y en qué punto está su aprovisionamiento.
  */
 export default function EspaciosEmpresaPanel() {
-  const { isAdmin, isGerencia } = useUserRole();
+  const { isAdmin, isGerencia, user } = useUserRole();
   const [dialog, setDialog] = useState(null);
+  const [usuariosDe, setUsuariosDe] = useState(null);
+  const esPropietario = user?.es_propietario_global === true || user?.role === 'propietario';
 
   const { data: empresas = [] } = useQuery({
     queryKey: ['empresas'],
@@ -96,9 +99,16 @@ export default function EspaciosEmpresaPanel() {
 
                 <div className="mt-auto pt-1">
                   {isAdmin ? (
-                    <Button variant="outline" size="sm" className="w-full" onClick={() => setDialog({ empresa, espacio })}>
-                      <Settings2 className="h-3.5 w-3.5" /> {espacio ? 'Configurar espacio' : 'Registrar espacio'}
-                    </Button>
+                    <div className="flex flex-col gap-1">
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => setDialog({ empresa, espacio })}>
+                        <Settings2 className="h-3.5 w-3.5" /> {espacio ? 'Configurar espacio' : 'Registrar espacio'}
+                      </Button>
+                      {esPropietario && (
+                        <Button variant="ghost" size="sm" className="w-full" onClick={() => setUsuariosDe(empresa)}>
+                          <UserCheck className="h-3.5 w-3.5" /> Usuarios
+                        </Button>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                       <ShieldCheck className="h-3 w-3" /> Solo el propietario configura espacios
@@ -122,6 +132,10 @@ export default function EspaciosEmpresaPanel() {
           espacio={dialog.espacio}
           onClose={() => setDialog(null)}
         />
+      )}
+
+      {usuariosDe && (
+        <AsignarUsuariosEmpresaDialog empresa={usuariosDe} onClose={() => setUsuariosDe(null)} />
       )}
     </div>
   );
