@@ -8,6 +8,7 @@ import PlanEmpresaPanel from '@/components/empresas/PlanEmpresaPanel';
 import EspaciosEmpresaPanel from '@/components/empresas/EspaciosEmpresaPanel';
 import SolicitudesPrivilegioPanel from '@/components/empresas/SolicitudesPrivilegioPanel';
 import SolicitudesEmpresaPanel from '@/components/empresas/SolicitudesEmpresaPanel';
+import LimpiezaEmpresasPanel from '@/components/empresas/LimpiezaEmpresasPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -113,10 +114,15 @@ export default function Empresas() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (empresa) => base44.entities.Empresa.delete(empresa.id),
-    onSuccess: () => {
+    // El borrado pasa por la herramienta de limpieza: elimina la empresa y
+    // todos sus rastros (privilegios, espacio, plan, invitaciones y datos).
+    mutationFn: async (empresa) => {
+      const res = await base44.functions.invoke('limpiarEmpresa', { modo: 'purgar', empresa_id: empresa.id });
+      return res.data;
+    },
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['empresas'] });
-      toast({ title: 'Empresa borrada' });
+      toast({ title: 'Empresa borrada', description: `${data?.usuarios_desvinculados || 0} usuario(s) desvinculado(s).` });
       setBorrando(null);
     },
     onError: (e) => toast({ title: 'Error al borrar', description: e?.message, variant: 'destructive' }),
@@ -158,6 +164,7 @@ export default function Empresas() {
       <SolicitudesEmpresaPanel />
       <EspaciosEmpresaPanel />
       <SolicitudesPrivilegioPanel />
+      {esPropietario && <LimpiezaEmpresasPanel />}
       <div className="flex justify-end"><Button onClick={openNew}><Plus className="h-4 w-4" /> Nueva empresa</Button></div>
       {isLoading ? <div className="text-center py-8 text-muted-foreground">Cargando...</div> : empresas.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">No hay empresas registradas.</div>
@@ -246,7 +253,7 @@ export default function Empresas() {
           <AlertDialogHeader>
             <AlertDialogTitle>Borrar {borrando?.nombre || 'empresa'}</AlertDialogTitle>
             <AlertDialogDescription>
-              Se elimina la ficha de la empresa del listado. No se borran sus datos operativos (obras, fichajes, gastos) ni su espacio, y la acción no se puede deshacer.
+              Se elimina la empresa y todos sus rastros en la base de datos: invitaciones, solicitudes de privilegio, espacio, plan, solicitudes comerciales, plantilla, datos sensibles y registro horario legal. Los usuarios vinculados quedan desvinculados. No se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
